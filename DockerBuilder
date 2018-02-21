@@ -1,0 +1,9 @@
+FROM golang:1.9
+MAINTAINER threefoldfoundation
+
+ENV CGO_ENABLED 0
+WORKDIR /go/src/github.com/threefoldfoundation/tfchain
+
+RUN apt-get update && apt-get install -y zip
+
+ENTRYPOINT ./release.sh
