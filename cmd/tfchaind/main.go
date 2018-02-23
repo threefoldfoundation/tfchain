@@ -71,5 +71,10 @@ func setGenesis() {
 
 // setBootstrapPeers sets the bootstrap node addresses
 func setBootstrapPeers() {
-	modules.BootstrapPeers = []modules.NetAddress{}
+	modules.BootstrapPeers = []modules.NetAddress{
+		"185.69.166.11:23112",
+		"185.69.166.12:23112",
+		"185.69.166.13:23112",
+		"185.69.166.14:23112",
+	}
 }
