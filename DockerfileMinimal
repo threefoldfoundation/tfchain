@@ -3,7 +3,7 @@ FROM scratch
 ARG binaries_location=dist/linux
 
 COPY $binaries_location/tfchaind /tfchaind
-COPY $binaries_location/tfchaind /tfchaind
+COPY $binaries_location/tfchainc /tfchainc
 
 EXPOSE 23112
 
