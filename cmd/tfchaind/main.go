@@ -44,8 +44,8 @@ func setGenesis() {
 
 	types.StakeModifierDelay = 2000
 
-	// (2^16s < 1 day < 2^17s)
-	types.BlockStakeAging = uint64(1 << 17)
+	// Blockstake can be used roughly 1 minute after receiving
+	types.BlockStakeAging = uint64(1 << 6)
 
 	// Receive 10 coins when you create a block
 	types.BlockCreatorFee = types.OneCoin.Mul64(10)
@@ -62,9 +62,13 @@ func setGenesis() {
 	}
 
 	bso.UnlockHash.LoadString("02b1a92f2cb1b2daec2f650717452367273335263136fae0201ddedbbcfe67648572b069c754")
+	types.GenesisBlockStakeAllocation = []types.BlockStakeOutput{}
 	types.GenesisBlockStakeAllocation = append(types.GenesisBlockStakeAllocation, bso)
 	co.UnlockHash.LoadString("02b1a92f2cb1b2daec2f650717452367273335263136fae0201ddedbbcfe67648572b069c754")
+	types.GenesisCoinDistribution = []types.CoinOutput{}
 	types.GenesisCoinDistribution = append(types.GenesisCoinDistribution, co)
+
+	types.GenesisBlockStakeCount = types.ZeroCurrency
 
 	types.CalculateGenesis()
 }
