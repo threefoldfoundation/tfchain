@@ -76,9 +76,9 @@ func setGenesis() {
 // setBootstrapPeers sets the bootstrap node addresses
 func setBootstrapPeers() {
 	modules.BootstrapPeers = []modules.NetAddress{
-		"185.69.166.11:23112",
-		"185.69.166.12:23112",
-		"185.69.166.13:23112",
-		"185.69.166.14:23112",
+		"bootstrap1.testnet.threefoldtoken.com:23112",
+		"bootstrap2.testnet.threefoldtoken.com:23112",
+		"bootstrap3.testnet.threefoldtoken.com:23112",
+		"bootstrap4.testnet.threefoldtoken.com:23112",
 	}
 }
