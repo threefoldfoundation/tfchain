@@ -16,6 +16,7 @@ The nodes (and thus the container running on the node) can be accessed directly 
 on the ZeroTier network).
 
 Node overview:
+
 | ZeroTier IP | Public IP     | Exposed port - subnet | Notes                              |
 | ----------- | ------------- | --------------------- | ---------------------------------- |
 | 10.250.1.11 | 185.69.166.14 | 23112 - 0.0.0.0       | Blockcreator node                  |
