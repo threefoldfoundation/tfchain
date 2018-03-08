@@ -28,3 +28,10 @@ Node overview:
 | 10.250.1.14 | 185.69.166.12 | 23112 - 0.0.0.0       | Explorer node                      |
 |             |               | 2222 - 10.250.1.0/24  | Ssh server (authorized key access) |
 |             |               | 2015 - 0.0.0.0        | Explorer UI                        |
+
+
+Blockcreator daemon command: `con.bash('/tfchaind --authenticate-api --api-addr 10.250.1.11:23110 --disable-api-security --tfchain-directory /storage --no-bootstrap', stdin='...', stream=True).stream()`
+
+Explorer daemon command: `con.bash('/tfchaind -d /storage -M cgte --no-bootstrap', stdin='...', stream=True).stream()`
+
+The password to set the api password is passed on stdin
