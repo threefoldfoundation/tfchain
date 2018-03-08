@@ -1,4 +1,4 @@
-package rivinec
+package client
 
 import (
 	"encoding/json"
@@ -18,8 +18,7 @@ import (
 
 // flags
 var (
-	addr         string // override default API address
-	initPassword bool   // supply a custom password when creating a wallet
+	addr string // override default API address
 )
 
 var (
@@ -53,8 +52,8 @@ func DecodeError(resp *http.Response) error {
 }
 
 // ApiGet wraps a GET request with a status code check, such that if the GET does
-// not return 2xx, the error will be read and returned. The response body is
-// not closed.
+// not return 2xx, the error will be read and returned. When no error is returned,
+// the response's body isn't closed, otherwise it is.
 func ApiGet(call string) (*http.Response, error) {
 	if host, port, _ := net.SplitHostPort(addr); host == "" {
 		addr = net.JoinHostPort("localhost", port)
@@ -120,8 +119,8 @@ func Get(call string) error {
 }
 
 // ApiPost wraps a POST request with a status code check, such that if the POST
-// does not return 2xx, the error will be read and returned. The response body
-// is not closed.
+// does not return 2xx, the error will be read and returned. When no error is returned,
+// the response's body isn't closed, otherwise it is.
 func ApiPost(call, vals string) (*http.Response, error) {
 	if host, port, _ := net.SplitHostPort(addr); host == "" {
 		addr = net.JoinHostPort("localhost", port)
@@ -249,15 +248,32 @@ func DefaultClient() {
 	updateCmd.AddCommand(updateCheckCmd)
 
 	root.AddCommand(walletCmd)
-	walletCmd.AddCommand(walletAddressCmd, walletAddressesCmd, walletInitCmd,
-		walletLoadCmd, walletLockCmd, walletSeedsCmd, walletSendCmd,
-		walletBalanceCmd, walletTransactionsCmd, walletUnlockCmd, walletBlockStakeStatCmd)
-	walletInitCmd.Flags().BoolVarP(&initPassword, "password", "p", false, "Prompt for a custom password")
-	walletSendCmd.AddCommand(walletSendSiacoinsCmd, walletSendSiafundsCmd)
+	walletCmd.AddCommand(
+		walletAddressCmd,
+		walletAddressesCmd,
+		walletInitCmd,
+		walletLoadCmd,
+		walletLockCmd,
+		walletSeedsCmd,
+		walletSendCmd,
+		walletBalanceCmd,
+		walletTransactionsCmd,
+		walletUnlockCmd,
+		walletBlockStakeStatCmd,
+		walletRegisterDataCmd)
+
+	walletSendCmd.AddCommand(
+		walletSendSiacoinsCmd,
+		walletSendSiafundsCmd)
+
 	walletLoadCmd.AddCommand(walletLoadSeedCmd)
 
 	root.AddCommand(gatewayCmd)
-	gatewayCmd.AddCommand(gatewayConnectCmd, gatewayDisconnectCmd, gatewayAddressCmd, gatewayListCmd)
+	gatewayCmd.AddCommand(
+		gatewayConnectCmd,
+		gatewayDisconnectCmd,
+		gatewayAddressCmd,
+		gatewayListCmd)
 
 	root.AddCommand(consensusCmd)
 

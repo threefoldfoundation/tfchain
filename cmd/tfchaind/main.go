@@ -5,7 +5,7 @@ import (
 
 	"github.com/rivine/rivine/modules"
 
-	"github.com/rivine/rivine/rivined"
+	"github.com/rivine/rivine/pkg/daemon"
 	"github.com/rivine/rivine/types"
 )
 
@@ -15,10 +15,10 @@ func main() {
 	setBootstrapPeers()
 
 	// Set daemon name for help messages
-	rivined.DaemonName = "tfchain"
+	daemon.DaemonName = "tfchain"
 
-	defaultDaemonConfig := rivined.DefaultConfig()
-	rivined.SetupDefaultDaemon(defaultDaemonConfig)
+	defaultDaemonConfig := daemon.DefaultConfig()
+	daemon.SetupDefaultDaemon(defaultDaemonConfig)
 }
 
 // setGenesis explicitly sets all the required constants in the types package, mainly for the genesis block

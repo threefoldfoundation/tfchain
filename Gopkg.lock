@@ -107,13 +107,13 @@
     "modules/transactionpool",
     "modules/wallet",
     "persist",
+    "pkg/client",
+    "pkg/daemon",
     "profile",
-    "rivinec",
-    "rivined",
     "sync",
     "types"
   ]
-  revision = "346359f011159cca7d23d105e0a3674d5c5f9abb"
+  revision = "6f4f58d276fc3ec18fd450accab88198ac0ac65d"
 
 [[projects]]
   name = "github.com/spf13/cobra"
@@ -190,6 +190,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "75e4ba26d0cdafbb4f8d5c82f2a461bc2a16f9effc36f7fb4885549001294ea2"
+  inputs-digest = "ecaa4b05e161d7ae3e21799a5b93c1c5d610a4a2c1e0a807cba6c24b4611dcc2"
   solver-name = "gps-cdcl"
   solver-version = 1

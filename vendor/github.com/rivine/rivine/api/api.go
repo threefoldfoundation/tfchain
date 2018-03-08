@@ -63,7 +63,12 @@ func HttpGETAuthenticated(url string, password string) (resp *http.Response, err
 // HttpPOST is a utility function for making post requests to sia with a
 // whitelisted user-agent. A non-2xx response does not return an error.
 func HttpPOST(url string, data string) (resp *http.Response, err error) {
-	req, err := http.NewRequest("POST", url, strings.NewReader(data))
+	var req *http.Request
+	if data != "" {
+		req, err = http.NewRequest("POST", url, strings.NewReader(data))
+	} else {
+		req, err = http.NewRequest("POST", url, nil)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -189,6 +194,7 @@ func New(requiredUserAgent string, requiredPassword string, cs modules.Consensus
 		router.GET("/wallet/seeds", RequirePassword(api.walletSeedsHandler, requiredPassword))
 		router.POST("/wallet/coins", RequirePassword(api.walletCoinsHandler, requiredPassword))
 		router.POST("/wallet/blockstakes", RequirePassword(api.walletBlockStakesHandler, requiredPassword))
+		router.POST("/wallet/data", RequirePassword(api.walletDataHandler, requiredPassword))
 		router.GET("/wallet/transaction/:id", api.walletTransactionHandler)
 		router.GET("/wallet/transactions", api.walletTransactionsHandler)
 		router.GET("/wallet/transactions/:addr", api.walletTransactionsAddrHandler)

@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/rivine/rivine/rivinec"
+	"github.com/rivine/rivine/pkg/client"
 )
 
 func main() {
-	rivinec.ClientName = "tfchain"
-	rivinec.DefaultClient()
+	client.ClientName = "tfchain"
+	client.DefaultClient()
 }

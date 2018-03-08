@@ -1,10 +1,13 @@
-package rivinec
+package client
 
 import (
+	"encoding/base64"
 	"fmt"
 	"math/big"
 	"os"
 	"text/tabwriter"
+
+	"github.com/rivine/rivine/modules"
 
 	"github.com/bgentry/speakeasy"
 	"github.com/spf13/cobra"
@@ -117,6 +120,13 @@ Run 'wallet send --help' to see a list of available units.`,
 		Run: wrap(Walletsendblockstakescmd),
 	}
 
+	walletRegisterDataCmd = &cobra.Command{
+		Use:   "registerdata [dest] [data]",
+		Short: "Register data on the blockchain",
+		Long:  "Register data on the blockcahin by sending a minimal transaction to the destination address, and including the data in the transaction",
+		Run:   wrap(Walletregisterdatacmd),
+	}
+
 	walletBalanceCmd = &cobra.Command{
 		Use:   "balance",
 		Short: "View wallet balance",
@@ -165,24 +175,32 @@ func Walletaddressescmd() {
 // Walletinitcmd encrypts the wallet with the given password
 func Walletinitcmd() {
 	var er api.WalletInitPOST
-	qs := fmt.Sprintf("dictionary=%s", "english")
-	if initPassword {
-		password, err := speakeasy.Ask("Wallet password: ")
-		if err != nil {
-			Die("Reading password failed:", err)
-		}
-		qs += fmt.Sprintf("&encryptionpassword=%s", password)
+
+	fmt.Println("You should provide a password, it may be empty if you wish.")
+
+	password, err := speakeasy.Ask("Wallet password: ")
+	if err != nil {
+		Die("Reading password failed:", err)
 	}
-	err := PostResp("/wallet/init", qs, &er)
+
+	repasswd, err := speakeasy.Ask("Reenter password: ")
+	if err != nil {
+		Die("Reading password failed:", err)
+	}
+
+	if repasswd != password {
+		Die("Passwords do not match !!")
+	}
+
+	qs := fmt.Sprintf("dictionary=%s&encryptionpassword=%s", "english", password)
+
+	err = PostResp("/wallet/init", qs, &er)
 	if err != nil {
 		Die("Error when encrypting wallet:", err)
 	}
+
 	fmt.Printf("Recovery seed:\n%s\n\n", er.PrimarySeed)
-	if initPassword {
-		fmt.Printf("Wallet encrypted with given password\n")
-	} else {
-		fmt.Printf("Wallet encrypted with password:\n%s\n", er.PrimarySeed)
-	}
+	fmt.Printf("Wallet encrypted with given password\n")
 }
 
 // Walletloadseedcmd adds a seed to the wallet's list of seeds
@@ -246,6 +264,19 @@ func Walletsendblockstakescmd(amount, dest string) {
 		Die("Could not send blockstakes:", err)
 	}
 	fmt.Printf("Sent %s blockstakes to %s\n", amount, dest)
+}
+
+// Walletregisterdatacmd registers data on the blockchain by making a minimal transaction to the designated address
+// and includes the data in the transaction
+func Walletregisterdatacmd(dest, data string) {
+	// / At the moment, we need to prepend the non sia prefix for the transaction to be accepted by the transactionpool
+	dataBytes := append(modules.PrefixNonSia[:], []byte(data)...)
+	encodedData := base64.StdEncoding.EncodeToString(dataBytes)
+	err := Post("/wallet/data", fmt.Sprintf("destination=%s&data=%s", dest, encodedData))
+	if err != nil {
+		Die("Could not register data:", err)
+	}
+	fmt.Printf("Registered data to %s\n", dest)
 }
 
 // Walletblockstakestatcmd gives all statistical info of blockstake
