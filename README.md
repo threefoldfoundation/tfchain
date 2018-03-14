@@ -34,3 +34,22 @@ tfchain is using and build on top of [Rivine][rivine], a generic blockchain prot
 This official (Golang) implementation is build using a vendored version of [the reference Golang implementation of Rivine][rivine].
 
 For in-depth technical information you can check the [Rivine][rivine] docs at [github.com/rivine/rivine/tree/master/doc](https://github.com/rivine/rivine/tree/master/doc). There are no technical docs in this repository, as all the technology lives and is developed within the [Rivine repository][rivine].
+
+## Install ##
+
+Start by cloning the tfchain repository (git clone).
+
+In the Makefile there are various subcomands to make things easier.
+* xc , creates binaries for Windows Mac and Linux.
+* release-images, creates a docker image with a copy of the binaries. Needs credentials from [Itsyouonline](https://itsyou.online/)
+
+In any machine with a golang 1.9 (or higher) development environment you can just do
+
+```bash
+go get github.com/threefoldfoundation/tfchain/cmd/tfchaind
+go get github.com/threefoldfoundation/tfchain/cmd/tfchainc
+```
+
+and that will download the needed code, compile it and install it in $GOROOT/bin or $GOPATH/bin
+
+You can find additional daemon documentation of the daemon on [tfchaind](http://github.com/threefoldfoundation/tfchain/doc/tfchaind.md) and the client on [tfchainc](http://github.com/threefoldfoundation/tfchain/doc/tfchainc.md)
