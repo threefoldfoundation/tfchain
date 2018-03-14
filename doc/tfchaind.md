@@ -1,17 +1,17 @@
-# TFCHAIND #
+# tfchaind
 
-Tfchaind is the daemon running the tfchain nnode, also provides a REST API to allow clients to connect and interact with it.
+tfchaind is the daemon running the tfchain nnode, also provides a REST API to allow clients to connect and interact with it.
 
 The usage is pretty simple, as you only need to execute it.
 You can access the embedded help using the --help flag.
 
 ```bash
-./tfchaind --help
+tfchaind --help
 Tfchain Daemon v0.1.1
 
 Usage:
-  ./tfchaind [flags]
-  ./tfchaind [command]
+  tfchaind [flags]
+  tfchaind [command]
 
 Available Commands:
   help        Help about any command

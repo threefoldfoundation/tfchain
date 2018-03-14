@@ -13,9 +13,11 @@ xc:
 	docker build -t tfchainbuilder -f DockerBuilder .
 	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchainbuilder
 
-# Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
-release-images: get_hub_jwt xc
+docker-minimal: xc
 	docker build -t tfchain/tfchain:$(version) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(version)-linux-amd64/cmd .
+
+# Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
+release-images: get_hub_jwt docker-minimal
 	docker push tfchain/tfchain:$(version)
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "image=tfchain/tfchain:$(version)" "https://hub.gig.tech/api/flist/me/docker"
 

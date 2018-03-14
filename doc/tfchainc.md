@@ -1,16 +1,16 @@
-# TFCHAINC #
+# tfchainc
 
 Tfchainc is a tfchaind client, it uses the REST API to communicate with the daemon.
 
 The usage is pretty simple, as you only need to execute it.
 
 ```bash
-./tfchainc --help
+tfchainc --help
 Tfchain Client v0.1.1
 
 Usage:
-  ./tfchainc [flags]
-  ./tfchainc [command]
+  tfchainc [flags]
+  tfchainc [command]
 
 Available Commands:
   consensus   Print the current state of consensus
