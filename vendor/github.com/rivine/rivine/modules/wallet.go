@@ -1,11 +1,9 @@
 package modules
 
 import (
-	"bytes"
 	"errors"
 
-	"github.com/NebulousLabs/entropy-mnemonics"
-
+	bip39 "github.com/rivine/go-bip39"
 	"github.com/rivine/rivine/crypto"
 	"github.com/rivine/rivine/types"
 )
@@ -364,31 +362,18 @@ func CalculateWalletTransactionID(tid types.TransactionID, oid types.OutputID) W
 	return WalletTransactionID(crypto.HashAll(tid, oid))
 }
 
-// SeedToString converts a wallet seed to a human friendly string.
-func SeedToString(seed Seed, did mnemonics.DictionaryID) (string, error) {
-	fullChecksum := crypto.HashObject(seed)
-	checksumSeed := append(seed[:], fullChecksum[:SeedChecksumSize]...)
-	phrase, err := mnemonics.ToPhrase(checksumSeed, did)
-	if err != nil {
-		return "", err
-	}
-	return phrase.String(), nil
+// NewMnemonic converts a wallet seed to a mnemonic, a human friendly string.
+func NewMnemonic(seed Seed) (string, error) {
+	return bip39.NewMnemonic(seed[:])
 }
 
-// StringToSeed converts a string to a wallet seed.
-func StringToSeed(str string, did mnemonics.DictionaryID) (Seed, error) {
-	// Decode the string into the checksummed byte slice.
-	checksumSeedBytes, err := mnemonics.FromString(str, did)
+// InitialSeedFromMnemonic converts the mnemonic into the initial seed,
+// also called entropy, that was used to create the given mnemonic initially.
+func InitialSeedFromMnemonic(mnemonic string) (out Seed, err error) {
+	seed, err := bip39.EntropyFromMnemonic(mnemonic)
 	if err != nil {
-		return Seed{}, err
+		return
 	}
-
-	// Copy the seed from the checksummed slice.
-	var seed Seed
-	copy(seed[:], checksumSeedBytes)
-	fullChecksum := crypto.HashObject(seed)
-	if len(checksumSeedBytes) != crypto.EntropySize+SeedChecksumSize || !bytes.Equal(fullChecksum[:SeedChecksumSize], checksumSeedBytes[crypto.EntropySize:]) {
-		return Seed{}, errors.New("seed failed checksum verification")
-	}
-	return seed, nil
+	copy(out[:], seed[:])
+	return
 }

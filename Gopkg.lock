@@ -15,12 +15,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/NebulousLabs/entropy-mnemonics"
-  packages = ["."]
-  revision = "7b01a644a63680b90de22bacfb11d832e944eaab"
-
-[[projects]]
-  branch = "master"
   name = "github.com/NebulousLabs/fastrand"
   packages = ["."]
   revision = "3cf7173006a0b7d2371fa1a220da7f9d48c7827c"
@@ -93,6 +87,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/rivine/go-bip39"
+  packages = ["."]
+  revision = "e35a707fc62766b909ae41fc6d45c1efac74bf34"
+
+[[projects]]
+  branch = "master"
   name = "github.com/rivine/rivine"
   packages = [
     "api",
@@ -113,7 +113,7 @@
     "sync",
     "types"
   ]
-  revision = "6f4f58d276fc3ec18fd450accab88198ac0ac65d"
+  revision = "0e4a2e95e9d10e63663f8c22d49f7bf92cc100e8"
 
 [[projects]]
   name = "github.com/spf13/cobra"
@@ -140,6 +140,7 @@
     "blake2b",
     "ed25519",
     "ed25519/internal/edwards25519",
+    "pbkdf2",
     "twofish"
   ]
   revision = "432090b8f568c018896cd8a0fb0345872bbac6ce"
@@ -176,14 +177,11 @@
     "encoding/unicode",
     "internal/gen",
     "internal/tag",
-    "internal/triegen",
-    "internal/ucd",
     "internal/utf8internal",
     "language",
     "runes",
     "transform",
-    "unicode/cldr",
-    "unicode/norm"
+    "unicode/cldr"
   ]
   revision = "4e4a3210bb54bb31f6ab2cdca2edcc0b50c420c1"
 
