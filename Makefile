@@ -1,7 +1,7 @@
 all: install
 
 pkgs = ./cmd/tfchainc ./cmd/tfchaind
-version = $(shell git describe | cut -d '-' -f 1)
+version = $(shell git describe | cut -d '-' -f 1 | cut -d 'v' -f 2)
 
 install:
 	go install -race -tags='debug profile' $(pkgs)
@@ -19,6 +19,9 @@ docker-minimal: xc
 # Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
 release-images: get_hub_jwt docker-minimal
 	docker push tfchain/tfchain:$(version)
+	# also create a latest
+	docker tag tfchain/tfchain:$(version) tfchain/tfchain
+	docker push tfchain/tfchain
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "image=tfchain/tfchain:$(version)" "https://hub.gig.tech/api/flist/me/docker"
 
 get_hub_jwt: check-HUB_APP_ID check-HUB_APP_SECRET
