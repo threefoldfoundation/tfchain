@@ -10,8 +10,9 @@ FLIST=/tmp/flist
 mkdir -p $ARCHIVE
 
 # install go
-wget https://dl.google.com/go/go1.10.linux-amd64.tar.gz
-tar -C /usr/local -xzf go1.10.linux-amd64.tar.gz
+GOFILE=go1.10.linux-amd64.tar.gz
+wget https://dl.google.com/go/$GOFILE
+tar -C /usr/local -xzf $GOFILE
 mkdir -p /root/go
 export GOPATH=/root/go
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/go/bin
@@ -24,11 +25,11 @@ TFCHAIND=$TFCHAIN/cmd/tfchaind
 TFCHAINC=$TFCHAIN/cmd/tfchainc
 
 pushd $TFCHAIND
-go build -ldflags "-linkmode external -extldflags -static" -o $FLIST/bin
+go build -ldflags "-linkmode external -s -extldflags -static" -o $FLIST/bin
 popd
 
 pushd $TFCHAINC
-go build -ldflags "-linkmode external -extldflags -static" -o $FLIST/bin
+go build -ldflags "-linkmode external -s -extldflags -static" -o $FLIST/bin
 popd
 
 # make sure binary is executable
