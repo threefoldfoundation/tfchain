@@ -1,0 +1,17 @@
+http://explorer.testnet.threefoldtoken.com {
+    redir https://explorer.testnet.threefoldtoken.com
+}
+
+https://explorer.testnet.threefoldtoken.com {
+    root public
+    proxy /explorer localhost:23110 {
+        header_upstream User-Agent Rivine-Agent
+    }
+
+    proxy /transactionpool/transactions localhost:23110 {
+        header_upstream User-Agent Rivine-Agent
+    }
+
+    log stdout
+    tls support@threefoldtoken.com
+}

@@ -1,0 +1,53 @@
+/* Set the page width to 1000px */
+div.content {
+	margin: 0 auto;
+	width:  1000px;
+}
+
+/* CSS for constructing banners */
+.banner {
+	text-align:    center;
+	margin-bottom: 40px;
+}
+.sub-banner {
+	text-align:    center;
+	margin-bottom: 10px;
+	font-weight:   400;
+}
+
+
+/* CSS for constructing stat tables */
+.stats {
+	margin-bottom: 15px;
+	width:         100%;
+}
+.stats-head {
+	font-size:  200%;
+	text-align: center;
+}
+.stats-title {
+	text-align: left;
+	width:      250px;
+}
+.stats-info {
+	text-align: left;
+}
+
+/* CSS for managing the search bars at the bottom */
+div.search-form {
+	display: table;
+}
+form.search-form-tr, div.search-form-tr {
+	display: table-row;
+}
+span.search-form-td {
+	display:       table-cell;
+	padding-left:  10px;
+	padding-right: 10px;
+	padding-bottom: 10px;
+}
+.search {
+	align:      center;
+	margin:     0px auto;
+	margin-top: 40px;
+}
