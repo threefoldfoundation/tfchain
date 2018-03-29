@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/rivine/rivine/modules"
@@ -9,73 +10,96 @@ import (
 	"github.com/rivine/rivine/types"
 )
 
+var (
+	testnet = "testnet"
+)
+
 func main() {
 
-	setGenesis()
-	setBootstrapPeers()
-
-	// Set daemon name for help messages
-	daemon.DaemonName = "tfchain"
+	// setGenesis()
+	// setBootstrapPeers()
 
 	defaultDaemonConfig := daemon.DefaultConfig()
+	defaultDaemonConfig.BlockchainInfo.Name = "tfchain"
+	// Default network name, testnet for now since real network is not live yet
+	defaultDaemonConfig.NetworkName = testnet
+	defaultDaemonConfig.CreateNetworConfig = SetupNetworks
+
 	daemon.SetupDefaultDaemon(defaultDaemonConfig)
 }
 
-// setGenesis explicitly sets all the required constants in the types package, mainly for the genesis block
-func setGenesis() {
+// SetupNetworks injects the correct chain constants and genesis nodes based on the chosen network
+func SetupNetworks(name string) (daemon.NetworkConfig, error) {
+	if name == testnet {
+		return daemon.NetworkConfig{
+			Constants:      getTestnetGenesis(),
+			BootstrapPeers: getTestnetBootstrapPeers(),
+		}, nil
+	}
 
-	// 10 minute block time
-	types.BlockFrequency = 600
+	return daemon.NetworkConfig{}, fmt.Errorf("Netork name \"%v\" not recognized", name)
+}
+
+// getTestnetGenesis explicitly sets all the required constants for the genesis block of the testnet
+func getTestnetGenesis() types.ChainConstants {
+
+	cfg := types.DefaultChainConstants()
+
+	// 1 coin = 1 000 000 000 of the smalles possible units
+	cfg.CurrencyUnits = types.CurrencyUnits{
+		OneCoin: types.NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(9), nil)),
+	}
+
+	// 2 minute block time
+	cfg.BlockFrequency = 120
 
 	// Payouts take rougly 1 day to mature.
-	types.MaturityDelay = 144
+	cfg.MaturityDelay = 720
 
 	// The genesis timestamp is set to February 21st, 2018
-	types.GenesisTimestamp = types.Timestamp(1519200000) // February 21st, 2018 @ 8:00am UTC.
+	cfg.GenesisTimestamp = types.Timestamp(1519200000) // February 21st, 2018 @ 8:00am UTC.
 
 	// 1000 block window for difficulty
-	types.TargetWindow = 1e3
+	cfg.TargetWindow = 1e3
 
-	types.MaxAdjustmentUp = big.NewRat(25, 10)
-	types.MaxAdjustmentDown = big.NewRat(10, 25)
+	cfg.MaxAdjustmentUp = big.NewRat(25, 10)
+	cfg.MaxAdjustmentDown = big.NewRat(10, 25)
 
-	types.FutureThreshold = 3 * 60 * 60        // 3 hours.
-	types.ExtremeFutureThreshold = 5 * 60 * 60 // 5 hours.
+	cfg.FutureThreshold = 1 * 60 * 60        // 1 hour.
+	cfg.ExtremeFutureThreshold = 2 * 60 * 60 // 2 hours.
 
-	types.StakeModifierDelay = 2000
+	cfg.StakeModifierDelay = 2000
 
 	// Blockstake can be used roughly 1 minute after receiving
-	types.BlockStakeAging = uint64(1 << 6)
+	cfg.BlockStakeAging = uint64(1 << 6)
 
 	// Receive 10 coins when you create a block
-	types.BlockCreatorFee = types.OneCoin.Mul64(10)
+	cfg.BlockCreatorFee = cfg.CurrencyUnits.OneCoin.Mul64(10)
 
-	// Create 1M blockstakes
+	// Create 3K blockstakes
 	bso := types.BlockStakeOutput{
-		Value:      types.NewCurrency64(1000000),
+		Value:      types.NewCurrency64(3000),
 		UnlockHash: types.UnlockHash{},
 	}
 
 	// Create 100M coins
 	co := types.CoinOutput{
-		Value: types.OneCoin.Mul64(100 * 1000 * 1000),
+		Value: cfg.CurrencyUnits.OneCoin.Mul64(100 * 1000 * 1000),
 	}
 
-	bso.UnlockHash.LoadString("02b1a92f2cb1b2daec2f650717452367273335263136fae0201ddedbbcfe67648572b069c754")
-	types.GenesisBlockStakeAllocation = []types.BlockStakeOutput{}
-	types.GenesisBlockStakeAllocation = append(types.GenesisBlockStakeAllocation, bso)
-	co.UnlockHash.LoadString("02b1a92f2cb1b2daec2f650717452367273335263136fae0201ddedbbcfe67648572b069c754")
-	types.GenesisCoinDistribution = []types.CoinOutput{}
-	types.GenesisCoinDistribution = append(types.GenesisCoinDistribution, co)
+	bso.UnlockHash.LoadString("01fc8714235d549f890f35e52d745b9eeeee34926f96c4b9ef1689832f338d9349b72d12744e14")
+	cfg.GenesisBlockStakeAllocation = []types.BlockStakeOutput{}
+	cfg.GenesisBlockStakeAllocation = append(cfg.GenesisBlockStakeAllocation, bso)
+	co.UnlockHash.LoadString("01fc8714235d549f890f35e52d745b9eeeee34926f96c4b9ef1689832f338d9349b72d12744e14")
+	cfg.GenesisCoinDistribution = []types.CoinOutput{}
+	cfg.GenesisCoinDistribution = append(cfg.GenesisCoinDistribution, co)
 
-	types.GenesisBlockStakeCount = types.ZeroCurrency
-
-	types.CalculateGenesis()
+	return cfg
 }
 
-// setBootstrapPeers sets the bootstrap node addresses
-func setBootstrapPeers() {
-	modules.BootstrapPeers = []modules.NetAddress{
+// getTestnetBootstrapPeers sets the bootstrap node addresses
+func getTestnetBootstrapPeers() []modules.NetAddress {
+	return []modules.NetAddress{
 		"bootstrap1.testnet.threefoldtoken.com:23112",
 		"bootstrap2.testnet.threefoldtoken.com:23112",
 		"bootstrap3.testnet.threefoldtoken.com:23112",
