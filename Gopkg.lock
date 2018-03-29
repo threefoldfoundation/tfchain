@@ -129,7 +129,7 @@
     "sync",
     "types"
   ]
-  revision = "7ec60e5e497e20e2716763361e248fdf252959cb"
+  revision = "393b2b45013d80ae993e53431cc10ce2f921d76d"
 
 [[projects]]
   name = "github.com/spf13/cobra"

@@ -76,6 +76,9 @@ func getTestnetGenesis() types.ChainConstants {
 	// Receive 10 coins when you create a block
 	cfg.BlockCreatorFee = cfg.CurrencyUnits.OneCoin.Mul64(10)
 
+	// Use 0.1 coins as minimum transaction fee
+	cfg.MinimumTransactionFee = cfg.CurrencyUnits.OneCoin.Div64(10)
+
 	// Create 3K blockstakes
 	bso := types.BlockStakeOutput{
 		Value:      types.NewCurrency64(3000),
