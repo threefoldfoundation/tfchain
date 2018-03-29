@@ -15,55 +15,81 @@ import (
 	"github.com/rivine/rivine/modules"
 	"github.com/rivine/rivine/modules/blockcreator"
 	"github.com/rivine/rivine/modules/consensus"
+	"github.com/rivine/rivine/modules/datastore"
 	"github.com/rivine/rivine/modules/explorer"
 	"github.com/rivine/rivine/modules/gateway"
 	"github.com/rivine/rivine/modules/transactionpool"
 	"github.com/rivine/rivine/modules/wallet"
+	"github.com/rivine/rivine/types"
 
 	"github.com/bgentry/speakeasy"
 )
 
-var (
-	// globalConfig is used by the cobra package to fill out the configuration
-	// variables.
-	globalConfig Config
-)
-
-// The Config struct contains all configurable variables for siad. It is
-// compatible with gcfg.
+// Config contains all configurable variables for rivined.
 type Config struct {
-	// The APIPassword is input by the user after the daemon starts up, if the
-	// --authenticate-api flag is set.
+	BlockchainInfo types.BlockchainInfo
+
+	// the password required to use the http api,
+	// if `AuthenticateAPI` is true, and the password is the empty string,
+	// a password will be prompted when the daemon starts
 	APIPassword string
 
-	// The Rivined variables are referenced directly by cobra, and are set
-	// according to the flags.
-	Rivined RivinedCfg
-}
-
-// RivinedCfg holds variables referenced by cobra and set by flags
-type RivinedCfg struct {
-	APIaddr      string
-	RPCaddr      string
-	HostAddr     string
+	// the host:port for the HTTP API to listen on.
+	// If `AllowAPIBind` is false, only localhost hosts are allowed
+	APIaddr string
+	// the host:port to listen for RPC calls
+	RPCaddr string
+	// indicates that the http API can listen on a non localhost address.
+	//  If this is true, then the AuthenticateAPI parameter
+	// must also be true
 	AllowAPIBind bool
 
-	Modules           string
-	NoBootstrap       bool
+	// the modules to enable, this string must contain one letter
+	// for each module (order does not matter).
+	// All required modules must be specified,
+	// if a required (parent) module is not present,
+	// an error is returned
+	Modules string
+	// indicates that the daemon should not try to connect to
+	// the bootstrap nodes
+	NoBootstrap bool
+	// the user agent required to connect to the http api.
 	RequiredUserAgent string
-	AuthenticateAPI   bool
+	// indicates if the http api is password protected
+	AuthenticateAPI bool
 
-	Profile    bool
+	// indicates if profile info should be collected while
+	// the daemon is running
+	Profile bool
+	// name of the directory to store the profile info,
+	// should this be collected
 	ProfileDir string
-	RivineDir  string
+	// the parent directory where the individual module
+	// directories will be created
+	RootPersistentDir string
+
+	RedisAddr     string
+	RedisPassword string
+	RedisDB       int
+
+	// Network defines the network config to use
+	NetworkName string
+	// optional network config constructor,
+	// if you're implementing your own rivine-based blockchain,
+	// you'll probably want to define this one,
+	// as otherwise a pure rivine blockchain config will be created
+	CreateNetworConfig func(name string) (NetworkConfig, error)
 }
 
 // DefaultConfig returns the default daemon configuration
-func DefaultConfig() RivinedCfg {
-	return RivinedCfg{
+func DefaultConfig() Config {
+	return Config{
+		BlockchainInfo: types.DefaultBlockchainInfo(),
+
+		APIPassword: "",
+
 		APIaddr:      "localhost:23110",
 		RPCaddr:      ":23112",
-		HostAddr:     "",
 		AllowAPIBind: false,
 
 		Modules:           "cgtwb",
@@ -71,31 +97,62 @@ func DefaultConfig() RivinedCfg {
 		RequiredUserAgent: "Rivine-Agent",
 		AuthenticateAPI:   false,
 
-		Profile:    false,
-		ProfileDir: "profiles",
-		RivineDir:  "",
+		Profile:           false,
+		ProfileDir:        "profiles",
+		RootPersistentDir: "",
+
+		RedisAddr:     "localhost:6379",
+		RedisPassword: "",
+		RedisDB:       0,
+
+		NetworkName: build.Release,
 	}
+}
+
+func (cfg *Config) createConfiguredNetworkConfig() (NetworkConfig, error) {
+	if cfg.NetworkName == "" {
+		// default to build.Release as network name
+		cfg.NetworkName = build.Release
+	}
+	if cfg.CreateNetworConfig != nil {
+		// use custom network config creator
+		return cfg.CreateNetworConfig(cfg.NetworkName)
+	}
+
+	// use default network config creator
+	networkCfg := NetworkConfig{
+		Constants: types.DefaultChainConstants(),
+	}
+	if cfg.NetworkName == "standard" {
+		networkCfg.BootstrapPeers = []modules.NetAddress{
+			"136.243.144.132:23112",
+			"[2a01:4f8:171:1303::2]:23112",
+			"bootstrap2.rivine.io:23112",
+			"bootstrap3.rivine.io:23112",
+		}
+	}
+	return networkCfg, nil
 }
 
 // verifyAPISecurity checks that the security values are consistent with a
 // sane, secure system.
-func verifyAPISecurity(config Config) error {
+func verifyAPISecurity(cfg Config) error {
 	// Make sure that only the loopback address is allowed unless the
 	// --disable-api-security flag has been used.
-	if !config.Rivined.AllowAPIBind {
-		addr := modules.NetAddress(config.Rivined.APIaddr)
+	if !cfg.AllowAPIBind {
+		addr := modules.NetAddress(cfg.APIaddr)
 		if !addr.IsLoopback() {
 			if addr.Host() == "" {
-				return fmt.Errorf("a blank host will listen on all interfaces, did you mean localhost:%v?\nyou must pass --disable-api-security to bind %s to a non-localhost address", addr.Port(), DaemonName)
+				return fmt.Errorf("a blank host will listen on all interfaces, did you mean localhost:%v?\nyou must pass --disable-api-security to bind daemon of %s to a non-localhost address", addr.Port(), cfg.BlockchainInfo.Name)
 			}
-			return fmt.Errorf("you must pass --disable-api-security to bind %s to a non-localhost address", DaemonName)
+			return fmt.Errorf("you must pass --disable-api-security to bind daemon of %s to a non-localhost address", cfg.BlockchainInfo.Name)
 		}
 		return nil
 	}
 
 	// If the --disable-api-security flag is used, enforce that
 	// --authenticate-api must also be used.
-	if config.Rivined.AllowAPIBind && !config.Rivined.AuthenticateAPI {
+	if cfg.AllowAPIBind && !cfg.AuthenticateAPI {
 		return errors.New("cannot use --disable-api-security without setting an api password")
 	}
 	return nil
@@ -116,7 +173,7 @@ func processNetAddr(addr string) string {
 // invalid module character.
 func processModules(modules string) (string, error) {
 	modules = strings.ToLower(modules)
-	validModules := "cgtweb"
+	validModules := "cgtwebd"
 	invalidModules := modules
 	for _, m := range validModules {
 		invalidModules = strings.Replace(invalidModules, string(m), "", 1)
@@ -129,36 +186,51 @@ func processModules(modules string) (string, error) {
 
 // processConfig checks the configuration values and performs cleanup on
 // incorrect-but-allowed values.
-func processConfig(config Config) (Config, error) {
+func processConfig(config *Config) error {
 	var err1 error
-	config.Rivined.APIaddr = processNetAddr(config.Rivined.APIaddr)
-	config.Rivined.RPCaddr = processNetAddr(config.Rivined.RPCaddr)
-	config.Rivined.HostAddr = processNetAddr(config.Rivined.HostAddr)
-	config.Rivined.Modules, err1 = processModules(config.Rivined.Modules)
-	err2 := verifyAPISecurity(config)
-	err := build.JoinErrors([]error{err1, err2}, ", and ")
-	if err != nil {
-		return Config{}, err
-	}
-	return config, nil
+	config.APIaddr = processNetAddr(config.APIaddr)
+	config.RPCaddr = processNetAddr(config.RPCaddr)
+	config.Modules, err1 = processModules(config.Modules)
+	err2 := verifyAPISecurity(*config)
+	return build.JoinErrors([]error{err1, err2}, ", and ")
 }
 
-// startDaemon uses the config parameters to initialize Sia modules and start
-// siad.
-func startDaemon(config Config) (err error) {
-	// Prompt user for API password.
-	if config.Rivined.AuthenticateAPI {
-		config.APIPassword, err = speakeasy.Ask("Enter API password: ")
-		if err != nil {
-			return err
-		}
-		if config.APIPassword == "" {
-			return errors.New("password cannot be blank")
-		}
+// StartDaemon uses the config parameters
+// to initialize Rivine modules and start
+func StartDaemon(cfg Config) (err error) {
+	networkConfig, err := cfg.createConfiguredNetworkConfig()
+	if err != nil {
+		return
 	}
 
-	// Process the config variables after they are parsed by cobra.
-	config, err = processConfig(config)
+	err = networkConfig.Constants.Validate()
+	if err != nil {
+		return err
+	}
+	// Silently append a subdirectory for storage with the name of the network so we don't create conflicts
+	cfg.RootPersistentDir = filepath.Join(cfg.RootPersistentDir, cfg.NetworkName)
+	// Check if we require an api password
+	if cfg.AuthenticateAPI {
+		// if its not set, ask one now
+		if cfg.APIPassword == "" {
+			// Prompt user for API password.
+			cfg.APIPassword, err = speakeasy.Ask("Enter API password: ")
+			if err != nil {
+				return err
+			}
+		}
+		if cfg.APIPassword == "" {
+			return errors.New("password cannot be blank")
+		}
+	} else {
+		// If authenticateAPI is not set, explicitly set the password to the empty string.
+		// This way the api server maintains consistency with the authenticateAPI var, even if apiPassword is set (possibly by mistake)
+		cfg.APIPassword = ""
+	}
+
+	// Process the config variables
+	// If there is an error or inconsistency in the config, we return, so there is no need to correct any values
+	err = processConfig(&cfg)
 	if err != nil {
 		return err
 	}
@@ -168,8 +240,8 @@ func startDaemon(config Config) (err error) {
 	loadStart := time.Now()
 
 	// Create the server and start serving daemon routes immediately.
-	fmt.Printf("(0/%d) Loading "+DaemonName+"...\n", len(config.Rivined.Modules))
-	srv, err := NewServer(config.Rivined.APIaddr, config.Rivined.RequiredUserAgent, config.APIPassword)
+	fmt.Printf("(0/%d) Loading daemon of "+cfg.BlockchainInfo.Name+"...\n", len(cfg.Modules))
+	srv, err := NewServer(cfg.APIaddr, cfg.RequiredUserAgent, cfg.APIPassword, networkConfig.Constants)
 	if err != nil {
 		return err
 	}
@@ -182,10 +254,12 @@ func startDaemon(config Config) (err error) {
 	// Initialize the Rivine modules
 	i := 0
 	var g modules.Gateway
-	if strings.Contains(config.Rivined.Modules, "g") {
+	if strings.Contains(cfg.Modules, "g") {
 		i++
-		fmt.Printf("(%d/%d) Loading gateway...\n", i, len(config.Rivined.Modules))
-		g, err = gateway.New(config.Rivined.RPCaddr, !config.Rivined.NoBootstrap, filepath.Join(config.Rivined.RivineDir, modules.GatewayDir))
+		fmt.Printf("(%d/%d) Loading gateway...\n", i, len(cfg.Modules))
+		g, err = gateway.New(cfg.RPCaddr, !cfg.NoBootstrap,
+			filepath.Join(cfg.RootPersistentDir, modules.GatewayDir),
+			cfg.BlockchainInfo, networkConfig.Constants, networkConfig.BootstrapPeers)
 		if err != nil {
 			return err
 		}
@@ -199,10 +273,12 @@ func startDaemon(config Config) (err error) {
 
 	}
 	var cs modules.ConsensusSet
-	if strings.Contains(config.Rivined.Modules, "c") {
+	if strings.Contains(cfg.Modules, "c") {
 		i++
-		fmt.Printf("(%d/%d) Loading consensus...\n", i, len(config.Rivined.Modules))
-		cs, err = consensus.New(g, !config.Rivined.NoBootstrap, filepath.Join(config.Rivined.RivineDir, modules.ConsensusDir))
+		fmt.Printf("(%d/%d) Loading consensus...\n", i, len(cfg.Modules))
+		cs, err = consensus.New(g, !cfg.NoBootstrap,
+			filepath.Join(cfg.RootPersistentDir, modules.ConsensusDir),
+			cfg.BlockchainInfo, networkConfig.Constants)
 		if err != nil {
 			return err
 		}
@@ -216,10 +292,12 @@ func startDaemon(config Config) (err error) {
 
 	}
 	var e modules.Explorer
-	if strings.Contains(config.Rivined.Modules, "e") {
+	if strings.Contains(cfg.Modules, "e") {
 		i++
-		fmt.Printf("(%d/%d) Loading explorer...\n", i, len(config.Rivined.Modules))
-		e, err = explorer.New(cs, filepath.Join(config.Rivined.RivineDir, modules.ExplorerDir))
+		fmt.Printf("(%d/%d) Loading explorer...\n", i, len(cfg.Modules))
+		e, err = explorer.New(cs,
+			filepath.Join(cfg.RootPersistentDir, modules.ExplorerDir),
+			cfg.BlockchainInfo, networkConfig.Constants)
 		if err != nil {
 			return err
 		}
@@ -233,10 +311,12 @@ func startDaemon(config Config) (err error) {
 
 	}
 	var tpool modules.TransactionPool
-	if strings.Contains(config.Rivined.Modules, "t") {
+	if strings.Contains(cfg.Modules, "t") {
 		i++
-		fmt.Printf("(%d/%d) Loading transaction pool...\n", i, len(config.Rivined.Modules))
-		tpool, err = transactionpool.New(cs, g, filepath.Join(config.Rivined.RivineDir, modules.TransactionPoolDir))
+		fmt.Printf("(%d/%d) Loading transaction pool...\n", i, len(cfg.Modules))
+		tpool, err = transactionpool.New(cs, g,
+			filepath.Join(cfg.RootPersistentDir, modules.TransactionPoolDir),
+			cfg.BlockchainInfo, networkConfig.Constants)
 		if err != nil {
 			return err
 		}
@@ -247,13 +327,14 @@ func startDaemon(config Config) (err error) {
 				fmt.Println("Error during transaction pool shutdown:", err)
 			}
 		}()
-
 	}
 	var w modules.Wallet
-	if strings.Contains(config.Rivined.Modules, "w") {
+	if strings.Contains(cfg.Modules, "w") {
 		i++
-		fmt.Printf("(%d/%d) Loading wallet...\n", i, len(config.Rivined.Modules))
-		w, err = wallet.New(cs, tpool, filepath.Join(config.Rivined.RivineDir, modules.WalletDir))
+		fmt.Printf("(%d/%d) Loading wallet...\n", i, len(cfg.Modules))
+		w, err = wallet.New(cs, tpool,
+			filepath.Join(cfg.RootPersistentDir, modules.WalletDir),
+			cfg.BlockchainInfo, networkConfig.Constants)
 		if err != nil {
 			return err
 		}
@@ -267,10 +348,12 @@ func startDaemon(config Config) (err error) {
 
 	}
 	var b modules.BlockCreator
-	if strings.Contains(config.Rivined.Modules, "b") {
+	if strings.Contains(cfg.Modules, "b") {
 		i++
-		fmt.Printf("(%d/%d) Loading block creator...\n", i, len(config.Rivined.Modules))
-		b, err = blockcreator.New(cs, tpool, w, filepath.Join(config.Rivined.RivineDir, modules.BlockCreatorDir))
+		fmt.Printf("(%d/%d) Loading block creator...\n", i, len(cfg.Modules))
+		b, err = blockcreator.New(cs, tpool, w,
+			filepath.Join(cfg.RootPersistentDir, modules.BlockCreatorDir),
+			cfg.BlockchainInfo, networkConfig.Constants)
 		if err != nil {
 			return err
 		}
@@ -282,11 +365,35 @@ func startDaemon(config Config) (err error) {
 			}
 		}()
 	}
+	var ds modules.DataStore
+	if strings.Contains(cfg.Modules, "d") {
+		i++
+		fmt.Printf("(%d/%d) Loading datastore...\n", i, len(cfg.Modules))
+		db, err := datastore.NewRedis(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB,
+			filepath.Join(cfg.RootPersistentDir, modules.DataStoreDir, modules.DataStoreDatabaseSubDir),
+			cfg.BlockchainInfo)
+		if err != nil {
+			return err
+		}
+		ds, err = datastore.New(cs, db,
+			filepath.Join(cfg.RootPersistentDir, modules.DataStoreDir),
+			cfg.BlockchainInfo, networkConfig.Constants)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			fmt.Println("Closing datastore...")
+			err := ds.Close()
+			if err != nil {
+				fmt.Println("Error during datastore shutdown:", err)
+			}
+		}()
+	}
 
 	// Create the Sia API
 	a := api.New(
-		config.Rivined.RequiredUserAgent,
-		config.APIPassword,
+		cfg.RequiredUserAgent,
+		cfg.APIPassword,
 		cs,
 		e,
 		g,

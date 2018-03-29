@@ -92,25 +92,30 @@ type ConsensusSet struct {
 	mu         demotemutex.DemoteMutex
 	persistDir string
 	tg         sync.ThreadGroup
+
+	bcInfo                 types.BlockchainInfo
+	chainCts               types.ChainConstants
+	genesisBlockStakeCount types.Currency
 }
 
 // New returns a new ConsensusSet, containing at least the genesis block. If
 // there is an existing block database present in the persist directory, it
 // will be loaded.
-func New(gateway modules.Gateway, bootstrap bool, persistDir string) (*ConsensusSet, error) {
+func New(gateway modules.Gateway, bootstrap bool, persistDir string, bcInfo types.BlockchainInfo, chainCts types.ChainConstants) (*ConsensusSet, error) {
 	// Check for nil dependencies.
 	if gateway == nil {
 		return nil, errNilGateway
 	}
 
+	genesisBlock := chainCts.GenesisBlock()
 	// Create the ConsensusSet object.
 	cs := &ConsensusSet{
 		gateway: gateway,
 
 		blockRoot: processedBlock{
-			Block:       types.GenesisBlock,
-			ChildTarget: types.RootTarget,
-			Depth:       types.RootDepth,
+			Block:       genesisBlock,
+			ChildTarget: chainCts.RootTarget(),
+			Depth:       chainCts.RootDepth,
 
 			DiffsGenerated: true,
 		},
@@ -118,16 +123,20 @@ func New(gateway modules.Gateway, bootstrap bool, persistDir string) (*Consensus
 		dosBlocks: make(map[types.BlockID]struct{}),
 
 		marshaler:       stdMarshaler{},
-		blockRuleHelper: stdBlockRuleHelper{},
+		blockRuleHelper: stdBlockRuleHelper{chainCts: chainCts},
 
 		persistDir: persistDir,
+
+		bcInfo:                 bcInfo,
+		chainCts:               chainCts,
+		genesisBlockStakeCount: chainCts.GenesisBlockStakeCount(),
 	}
 
-	cs.blockValidator = NewBlockValidator(cs)
+	cs.blockValidator = newBlockValidator(cs)
 
 	// Create the diffs for the genesis blockstake outputs.
-	for i, siafundOutput := range types.GenesisBlock.Transactions[0].BlockStakeOutputs {
-		sfid := types.GenesisBlock.Transactions[0].BlockStakeOutputID(uint64(i))
+	for i, siafundOutput := range genesisBlock.Transactions[0].BlockStakeOutputs {
+		sfid := genesisBlock.Transactions[0].BlockStakeOutputID(uint64(i))
 		sfod := modules.BlockStakeOutputDiff{
 			Direction:        modules.DiffApply,
 			ID:               sfid,
@@ -136,8 +145,8 @@ func New(gateway modules.Gateway, bootstrap bool, persistDir string) (*Consensus
 		cs.blockRoot.BlockStakeOutputDiffs = append(cs.blockRoot.BlockStakeOutputDiffs, sfod)
 	}
 	// Create the diffs for the genesis coin outputs.
-	for i, coinOutput := range types.GenesisBlock.Transactions[0].CoinOutputs {
-		sfid := types.GenesisBlock.Transactions[0].CoinOutputID(uint64(i))
+	for i, coinOutput := range genesisBlock.Transactions[0].CoinOutputs {
+		sfid := genesisBlock.Transactions[0].CoinOutputID(uint64(i))
 		cod := modules.CoinOutputDiff{
 			Direction:  modules.DiffApply,
 			ID:         sfid,
@@ -225,6 +234,41 @@ func (cs *ConsensusSet) BlockHeightOfBlock(block types.Block) (height types.Bloc
 		return nil
 	})
 	return height, exists
+}
+
+// TransactionAtShortID allows you fetch a transaction from a block within the blockchain,
+// using a given shortID.  If that transaction does not exist, false is returned.
+func (cs *ConsensusSet) TransactionAtShortID(shortID types.TransactionShortID) (types.Transaction, bool) {
+	height := shortID.BlockHeight()
+	block, found := cs.BlockAtHeight(height)
+	if !found {
+		return types.Transaction{}, false
+	}
+
+	txSeqID := int(shortID.TransactionSequenceIndex())
+	if len(block.Transactions) <= txSeqID {
+		return types.Transaction{}, false
+	}
+
+	return block.Transactions[txSeqID], true
+}
+
+// TransactionAtID allows you to fetch a transaction from a block within the blockchain,
+// using a given transaction ID. If that transaction does not exist, false is returned
+func (cs *ConsensusSet) TransactionAtID(id types.TransactionID) (types.Transaction, types.TransactionShortID, bool) {
+	var txnShortID types.TransactionShortID
+	var exists bool
+	_ = cs.db.View(func(tx *bolt.Tx) error {
+		shortID, err := getTransactionShortID(tx, id)
+		if err != nil {
+			return err
+		}
+		txnShortID = shortID
+		return nil
+	})
+
+	txn, exists := cs.TransactionAtShortID(txnShortID)
+	return txn, txnShortID, exists
 }
 
 // ChildTarget returns the target for the child of a block.
@@ -355,3 +399,7 @@ func (cs *ConsensusSet) MinimumValidChildTimestamp(id types.BlockID) (timestamp 
 	})
 	return timestamp, exists
 }
+
+var (
+	_ modules.ConsensusSet = (*ConsensusSet)(nil)
+)

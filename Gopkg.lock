@@ -52,6 +52,21 @@
   version = "v1.3.0"
 
 [[projects]]
+  name = "github.com/go-redis/redis"
+  packages = [
+    ".",
+    "internal",
+    "internal/consistenthash",
+    "internal/hashtag",
+    "internal/pool",
+    "internal/proto",
+    "internal/singleflight",
+    "internal/util"
+  ]
+  revision = "877867d2845fbaf86798befe410b6ceb6f5c29a3"
+  version = "v6.10.2"
+
+[[projects]]
   branch = "master"
   name = "github.com/inconshreveable/go-update"
   packages = [
@@ -102,6 +117,7 @@
     "modules",
     "modules/blockcreator",
     "modules/consensus",
+    "modules/datastore",
     "modules/explorer",
     "modules/gateway",
     "modules/transactionpool",
@@ -113,7 +129,7 @@
     "sync",
     "types"
   ]
-  revision = "0e4a2e95e9d10e63663f8c22d49f7bf92cc100e8"
+  revision = "7ec60e5e497e20e2716763361e248fdf252959cb"
 
 [[projects]]
   name = "github.com/spf13/cobra"
