@@ -33,6 +33,18 @@ div.content {
 	text-align: left;
 }
 
+/* CSS to ensure the unlocker does not break the tables */
+#dynamic-elements {
+	white-space: -moz-pre-wrap; /* Mozilla */
+	white-space: -hp-pre-wrap; /* HP printers */
+	white-space: -o-pre-wrap; /* Opera 7 */
+	white-space: -pre-wrap; /* Opera 4-6 */
+	white-space: pre-wrap; /* CSS 2.1 */
+	white-space: pre-line; /* CSS 3 (and 2.1 as well, actually) */
+	word-wrap: break-word; /* IE */
+	word-break: break-all;
+}
+
 /* CSS for managing the search bars at the bottom */
 div.search-form {
 	display: table;

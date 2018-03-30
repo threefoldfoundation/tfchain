@@ -29,11 +29,23 @@ function appendTransactionStatistics(infoBody, explorerTransaction) {
 		appendStatTableTitle(infoBody, 'Coin Inputs');
 		for (var i = 0; i < explorerTransaction.rawtransaction.data.coininputs.length; i++) {
 			var table = createStatsTable();
+			appendStatHeader(table, 'General');
 			var doms = appendStat(table, 'Parent ID', '');
 			linkHash(doms[2], explorerTransaction.rawtransaction.data.coininputs[i].parentid);
 			doms = appendStat(table, 'Address', '');
 			linkHash(doms[2], explorerTransaction.coininputoutputs[i].unlockhash);
 			appendStat(table, 'Value', readableCoins(explorerTransaction.coininputoutputs[i].value));
+
+			appendStatHeader(table, 'Unlocker');
+			appendStat(table, 'Unlock type', explorerTransaction.rawtransaction.data.coininputs[i].unlocker.type);
+			appendStatHeader(table, 'Condition');
+			for (var key in explorerTransaction.rawtransaction.data.coininputs[i].unlocker.condition) {
+				appendStat(table, toTitleCase(key), explorerTransaction.rawtransaction.data.coininputs[i].unlocker.condition[key])
+			}
+			appendStatHeader(table, 'Fulfillment');
+			for (var key in explorerTransaction.rawtransaction.data.coininputs[i].unlocker.fulfillment) {
+				appendStat(table, toTitleCase(key), explorerTransaction.rawtransaction.data.coininputs[i].unlocker.fulfillment[key])
+			}
 			infoBody.appendChild(table);
 		}
 	}
@@ -53,11 +65,23 @@ function appendTransactionStatistics(infoBody, explorerTransaction) {
 		appendStatTableTitle(infoBody, 'Blockstake Inputs');
 		for (var i = 0; i < explorerTransaction.rawtransaction.data.blockstakeinputs.length; i++) {
 			var table = createStatsTable();
+			appendStatHeader(table, 'General');
 			var doms = appendStat(table, 'Parent ID', '');
 			linkHash(doms[2], explorerTransaction.rawtransaction.data.blockstakeinputs[i].parentid);
 			doms = appendStat(table, 'Address', '');
 			linkHash(doms[2], explorerTransaction.blockstakeinputoutputs[i].unlockhash);
 			appendStat(table, 'Value', explorerTransaction.blockstakeinputoutputs[i].value);
+
+			appendStatHeader(table, 'Unlocker');
+			appendStat(table, 'Unlock type', explorerTransaction.rawtransaction.data.blockstakeinputs[i].unlocker.type);
+			appendStatHeader(table, 'Condition');
+			for (var key in explorerTransaction.rawtransaction.data.blockstakeinputs[i].unlocker.condition) {
+				appendStat(table, toTitleCase(key), explorerTransaction.rawtransaction.data.blockstakeinputs[i].unlocker.condition[key])
+			}
+			appendStatHeader(table, 'Fulfillment');
+			for (var key in explorerTransaction.rawtransaction.data.blockstakeinputs[i].unlocker.fulfillment) {
+				appendStat(table, toTitleCase(key), explorerTransaction.rawtransaction.data.blockstakeinputs[i].unlocker.fulfillment[key])
+			}
 			infoBody.appendChild(table);
 		}
 	}

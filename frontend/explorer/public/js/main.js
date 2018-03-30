@@ -11,13 +11,18 @@ function formatUnixTime(unixTime) {
 	return date.getHours() + ':' + ('0'+date.getMinutes()).slice(-2) + ', ' + months[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
 }
 
+// toTitleCase capitalizes the first letter of every word in the input string
+function toTitleCase(str) {
+    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+}
+
 // readableCoins converts a number of hastings into a more readable volume of
 // siacoins.
 function readableCoins(hastings) {
 	if (hastings < 1000000000000000000) {
-		return addCommasToNumber((hastings / 1000000000).toFixed(3)) + " coins";
+		return addCommasToNumber((hastings / 1000000000).toFixed(3)) + " TFT";
 	} else {
-		return addCommasToNumber((hastings / 1000000000000000000).toFixed(3)) + " billion coins";
+		return addCommasToNumber((hastings / 1000000000000000000).toFixed(3)) + " billion TFT";
 	}
 }
 
