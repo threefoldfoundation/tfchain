@@ -107,6 +107,6 @@ function appendBlockStatistics(domParent, explorerBlock) {
 	linkHash(doms[2], explorerBlock.rawblock.parentid);
 	appendStat(table, 'Time', formatUnixTime(explorerBlock.rawblock.timestamp));
 	appendStat(table, 'Active BlockStake', readableDifficulty(explorerBlock.estimatedactivebs));
-	appendStat(table, 'Total Coins', readableCoins(explorerBlock.totalcoins));
+	// appendStat(table, 'Total Coins', readableCoins(explorerBlock.totalcoins));
 	domParent.appendChild(table);
 }

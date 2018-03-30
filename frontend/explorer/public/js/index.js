@@ -6,8 +6,8 @@ function fillGeneralStats() {
 		document.getElementById('height').innerHTML = addCommasToNumber(explorerStatus.height);
 		document.getElementById('blockID').innerHTML = explorerStatus.blockid;
 		document.getElementById('difficulty').innerHTML = readableDifficulty(explorerStatus.difficulty);
-		document.getElementById('maturityTimestamp').innerHTML = formatUnixTime(explorerStatus.maturitytimestamp);
-		document.getElementById('totalCoins').innerHTML = readableCoins(explorerStatus.totalcoins);
+	// 	document.getElementById('maturityTimestamp').innerHTML = formatUnixTime(explorerStatus.maturitytimestamp);
+	// 	document.getElementById('totalCoins').innerHTML = readableCoins(explorerStatus.totalcoins);
  	};
 	request.send();
 }
