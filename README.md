@@ -17,8 +17,8 @@ You have 2 easy options to install tfchain in your work environment, as a prequi
 The easiest is pulling and using the latest prebuilt docker container:
 
 ```
-$ docker pull tfchain/tfchain:v0.1.0
-$ docker run -d --name tfchain tfchain/tfchain:v0.1.0
+$ docker pull tfchain/tfchain
+$ docker run -d --name tfchain tfchain/tfchain
 ```
 
 This will pull and configure the latest tfchain container, and it will start a container using that image in the program, named `tfchaind`.
