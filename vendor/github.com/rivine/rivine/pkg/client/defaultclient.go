@@ -21,21 +21,24 @@ const (
 
 // Config defines the configuration for the default (CLI) client.
 type Config struct {
-	Address          string
-	Name             string
-	Version          build.ProtocolVersion
-	CurrencyCoinUnit string
-	CurrencyUnits    types.CurrencyUnits
+	Address               string
+	Name                  string
+	Version               build.ProtocolVersion
+	CurrencyCoinUnit      string
+	CurrencyUnits         types.CurrencyUnits
+	MinimumTransactionFee types.Currency
 }
 
 // DefaultConfig creates the default configuration for the default (CLI) client.
 func DefaultConfig() Config {
+	chainConstants := types.DefaultChainConstants()
 	return Config{
-		Address:          "localhost:23110",
-		Name:             "Rivine",
-		Version:          build.Version,
-		CurrencyCoinUnit: "ROC",
-		CurrencyUnits:    types.DefaultCurrencyUnits(),
+		Address:               "localhost:23110",
+		Name:                  "Rivine",
+		Version:               build.Version,
+		CurrencyCoinUnit:      "ROC",
+		CurrencyUnits:         types.DefaultCurrencyUnits(),
+		MinimumTransactionFee: chainConstants.MinimumTransactionFee,
 	}
 }
 
@@ -86,9 +89,10 @@ var (
 		httpClient HTTPClient
 	}
 
-	_CurrencyUnits     types.CurrencyUnits
-	_CurrencyCoinUnit  string
-	_CurrencyConvertor CurrencyConvertor
+	_CurrencyUnits         types.CurrencyUnits
+	_CurrencyCoinUnit      string
+	_CurrencyConvertor     CurrencyConvertor
+	_MinimumTransactionFee types.Currency
 )
 
 // DefaultCLIClient creates a new client using the given params as the default config,
@@ -99,6 +103,7 @@ func DefaultCLIClient(cfg Config) {
 	_DefaultClient.version = cfg.Version
 	_CurrencyCoinUnit = cfg.CurrencyCoinUnit
 	_CurrencyUnits = cfg.CurrencyUnits
+	_MinimumTransactionFee = cfg.MinimumTransactionFee
 
 	var err error
 	_CurrencyConvertor, err = NewCurrencyConvertor(_CurrencyUnits)
@@ -125,11 +130,14 @@ func DefaultCLIClient(cfg Config) {
 		Long:  "Print version information.",
 		Run:   Wrap(clientVersion),
 	})
+	stopCmd := &cobra.Command{
+		Use:   "stop",
+		Short: fmt.Sprintf("Stop the %s daemon", _DefaultClient.name),
+		Long:  fmt.Sprintf("Stop the %s daemon.", _DefaultClient.name),
+		Run:   Wrap(stopcmd),
+	}
 
 	root.AddCommand(stopCmd)
-
-	root.AddCommand(updateCmd)
-	updateCmd.AddCommand(updateCheckCmd)
 
 	createWalletCommands()
 	root.AddCommand(walletCmd)
@@ -149,7 +157,12 @@ func DefaultCLIClient(cfg Config) {
 
 	root.AddCommand(atomicSwapCmd)
 	atomicSwapCmd.AddCommand(
-		atomicSwapCreateCmd,
+		atomicSwapParticipateCmd,
+		atomicSwapInitiateCmd,
+		atomicSwapAuditCmd,
+		atomicSwapExtractSecretCmd,
+		atomicSwapClaimCmd,
+		atomicSwapRefundCmd,
 	)
 
 	walletSendCmd.AddCommand(
