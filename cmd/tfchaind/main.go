@@ -90,10 +90,10 @@ func getTestnetGenesis() types.ChainConstants {
 		Value: cfg.CurrencyUnits.OneCoin.Mul64(100 * 1000 * 1000),
 	}
 
-	bso.UnlockHash.LoadString("01fc8714235d549f890f35e52d745b9eeeee34926f96c4b9ef1689832f338d9349b72d12744e14")
+	bso.UnlockHash.LoadString("01fc8714235d549f890f35e52d745b9eeeee34926f96c4b9ef1689832f338d9349b453898f7e51")
 	cfg.GenesisBlockStakeAllocation = []types.BlockStakeOutput{}
 	cfg.GenesisBlockStakeAllocation = append(cfg.GenesisBlockStakeAllocation, bso)
-	co.UnlockHash.LoadString("01fc8714235d549f890f35e52d745b9eeeee34926f96c4b9ef1689832f338d9349b72d12744e14")
+	co.UnlockHash.LoadString("01fc8714235d549f890f35e52d745b9eeeee34926f96c4b9ef1689832f338d9349b453898f7e51")
 	cfg.GenesisCoinDistribution = []types.CoinOutput{}
 	cfg.GenesisCoinDistribution = append(cfg.GenesisCoinDistribution, co)
 
