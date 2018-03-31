@@ -107,7 +107,6 @@
   revision = "e35a707fc62766b909ae41fc6d45c1efac74bf34"
 
 [[projects]]
-  branch = "master"
   name = "github.com/rivine/rivine"
   packages = [
     "api",
@@ -129,7 +128,8 @@
     "sync",
     "types"
   ]
-  revision = "b1efee773dcc06de698a748322a0f17a6f9e31b5"
+  revision = "02a18cf4530aab7327705e55fae9ae84162f7171"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/spf13/cobra"
@@ -204,6 +204,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ecaa4b05e161d7ae3e21799a5b93c1c5d610a4a2c1e0a807cba6c24b4611dcc2"
+  inputs-digest = "b82157be2a03d105926f04afd32f979ff827234f9bbdb1381813a80bb82903f9"
   solver-name = "gps-cdcl"
   solver-version = 1
