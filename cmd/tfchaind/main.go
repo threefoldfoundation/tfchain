@@ -81,6 +81,11 @@ func getStandardnetGenesis() types.ChainConstants {
 	// Use 0.1 coins as minimum transaction fee
 	cfg.MinimumTransactionFee = cfg.CurrencyUnits.OneCoin.Div64(10)
 
+	// Threefold Foundation receive all transactions fees in a single pool address,
+	// Block Creation Fees do well still go to the block creator creating the block.
+	cfg.TransactionFeeBeneficiary = unlockHashFromHex(
+		"017267221ef1947bb18506e390f1f9446b995acfb6d08d8e39508bb974d9830b8cb8fdca788e34")
+
 	// distribute initial coins
 	cfg.GenesisCoinDistribution = []types.CoinOutput{
 		{
