@@ -73,7 +73,7 @@ func getStandardnetGenesis() types.ChainConstants {
 	cfg.StakeModifierDelay = 2000
 
 	// Blockstake can be used roughly 1 minute after receiving
-	cfg.BlockStakeAging = uint64(1 << 6)
+	cfg.BlockStakeAging = 1 << 17 // 2^16s < 1 day < 2^17s
 
 	// Receive 1 coins when you create a block
 	cfg.BlockCreatorFee = cfg.CurrencyUnits.OneCoin.Mul64(1)
