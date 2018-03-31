@@ -16,7 +16,7 @@ func main() {
 	defaultClientConfig.CurrencyUnits = types.CurrencyUnits{
 		OneCoin: oneCoin,
 	}
-	defaultClientConfig.Version = build.NewPrereleaseVersion(1, 0, 0, "alpha")
+	defaultClientConfig.Version = build.NewVersion(1, 0, 0)
 	defaultClientConfig.MinimumTransactionFee = oneCoin.Div64(10) // has to stay in sync with config used in tfchaind
 
 	client.DefaultCLIClient(defaultClientConfig)
