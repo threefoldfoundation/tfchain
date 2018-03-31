@@ -59,7 +59,7 @@ func getStandardnetGenesis() types.ChainConstants {
 	cfg.MaturityDelay = 720
 
 	// The genesis timestamp
-	cfg.GenesisTimestamp = types.Timestamp(1522465200) // Human time (GMT): Saturday, 31 of March of 2018 3:00:00
+	cfg.GenesisTimestamp = types.Timestamp(1522501000) // Human time 03/31/2018 @ 1:03pm (UTC)
 
 	// 1000 block window for difficulty
 	cfg.TargetWindow = 1e3
@@ -132,7 +132,7 @@ func getStandardnetGenesis() types.ChainConstants {
 		},
 		{
 			// 1K TFT for dev purposes
-			Value: cfg.CurrencyUnits.OneCoin.Mul64(1000),
+			Value: cfg.CurrencyUnits.OneCoin.Mul64(2000),
 			// @leesmet
 			UnlockHash: unlockHashFromHex("018a28615b277eb7e7a0e6921e85ad5b3ca378ac210b7f258b0b11ef313ea2ce98bd2e2510472d"),
 		},
