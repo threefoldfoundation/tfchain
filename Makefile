@@ -26,7 +26,7 @@ release-images: get_hub_jwt docker-minimal
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "image=tfchain/tfchain:$(versionTag)" "https://hub.gig.tech/api/flist/me/docker"
 	# symlink the latest flist
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/tfchain-tfchain-$(versionTag).flist/link/tfchain-tfchain-latest.flist"
-	Merge the flist with ubuntu flist, so we have a tty file etc...
+	# Merge the flist with ubuntu flist, so we have a tty file etc...
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/ubuntu1604.flist\", \"tfchain/tfchain-tfchain-$(versionTag).flist\"]" "https://hub.gig.tech/api/flist/me/merge/ubuntu-16.04-tfchain-$(versionTag).flist"
 	# And also link in a latest
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/ubuntu-16.04-tfchain-$(versionTag).flist/link/ubuntu-16.04-tfchain-latest.flist"
