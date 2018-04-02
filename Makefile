@@ -40,4 +40,7 @@ check-%:
 		exit 1; \
 	fi
 
-.PHONY: all install xc release-images get_hub_jwt check-%
+ineffassign:
+	ineffassign $(pkgs)
+
+.PHONY: all install xc release-images get_hub_jwt check-% ineffassign
