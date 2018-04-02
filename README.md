@@ -42,28 +42,44 @@ $ go get -u github.com/threefoldfoundation/tfchain/cmd/... && \
     tfchaind &
 ```
 
+> tfchain supports Go 1.8 and above. Older versions of Golang may work but aren't supported.
+
 At this point (if all went right) you should have a tfchain daemon running in the background which is syncing with the test net. You can follow this syncing process using the CLI client: `tfchainc`.
 
 Should you want to learn more, you can find additional daemon documentation of the daemon at [/doc/tfchaind.md](/doc/tfchaind.md) and the (CLI) client on [doc/tfchainc.md](doc/tfchainc.md).
 
+## standard (net)
+
+By default a tfchain daemon (`tfchaind`) will connect to the standard net(work).
+
+This is the official network for ThreeFoldTokens.
+You can learn more about the ThreeFold token on [threefoldtoken.com](https://threefoldtoken.com).
+
+The standard net has following properties:
+
++ A new block every 2 minutes (on average);
++ Block stakes can be used 1 day after receiving;
++ One TFT equals to 10<sup>9</sup> of the smallest currency unit;
++ Payouts take roughly one day to mature;
+
+All properties can be found in: [/cmd/tfchaind/main.go](/cmd/tfchaind/main.go) (in the `getStandardnetGenesis` function body).
+
+The standard (net) uses the following bootstrap nodes:
+
++ bootstrap1.threefoldtoken.com:23112
++ bootstrap2.threefoldtoken.com:23112
++ bootstrap3.threefoldtoken.com:23112
++ bootstrap4.threefoldtoken.com:23112
+
+A web-ui explorer for the standard (net) is available at https://explorer.threefoldtoken.com.
+
+## devnet
+
+// TODO
+
 ## testnet
 
-A testnet for the threefold chain is currently deployed, and can be connected to using the binaries provided on the release page.
-The testnet parameters are:
-
-    - 10 minute block time
-    - 1 million blockstakes created in the genesis block
-    - 100 million coins created in the genesis block
-    - 10 coins block reward
-    - 144 block maturity delay for miner payouts (~ 1 day)
-
-### receiving tokens for testnet
-
-Currently there is no automated way for receiving tokens on the testnet. [An issue for it has been created](https://github.com/threefoldfoundation/tfchain/issues/12), but there is no ETA for an implemented solution.
-
-Should you require X amount of tokens for the testnet, prior to this automated solution being available, you can request them by creating an issue on GitHub where you give your address as well as the amount of tokens you require. The title of your github issue should be in the form of "`Testnet token request for <address>`".
-
-Once we completed that transfer we'll close your issue. Should you require more tokens in the future for the same address, you can simply re-open the issue and request more tokens tat way. Please do not recreate multiple token requests for the same address. Do also not link multiple addresses in a single issue, as that might get confusing.
+Currently there is no testnet available. Soon it will be back.
 
 ## technical information
 
