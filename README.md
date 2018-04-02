@@ -1,4 +1,4 @@
-# tfchain
+# tfchain [![Build Status](https://travis-ci.org/threefoldfoundation/tfchain.svg?branch=master)](https://travis-ci.org/threefoldfoundation/tfchain)
 
 tfchain is the official Go implementation of the ThreeFold blockchain client. It uses and is build on top of the [Rivine][rivine] protocol.
 
@@ -75,7 +75,37 @@ A web-ui explorer for the standard (net) is available at https://explorer.threef
 
 ## devnet
 
-// TODO
+Should you require a local devnet you can do so by starting the daemon
+using the `--network devnet` and `--no-bootstrap` flags.
+This will allow you to use the `devnet` network` and mine as soon as you have the block stakes requried to do so.
+For obvious reasons no bootstrap nodes are required or even available for this network.
+
+Once your daemon is up and running you can give your own wallet all genesis coins,
+by loading the following mnemonic as your seed:
+
+```
+carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else
+```
+
+Should you want to do this with the provided `tfchainc` wallet you would have to do following steps:
+
+```
+$ tfchainc wallet unlock    # give passphrase
+$ tfchainc wallet load seed # give passphrase and above mnemonic
+$ fchainc wallet addresses # reload all our default addresses again
+$ tfchainc stop # stops the tfchaind daemon and than manually restart it again
+$ tfchainc wallet unlock    # give passphrase
+$ tfchainc wallet  # should show that you have 100M coins and 3K block stakes
+Wallet status:
+Encrypted, Unlocked
+Confirmed Balance:   100000000 TFT
+Unconfirmed Delta:   + 0 TFT
+BlockStakes:         3000 BS
+```
+
+Should you use another wallet/client, the steps might be different,
+which is fine as long as you use the menmonic given above as seed,
+as the genesis block stakes and coins are attached to that one.
 
 ## testnet
 

@@ -11,6 +11,7 @@ import (
 )
 
 var (
+	devnet      = "devnet"
 	testnet     = "testnet"
 	standardnet = "standard"
 )
@@ -38,6 +39,12 @@ func SetupNetworks(name string) (daemon.NetworkConfig, error) {
 			Constants:      getTestnetGenesis(),
 			BootstrapPeers: getTestnetBootstrapPeers(),
 		}, nil
+	case devnet:
+		return daemon.NetworkConfig{
+			Constants:      getDevnetGenesis(),
+			BootstrapPeers: nil,
+		}, nil
+
 	default:
 		return daemon.NetworkConfig{}, fmt.Errorf("Netork name %q not recognized", name)
 	}
@@ -212,6 +219,73 @@ func getTestnetGenesis() types.ChainConstants {
 			Value: types.NewCurrency64(3000),
 			// @leesmet
 			UnlockHash: unlockHashFromHex("01fc8714235d549f890f35e52d745b9eeeee34926f96c4b9ef1689832f338d9349b453898f7e51"),
+		},
+	}
+
+	return cfg
+}
+
+// getDevnetGenesis explicitly sets all the required constants for the genesis block of the devnet
+func getDevnetGenesis() types.ChainConstants {
+	cfg := types.DefaultChainConstants()
+
+	// 1 coin = 1 000 000 000 of the smalles possible units
+	cfg.CurrencyUnits = types.CurrencyUnits{
+		OneCoin: types.NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(9), nil)),
+	}
+
+	// 12 seconds, slow enough for developers to see
+	// ~each block, fast enough that blocks don't waste time
+	cfg.BlockFrequency = 12
+
+	// 120 seconds before a delayed output matters
+	// as it's expressed in units of blocks
+	cfg.MaturityDelay = 10
+	cfg.MedianTimestampWindow = 11
+
+	// The genesis timestamp is set to February 21st, 2018
+	cfg.GenesisTimestamp = types.Timestamp(1519200000) // February 21st, 2018 @ 8:00am UTC.
+
+	// difficulity is adjusted based on prior 20 blocks
+	cfg.TargetWindow = 20
+
+	// Difficulty adjusts quickly.
+	cfg.MaxAdjustmentUp = big.NewRat(120, 100)
+	cfg.MaxAdjustmentDown = big.NewRat(100, 120)
+
+	cfg.FutureThreshold = 2 * 60        // 2 minutes
+	cfg.ExtremeFutureThreshold = 4 * 60 // 4 minutes
+
+	cfg.StakeModifierDelay = 2000
+
+	// Blockstake can be used roughly 1 minute after receiving
+	cfg.BlockStakeAging = uint64(1 << 6)
+
+	// Receive 10 coins when you create a block
+	cfg.BlockCreatorFee = cfg.CurrencyUnits.OneCoin.Mul64(10)
+
+	// Use 0.1 coins as minimum transaction fee
+	cfg.MinimumTransactionFee = cfg.CurrencyUnits.OneCoin.Mul64(1)
+
+	// distribute initial coins
+	cfg.GenesisCoinDistribution = []types.CoinOutput{
+		{
+			// Create 100M coins
+			Value: cfg.CurrencyUnits.OneCoin.Mul64(100 * 1000 * 1000),
+			// belong to wallet with mnemonic:
+			// carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else
+			UnlockHash: unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
+		},
+	}
+
+	// allocate block stakes
+	cfg.GenesisBlockStakeAllocation = []types.BlockStakeOutput{
+		{
+			// Create 3K blockstakes
+			Value: types.NewCurrency64(3000),
+			// belongs to wallet with mnemonic:
+			// carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else
+			UnlockHash: unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
 		},
 	}
 
