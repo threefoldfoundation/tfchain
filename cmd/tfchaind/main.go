@@ -62,7 +62,7 @@ func getStandardnetGenesis() types.ChainConstants {
 	// 2 minute block time
 	cfg.BlockFrequency = 120
 
-	// Payouts take rougly 1 day to mature.
+	// Payouts take roughly 1 day to mature.
 	cfg.MaturityDelay = 720
 
 	// The genesis timestamp
@@ -79,7 +79,7 @@ func getStandardnetGenesis() types.ChainConstants {
 
 	cfg.StakeModifierDelay = 2000
 
-	// Blockstake can be used roughly 1 minute after receiving
+	// Blockstake can be used roughly 1 day after receiving
 	cfg.BlockStakeAging = 1 << 17 // 2^16s < 1 day < 2^17s
 
 	// Receive 1 coins when you create a block
