@@ -31,6 +31,19 @@ release-images: get_hub_jwt docker-minimal
 	# And also link in a latest
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/ubuntu-16.04-tfchain-$(versionTag).flist/link/ubuntu-16.04-tfchain-latest.flist"
 
+explorer: 
+	tar -C ./frontend -czvf release/explorer-$(versionTag).tar.gz explorer
+
+release-explorer: get_hub_jwt explorer
+	# Upload explorer
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@./release/explorer-$(versionTag).tar.gz "https://hub.gig.tech/api/flist/me/upload"
+	# Symlink latest
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/explorer-$(versionTag).flist/link/explorer-latest.flist"
+	# Merge with caddy
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/caddy.flist\", \"tfchain/explorer-$(versionTag).flist\"]" "https://hub.gig.tech/api/flist/me/merge/caddy-explorer-$(versionTag).flist"
+	# And also link in a latest
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/caddy-explorer-$(versionTag).flist/link/caddy-explorer-latest.flist"
+
 get_hub_jwt: check-HUB_APP_ID check-HUB_APP_SECRET
 	$(eval HUB_JWT = $(shell curl -X POST "https://itsyou.online/v1/oauth/access_token?response_type=id_token&grant_type=client_credentials&client_id=$(HUB_APP_ID)&client_secret=$(HUB_APP_SECRET)&scope=user:memberof:tfchain"))
 
@@ -43,4 +56,4 @@ check-%:
 ineffassign:
 	ineffassign $(pkgs)
 
-.PHONY: all install xc release-images get_hub_jwt check-% ineffassign
+.PHONY: all install xc release-images get_hub_jwt check-% ineffassign explorer release-explorer
