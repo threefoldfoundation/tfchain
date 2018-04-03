@@ -1,6 +1,6 @@
 // addCommasToNumber adds commas to a number at the thousands places.
 function addCommasToNumber(x) {
-    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+	return x.toLocaleString(navigator.language, {maximumFractionDigits: 3});
 }
 
 // formatUnixTime takes a unix timestamp from the blockchain and
@@ -20,15 +20,15 @@ function toTitleCase(str) {
 // siacoins.
 function readableCoins(hastings) {
 	if (hastings < 1000000000000000000) {
-		return addCommasToNumber((hastings / 1000000000).toFixed(3)) + " TFT";
+		return addCommasToNumber((hastings / 1000000000)) + " TFT";
 	} else {
-		return addCommasToNumber((hastings / 1000000000000000000).toFixed(3)) + " billion TFT";
+		return addCommasToNumber((hastings / 1000000000000000000)) + " billion TFT";
 	}
 }
 
 // readableDifficulty takes a difficulty and formats into something readable.
 function readableDifficulty(hashes) {
-	return addCommasToNumber((hashes / 1).toFixed(0)) + ' BS';
+	return addCommasToNumber((hashes / 1)) + ' BS';
 }
 
 // linkHash takes a hash and returns a link that has the hash as text and
