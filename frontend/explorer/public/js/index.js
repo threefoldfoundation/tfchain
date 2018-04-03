@@ -3,8 +3,13 @@ function fillGeneralStats() {
 	request.open('GET', '/explorer', true);
 	request.onload = function() {
 		var explorerStatus = JSON.parse(request.responseText);
-		document.getElementById('height').innerHTML = addCommasToNumber(explorerStatus.height);
-		document.getElementById('blockID').innerHTML = explorerStatus.blockid;
+
+		var height = document.getElementById('height');
+		linkHeight(height, explorerStatus.height);
+
+		var blockID = document.getElementById('blockID');
+		linkHash(blockID, explorerStatus.blockid);
+
 		document.getElementById('difficulty').innerHTML = readableDifficulty(explorerStatus.difficulty);
 	// 	document.getElementById('maturityTimestamp').innerHTML = formatUnixTime(explorerStatus.maturitytimestamp);
 	// 	document.getElementById('totalCoins').innerHTML = readableCoins(explorerStatus.totalcoins);
