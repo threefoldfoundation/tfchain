@@ -71,7 +71,7 @@ The standard (net) uses the following bootstrap nodes:
 + bootstrap3.threefoldtoken.com:23112
 + bootstrap4.threefoldtoken.com:23112
 
-A web-ui explorer for the standard (net) is available at https://explorer.threefoldtoken.com.
+Web-ui explorers for the standard (net) are available at https://explorer.threefoldtoken.com and https://explorer2.threefoldtoken.com.
 
 ## devnet
 
@@ -109,7 +109,31 @@ as the genesis block stakes and coins are attached to that one.
 
 ## testnet
 
-Currently there is no testnet available. Soon it will be back.
+A public testnet is also provided in the tfchaind binary. It can be connected to using the `--network testnet` flags.
+This way you can connect to a real network, which behaves almost like the real network. It should be noted that this network
+is used to test new features and bug fixes before moving them to the production network. It can also be reset by the developers
+at any time. As of right now there is no automated way to get tokens on the testnet, though such a feature is planned. For now,
+tokens can aquired by creating a github issue, formatted like: `testnet token request for <address>`. When possible, you will then
+receive some tokens. If you later require more tokens, please reopen your original issue and leave a comment stating you want some more.
+
+The testnet has the following properties:
+
++ 3000 blockstakes;
++ An average block time of 2 minutes;
++ One TFT equals to 10<sup>9</sup> of the smallest currency unit;
++ Block rewards and miner payouts take rougly one day to mature;
+
+The blockstakes have been distributed equally to 3 block creator nodes. This means that it is not possible to create blocks yourself
+at this time.
+
+The following bootstrap nodes are being used by the testnet:
+
++ bootstrap1.testnet.threefoldtoken.com:23112
++ bootstrap2.testnet.threefoldtoken.com:23112
++ bootstrap3.testnet.threefoldtoken.com:23112
++ bootstrap4.testnet.threefoldtoken.com:23112
+
+A web-ui explorer for the testnet is available at: https://explorer.testnet.threefoldtoken.com
 
 ## technical information
 
