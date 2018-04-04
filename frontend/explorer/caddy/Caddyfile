@@ -3,7 +3,13 @@ http://explorer.testnet.threefoldtoken.com {
 }
 
 https://explorer.testnet.threefoldtoken.com {
-    root public
+    root ../public
+
+    header / {
+	    Access-Control-Allow-Origin  *
+        Access-Control-Allow-Methods  *
+    }
+
     proxy /explorer localhost:23110 {
         header_upstream User-Agent Rivine-Agent
     }
