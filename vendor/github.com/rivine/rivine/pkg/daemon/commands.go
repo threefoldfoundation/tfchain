@@ -55,7 +55,7 @@ func newVersionCmd(cfg *Config) func(*cobra.Command, []string) {
 		}
 		fmt.Printf("%s Daemon v%s%s\n",
 			strings.Title(cfg.BlockchainInfo.Name),
-			cfg.BlockchainInfo.Version.String(), postfix)
+			cfg.BlockchainInfo.ChainVersion.String(), postfix)
 	}
 }
 
@@ -107,13 +107,6 @@ Explorer (e):
 	The explorer requires the consensus set.
 	Example:
 		%[1]sd -M gce
-DataStore (d):
-	The datastore provides an interface to connect to a (possibly remote)
-	redis instance. Data added to transactions is replicated to an HSET based
-	on the namespace embedded in the data.
-	The datastore module requires the consensus set.
-	Example:
-		%[1]sd -M gcd
 `, os.Args[0])
 }
 
@@ -123,9 +116,9 @@ func SetupDefaultDaemon(cfg Config) {
 	root := &cobra.Command{
 		Use: os.Args[0],
 		Short: strings.Title(cfg.BlockchainInfo.Name) + " Daemon v" +
-			cfg.BlockchainInfo.Version.String(),
+			cfg.BlockchainInfo.ChainVersion.String(),
 		Long: strings.Title(cfg.BlockchainInfo.Name) + " Daemon v" +
-			cfg.BlockchainInfo.Version.String(),
+			cfg.BlockchainInfo.ChainVersion.String(),
 		Run: newStartDaemonCmd(&cfg),
 	}
 
@@ -158,9 +151,6 @@ func SetupDefaultDaemon(cfg Config) {
 		fmt.Sprintf("enabled modules, see '%s modules' for more info", os.Args[0]))
 	root.Flags().BoolVarP(&cfg.AuthenticateAPI, "authenticate-api", "", cfg.AuthenticateAPI, "enable API password protection")
 	root.Flags().BoolVarP(&cfg.AllowAPIBind, "disable-api-security", "", cfg.AllowAPIBind, fmt.Sprintf("allow the daemon of %s to listen on a non-localhost address (DANGEROUS)", cfg.BlockchainInfo.Name))
-	root.Flags().StringVarP(&cfg.RedisAddr, "redis-address", "", cfg.RedisAddr, "the host + port of the redis instance to connect to")
-	root.Flags().StringVarP(&cfg.RedisPassword, "redis-password", "", cfg.RedisPassword, "the password for the redis instance")
-	root.Flags().IntVarP(&cfg.RedisDB, "redis-db", "", cfg.RedisDB, "the redis db to connect to in the redis instance")
 	root.Flags().StringVarP(&cfg.NetworkName, "network", "n", cfg.NetworkName, "the name of the network to which the daemon connects")
 
 	// Parse cmdline flags, overwriting both the default values and the config

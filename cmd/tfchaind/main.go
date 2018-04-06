@@ -16,8 +16,7 @@ var (
 
 func main() {
 	defaultDaemonConfig := daemon.DefaultConfig()
-	defaultDaemonConfig.BlockchainInfo.Name = config.ThreeFoldTokenChainName
-	defaultDaemonConfig.BlockchainInfo.Version = config.Version
+	defaultDaemonConfig.BlockchainInfo = config.GetBlockchainInfo()
 	// Default network name, testnet for now since real network is not live yet
 	defaultDaemonConfig.NetworkName = standardnet
 	defaultDaemonConfig.CreateNetworConfig = SetupNetworks

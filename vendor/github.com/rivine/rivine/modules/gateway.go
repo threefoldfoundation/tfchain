@@ -15,10 +15,11 @@ const (
 type (
 	// Peer contains all the info necessary to Broadcast to a peer.
 	Peer struct {
-		Inbound    bool                  `json:"inbound"`
-		Local      bool                  `json:"local"`
-		NetAddress NetAddress            `json:"netaddress"`
-		Version    build.ProtocolVersion `json:"version"`
+		Inbound    bool       `json:"inbound"`
+		Local      bool       `json:"local"`
+		NetAddress NetAddress `json:"netaddress"`
+		// Rivine Protocol Version used by peer
+		Version build.ProtocolVersion `json:"version"`
 	}
 
 	// A PeerConn is the connection type used when communicating with peers during
@@ -82,6 +83,9 @@ type (
 		// Broadcast transmits obj, prefaced by the RPC name, to all of the
 		// given peers in parallel.
 		Broadcast(name string, obj interface{}, peers []Peer)
+
+		// Online returns true if the gateway is connected to remote hosts
+		Online() bool
 
 		// Close safely stops the Gateway's listener process.
 		Close() error

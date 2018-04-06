@@ -9,9 +9,9 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/NebulousLabs/ed25519"
+  name = "github.com/NebulousLabs/errors"
   packages = ["."]
-  revision = "0e573b1741e255fe4a9903f4b2346a01fc45935a"
+  revision = "7ead97ef90b8efe5e824efdf129a60498291632a"
 
 [[projects]]
   branch = "master"
@@ -46,37 +46,6 @@
   version = "v0.1.0"
 
 [[projects]]
-  name = "github.com/coreos/bbolt"
-  packages = ["."]
-  revision = "583e8937c61f1af6513608ccc75c97b6abdf4ff9"
-  version = "v1.3.0"
-
-[[projects]]
-  name = "github.com/go-redis/redis"
-  packages = [
-    ".",
-    "internal",
-    "internal/consistenthash",
-    "internal/hashtag",
-    "internal/pool",
-    "internal/proto",
-    "internal/singleflight",
-    "internal/util"
-  ]
-  revision = "877867d2845fbaf86798befe410b6ceb6f5c29a3"
-  version = "v6.10.2"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/inconshreveable/go-update"
-  packages = [
-    ".",
-    "internal/binarydist",
-    "internal/osext"
-  ]
-  revision = "8152e7eb6ccf8679a64582a66b78519688d156ad"
-
-[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
@@ -89,16 +58,16 @@
   version = "v1.1"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/kardianos/osext"
-  packages = ["."]
-  revision = "ae77be60afb1dcacde03767a8c37337fad28ac14"
-
-[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  name = "github.com/rivine/bbolt"
+  packages = ["."]
+  revision = "583e8937c61f1af6513608ccc75c97b6abdf4ff9"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
@@ -107,6 +76,7 @@
   revision = "e35a707fc62766b909ae41fc6d45c1efac74bf34"
 
 [[projects]]
+  branch = "master"
   name = "github.com/rivine/rivine"
   packages = [
     "api",
@@ -116,7 +86,6 @@
     "modules",
     "modules/blockcreator",
     "modules/consensus",
-    "modules/datastore",
     "modules/explorer",
     "modules/gateway",
     "modules/transactionpool",
@@ -128,8 +97,13 @@
     "sync",
     "types"
   ]
-  revision = "02a18cf4530aab7327705e55fae9ae84162f7171"
-  version = "v1.0.0"
+  revision = "d3947c68cab47319f1f4ea05c3474ae9e4c90094"
+
+[[projects]]
+  name = "github.com/rivine/smux"
+  packages = ["."]
+  revision = "e28719eede1ac5714cf0b06ba2f403125864ebe0"
+  version = "v1.0.7"
 
 [[projects]]
   name = "github.com/spf13/cobra"
@@ -142,12 +116,6 @@
   packages = ["."]
   revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
   version = "v1.0.0"
-
-[[projects]]
-  name = "github.com/xtaci/smux"
-  packages = ["."]
-  revision = "ebec7ef2574b42a7088cd7751176483e0a27d458"
-  version = "v1.0.6"
 
 [[projects]]
   branch = "master"

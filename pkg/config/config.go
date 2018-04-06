@@ -29,6 +29,15 @@ func GetCurrencyUnits() types.CurrencyUnits {
 	}
 }
 
+// GetBlockchainInfo returns the naming and versioning of tfchain.
+func GetBlockchainInfo() types.BlockchainInfo {
+	return types.BlockchainInfo{
+		Name:            ThreeFoldTokenChainName,
+		ChainVersion:    Version,       // use our own blockChain/build version
+		ProtocolVersion: build.Version, // use latest available rivine protocol version
+	}
+}
+
 // GetStandardnetGenesis explicitly sets all the required constants for the genesis block of the standard (prod) net
 func GetStandardnetGenesis() types.ChainConstants {
 	cfg := types.DefaultChainConstants()
