@@ -187,14 +187,20 @@ func (g *Gateway) managedAcceptConnPeer(conn net.Conn, remoteInfo remoteInfo) er
 	// Attempt to ping the supplied address. If successful, we will add
 	// remoteInfo.NetAddress to our node list after accepting the peer. We do this in a
 	// goroutine so that we can start communicating with the peer immediately.
-	go func() {
-		err := g.pingNode(remoteAddr)
-		if err == nil {
-			g.mu.Lock()
-			g.addNode(remoteAddr)
-			g.mu.Unlock()
-		}
-	}()
+	if g.peerTG.Add() == nil {
+		// adding it to peer's Thread Group,
+		// as to ensure that the logger doesn't get closed,
+		// prior to this ping-pong gorutine being finished.
+		go func() {
+			defer g.peerTG.Done()
+			err := g.pingNode(remoteAddr)
+			if err == nil {
+				g.mu.Lock()
+				g.addNode(remoteAddr)
+				g.mu.Unlock()
+			}
+		}()
+	}
 
 	return nil
 }
@@ -265,20 +271,19 @@ func (g *Gateway) connectHandshake(conn net.Conn, version build.ProtocolVersion,
 		return
 	}
 
-	// Read remote version.
+	// read their version
 	if err = encoding.ReadObject(conn, &remoteInfo.Version, build.MaxEncodedVersionLength); err != nil {
 		err = fmt.Errorf("failed to read remote version header: %v", err)
 		return
 	}
 
-	// check if version is not the reject-version constant,
-	// a new feature to quit early, or simply quit ourselves, should the version be too low
+	// check if we've been rejected
 	if remoteInfo.Version.Compare(rejectedVersion) == 0 {
-		// we're rejected, exit early!
 		err = errPeerRejectedConn
 		return
 	}
 
+	// check if remote version is acceptable
 	if remoteInfo.Version.Compare(MinAcceptableVersion) < 0 {
 		// invalid version
 		err = insufficientVersionError(remoteInfo.Version.String())
@@ -368,9 +373,18 @@ func (g *Gateway) connectSessionHandshakeV102(conn net.Conn, theirs sessionHeade
 // Incoming version dicates which handshake version to use,
 // meaning we'll use an older handshake protocol, even if we support a newer one.
 func (g *Gateway) acceptConnHandshake(conn net.Conn, version build.ProtocolVersion, uniqueID gatewayID) (remoteInfo remoteInfo, err error) {
+	// read remote version
 	if err = encoding.ReadObject(conn, &remoteInfo.Version, build.MaxEncodedVersionLength); err != nil {
 		err = fmt.Errorf("failed to read remote version header: %v", err)
 		g.writeRejectVersionHeader(conn, err)
+		return
+	}
+
+	var theirs sessionHeader
+
+	// read remote session header,
+	if err = encoding.ReadObject(conn, &theirs, MaxEncodedSessionHeaderLength); err != nil {
+		err = fmt.Errorf("failed to read remote session header: %v", err)
 		return
 	}
 
@@ -388,13 +402,6 @@ func (g *Gateway) acceptConnHandshake(conn net.Conn, version build.ProtocolVersi
 	// write our version, as their info checks out
 	err = encoding.WriteObject(conn, version)
 	if err != nil {
-		return
-	}
-
-	// read remote session header
-	var theirs sessionHeader
-	if err = encoding.ReadObject(conn, &theirs, MaxEncodedSessionHeaderLength); err != nil {
-		err = fmt.Errorf("failed to read remote session header: %v", err)
 		return
 	}
 
