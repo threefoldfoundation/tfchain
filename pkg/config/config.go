@@ -11,7 +11,7 @@ import (
 
 var (
 	// Version of the tfchain binaries.
-	Version = build.NewPrereleaseVersion(1, 0, 2, "")
+	Version = build.NewPrereleaseVersion(1, 0, 3, "alpha")
 )
 
 const (
