@@ -94,37 +94,37 @@ func GetStandardnetGenesis() types.ChainConstants {
 			UnlockHash: unlockHashFromHex("01ad4f73417476f8b8350298681dd0fa8640baa53a91915417b1dd8103d118b543c992e6fba1c4"),
 		},
 		{
-			// 1K TFT for dev purposes
-			Value: cfg.CurrencyUnits.OneCoin.Mul64(1000),
-			// @robvanmieghem
+			// 90K TFT for dev/test purposes
+			Value: cfg.CurrencyUnits.OneCoin.Mul64(90000),
+			// @foundation
 			UnlockHash: unlockHashFromHex("017eb744c7a97443d7927725bfb2a004384e4230386ea0f693f9ce1c1161d771878a1f048c887b"),
 		},
 		{
-			// 1K TFT for dev purposes
+			// 1K TFT for dev/test purposes
 			Value: cfg.CurrencyUnits.OneCoin.Mul64(1000),
 			// @robvanmieghem
 			UnlockHash: unlockHashFromHex("01cc55df18eb3b86670deb6cfbb9b62b8463b62738426f0c14a7ae8926d6b556fbac3aab17f437"),
 		},
 		{
-			// 1K TFT for dev purposes
+			// 1K TFT for dev/test purposes
 			Value: cfg.CurrencyUnits.OneCoin.Mul64(1000),
 			// @RubenMattan
 			UnlockHash: unlockHashFromHex("01e2dc01a686fc0ca25612871a6515f2e3b804aa63244bf19449ecb3c9aaaf36f0cc6839b0af60"),
 		},
 		{
-			// 1K TFT for dev purposes
+			// 1K TFT for dev/test purposes
 			Value: cfg.CurrencyUnits.OneCoin.Mul64(1000),
 			// @FastGeert
 			UnlockHash: unlockHashFromHex("0166da8a4ab39a621637d9e7eb4e1fbaf95f905856af13af1268fc1a79c65b4f6686dec75c9d94"),
 		},
 		{
-			// 1K TFT for dev purposes
+			// 1K TFT for dev/test purposes
 			Value: cfg.CurrencyUnits.OneCoin.Mul64(1000),
 			// @zaibon
 			UnlockHash: unlockHashFromHex("013dfb1c49e8b9a73bc8b460d9ef20fc1f40e0d034742950f70d983c455342719d1e9f656d002b"),
 		},
 		{
-			// 1K TFT for dev purposes
+			// 1K TFT for dev/test purposes
 			Value: cfg.CurrencyUnits.OneCoin.Mul64(2000),
 			// @leesmet
 			UnlockHash: unlockHashFromHex("018a28615b277eb7e7a0e6921e85ad5b3ca378ac210b7f258b0b11ef313ea2ce98bd2e2510472d"),
@@ -134,8 +134,8 @@ func GetStandardnetGenesis() types.ChainConstants {
 	// allocate block stakes
 	cfg.GenesisBlockStakeAllocation = []types.BlockStakeOutput{
 		{
-			// 400 BS, initially allocated to a selected group of people (ambassadors)
-			Value: types.NewCurrency64(400),
+			// 390 BS, initially allocated to a selected group of people (ambassadors)
+			Value: types.NewCurrency64(390),
 			// Pool address for other people (ambassadors)
 			UnlockHash: unlockHashFromHex("01746677df456546d93729066dd88514e2009930f3eebac3c93d43c88a108f8f9aa9e7c6f58893"),
 		},
@@ -144,6 +144,12 @@ func GetStandardnetGenesis() types.ChainConstants {
 			Value: types.NewCurrency64(100),
 			// @glendc
 			UnlockHash: unlockHashFromHex("01ad4f73417476f8b8350298681dd0fa8640baa53a91915417b1dd8103d118b543c992e6fba1c4"),
+		},
+		{
+			// 10 BS, for dev/validation/test purposes
+			Value: types.NewCurrency64(10),
+			// @foundation @robvanmieghem
+			UnlockHash: unlockHashFromHex("01cc55df18eb3b86670deb6cfbb9b62b8463b62738426f0c14a7ae8926d6b556fbac3aab17f437"),
 		},
 	}
 
