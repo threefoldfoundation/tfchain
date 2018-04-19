@@ -76,7 +76,6 @@
   revision = "e35a707fc62766b909ae41fc6d45c1efac74bf34"
 
 [[projects]]
-  branch = "master"
   name = "github.com/rivine/rivine"
   packages = [
     "api",
@@ -97,7 +96,8 @@
     "sync",
     "types"
   ]
-  revision = "ee56199eeaf925c9a1f999afdecceec0616a52d6"
+  revision = "32804b3b36510429928802a2bf2da1e401b3f267"
+  version = "v1.0.3"
 
 [[projects]]
   name = "github.com/rivine/smux"
