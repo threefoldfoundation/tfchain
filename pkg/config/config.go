@@ -88,7 +88,7 @@ func GetStandardnetGenesis() types.ChainConstants {
 			UnlockHash: unlockHashFromHex("014ab1cf49a331bef9225a51a68623daf7e112fce0e81a91194a7f4fe7af1d9a793bc52d4676d0"),
 		},
 		{
-			// 3K TFT for dev purposes and 695M TFT for Capacity availability until 01/04
+			// 3K TFT for dev/test purposes
 			Value: cfg.CurrencyUnits.OneCoin.Mul64(3000),
 			// @glendc
 			UnlockHash: unlockHashFromHex("01ad4f73417476f8b8350298681dd0fa8640baa53a91915417b1dd8103d118b543c992e6fba1c4"),
@@ -124,7 +124,7 @@ func GetStandardnetGenesis() types.ChainConstants {
 			UnlockHash: unlockHashFromHex("013dfb1c49e8b9a73bc8b460d9ef20fc1f40e0d034742950f70d983c455342719d1e9f656d002b"),
 		},
 		{
-			// 1K TFT for dev/test purposes
+			// 2K TFT for dev/test purposes
 			Value: cfg.CurrencyUnits.OneCoin.Mul64(2000),
 			// @leesmet
 			UnlockHash: unlockHashFromHex("018a28615b277eb7e7a0e6921e85ad5b3ca378ac210b7f258b0b11ef313ea2ce98bd2e2510472d"),
@@ -142,7 +142,7 @@ func GetStandardnetGenesis() types.ChainConstants {
 		{
 			// 100 BS, one BS for each first-generation TFT node
 			Value: types.NewCurrency64(100),
-			// @glendc
+			// @glendc (temporary)
 			UnlockHash: unlockHashFromHex("01ad4f73417476f8b8350298681dd0fa8640baa53a91915417b1dd8103d118b543c992e6fba1c4"),
 		},
 		{
