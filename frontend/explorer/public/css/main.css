@@ -63,3 +63,46 @@ span.search-form-td {
 	margin:     0px auto;
 	margin-top: 40px;
 }
+
+.header {
+	display: flex;
+	justify-content: space-between;
+	text-align: center;
+	vertical-align: middle;
+}
+
+.stats-tiles-container {
+	text-align: center;
+	display: 	flex;
+}
+
+.stats-tile {
+	text-align: 		center;
+	width: 				300px;
+	height: 			200px;
+	margin: 			50px;
+	display: 			flex;
+	justify-content: 	space-between;
+	flex-direction: 	column;
+}
+
+.tile-stat{
+	font-weight: 	bold;
+	font-size: 		30px;
+}
+
+.stat-gauge {
+	width: 	300px;
+	height: 300px;
+}
+
+.graph-link {
+	text-align: center;
+	font-size: 	25px;
+	margin: auto 0;
+}
+
+.graph {
+	height: 400px;
+	width: 	1000px;
+}
