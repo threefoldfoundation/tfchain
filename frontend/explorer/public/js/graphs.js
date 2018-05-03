@@ -1,33 +1,28 @@
 // Start by loading the required chart packages
-google.charts.load('current', {'packages':['gauge']});
-google.charts.setOnLoadCallback(initCurrentStats);
+google.charts.load('current', {'packages': ['line']});
+google.charts.setOnLoadCallback(init);
 
-var cts;
-// Keep a reference to the current gauges,
-// so we can anitmate them somewhat
-var gauges = {};
-
-function initCurrentStats() {
-    getChainConstants().then(function(chainCts) {
-        cts = chainCts;
-        // Draw gauges with zero value first
-        // Since the gauge does not have a startup
-        // animation, this is required to simulate one
-        drawDifficultyGauge(0);
-        drawActiveBSGauge(0);
-        // Start showing actual stats
-        showCurrentStats();
-    });
+function init() {
+    showCurrentStats();
+    // Load the graphs of the initial history value
+    if (document.getElementById('history').value) {
+        loadHistory();
+    }
 }
 
 function showCurrentStats() {
     getLatestBlockFacts().then(function(facts) {
-        document.getElementById('current-height').innerHTML = facts.height;
-        drawDifficultyGauge(parseInt(facts.difficulty));
-        drawActiveBSGauge(parseInt(facts.estimatedactivebs));
+        setCurrentValues(facts);
+
         // Refresh every 2 mins
         setTimeout(showCurrentStats, 120 * 1000);
     });
+}
+
+function setCurrentValues(values) {
+    document.getElementById('current-difficulty').innerHTML = values.difficulty+ ' BS';
+    document.getElementById('current-height').innerHTML = values.height;
+    document.getElementById('current-bs').innerHTML = values.estimatedactivebs + ' BS';
 }
 
 function loadRange() {
@@ -47,59 +42,13 @@ function loadHistory() {
     })
 }
 
-function drawDifficultyGauge(difficulty) {
-    var data = [['Label', 'Value'], ['Difficulty', difficulty]];
-    var maxDifficulty = cts.blockfrequency * parseInt(cts.blockstakecount);
-    var opts = {
-        minorTicks: 5,
-        max: maxDifficulty,
-        min: 0,
-        redFrom: 0,
-        redTo: maxDifficulty * 0.05,
-        yellowFrom: maxDifficulty * 0.05,
-        yellowTo: maxDifficulty * 0.1,
-        animation: {
-            duration: 3 * 1000,
-            easing: 'out'
-        }
-    }
-
-    if (!gauges.difficulty) {
-        gauges.difficulty = new google.visualization.Gauge(document.getElementById('current-difficulty'));
-    }
-    gauges.difficulty.draw(google.visualization.arrayToDataTable(data), opts);
-}
-
-function drawActiveBSGauge(activeBS) {
-    var data = [['label', 'Value'], ['Active BS', activeBS]];
-    var maxBS = parseInt(cts.blockstakecount);
-    var opts = {
-        minorTicks: 5,
-        max: maxBS,
-        min: 0,
-        redFrom: 0,
-        redTo: maxBS * 0.05,
-        yellowFrom: maxBS * 0.05,
-        yellowTo: maxBS * 0.1,
-        animation: {
-            duration: 3 * 1000,
-            easing: 'out'
-        }
-    }
-
-    if (!gauges.activebs) {
-        gauges.activebs = new google.visualization.Gauge(document.getElementById('current-bs'));
-    }
-    gauges.activebs.draw(google.visualization.arrayToDataTable(data), opts);
-}
-
 function drawCharts(stats) {
     var timeHeight = [['Timestamp', 'Block height']];
     var blockTime = [['Block Height', 'Block creation time']];
     var activeBS = [['Timestamp', 'Active BS']];
     var blockCreatorDistribution = [['Address', 'Blocks Created']];
     var txnCount = [['Block Height', 'Transaction count']];
-    var blockDifficulty = [['Block Height', 'Difficutly']];
+    var blockDifficulty = [['Block Height', 'Difficulty']];
 
     for (var i = 0; i < stats.blocktimestamps.length; i++) {
         stats.blocktimestamps[i] = new Date(stats.blocktimestamps[i] * 1000);
@@ -122,13 +71,16 @@ function drawCharts(stats) {
     // Make sure graph container is displayed
     document.getElementById('graph-container').style.display = 'Block';
 
+    // ***************
+    // Render graphs
+    // ***************
     var heightWrapper = new google.visualization.ChartWrapper({
         chartType: 'LineChart',
         dataTable: timeHeight,
         options: {explorer: {actions: ['dragToZoom', 'rightClickToReset'], keepInBounds: true, maxZoomIn: 0.01}, 'title': 'Chain Height', legend: {position: 'none'}, animation: {duration: 1000, easing: 'out', startup: true}},
         containerId: 'height-graph'
     });
-    heightWrapper.draw();
+    heightWrapper.draw();    
 
     var creationTimeWrapper = new google.visualization.ChartWrapper({
         chartType: 'LineChart',
@@ -169,6 +121,75 @@ function drawCharts(stats) {
         containerId: 'difficulty-graph'
     });
     difficultyWrapper.draw();
+
+    // ***************
+    // Event Handlers
+    // ***************
+    google.visualization.events.addListener(heightWrapper, 'select', (e) => {
+        var selection = heightWrapper.getChart().getSelection()[0];
+        // Index 0 are the labels
+        var row = selection.row + 1;
+        // Block height is in the column at index 1
+        var block = timeHeight[row][1];
+
+        window.location.href = '/block.html?height=' + block;
+    });
+
+    google.visualization.events.addListener(creationTimeWrapper, 'select', (e) => {
+        var selection = creationTimeWrapper.getChart().getSelection()[0]; 
+        // Index 0 are the labels
+        var row = selection.row + 1;
+        // block heights are in the column at index 1
+        var block = blockTime[row][0];
+
+        window.location.href = '/block.html?height=' + block;
+    });
+
+    google.visualization.events.addListener(activebsWrapper, 'select', (e) => {
+        var selection = activebsWrapper.getChart().getSelection()[0];
+        // Since there is no block to link in this datatable,
+        // load it from another datatable. This should not be a problem
+        // as all datatables for line charts should have the same info if the
+        // primary index matches.
+        // 
+        // Index 0 are the labels
+        var row = selection.row + 1;
+        // Sanity check to see if the timestamp matches
+        if (timeHeight[row][0] == activeBS[row][0]) {
+            var block = blockTime[row][0];
+            window.location.href = '/block.html?height=' + block;
+        }
+    });
+
+    google.visualization.events.addListener(bcdWrapper, 'select', (e) => {
+        var selection = bcdWrapper.getChart().getSelection()[0];
+
+        var row = selection.row + 1;
+        var address = blockCreatorDistribution[row][0];
+        
+        window.location.href = 'hash.html?hash=' + address;
+    });
+
+    google.visualization.events.addListener(txnCountWrapper, 'select', (e) => {
+        var selection = txnCountWrapper.getChart().getSelection()[0];
+
+        var row = selection.row + 1;
+        var block = txnCount[row][0];
+
+        window.location.href = '/block.html?height=' + block;
+    });
+
+    google.visualization.events.addListener(difficultyWrapper, 'select', (e) => {
+        var selection = difficultyWrapper.getChart().getSelection()[0];
+
+        var row = selection.row + 1;
+        var block = blockDifficulty[row][0];
+
+        window.location.href = '/block.html?height=' + block;
+    })
+
+    // scroll to the graphs
+    document.getElementById('graph-container').scrollIntoView({'behavior': 'smooth', 'block': 'start'});
 }
 
 function getRangeStats(start, end) {
@@ -204,20 +225,6 @@ function getLatestBlockFacts() {
     return new Promise(function(resolve, reject) {
         var request = new XMLHttpRequest();
         request.open('GET', '/explorer', true);
-        request.onload = function() {
-            if (request.status != 200) {
-                reject(request.status);
-            }
-            resolve(JSON.parse(request.responseText));
-        };
-        request.send();
-    })
-}
-
-function getChainConstants() {
-    return new Promise(function(resolve, reject) {
-        var request = new XMLHttpRequest();
-        request.open('GET', '/explorer/constants', true);
         request.onload = function() {
             if (request.status != 200) {
                 reject(request.status);
