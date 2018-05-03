@@ -10,8 +10,12 @@ import (
 )
 
 var (
+	rawVersion = "v1.0.3"
 	// Version of the tfchain binaries.
-	Version = build.NewPrereleaseVersion(1, 0, 4, "alpha")
+	//
+	// Value is defined by a private build flag,
+	// or hardcoded to the latest released tag as fallback.
+	Version build.ProtocolVersion
 )
 
 const (
@@ -306,4 +310,8 @@ func unlockHashFromHex(hstr string) (uh types.UnlockHash) {
 		panic(fmt.Sprintf("func unlockHashFromHex(%s) failed: %v", hstr, err))
 	}
 	return
+}
+
+func init() {
+	Version = build.MustParse(rawVersion)
 }

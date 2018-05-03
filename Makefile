@@ -1,11 +1,30 @@
 all: install
 
-pkgs = ./cmd/tfchainc ./cmd/tfchaind
+
+daemonpkgs = ./cmd/tfchaind
+clientpkgs = ./cmd/tfchainc
+pkgs = $(daemonpkgs) $(clientpkgs)
+
 version = $(shell git describe | cut -d '-' -f 1)
-versionTag = $(shell git describe | cut -d '-' -f 1| cut -d 'v' -f 2)
+commit = $(shell git rev-parse --short HEAD)
+ifeq ($(commit), $(shell git rev-list -n 1 $(version) | cut -c1-7))
+fullversion = $(version)
+else
+fullversion = $(version)-$(commit)
+endif
+
+dockerVersion = $(shell git describe | cut -d '-' -f 1| cut -d 'v' -f 2)
+
+configpkg = github.com/threefoldfoundation/tfchain/pkg/config
+ldflagsversion = -X $(configpkg).rawVersion=$(fullversion)
+
+stdoutput = $(GOPATH)/bin
+daemonbin = $(stdoutput)/tfchaind
+clientbin = $(stdoutput)/tfchainc
 
 install:
-	go install -race -tags='debug profile' $(pkgs)
+	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
+	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
 
 # xc builds and packages release binaries
 # for all windows, linux and mac, 64-bit only,
@@ -15,34 +34,34 @@ xc:
 	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchainbuilder
 
 docker-minimal: xc
-	docker build -t tfchain/tfchain:$(versionTag) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(version)-linux-amd64/cmd .
+	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(version)-linux-amd64/cmd .
 
 # Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
 release-images: get_hub_jwt docker-minimal
-	docker push tfchain/tfchain:$(versionTag)
+	docker push tfchain/tfchain:$(dockerVersion)
 	# also create a latest
-	docker tag tfchain/tfchain:$(versionTag) tfchain/tfchain
+	docker tag tfchain/tfchain:$(dockerVersion) tfchain/tfchain
 	docker push tfchain/tfchain:latest
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "image=tfchain/tfchain:$(versionTag)" "https://hub.gig.tech/api/flist/me/docker"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "image=tfchain/tfchain:$(dockerVersion)" "https://hub.gig.tech/api/flist/me/docker"
 	# symlink the latest flist
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/tfchain-tfchain-$(versionTag).flist/link/tfchain-tfchain-latest.flist"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/tfchain-tfchain-$(dockerVersion).flist/link/tfchain-tfchain-latest.flist"
 	# Merge the flist with ubuntu flist, so we have a tty file etc...
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/ubuntu1604.flist\", \"tfchain/tfchain-tfchain-$(versionTag).flist\"]" "https://hub.gig.tech/api/flist/me/merge/ubuntu-16.04-tfchain-$(versionTag).flist"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/ubuntu1604.flist\", \"tfchain/tfchain-tfchain-$(dockerVersion).flist\"]" "https://hub.gig.tech/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersion).flist"
 	# And also link in a latest
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/ubuntu-16.04-tfchain-$(versionTag).flist/link/ubuntu-16.04-tfchain-latest.flist"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/ubuntu-16.04-tfchain-$(dockerVersion).flist/link/ubuntu-16.04-tfchain-latest.flist"
 
 explorer: 
-	tar -C ./frontend -czvf release/explorer-$(versionTag).tar.gz explorer
+	tar -C ./frontend -czvf release/explorer-$(dockerVersion).tar.gz explorer
 
 release-explorer: get_hub_jwt explorer
 	# Upload explorer
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@./release/explorer-$(versionTag).tar.gz "https://hub.gig.tech/api/flist/me/upload"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@./release/explorer-$(dockerVersion).tar.gz "https://hub.gig.tech/api/flist/me/upload"
 	# Symlink latest
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/explorer-$(versionTag).flist/link/explorer-latest.flist"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/explorer-$(dockerVersion).flist/link/explorer-latest.flist"
 	# Merge with caddy
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/caddy.flist\", \"tfchain/explorer-$(versionTag).flist\"]" "https://hub.gig.tech/api/flist/me/merge/caddy-explorer-$(versionTag).flist"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/caddy.flist\", \"tfchain/explorer-$(dockerVersion).flist\"]" "https://hub.gig.tech/api/flist/me/merge/caddy-explorer-$(dockerVersion).flist"
 	# And also link in a latest
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/caddy-explorer-$(versionTag).flist/link/caddy-explorer-latest.flist"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/caddy-explorer-$(dockerVersion).flist/link/caddy-explorer-latest.flist"
 
 get_hub_jwt: check-HUB_APP_ID check-HUB_APP_SECRET
 	$(eval HUB_JWT = $(shell curl -X POST "https://itsyou.online/v1/oauth/access_token?response_type=id_token&grant_type=client_credentials&client_id=$(HUB_APP_ID)&client_secret=$(HUB_APP_SECRET)&scope=user:memberof:tfchain"))
