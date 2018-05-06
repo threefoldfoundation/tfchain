@@ -102,3 +102,22 @@ span.search-form-td {
 	height: 400px;
 	width: 	1000px;
 }
+
+.raw {
+	width: 100%;
+	max-height: 300px;
+	overflow-y: scroll;
+	background-color: #f0f0f0;
+	word-wrap: break-word; /* IE */
+	word-break: break-all;
+	margin: 50px 0;
+}
+
+.toggle-button {
+	text-align: center;
+	margin: 25px 0;
+}
+
+.hidden {
+	display: none;
+}

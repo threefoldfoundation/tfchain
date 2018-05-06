@@ -59,6 +59,42 @@ function displayTransactions(explorerBlock) {
 	}
 }
 
+function displayHexBlock(explorerBlock) {
+	if (!explorerBlock || !explorerBlock.hexblock) {
+		return
+	}
+
+	var infoBody = document.getElementById('dynamic-elements');
+
+	var buttonContainer = document.createElement('div');
+	buttonContainer.classList.add('toggle-button');
+
+	var button = document.createElement('button');
+	button.id = 'togglebutton';
+	button.textContent = 'show raw block';
+	button.onclick = (e) => {
+		var rb = document.getElementById('rawblock');
+		rb.classList.toggle('hidden');
+		var tb = document.getElementById('togglebutton');
+		if (rb.classList.contains('hidden')) {
+			tb.textContent = 'show raw block';
+		} else {
+			tb.textContent = 'hide raw block';
+		}
+	}
+
+	var container = document.createElement('div');
+	container.id = 'rawblock';
+	container.classList.add('raw', 'hidden');
+	var block = document.createElement('CODE');
+	block.textContent = explorerBlock.hexblock;
+	
+	buttonContainer.appendChild(button);
+	infoBody.appendChild(buttonContainer);	
+	container.appendChild(block);
+	infoBody.appendChild(container);
+}
+
 // fillBlock populates the information fields in the block being
 // presented.
 function fillBlock(height) {
@@ -75,6 +111,7 @@ function fillBlock(height) {
 		appendBlockStatistics(document.getElementById('dynamic-elements'), explorerBlock);
 		displayMinerPayouts(explorerBlock);
 		displayTransactions(explorerBlock);
+		displayHexBlock(explorerBlock);
 	}
 }
 

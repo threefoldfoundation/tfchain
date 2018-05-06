@@ -402,6 +402,42 @@ function appendBlockStakeOutputTables(infoBody, hash, explorerHash) {
 	}
 }
 
+
+function appendHexTransaction(infoBody, hextransaction) {
+	if (!hextransaction) {
+		console.log('afasdf')
+		return
+	}
+
+	var buttonContainer = document.createElement('div');
+	buttonContainer.classList.add('toggle-button');
+
+	var button = document.createElement('button');
+	button.id = 'togglebutton';
+	button.textContent = 'show raw transaction';
+	button.onclick = (e) => {
+		var rh = document.getElementById('rawhash');
+		rh.classList.toggle('hidden');
+		var tb = document.getElementById('togglebutton');
+		if (rh.classList.contains('hidden')) {
+			tb.textContent = 'show raw transaction';
+		} else {
+			tb.textContent = 'hide raw transaction';
+		}
+	}
+
+	var container = document.createElement('div');
+	container.id = 'rawhash';
+	container.classList.add('raw', 'hidden');
+	var block = document.createElement('CODE');
+	block.textContent = hextransaction;
+	
+	buttonContainer.appendChild(button);
+	infoBody.appendChild(buttonContainer);	
+	container.appendChild(block);
+	infoBody.appendChild(container);
+}
+
 // populateHashPage parses a query to the hash explorer and then returns
 // information about the query.
 function populateHashPage(hash, explorerHash) {
@@ -415,6 +451,7 @@ function populateHashPage(hash, explorerHash) {
 		appendHeading(infoBody, 'Hash Type: Transaction ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendTransactionStatistics(infoBody, explorerHash.transaction);
+		appendHexTransaction(infoBody, explorerHash.transaction.hextransaction);
 	} else if (hashType === "unlockhash") {
 		appendHeading(infoBody, 'Hash Type: Unlock Hash / Address');
 		appendHeading(infoBody, 'Hash: ' + hash);
