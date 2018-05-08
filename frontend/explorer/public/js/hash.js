@@ -426,7 +426,7 @@ function getOutputIDSpecifier(type) {
 
 function formatUnlockTime(timestamp) {
 	if (timestamp < LockTimeMinTimestampValue) {
-		return 'Block ' + timestamp;
+		return 'Block ' + addCommasToNumber(timestamp);
 	} else {
 		return formatUnixTime(timestamp);
 	}
@@ -466,8 +466,23 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 						scoids.push(explorerHash.transactions[i].coinoutputids[j]);
 						scoidMatches.push(false);
 					}
-				} else {
-					if (explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.unlockhash == hash) {
+				} else { // V1 txn
+					// 
+					var f;
+					var type = explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.type;
+					switch (type) {
+						case 1:
+							f = getV1T1OutputAddress;
+							break;
+						case 2:
+							f = getV1T2OutputAddress;
+							break;
+						case 3:
+							f = getV1T3OutputAddress;
+							break;
+					}
+					var address = f(explorerHash, i, j);
+					if (address == hash) {
 						found = true;
 						var table = createStatsTable();
 						var doms = appendStat(table, 'Height', '');
@@ -479,6 +494,9 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 						doms = appendStat(table, 'Address', '');
 						linkHash(doms[2], hash);
 						appendStat(table, 'Value', readableCoins(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value));
+						if (type === 3) {
+							appendStat(table, 'Unlocked at', formatUnlockTime(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.locktime))
+						}
 						tables.push(table);
 						scoids.push(explorerHash.transactions[i].coinoutputids[j]);
 						scoidMatches.push(false);
@@ -592,6 +610,18 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 			domParent.appendChild(tables[i]);
 		}
 	}
+}
+
+function getV1T1OutputAddress(explorerHash, i, j) {
+	return explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.unlockhash;
+}
+
+function getV1T2OutputAddress(explorerHash, i, j) {
+	return explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.unlockhash;
+}
+
+function getV1T3OutputAddress(explorerHash, i, j) {
+	return explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.condition.data.unlockhash;
 }
 
 // appendUnlockHashTables appends a series of tables that provide information
