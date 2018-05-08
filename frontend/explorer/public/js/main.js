@@ -1,6 +1,6 @@
 // addCommasToNumber adds commas to a number at the thousands places.
 function addCommasToNumber(x) {
-	return x.toLocaleString(navigator.language, {maximumFractionDigits: 3});
+	return x.toLocaleString(navigator.language, {maximumFractionDigits: 9});
 }
 
 // formatUnixTime takes a unix timestamp from the blockchain and
