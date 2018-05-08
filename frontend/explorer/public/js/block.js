@@ -40,19 +40,24 @@ function displayTransactions(explorerBlock) {
 		var table = createStatsTable();
 		var doms = appendStat(table, 'ID', '');
 		linkHash(doms[2], explorerBlock.transactions[i].id);
-		if (explorerBlock.rawblock.transactions[i].data.coininputs != null) {
+		if (explorerBlock.rawblock.transactions[i].data.coininputs != null
+			&& explorerBlock.rawblock.transactions[i].data.coininputs.length > 0) {
 			appendStat(table, 'Coin Input Count', explorerBlock.rawblock.transactions[i].data.coininputs.length);
 		}
-		if (explorerBlock.rawblock.transactions[i].data.coinoutputs != null) {
+		if (explorerBlock.rawblock.transactions[i].data.coinoutputs != null
+			&& explorerBlock.rawblock.transactions[i].data.coinoutputs.length > 0) {
 			appendStat(table, 'Coin Output Count', explorerBlock.rawblock.transactions[i].data.coinoutputs.length);
 		}
-		if (explorerBlock.rawblock.transactions[i].data.blockstakeinputs != null) {
+		if (explorerBlock.rawblock.transactions[i].data.blockstakeinputs != null
+			&& explorerBlock.rawblock.transactions[i].data.blockstakeinputs.length > 0) {
 			appendStat(table, 'BlockStake Input Count', explorerBlock.rawblock.transactions[i].data.blockstakeinputs.length);
 		}
-		if (explorerBlock.rawblock.transactions[i].data.blockstakeoutputs != null) {
+		if (explorerBlock.rawblock.transactions[i].data.blockstakeoutputs != null
+			&& explorerBlock.rawblock.transactions[i].data.blockstakeoutputs.length > 0) {
 			appendStat(table, 'BlockStake Output Count', explorerBlock.rawblock.transactions[i].data.blockstakeoutputs.length);
 		}
-		if (explorerBlock.rawblock.transactions[i].data.arbitrarydata != null) {
+		if (explorerBlock.rawblock.transactions[i].data.arbitrarydata != null
+			&& explorerBlock.rawblock.transactions[i].data.arbitrarydata.length > 0) {
 			appendStat(table, 'Arbitrary Data Count', explorerBlock.rawblock.transactions[i].data.arbitrarydata.length);
 		}
 		infoBody.appendChild(table);
