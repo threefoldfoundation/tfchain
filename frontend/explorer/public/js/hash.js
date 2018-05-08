@@ -153,7 +153,7 @@ function appendV1Transaction(infoBody, explorerTransaction) {
 		appendStatTableTitle(infoBody, 'Coin Inputs');
 		for (var i = 0; i < explorerTransaction.rawtransaction.data.coininputs.length; i++) {
 			var f;
-			switch (explorerTransaction.rawtransaction.data.coininputs[i].fulfillment.type) {
+			switch (explorerTransaction.coininputoutputs[i].condition.type) {
 				case 0:
 					break;
 				case 1:
@@ -195,7 +195,7 @@ function appendV1Transaction(infoBody, explorerTransaction) {
 		appendStatTableTitle(infoBody, 'Blockstake Inputs');
 		for (var i = 0; i < explorerTransaction.rawtransaction.data.blockstakeinputs.length; i++) {
 			var f;
-			switch (explorerTransaction.rawtransaction.data.blockstakeinputs[i].fulfillment.type) {
+			switch (explorerTransaction.blockstakeinputoutputs[i].condition.type) {				
 				case 0:
 					break;
 				case 1:
