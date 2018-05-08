@@ -105,8 +105,8 @@ func (tb *transactionBuilder) FundCoins(amount types.Currency) error {
 			ff = types.NewSingleSignatureFulfillment(
 				types.Ed25519PublicKey(tb.wallet.keys[uh].PublicKey))
 		case types.ConditionTypeTimeLock:
-			ff = types.NewTimeLockFulfillment(types.NewSingleSignatureFulfillment(
-				types.Ed25519PublicKey(tb.wallet.keys[uh].PublicKey)))
+			ff = types.NewSingleSignatureFulfillment(
+				types.Ed25519PublicKey(tb.wallet.keys[uh].PublicKey))
 		default:
 			if build.DEBUG {
 				panic(fmt.Sprintf("unexpected condition type: %[1]v (%[1]T)", sco.Condition))
@@ -199,8 +199,8 @@ func (tb *transactionBuilder) FundBlockStakes(amount types.Currency) error {
 			ff = types.NewSingleSignatureFulfillment(
 				types.Ed25519PublicKey(tb.wallet.keys[uh].PublicKey))
 		case types.ConditionTypeTimeLock:
-			ff = types.NewTimeLockFulfillment(types.NewSingleSignatureFulfillment(
-				types.Ed25519PublicKey(tb.wallet.keys[uh].PublicKey)))
+			ff = types.NewSingleSignatureFulfillment(
+				types.Ed25519PublicKey(tb.wallet.keys[uh].PublicKey))
 		default:
 			if build.DEBUG {
 				panic(fmt.Sprintf("unexpected condition type: %[1]v (%[1]T)", sfo.Condition))
@@ -464,9 +464,15 @@ func (w *Wallet) RegisterTransaction(t types.Transaction, parents []types.Transa
 }
 
 // StartTransaction is a convenience function that calls
-// RegisterTransaction(types.Transaction{}, nil).
+// StartTransactionWithVersion with the DefaultTransactionVersion constant.
 func (w *Wallet) StartTransaction() modules.TransactionBuilder {
+	return w.StartTransactionWithVersion(w.chainCts.DefaultTransactionVersion)
+}
+
+// StartTransactionWithVersion is a convenience function that calls
+// RegisterTransaction(types.Transaction{Version: version}, nil).
+func (w *Wallet) StartTransactionWithVersion(version types.TransactionVersion) modules.TransactionBuilder {
 	return w.RegisterTransaction(types.Transaction{
-		Version: w.chainCts.DefaultTransactionVersion,
+		Version: version,
 	}, nil)
 }
