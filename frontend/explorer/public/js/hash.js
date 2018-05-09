@@ -48,7 +48,12 @@ function appendV0Transaction(infoBody, explorerTransaction) {
 			var doms = appendStat(table, 'Parent ID', '');
 			linkHash(doms[2], explorerTransaction.rawtransaction.data.coininputs[i].parentid);
 			doms = appendStat(table, 'Address', '');
-			linkHash(doms[2], explorerTransaction.coininputoutputs[i].unlockhash);
+			var address = explorerTransaction.coininputoutputs[i].condition.data.unlockhash;
+			// Check some other possible locations
+			if (!address && explorerTransaction.coininputoutputs[i].condition.data.condition && explorerTransaction.coininputoutputs[i].condition.data.condition.data) {
+				address = explorerTransaction.coininputoutputs[i].condition.data.condition.data.unlockhash;
+			}
+			linkHash(doms[2], address);
 			appendStat(table, 'Value', readableCoins(explorerTransaction.coininputoutputs[i].value));
 
 			appendStatHeader(table, 'Unlocker');
@@ -357,9 +362,15 @@ function addV1T2Output(infoBody, explorerTransaction, i, type) {
 	var doms = appendStat(table, 'ID', '');
 
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
-	doms = appendStat(table, 'Address', '');
-	linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.unlockhash);
-	
+	// doms = appendStat(table, 'Address', '');
+	// linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.unlockhash);
+	doms = appendStat(table, 'Sender', '');
+	linkHash(doms[2],explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.sender);
+	doms = appendStat(table, 'Receiver', '');
+	linkHash(doms[2],explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.receiver);
+	appendStat(table, 'Hashed Secret', explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.hashedsecret);
+	appendStat(table, 'Timelock', explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.timelock);
+
 	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
 	if (type === 'coins') {
 		amount = readableCoins(amount);
