@@ -71,7 +71,7 @@ The standard (net) uses the following bootstrap nodes:
 + bootstrap3.threefoldtoken.com:23112
 + bootstrap4.threefoldtoken.com:23112
 
-Web-ui explorers for the standard (net) are available at https://explorer.threefoldtoken.com and https://explorer2.threefoldtoken.com.
+Web-ui explorers for the standard (net) are available at https://explorer.threefoldtoken.com and https://explorer2.threefoldtoken.com (if one isn't available try the other one).
 
 ## devnet
 
@@ -133,7 +133,7 @@ The following bootstrap nodes are being used by the testnet:
 + bootstrap3.testnet.threefoldtoken.com:23112
 + bootstrap4.testnet.threefoldtoken.com:23112
 
-A web-ui explorer for the testnet is available at: https://explorer.testnet.threefoldtoken.com
+A web-ui explorer for the testnet is available at: https://explorer.testnet.threefoldtoken.com and https://explorer2.testnet.threefoldtoken.com (if one isn't available try the other one).
 
 ## technical information
 
