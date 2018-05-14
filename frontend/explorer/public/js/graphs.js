@@ -43,8 +43,10 @@ function loadHistory() {
 }
 
 function drawCharts(stats) {
+    // Calculate the amount of data points we need to have a moving window average for roughly 10% of the supplied data points
+    var avgBlocks = Math.round(stats.blockcount / 10);
     var timeHeight = [['Timestamp', 'Block height']];
-    var blockTime = [['Block Height', 'Block creation time']];
+    var blockTime = [['Block Height', 'Block creation time', 'Average block creation time of last ' + avgBlocks + ' blocks']];
     var activeBS = [['Timestamp', 'Active BS']];
     var blockCreatorDistribution = [['Address', 'Blocks Created']];
     var txnCount = [['Block Height', 'Transaction count']];
@@ -54,10 +56,29 @@ function drawCharts(stats) {
         stats.blocktimestamps[i] = new Date(stats.blocktimestamps[i] * 1000);
     }
 
+    // Collect the block time and average block time
+    var avgBlockTime = 0;
+    for (var i = 0; i < stats.blocktimes.length; i++) {
+        // Keep track of the average. For every data point, apply its increase to said average.
+        // If we processesed sufficient data points to reach the actual value of the average (i.e.
+        // after `avgBlocks` datapoints), substract the first value in what would be the series from
+        // which the average is calculated. Now we could keep track of the sum of the original datapoints
+        // and only divide to get the average when we actually push it in the table, which means we would
+        // do only one division per loop iteration instead of 2, but when it comes to javascript I have
+        // serious trust issues, so I prefer to keep the value as low as possible. If this additional
+        // division causes performance issues on your machine, it's time to upgrade your hardware.
+        avgBlockTime += stats.blocktimes[i] / avgBlocks;
+        if (i < avgBlocks) {
+            blockTime.push([stats.blockheights[i], stats.blocktimes[i], null]);
+            continue
+        }
+        avgBlockTime -= stats.blocktimes[i - avgBlocks] / avgBlocks;
+        blockTime.push([stats.blockheights[i], stats.blocktimes[i], avgBlockTime]);        
+    }
+
     // Collect linear stats
     for (var i = 0; i < stats.blockcount; i++) {
         timeHeight.push([stats.blocktimestamps[i], stats.blockheights[i]]);
-        blockTime.push([stats.blockheights[i], stats.blocktimes[i]]);
         activeBS.push([stats.blocktimestamps[i], parseInt(stats.estimatedactivebs[i])]);
         txnCount.push([stats.blockheights[i], stats.blocktransactioncounts[i]]);
         blockDifficulty.push([stats.blockheights[i], parseInt(stats.difficulties[i])]);
@@ -132,7 +153,7 @@ function drawCharts(stats) {
         // Block height is in the column at index 1
         var block = timeHeight[row][1];
 
-        window.location.href = '/block.html?height=' + block;
+        blockDetailPage(block);
     });
 
     google.visualization.events.addListener(creationTimeWrapper, 'select', (e) => {
@@ -142,7 +163,7 @@ function drawCharts(stats) {
         // block heights are in the column at index 1
         var block = blockTime[row][0];
 
-        window.location.href = '/block.html?height=' + block;
+        blockDetailPage(block);
     });
 
     google.visualization.events.addListener(activebsWrapper, 'select', (e) => {
@@ -157,7 +178,7 @@ function drawCharts(stats) {
         // Sanity check to see if the timestamp matches
         if (timeHeight[row][0] == activeBS[row][0]) {
             var block = blockTime[row][0];
-            window.location.href = '/block.html?height=' + block;
+            blockDetailPage(block);
         }
     });
 
@@ -167,7 +188,7 @@ function drawCharts(stats) {
         var row = selection.row + 1;
         var address = blockCreatorDistribution[row][0];
         
-        window.location.href = 'hash.html?hash=' + address;
+        hashDetailPage(address);
     });
 
     google.visualization.events.addListener(txnCountWrapper, 'select', (e) => {
@@ -176,7 +197,7 @@ function drawCharts(stats) {
         var row = selection.row + 1;
         var block = txnCount[row][0];
 
-        window.location.href = '/block.html?height=' + block;
+        blockDetailPage(block);
     });
 
     google.visualization.events.addListener(difficultyWrapper, 'select', (e) => {
@@ -185,11 +206,19 @@ function drawCharts(stats) {
         var row = selection.row + 1;
         var block = blockDifficulty[row][0];
 
-        window.location.href = '/block.html?height=' + block;
+        blockDetailPage(block);
     })
 
     // scroll to the graphs
     document.getElementById('graph-container').scrollIntoView({'behavior': 'smooth', 'block': 'start'});
+}
+
+function blockDetailPage(block) {
+    window.location.href = '/block.html?height=' + block;
+}
+
+function hashDetailPage(hash) {
+    window.location.href = 'hash.html?hash=' + hash;
 }
 
 function getRangeStats(start, end) {
