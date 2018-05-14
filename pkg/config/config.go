@@ -304,6 +304,7 @@ func GetStandardnetBootstrapPeers() []modules.NetAddress {
 		"bootstrap2.threefoldtoken.com:23112",
 		"bootstrap3.threefoldtoken.com:23112",
 		"bootstrap4.threefoldtoken.com:23112",
+		"bootstrap5.threefoldtoken.com:23112",
 	}
 }
 
@@ -313,7 +314,8 @@ func GetTestnetBootstrapPeers() []modules.NetAddress {
 		"bootstrap1.testnet.threefoldtoken.com:23112",
 		"bootstrap2.testnet.threefoldtoken.com:23112",
 		"bootstrap3.testnet.threefoldtoken.com:23112",
-		"bootstrap4.testnet.threefoldtoken.com:23112",
+		"bootstrap4.testnet.threefoldtoken.com:24112",
+		"bootstrap5.testnet.threefoldtoken.com:23112",
 	}
 }
 
