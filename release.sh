@@ -31,9 +31,13 @@ for os in darwin linux windows; do
 	done
 	# add other artifacts
 	cp -r LICENSE README.md "$folder"
+	# go into the release directory
+	pushd release &> /dev/null
 	# zip
 	(
-		zip -rq "release/tfchain-${version}-${os}-amd64.zip" \
-			"release/tfchain-${version}-${os}-amd64"
+		zip -rq "tfchain-${version}-${os}-amd64.zip" \
+			"tfchain-${version}-${os}-amd64"
 	)
+	# leave the release directory
+	popd &> /dev/null
 done
