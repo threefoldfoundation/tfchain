@@ -1,6 +1,5 @@
 all: install
 
-
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
 pkgs = $(daemonpkgs) $(clientpkgs)
@@ -25,6 +24,10 @@ clientbin = $(stdoutput)/tfchainc
 install:
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
+
+install-std:
+	go build -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
+	go build -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
 
 # xc builds and packages release binaries
 # for all windows, linux and mac, 64-bit only,
