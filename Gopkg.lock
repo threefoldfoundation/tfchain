@@ -91,14 +91,13 @@
     "modules/transactionpool",
     "modules/wallet",
     "persist",
-    "pkg/cli",
     "pkg/client",
     "pkg/daemon",
     "profile",
     "sync",
     "types"
   ]
-  revision = "d54eb37cb706a7dcb8ff30effd8dece1cfdd25de"
+  revision = "dd428e2b0a31d8804c082835263b56f5cc51541b"
 
 [[projects]]
   name = "github.com/rivine/smux"
