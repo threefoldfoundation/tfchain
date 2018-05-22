@@ -749,7 +749,7 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 					doms = appendStat(table, 'Parent Transaction', '');
 					linkHash(doms[2], explorerHash.transactions[i].id);
 					doms = appendStat(table, 'Address', '');
-					linkHash(doms[2], explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].unlockhash);
+					linkHash(doms[2], explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.unlockhash);
 					appendStat(table, 'Value', readableCoins(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value));
 					appendStat(table, 'Has Been Spent', hasBeenSpent);
 					infoBody.appendChild(table);
