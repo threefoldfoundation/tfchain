@@ -167,7 +167,7 @@ function appendV1Transaction(infoBody, explorerTransaction) {
 				case 2:
 					f = addV1T2Input;
 					break;
-				case 3:
+				case 4:
 					f = addV1T3Input;
 					break;
 				default:
@@ -332,16 +332,18 @@ function addV1T3Input(infoBody, explorerTransaction, i, type) {
 	
 	appendStatHeader(table, 'Condition');
 	doms = appendStat(table, 'Type', explorerTransaction[inputoutputspecifier][i].condition.type);
-	for (var i = 0; i < explorerTransaction[inputoutputspecifier][i].condition.data.unlockhashes.length; i++) {
+	var rawInput = explorerTransaction[inputoutputspecifier][i];
+	for (var idx = 0; idx < rawInput.condition.data.unlockhashes.length; idx++) {
 		doms = appendStat(table, '', '');
-		linkHash(doms[2], explorerTransaction[inputoutputspecifier][i].condition.data.unlockhashes[i]);
+		linkHash(doms[2], rawInput.condition.data.unlockhashes[idx]);
 	}
 
 	appendStatHeader(table, 'Fulfillment');
-	appendStat(table, 'Type', explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.type);
-	for (var i; i < explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.data.pairs.length; i++) {
-		appendStat(table, 'PublicKey', explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.data.pairs[i].publickey);
-		appendStat(table, 'Signature', explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.data.pairs[i].signature)
+	var rawInput = explorerTransaction.rawtransaction.data[inputspecifier][i];
+	appendStat(table, 'Type', rawInput.fulfillment.type);
+	for (var idx = 0; idx < rawInput.fulfillment.data.pairs.length; idx++) {
+		appendStat(table, 'PublicKey', rawInput.fulfillment.data.pairs[idx].publickey);
+		appendStat(table, 'Signature', rawInput.fulfillment.data.pairs[idx].signature)
 	}
 	infoBody.appendChild(table);
 }
