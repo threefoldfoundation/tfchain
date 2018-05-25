@@ -428,10 +428,10 @@ function addV1T4Output(infoBody, explorerTransaction, i, type) {
 	}
 	appendStat(table, 'Value', amount);
 
-	appendStatHeader(table, 'Addresses');
-	for (var i = 0; i < explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.unlockhashes.length; i++) {
+	var rawInput = explorerTransaction.rawtransaction.data[outputspecifier][i];
+	for (var i = 0; i < rawInput.condition.data.unlockhashes.length; i++) {
 		doms = appendStat(table, '', '');
-		linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.unlockhashes[i]);
+		linkHash(doms[2], rawInput.condition.data.unlockhashes[i]);
 	}
 	infoBody.appendChild(table);
 }
