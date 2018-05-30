@@ -159,6 +159,8 @@ func New(requiredUserAgent string, requiredPassword string, cs modules.Consensus
 	if api.cs != nil {
 		router.GET("/consensus", api.consensusHandler)
 		router.GET("/consensus/transactions/:id", api.consensusGetTransactionHandler)
+		router.GET("/consensus/unspent/coinoutputs/:id", api.consensusGetUnspentCoinOutputHandler)
+		router.GET("/consensus/unspent/blockstakeoutputs/:id", api.consensusGetUnspentBlockstakeOutputHandler)
 	}
 
 	// Explorer API Calls
@@ -205,6 +207,10 @@ func New(requiredUserAgent string, requiredPassword string, cs modules.Consensus
 		router.GET("/wallet/transactions", api.walletTransactionsHandler)
 		router.GET("/wallet/transactions/:addr", api.walletTransactionsAddrHandler)
 		router.POST("/wallet/unlock", RequirePassword(api.walletUnlockHandler, requiredPassword))
+		router.GET("/wallet/unlocked", RequirePassword(api.walletListUnlockedHandler, requiredPassword))
+		router.GET("/wallet/locked", RequirePassword(api.walletListLockedHandler, requiredPassword))
+		router.POST("/wallet/create/transaction", RequirePassword(api.walletCreateTransactionHandler, requiredPassword))
+		router.POST("/wallet/sign", RequirePassword(api.walletSignHandler, requiredPassword))
 	}
 
 	// Apply UserAgent middleware and return the API
