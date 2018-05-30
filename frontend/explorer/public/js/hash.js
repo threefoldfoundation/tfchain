@@ -227,7 +227,7 @@ function appendV1Transaction(infoBody, explorerTransaction) {
 		appendStatTableTitle(infoBody, 'Blockstake Outputs');
 		for (var i = 0; i < explorerTransaction.rawtransaction.data.blockstakeoutputs.length; i++) {
 			var f;
-			switch (explorerTransaction.rawtransaction.data.blockstakeoutputs[i].fulfillment.type) {
+			switch (explorerTransaction.rawtransaction.data.blockstakeoutputs[i].condition.type) {
 				case 0:
 					break;
 				case 1:
