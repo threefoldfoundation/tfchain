@@ -152,6 +152,18 @@ Bob verifies if:
 command:`./tfchainc atomicswap auditcontract outputid`
 flags are available to automatically check the information in the contract.
 ```
+$ ./tfchainc atomicswap auditcontract 15504a2eee64101ca04f4246bf9358db501397947a37b231454be66d1a3e5e7e
+Atomic Swap Contract (condition) found:
+
+Contract value: 567 TFT
+
+Receiver's address: 01ba82c45bc004a7a4a169c7daade3422c59158981044e4f341e7cea57a2852a36ea43e9fc25bb
+Sender's (contract creator) address: 0179fb6a617f52d60799fe610665b83b7372683201c06da24db54ad1878e5f1d8ff8c1b41ba3a2
+Secret Hash: 8b445001958277e6372424625d31e649e32812eeb62eece03ff616a31ebd0f6b
+TimeLock: 1527747605 (2018-05-31 08:20:05 +0200 CEST)
+TimeLock reached in: 23h52m36.117162779s
+
+Found Atomic Swap Contract is valid :)
 ```
 
 The audit also checks if that the given contract's output   has not already been spend.
