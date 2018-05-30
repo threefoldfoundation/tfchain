@@ -158,7 +158,7 @@ function appendV1Transaction(infoBody, explorerTransaction) {
 		appendStatTableTitle(infoBody, 'Coin Inputs');
 		for (var i = 0; i < explorerTransaction.rawtransaction.data.coininputs.length; i++) {
 			var f;
-			switch (explorerTransaction.coininputoutputs[i].condition.type) {
+			switch (explorerTransaction.rawtransaction.data.coininputs[i].fulfillment.type) {
 				case 0:
 					break;
 				case 1:
@@ -167,7 +167,7 @@ function appendV1Transaction(infoBody, explorerTransaction) {
 				case 2:
 					f = addV1T2Input;
 					break;
-				case 4:
+				case 3:
 					f = addV1T3Input;
 					break;
 				default:
@@ -207,7 +207,7 @@ function appendV1Transaction(infoBody, explorerTransaction) {
 		appendStatTableTitle(infoBody, 'Blockstake Inputs');
 		for (var i = 0; i < explorerTransaction.rawtransaction.data.blockstakeinputs.length; i++) {
 			var f;
-			switch (explorerTransaction.blockstakeinputoutputs[i].condition.type) {				
+			switch (explorerTransaction.rawtransaction.data.blockstakeinputs[i].fulfillment.type) {				
 				case 0:
 					break;
 				case 1:
@@ -320,8 +320,6 @@ function addV1T3Input(infoBody, explorerTransaction, i, type) {
 
 	var doms = appendStat(table, 'Parent ID', '');
 	linkHash(doms[2], explorerTransaction.rawtransaction.data[inputspecifier][i].parentid);
-	doms = appendStat(table, 'Address', '');
-	linkHash(doms[2], explorerTransaction[inputoutputspecifier][i].condition.data.unlockhash);
 
 	
 	var amount = explorerTransaction[inputoutputspecifier][i].value;
@@ -742,19 +740,58 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 	} else {
 		// Create the table containing the siacoin output.
 		for (var i = 0; i < explorerHash.transactions.length; i++) {
-			for (var j = 0; j < explorerHash.transactions[i].coinoutputids.length; j++) {
-				if (explorerHash.transactions[i].coinoutputids[j] == hash) {
-					appendStatTableTitle(infoBody, 'Coin Output');
-					var table = createStatsTable();
-					var doms = appendStat(table, 'ID', '');
-					linkHash(doms[2], hash);
-					doms = appendStat(table, 'Parent Transaction', '');
-					linkHash(doms[2], explorerHash.transactions[i].id);
-					doms = appendStat(table, 'Address', '');
-					linkHash(doms[2], explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.unlockhash);
-					appendStat(table, 'Value', readableCoins(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value));
-					appendStat(table, 'Has Been Spent', hasBeenSpent);
-					infoBody.appendChild(table);
+			if (explorerHash.transactions[i].rawtransaction.version == 0) {
+				for (var j = 0; j < explorerHash.transactions[i].coinoutputids.length; j++) {
+					if (explorerHash.transactions[i].coinoutputids[j] == hash) {
+						appendStatTableTitle(infoBody, 'Coin Output');
+						var table = createStatsTable();
+						var doms = appendStat(table, 'ID', '');
+						linkHash(doms[2], hash);
+						doms = appendStat(table, 'Parent Transaction', '');
+						linkHash(doms[2], explorerHash.transactions[i].id);
+						doms = appendStat(table, 'Address', '');
+						linkHash(doms[2], explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.unlockhash);
+						appendStat(table, 'Value', readableCoins(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value));
+						appendStat(table, 'Has Been Spent', hasBeenSpent);
+						infoBody.appendChild(table);
+					}
+				}
+			} else {
+				for (var j = 0; j < explorerHash.transactions[i].coinoutputids.length; j++) {
+					if (explorerHash.transactions[i].coinoutputids[j] == hash) {
+						appendStatTableTitle(infoBody, 'Coin Output');
+						var table = createStatsTable();
+						// var doms = appendStat(table, 'ID', '');
+						// linkHash(doms[2], hash);
+						doms = appendStat(table, 'Parent Transaction', '');
+						linkHash(doms[2], explorerHash.transactions[i].id);
+						var f;
+						switch (explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.type) {
+							case 0:
+								break;
+							case 1:
+								f = addV1T1Output;
+								break;
+							case 2:
+								f = addV1T2Output;
+								break;
+							case 3:
+								f = addV1T3Output;
+								break;
+							case 4:
+								f = addV1T4Output;
+								break;
+							default:
+								// ignore unknown
+								continue;
+						}
+						f(infoBody, explorerHash.transactions[i], j, 'coins');
+						// doms = appendStat(table, 'Address', '');
+						// linkHash(doms[2], explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.unlockhash);
+						// appendStat(table, 'Value', readableCoins(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value));
+						appendStat(table, 'Has Been Spent', hasBeenSpent);
+						infoBody.appendChild(table);
+					}
 				}
 			}
 		}
