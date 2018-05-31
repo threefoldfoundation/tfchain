@@ -92,15 +92,6 @@ type (
 		// The signing is to be done within the given (fulfillment sign) context.
 		Sign(ctx FulfillmentSignContext) error
 
-		// UnlockHash returns the unlock hash of this UnlockFulfillment.
-		// It identifies the spender of the output linked by the input's parent ID.
-		//
-		// The UnlockHash, as returned by the UnlockFulfillment,
-		// does not have to be deterministic and can depend on how it fulfills a condition.
-		// (e.g. if multiple people can fulfill by means of signing,
-		//       than the returned unlock hash might depend upon who signed it)
-		UnlockHash() UnlockHash
-
 		// Equal returns if the given unlock fulfillment
 		// equals the called unlock fulfillment.
 		Equal(UnlockFulfillment) bool
@@ -588,9 +579,6 @@ func (n *NilCondition) Unmarshal(b []byte) error { return nil } // nothing to un
 // Sign implements UnlockFulfillment.Sign
 func (n *NilFulfillment) Sign(FulfillmentSignContext) error { return ErrNilFulfillmentType }
 
-// UnlockHash implements UnlockFulfillment.UnlockHash
-func (n *NilFulfillment) UnlockHash() UnlockHash { return NilUnlockHash }
-
 // Equal implements UnlockFulfillment.Equal
 func (n *NilFulfillment) Equal(f UnlockFulfillment) bool {
 	if f == nil {
@@ -632,7 +620,7 @@ func (uh *UnlockHashCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 			return ErrUnexpectedUnlockType
 		}
 
-		euh := tf.UnlockHash()
+		euh := NewPubKeyUnlockHash(tf.PublicKey)
 		if euh != uh.TargetUnlockHash {
 			return errors.New("single signature fulfillment provides wrong public key")
 		}
@@ -646,7 +634,9 @@ func (uh *UnlockHashCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 		}
 
 		// ensure the condition equals the ours
-		ourHS := tf.UnlockHash()
+		ourHS := NewUnlockHash(UnlockTypeAtomicSwap,
+			crypto.HashObject(encoding.MarshalAll(
+				tf.Sender, tf.Receiver, tf.HashedSecret, tf.TimeLock)))
 		if ourHS.Cmp(uh.TargetUnlockHash) != 0 {
 			return errors.New("produced unlock hash doesn't equal the expected unlock hash")
 		}
@@ -755,11 +745,6 @@ func (ss *SingleSignatureFulfillment) Sign(ctx FulfillmentSignContext) (err erro
 	ss.Signature, err = signHashUsingSiaPublicKey(
 		ss.PublicKey, ctx.InputIndex, ctx.Transaction, ctx.Key)
 	return
-}
-
-// UnlockHash implements UnlockFulfillment.UnlockHash
-func (ss *SingleSignatureFulfillment) UnlockHash() UnlockHash {
-	return NewPubKeyUnlockHash(ss.PublicKey)
 }
 
 // FulfillmentType implements UnlockFulfillment.FulfillmentType
@@ -984,12 +969,6 @@ func (as *AtomicSwapFulfillment) Sign(ctx FulfillmentSignContext) error {
 	return err
 }
 
-// UnlockHash implements UnlockFulfillment.UnlockHash
-func (as *AtomicSwapFulfillment) UnlockHash() UnlockHash {
-	return NewUnlockHash(UnlockTypeAtomicSwap,
-		crypto.HashObject(encoding.Marshal(as.PublicKey)))
-}
-
 // FulfillmentType implements UnlockFulfillment.FulfillmentType
 func (as *AtomicSwapFulfillment) FulfillmentType() FulfillmentType { return FulfillmentTypeAtomicSwap }
 
@@ -1051,16 +1030,6 @@ func (as *LegacyAtomicSwapFulfillment) Sign(ctx FulfillmentSignContext) error {
 		as.PublicKey, ctx.InputIndex, ctx.Transaction, ctx.Key,
 		as.PublicKey)
 	return err
-}
-
-// UnlockHash implements UnlockFulfillment.UnlockHash
-func (as *LegacyAtomicSwapFulfillment) UnlockHash() UnlockHash {
-	return NewUnlockHash(UnlockTypeAtomicSwap, crypto.HashObject(encoding.MarshalAll(
-		as.Sender,
-		as.Receiver,
-		as.HashedSecret,
-		as.TimeLock,
-	)))
 }
 
 // FulfillmentType implements UnlockFulfillment.FulfillmentType
@@ -1548,6 +1517,13 @@ func (ms *MultiSignatureCondition) IsStandardCondition() error {
 }
 
 // UnlockHash implements UnlockCondition.UnlockHash
+//
+// UnlockHash calculates the root hash of a Merkle tree of the
+// MultiSignatureCondition object. The leaves of this tree are formed by taking the
+// hash of the length of unlock hashes, the hash of the sorted unlock hashes (one leaf each), and the
+// hash of the number of minimum signatures required. The unlock hashes are put in the middle because
+// unlockhash length and MinimumSignatureCount are both low entropy fields; they can be
+// protected by having random unlock hashes next to them.
 func (ms *MultiSignatureCondition) UnlockHash() UnlockHash {
 	// Copy the unlockhashes to a new slice and sort it,
 	// so the same unlockhash is produced for the same set
@@ -1555,11 +1531,22 @@ func (ms *MultiSignatureCondition) UnlockHash() UnlockHash {
 	uhs := make(UnlockHashSlice, len(ms.UnlockHashes))
 	copy(uhs, ms.UnlockHashes)
 	sort.Sort(uhs)
-	hash := crypto.HashObject(uhs)
-	return UnlockHash{
-		Type: UnlockTypeMultiSig,
-		Hash: hash,
+
+	// compute the hash
+	var buf bytes.Buffer
+	e := encoder(&buf)
+	tree := crypto.NewTree()
+	e.WriteUint64(uint64(len(uhs)))
+	tree.Push(buf.Bytes())
+	buf.Reset()
+	for _, uh := range uhs {
+		uh.MarshalSia(e)
+		tree.Push(buf.Bytes())
+		buf.Reset()
 	}
+	e.WriteUint64(ms.MinimumSignatureCount)
+	tree.Push(buf.Bytes())
+	return NewUnlockHash(UnlockTypeMultiSig, tree.Root())
 }
 
 // Equal implements UnlockCondition.Equal
@@ -1686,11 +1673,6 @@ func (ms *MultiSignatureFulfillment) Sign(ctx FulfillmentSignContext) (err error
 	// Only modify the fulfillment in case the signature was created succesfully
 	ms.Pairs = append(ms.Pairs, PublicKeySignaturePair{PublicKey: keypair.PublicKey, Signature: signature})
 	return
-}
-
-// UnlockHash implements UnlockFulfillment.UnlockHash
-func (ms *MultiSignatureFulfillment) UnlockHash() UnlockHash {
-	return UnlockHash{Type: UnlockTypeMultiSig, Hash: crypto.HashObject(ms.Pairs)}
 }
 
 // Marshal implements MarshalableUnlockFulfillment.Marshal
@@ -1828,18 +1810,6 @@ func (fp UnlockFulfillmentProxy) Sign(ctx FulfillmentSignContext) error {
 		fulfillment = &NilFulfillment{}
 	}
 	return fulfillment.Sign(ctx)
-}
-
-// UnlockHash implements UnlockFulfillment.UnlockHash
-//
-// If no child is defined, the Nil UnlockHash will be returned,
-// otherwise the child fulfillment's unlock hash will be returned.
-func (fp UnlockFulfillmentProxy) UnlockHash() UnlockHash {
-	fulfillment := fp.Fulfillment
-	if fulfillment == nil {
-		fulfillment = &NilFulfillment{}
-	}
-	return fulfillment.UnlockHash()
 }
 
 // FulfillmentType implements UnlockFulfillment.FulfillmentType
@@ -2199,4 +2169,26 @@ func verifyHashUsingSiaPublicKey(pk SiaPublicKey, inputIndex uint64, tx Transact
 		err = ErrUnknownSignAlgorithmType
 	}
 	return
+}
+
+// ComputeLegacyFulfillmentUnlockHash computes unlock hashes as they used to be computed,
+// back when fulfillments had an unlock hash function
+func ComputeLegacyFulfillmentUnlockHash(ff UnlockFulfillment) UnlockHash {
+	switch tf := ff.(type) {
+	case *SingleSignatureFulfillment:
+		return NewPubKeyUnlockHash(tf.PublicKey)
+	case *LegacyAtomicSwapFulfillment:
+		return NewUnlockHash(UnlockTypeAtomicSwap,
+			crypto.HashObject(encoding.MarshalAll(
+				tf.Sender, tf.Receiver, tf.HashedSecret, tf.TimeLock)))
+	case *AtomicSwapFulfillment:
+		return NewUnlockHash(UnlockTypeAtomicSwap,
+			crypto.HashObject(encoding.Marshal(tf.PublicKey)))
+	case *MultiSignatureFulfillment:
+		return UnlockHash{Type: UnlockTypeMultiSig, Hash: crypto.HashObject(tf.Pairs)}
+	case *anyAtomicSwapFulfillment:
+		return ComputeLegacyFulfillmentUnlockHash(tf.atomicSwapFulfillment)
+	default: // unlock fulfillment and unknown fulfillments
+		return NilUnlockHash
+	}
 }
