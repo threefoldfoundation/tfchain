@@ -159,6 +159,8 @@ func New(requiredUserAgent string, requiredPassword string, cs modules.Consensus
 	if api.cs != nil {
 		router.GET("/consensus", api.consensusHandler)
 		router.GET("/consensus/transactions/:id", api.consensusGetTransactionHandler)
+		router.GET("/consensus/unspent/coinoutputs/:id", api.consensusGetUnspentCoinOutputHandler)
+		router.GET("/consensus/unspent/blockstakeoutputs/:id", api.consensusGetUnspentBlockstakeOutputHandler)
 	}
 
 	// Explorer API Calls
@@ -221,9 +223,7 @@ func UnrecognizedCallHandler(w http.ResponseWriter, req *http.Request) {
 func WriteError(w http.ResponseWriter, err Error, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
-	if json.NewEncoder(w).Encode(err) != nil {
-		http.Error(w, "Failed to encode error response", http.StatusInternalServerError)
-	}
+	json.NewEncoder(w).Encode(err) // ignore error, as it probably means that the status code does not allow a body
 }
 
 // WriteJSON writes the object to the ResponseWriter. If the encoding fails, an

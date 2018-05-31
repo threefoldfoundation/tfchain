@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/rivine/rivine"
-  branch = "master"
+  branch = "v1.0.5-patch"
 
 [prune]
   go-tests = true

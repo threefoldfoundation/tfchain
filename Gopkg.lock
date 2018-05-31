@@ -76,7 +76,7 @@
   revision = "e35a707fc62766b909ae41fc6d45c1efac74bf34"
 
 [[projects]]
-  branch = "master"
+  branch = "v1.0.5-patch"
   name = "github.com/rivine/rivine"
   packages = [
     "api",
@@ -98,7 +98,7 @@
     "sync",
     "types"
   ]
-  revision = "87d62ffb4ba62f2e982e70e7c616cca2571d9c44"
+  revision = "25aba40027157e601ee70597f313acf7210e106f"
 
 [[projects]]
   name = "github.com/rivine/smux"
@@ -173,6 +173,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b82157be2a03d105926f04afd32f979ff827234f9bbdb1381813a80bb82903f9"
+  inputs-digest = "24e09ef2c9c421a0dabfa4f2de617ecfbc916765499751c446bc5748e1239b90"
   solver-name = "gps-cdcl"
   solver-version = 1

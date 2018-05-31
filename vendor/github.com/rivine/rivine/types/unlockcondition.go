@@ -313,6 +313,10 @@ var (
 	//
 	// NOTE That verification of unknown signing algorithm types does always succeed!
 	ErrUnknownSignAlgorithmType = errors.New("unknown signature algorithm type")
+
+	// ErrPrematureRefund is an error returned when a refund is requested for a contract,
+	// while the contract is still active, and thus not yet expired.
+	ErrPrematureRefund = errors.New("contract cannot yet be refunded")
 )
 
 // RegisterUnlockConditionType is used to register a condition type, by linking it to
@@ -463,7 +467,11 @@ type (
 	// anyAtomicSwapFulfillment is used to be able to unmarshal an atomic swap fulfillment,
 	// no matter if it's in the legacy format or in the original format.
 	anyAtomicSwapFulfillment struct {
+		atomicSwapFulfillment
+	}
+	atomicSwapFulfillment interface {
 		MarshalableUnlockFulfillment
+		AtomicSwapSecret() AtomicSwapSecret
 	}
 )
 
@@ -623,7 +631,7 @@ func (uh *UnlockHashCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 			tf.PublicKey)
 
 	case *anyAtomicSwapFulfillment:
-		return uh.Fulfill(tf.MarshalableUnlockFulfillment, ctx)
+		return uh.Fulfill(tf.atomicSwapFulfillment, ctx)
 
 	default:
 		return ErrUnexpectedUnlockFulfillment
@@ -733,24 +741,22 @@ func (ss *SingleSignatureFulfillment) Unmarshal(b []byte) error {
 func (as *AtomicSwapCondition) Fulfill(fulfillment UnlockFulfillment, ctx FulfillContext) error {
 	switch tf := fulfillment.(type) {
 	case *AtomicSwapFulfillment:
+		// An atomic swap c ontract can only be fulfilled in 1 of 2 ways:
+		//  1) By revealing the preimage (secret) for the secret hash /and/
+		//     a valid signature for the participator's address is provided
+		//  2) Once the timelock expires /and/
+		//     a valid signature for the initiator's address is provided.
+
 		// create the unlockHash for the given public Ke
 		unlockHash := NewUnlockHash(UnlockTypePubKey,
 			crypto.HashObject(encoding.Marshal(tf.PublicKey)))
-		// prior to our timelock, only the receiver can claim the unspend output
-		if ctx.BlockTime <= as.TimeLock {
-			// verify that receiver public key was given
+
+		// if secret is given, we'll assume that the participator (receiver) wants to claim
+		if tf.Secret != (AtomicSwapSecret{}) {
+			// verify that receiver's (participator) public key was given
 			if unlockHash.Cmp(as.Receiver) != 0 {
 				return ErrInvalidRedeemer
 			}
-
-			// verify signature
-			err := verifyHashUsingSiaPublicKey(
-				tf.PublicKey, ctx.InputIndex, ctx.Transaction, tf.Signature,
-				tf.PublicKey, tf.Secret)
-			if err != nil {
-				return err
-			}
-
 			// in order for the receiver to spend,
 			// the secret has to be known
 			hashedSecret := NewAtomicSwapHashedSecret(tf.Secret)
@@ -758,16 +764,24 @@ func (as *AtomicSwapCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 				return ErrInvalidPreImageSha256
 			}
 
-			return nil
+			// verify signature
+			return verifyHashUsingSiaPublicKey(
+				tf.PublicKey, ctx.InputIndex, ctx.Transaction, tf.Signature,
+				tf.PublicKey, tf.Secret)
 		}
 
-		// verify that sender public key was given
+		// if no secret is given, we'll assume that the initiator wants to refund,
+		// in which case we'll want to make sure the contract has expired,
+		// otherwise a refund is not (yet) possible
+		if ctx.BlockTime <= as.TimeLock {
+			return ErrPrematureRefund
+		}
+
+		// verify the given unlockhash is indeed the one of the inititiator (sender)
 		if unlockHash.Cmp(as.Sender) != 0 {
 			return ErrInvalidRedeemer
 		}
-
-		// after the deadline (timelock),
-		// only the original sender can reclaim the unspend output
+		// verify the signature is indeed done by
 		return verifyHashUsingSiaPublicKey(
 			tf.PublicKey, ctx.InputIndex, ctx.Transaction, tf.Signature,
 			tf.PublicKey)
@@ -797,7 +811,7 @@ func (as *AtomicSwapCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 		}, ctx)
 
 	case *anyAtomicSwapFulfillment:
-		return as.Fulfill(tf.MarshalableUnlockFulfillment, ctx)
+		return as.Fulfill(tf.atomicSwapFulfillment, ctx)
 
 	default:
 		return ErrUnexpectedUnlockFulfillment
@@ -1165,14 +1179,14 @@ func (as *anyAtomicSwapFulfillment) Unmarshal(b []byte) error {
 	// be positive, first try the new format
 	err := encoding.Unmarshal(b, asf)
 	if err == nil {
-		as.MarshalableUnlockFulfillment = asf
+		as.atomicSwapFulfillment = asf
 		return nil
 	}
 
 	// didn't work out, let's try the legacy atomic swap fulfillment
 	lasf := new(LegacyAtomicSwapFulfillment)
 	err = encoding.Unmarshal(b, lasf)
-	as.MarshalableUnlockFulfillment = lasf
+	as.atomicSwapFulfillment = lasf
 	return err
 }
 
@@ -1183,7 +1197,7 @@ func (as *anyAtomicSwapFulfillment) Unmarshal(b []byte) error {
 // rather than as part of this in-memory structure,
 // as it is not supposed to be visible from an encoded perspective.
 func (as *anyAtomicSwapFulfillment) MarshalJSON() ([]byte, error) {
-	return json.Marshal(as.MarshalableUnlockFulfillment)
+	return json.Marshal(as.atomicSwapFulfillment)
 }
 
 // UnmarshalJSON implements json.Unmarshaler.UnmarshalJSON
@@ -1214,9 +1228,9 @@ func (as *anyAtomicSwapFulfillment) UnmarshalJSON(b []byte) error {
 	}
 	switch undefOptArgCount {
 	case 0:
-		as.MarshalableUnlockFulfillment = lasf
+		as.atomicSwapFulfillment = lasf
 	case 4:
-		as.MarshalableUnlockFulfillment = &AtomicSwapFulfillment{
+		as.atomicSwapFulfillment = &AtomicSwapFulfillment{
 			PublicKey: lasf.PublicKey,
 			Signature: lasf.Signature,
 			Secret:    lasf.Secret,
