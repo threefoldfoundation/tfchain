@@ -8,6 +8,7 @@ jobs:
       script:
         - make
         - make ineffassign
+        - make test
     - stage: test
       language: go
       go: 1.9.x
@@ -16,6 +17,7 @@ jobs:
       script:
         - make
         - make ineffassign
+        - make test
     - stage: test
       language: go
       go: 1.10.x
@@ -24,11 +26,4 @@ jobs:
       script:
         - make
         - make ineffassign
-    - stage: test
-      language: go
-      go: tip
-      install:
-        - go get -u github.com/gordonklaus/ineffassign
-      script:
-        - make
-        - make ineffassign
+        - make test

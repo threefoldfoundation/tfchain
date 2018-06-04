@@ -3,6 +3,7 @@ all: install
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
 pkgs = $(daemonpkgs) $(clientpkgs)
+testpkgs = $(daemonpkgs)
 
 version = $(shell git describe | cut -d '-' -f 1)
 commit = $(shell git rev-parse --short HEAD)
@@ -28,6 +29,9 @@ install:
 install-std:
 	go build -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
 	go build -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
+
+test:
+	go test -race -v -tags='debug testing' -timeout=60s $(testpkgs)
 
 # xc builds and packages release binaries
 # for all windows, linux and mac, 64-bit only,
