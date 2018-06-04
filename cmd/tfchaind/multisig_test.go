@@ -33,7 +33,7 @@ func TestMultiSignatureConditionIsStandardCondition(t *testing.T) {
 
 func TestRegisteredMultiSignatureCondition(t *testing.T) {
 	// temporary overwrite multisig condition type, just for this unit test
-	overwriteMultiSignatureConditionType()
+	RegisteredBlockHeightLimitedMultiSignatureCondition()
 	defer types.RegisterUnlockConditionType(types.ConditionTypeMultiSignature,
 		func() types.MarshalableUnlockCondition { return new(types.MultiSignatureCondition) })
 
