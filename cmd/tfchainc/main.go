@@ -6,9 +6,9 @@ import (
 )
 
 func main() {
-	client.DefaultCLIClient("", func(icfg *client.Config) client.Config {
+	bchainInfo := config.GetBlockchainInfo()
+	client.DefaultCLIClient("", bchainInfo.Name, func(icfg *client.Config) client.Config {
 		if icfg == nil {
-			bchainInfo := config.GetBlockchainInfo()
 			constants := config.GetStandardnetGenesis()
 			return client.Config{
 				ChainName:    bchainInfo.Name,
