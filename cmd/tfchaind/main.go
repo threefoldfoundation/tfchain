@@ -8,17 +8,9 @@ import (
 	"github.com/rivine/rivine/pkg/daemon"
 )
 
-var (
-	devnet      = "devnet"
-	testnet     = "testnet"
-	standardnet = "standard"
-)
-
 func main() {
 	defaultDaemonConfig := daemon.DefaultConfig()
 	defaultDaemonConfig.BlockchainInfo = config.GetBlockchainInfo()
-	// Default network name, testnet for now since real network is not live yet
-	defaultDaemonConfig.NetworkName = standardnet
 	defaultDaemonConfig.CreateNetworkConfig = SetupNetworksAndTypes
 
 	daemon.SetupDefaultDaemon(defaultDaemonConfig)
@@ -31,7 +23,7 @@ func SetupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 	// return the network configuration, based on the network name,
 	// which includes the genesis block as well as the bootstrap peers
 	switch name {
-	case standardnet:
+	case config.NetworkNameStandard:
 		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 		// until the blockchain reached a height of 42000 blocks.
 		RegisteredBlockHeightLimitedMultiSignatureCondition()
@@ -42,14 +34,14 @@ func SetupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 			BootstrapPeers: config.GetStandardnetBootstrapPeers(),
 		}, nil
 
-	case testnet:
+	case config.NetworkNameTest:
 		// return the testnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
 			Constants:      config.GetTestnetGenesis(),
 			BootstrapPeers: config.GetTestnetBootstrapPeers(),
 		}, nil
 
-	case devnet:
+	case config.NetworkNameDev:
 		// return the devnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
 			Constants:      config.GetDevnetGenesis(),

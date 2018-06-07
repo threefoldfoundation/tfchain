@@ -25,6 +25,13 @@ const (
 	ThreeFoldTokenChainName = "tfchain"
 )
 
+// chain names
+const (
+	NetworkNameStandard = "standard"
+	NetworkNameTest     = "testnet"
+	NetworkNameDev      = "devnet"
+)
+
 // GetCurrencyUnits returns the currency units used for all ThreeFold networks.
 func GetCurrencyUnits() types.CurrencyUnits {
 	return types.CurrencyUnits{
@@ -37,6 +44,8 @@ func GetCurrencyUnits() types.CurrencyUnits {
 func GetBlockchainInfo() types.BlockchainInfo {
 	return types.BlockchainInfo{
 		Name:            ThreeFoldTokenChainName,
+		NetworkName:     NetworkNameStandard,
+		CoinUnit:        ThreeFoldTokenUnit,
 		ChainVersion:    Version,       // use our own blockChain/build version
 		ProtocolVersion: build.Version, // use latest available rivine protocol version
 	}
