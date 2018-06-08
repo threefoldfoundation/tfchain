@@ -7,24 +7,7 @@ import (
 
 func main() {
 	bchainInfo := config.GetBlockchainInfo()
-	client.DefaultCLIClient("", bchainInfo.Name, func(icfg *client.Config) client.Config {
-		if icfg == nil {
-			constants := config.GetStandardnetGenesis()
-			return client.Config{
-				ChainName:    bchainInfo.Name,
-				NetworkName:  config.NetworkNameStandard,
-				ChainVersion: bchainInfo.ChainVersion,
-
-				CurrencyUnits:             config.GetCurrencyUnits(),
-				MinimumTransactionFee:     constants.MinimumTransactionFee,
-				DefaultTransactionVersion: constants.DefaultTransactionVersion,
-
-				BlockFrequencyInSeconds: int64(constants.BlockFrequency),
-				GenesisBlockTimestamp:   constants.GenesisBlock().Timestamp,
-			}
-		}
-
-		cfg := *icfg
+	client.DefaultCLIClient("", bchainInfo.Name, func(cfg client.Config) client.Config {
 		switch cfg.NetworkName {
 		case config.NetworkNameStandard:
 			// overwrite standard network genesis block stamp,
