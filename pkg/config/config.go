@@ -32,6 +32,12 @@ const (
 	NetworkNameDev      = "devnet"
 )
 
+// global network config constants
+const (
+	StandardNetworkBlockFrequency types.BlockHeight = 120 // 1 block per 2 minutes on average
+	TestNetworkBlockFrequency     types.BlockHeight = 120 // 1 block per 2 minutes on average
+)
+
 // GetCurrencyUnits returns the currency units used for all ThreeFold networks.
 func GetCurrencyUnits() types.CurrencyUnits {
 	return types.CurrencyUnits{
@@ -63,7 +69,7 @@ func GetStandardnetGenesis() types.ChainConstants {
 	cfg.GenesisTransactionVersion = types.TransactionVersionZero
 
 	// 2 minute block time
-	cfg.BlockFrequency = 120
+	cfg.BlockFrequency = StandardNetworkBlockFrequency
 
 	// Payouts take roughly 1 day to mature.
 	cfg.MaturityDelay = 720
@@ -185,7 +191,7 @@ func GetTestnetGenesis() types.ChainConstants {
 	cfg.GenesisTransactionVersion = types.TransactionVersionZero
 
 	// 2 minute block time
-	cfg.BlockFrequency = 120
+	cfg.BlockFrequency = TestNetworkBlockFrequency
 
 	// Payouts take rougly 1 day to mature.
 	cfg.MaturityDelay = 720

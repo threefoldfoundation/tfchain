@@ -6,9 +6,9 @@ import (
 	"github.com/rivine/rivine/types"
 )
 
-// RegisteredBlockHeightLimitedMultiSignatureCondition registers the multisig condition,
+// RegisterBlockHeightLimitedMultiSignatureCondition registers the multisig condition,
 // and thus implicitly the fulfillment as well, in a way that it is limited to a certain block height.
-func RegisteredBlockHeightLimitedMultiSignatureCondition() {
+func RegisterBlockHeightLimitedMultiSignatureCondition() {
 	types.RegisterUnlockConditionType(types.ConditionTypeMultiSignature,
 		func() types.MarshalableUnlockCondition { return new(MultiSignatureCondition) })
 }
@@ -28,7 +28,7 @@ const (
 // IsStandardCondition implements UnlockCondition.IsStandardCondition,
 // wrapping around the internal MultiSignatureCondition's IsStandardCondition check,
 // adding a pre-check of the blockheight
-func (msc MultiSignatureCondition) IsStandardCondition(ctx types.StandardCheckContext) error {
+func (msc MultiSignatureCondition) IsStandardCondition(ctx types.ValidationContext) error {
 	if ctx.BlockHeight < MinimumBlockHeightForMultiSignatureConditions {
 		return fmt.Errorf(
 			"multisignature conditions are only allowed since blockheight %d",
