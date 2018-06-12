@@ -8,7 +8,7 @@ import (
 )
 
 func TestMultiSignatureConditionIsStandardCondition(t *testing.T) {
-	ctx := types.StandardCheckContext{}
+	ctx := types.ValidationContext{}
 	// create the condition manually
 	msc := MultiSignatureCondition{
 		MultiSignatureCondition: &types.MultiSignatureCondition{
@@ -33,7 +33,7 @@ func TestMultiSignatureConditionIsStandardCondition(t *testing.T) {
 
 func TestRegisteredMultiSignatureCondition(t *testing.T) {
 	// temporary overwrite multisig condition type, just for this unit test
-	RegisteredBlockHeightLimitedMultiSignatureCondition()
+	RegisterBlockHeightLimitedMultiSignatureCondition()
 	defer types.RegisterUnlockConditionType(types.ConditionTypeMultiSignature,
 		func() types.MarshalableUnlockCondition { return new(types.MultiSignatureCondition) })
 
@@ -68,7 +68,7 @@ func TestRegisteredMultiSignatureCondition(t *testing.T) {
 	}
 
 	// ensure that it can't be used yet at height 0
-	ctx := types.StandardCheckContext{}
+	ctx := types.ValidationContext{}
 	err = condition.IsStandardCondition(ctx)
 	if err == nil {
 		t.Fatal("expected standard condition check to fail, but it didn't")
