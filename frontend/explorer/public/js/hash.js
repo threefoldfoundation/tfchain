@@ -119,11 +119,9 @@ function appendV0Transaction(infoBody, explorerTransaction) {
 	}
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
-		for (var i = 0; i < explorerTransaction.rawtransaction.data.arbitrarydata.length; i++) {
-			var table = createStatsTable();
-			appendStat(table, 'Data', explorerTransaction.rawtransaction.data.arbitrarydata[i]);
-			infoBody.appendChild(table);
-		}
+		var table = createStatsTable();
+		appendStat(table, 'Data', explorerTransaction.rawtransaction.data.arbitrarydata);
+		infoBody.appendChild(table);
 	}
 }
 
@@ -245,11 +243,9 @@ function appendV1Transaction(infoBody, explorerTransaction) {
 	}
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
-		for (var i = 0; i < explorerTransaction.rawtransaction.data.arbitrarydata.length; i++) {
-			var table = createStatsTable();
-			appendStat(table, 'Data', explorerTransaction.rawtransaction.data.arbitrarydata[i]);
-			infoBody.appendChild(table);
-		}
+		var table = createStatsTable();
+		appendStat(table, 'Data', explorerTransaction.rawtransaction.data.arbitrarydata);
+		infoBody.appendChild(table);
 	}
 }
 
