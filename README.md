@@ -6,6 +6,11 @@ The ThreeFold blockchain is used as a ledger for the ThreeFold Token ("TFT"), a 
 
 The ThreeFold blockchain is the technology behind the ThreeFold Grid ("TF Grid" or "Grid"), a grid where your data is local and controlled by you, shaping a new neutral and sustainable Internet. To learn more about this grid you can find and read the whitepaper at [threefoldtoken.com/pdf/tf_whitepaper.pdf](https://threefoldtoken.com/pdf/tf_whitepaper.pdf).
 
+> ⚠ Attention ⚠
+>
+> `v1.0.5` is deprecated.
+> Please upgrade to `v1.0.6`: [threefoldfoundation/tfchain@v1.0.6](https://github.com/threefoldfoundation/tfchain/releases/tag/v1.0.6)
+
 [rivine]: http://github.com/rivine/rivine
 
 ## install and use tfchain
