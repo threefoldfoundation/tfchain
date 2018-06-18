@@ -16,7 +16,7 @@ func RegisteredBlockHeightLimitedMultiSignatureCondition() {
 // MultiSignatureCondition wraps around the Rivine-standard MultiSignatureCondition type,
 // as to ensure that in the standard network of tfchain, it can only be used since blockheight 42000
 type MultiSignatureCondition struct {
-	*types.MultiSignatureCondition
+	types.MultiSignatureCondition
 }
 
 const (
