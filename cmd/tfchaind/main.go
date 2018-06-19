@@ -29,7 +29,7 @@ func SetupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 		RegisterTransactionTypesForStandardNetwork()
 		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 		// until the blockchain reached a height of 42000 blocks.
-		RegisterBlockHeightLimitedMultiSignatureCondition()
+		RegisterBlockHeightLimitedMultiSignatureCondition(42000)
 
 		// return the standard genesis block and bootstrap peers
 		return daemon.NetworkConfig{
@@ -41,6 +41,9 @@ func SetupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 		// Register the transaction controllers for all transaction versions
 		// supported on the test network
 		RegisterTransactionTypesForTestNetwork()
+		// Use our custom MultiSignatureCondition, just for testing purposes
+		RegisterBlockHeightLimitedMultiSignatureCondition(0)
+
 		// return the testnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
 			Constants:      config.GetTestnetGenesis(),
@@ -48,6 +51,12 @@ func SetupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 		}, nil
 
 	case config.NetworkNameDev:
+		// Register the transaction controllers for all transaction versions
+		// supported on the dev network
+		RegisterTransactionTypesForDevNetwork()
+		// Use our custom MultiSignatureCondition, just for testing purposes
+		RegisterBlockHeightLimitedMultiSignatureCondition(0)
+
 		// return the devnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
 			Constants:      config.GetDevnetGenesis(),

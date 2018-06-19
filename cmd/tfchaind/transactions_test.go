@@ -64,7 +64,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
 	RegisterTransactionTypesForStandardNetwork()
-	testMinimumFeeValidationForTransactions(t, validationConstants)
+	testMinimumFeeValidationForTransactions(t, "standard", validationConstants)
 	constants = config.GetTestnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
 		BlockSizeLimit:         constants.BlockSizeLimit,
@@ -72,15 +72,23 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
 	RegisterTransactionTypesForTestNetwork()
-	testMinimumFeeValidationForTransactions(t, validationConstants)
+	testMinimumFeeValidationForTransactions(t, "test", validationConstants)
+	constants = config.GetDevnetGenesis()
+	validationConstants = types.TransactionValidationConstants{
+		BlockSizeLimit:         constants.BlockSizeLimit,
+		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
+		MinimumMinerFee:        constants.MinimumTransactionFee,
+	}
+	RegisterTransactionTypesForDevNetwork()
+	testMinimumFeeValidationForTransactions(t, "dev", validationConstants)
 }
 
-func testMinimumFeeValidationForTransactions(t *testing.T, validationConstants types.TransactionValidationConstants) {
+func testMinimumFeeValidationForTransactions(t *testing.T, name string, validationConstants types.TransactionValidationConstants) {
 	for idx, validJSONEncodedTransaction := range validJSONEncodedTransactions {
 		var txn types.Transaction
 		err := txn.UnmarshalJSON([]byte(validJSONEncodedTransaction))
 		if err != nil {
-			t.Fatal(idx, err)
+			t.Fatal(name, idx, err)
 		}
 		// should be valid, as miner fee is OK
 		err = txn.ValidateTransaction(types.ValidationContext{
@@ -88,7 +96,7 @@ func testMinimumFeeValidationForTransactions(t *testing.T, validationConstants t
 			BlockHeight: 100000,
 		}, validationConstants)
 		if err != nil {
-			t.Fatal(idx, err)
+			t.Fatal(name, idx, err)
 		}
 		// should be valid, as miner fee is OK
 		err = txn.ValidateTransaction(types.ValidationContext{
@@ -96,7 +104,7 @@ func testMinimumFeeValidationForTransactions(t *testing.T, validationConstants t
 			BlockHeight: 0,
 		}, validationConstants)
 		if err != nil {
-			t.Fatal(idx, err)
+			t.Fatal(name, idx, err)
 		}
 		// should be valid, as miner fee is OK
 		err = txn.ValidateTransaction(types.ValidationContext{
@@ -104,7 +112,7 @@ func testMinimumFeeValidationForTransactions(t *testing.T, validationConstants t
 			BlockHeight: 0,
 		}, validationConstants)
 		if err != nil {
-			t.Fatal(idx, err)
+			t.Fatal(name, idx, err)
 		}
 		// should be valid, as miner fee is OK
 		err = txn.ValidateTransaction(types.ValidationContext{
@@ -112,7 +120,7 @@ func testMinimumFeeValidationForTransactions(t *testing.T, validationConstants t
 			BlockHeight: 100000,
 		}, validationConstants)
 		if err != nil {
-			t.Fatal(idx, err)
+			t.Fatal(name, idx, err)
 		}
 		txn.MinerFees[0] = types.NewCurrency64(1)
 		// should be invalid, as miner fee isn't OK
@@ -121,15 +129,22 @@ func testMinimumFeeValidationForTransactions(t *testing.T, validationConstants t
 			BlockHeight: 100000,
 		}, validationConstants)
 		if err == nil {
-			t.Fatal(idx, "expected error, but no error received")
+			t.Fatal(name, idx, "expected error, but no error received")
 		}
 		// should be valid, as miner fee isn't OK, but block height is low enough
+		// except for devnet, in that case it isn't OK
 		err = txn.ValidateTransaction(types.ValidationContext{
 			Confirmed:   true,
 			BlockHeight: 0,
 		}, validationConstants)
-		if err != nil {
-			t.Fatal(idx, err)
+		if name == "dev" {
+			if err == nil {
+				t.Fatal(name, idx, "expected error, but none received")
+			}
+		} else {
+			if err != nil {
+				t.Fatal(name, idx, err)
+			}
 		}
 		// should be invalid, as miner fee isn't OK, and in unconfirmed state the block height doesn't matter
 		err = txn.ValidateTransaction(types.ValidationContext{
@@ -137,7 +152,7 @@ func testMinimumFeeValidationForTransactions(t *testing.T, validationConstants t
 			BlockHeight: 0,
 		}, validationConstants)
 		if err == nil {
-			t.Fatal(idx, "expected error, but no error received")
+			t.Fatal(name, idx, "expected error, but no error received")
 		}
 
 	}

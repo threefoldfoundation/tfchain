@@ -98,7 +98,7 @@
     "sync",
     "types"
   ]
-  revision = "0074a55c57861e8c64b9414beb89dce0d6282ca4"
+  revision = "4aabccb9561b8e3ca6b6323e7a8e00d84d031c36"
 
 [[projects]]
   name = "github.com/rivine/smux"
@@ -173,6 +173,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b82157be2a03d105926f04afd32f979ff827234f9bbdb1381813a80bb82903f9"
+  inputs-digest = "83a4d48e1454ad5349a649f10bd4d9abdbd35c35c14ca673c373e052dd57e3e1"
   solver-name = "gps-cdcl"
   solver-version = 1
