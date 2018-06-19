@@ -9,7 +9,7 @@ The ThreeFold blockchain is the technology behind the ThreeFold Grid ("TF Grid" 
 > ⚠ Attention ⚠
 >
 > `v1.0.5` is deprecated.
-> Please upgrade to `v1.0.6`: [threefoldfoundation/tfchain@v1.0.6](https://github.com/threefoldfoundation/tfchain/releases/tag/v1.0.6)
+> Please upgrade to `v1.0.6.1`: [threefoldfoundation/tfchain@v1.0.6.1](https://github.com/threefoldfoundation/tfchain/releases/tag/v1.0.6.1)
 
 [rivine]: http://github.com/rivine/rivine
 
