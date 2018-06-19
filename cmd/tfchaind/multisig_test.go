@@ -20,6 +20,7 @@ func TestMultiSignatureConditionIsStandardCondition(t *testing.T) {
 			},
 			MinimumSignatureCount: 1,
 		},
+		minimumBlockHeight: 1,
 	}
 	// ensure that the internal condition's standard check does pass
 	err := msc.MultiSignatureCondition.IsStandardCondition(ctx)
@@ -31,11 +32,18 @@ func TestMultiSignatureConditionIsStandardCondition(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected standard condition check to fail, but it didn't")
 	}
+	// modify the block height, should pass now
+	msc.minimumBlockHeight = 0
+	err = msc.IsStandardCondition(ctx)
+	if err != nil {
+		t.Fatal("expected standard condition check pass, but it failed: ", err)
+	}
 }
 
 func TestRegisteredMultiSignatureCondition(t *testing.T) {
+	const minimumBlockHeight = 8
 	// temporary overwrite multisig condition type, just for this unit test
-	RegisteredBlockHeightLimitedMultiSignatureCondition()
+	RegisteredBlockHeightLimitedMultiSignatureCondition(minimumBlockHeight)
 	defer types.RegisterUnlockConditionType(types.ConditionTypeMultiSignature,
 		func() types.MarshalableUnlockCondition { return new(types.MultiSignatureCondition) })
 
@@ -77,7 +85,7 @@ func TestRegisteredMultiSignatureCondition(t *testing.T) {
 	}
 
 	// ensure that it can be used at the minimum height
-	ctx.BlockHeight = MinimumBlockHeightForMultiSignatureConditions
+	ctx.BlockHeight = minimumBlockHeight
 	err = condition.IsStandardCondition(ctx)
 	if err != nil {
 		t.Fatal("expected standard condition check pass, but it failed: ", err)
@@ -94,7 +102,7 @@ func unlockHashFromHex(hstr string) (uh types.UnlockHash) {
 
 func TestDecodeBinaryCoinOutputsForIssue141(t *testing.T) {
 	// temporary overwrite multisig condition type, just for this unit test
-	RegisteredBlockHeightLimitedMultiSignatureCondition()
+	RegisteredBlockHeightLimitedMultiSignatureCondition(0)
 	defer types.RegisterUnlockConditionType(types.ConditionTypeMultiSignature,
 		func() types.MarshalableUnlockCondition { return new(types.MultiSignatureCondition) })
 
@@ -112,7 +120,7 @@ func TestDecodeBinaryCoinOutputsForIssue141(t *testing.T) {
 
 func TestDecodeBinaryTransactionSetForIssue141(t *testing.T) {
 	// temporary overwrite multisig condition type, just for this unit test
-	RegisteredBlockHeightLimitedMultiSignatureCondition()
+	RegisteredBlockHeightLimitedMultiSignatureCondition(0)
 	defer types.RegisterUnlockConditionType(types.ConditionTypeMultiSignature,
 		func() types.MarshalableUnlockCondition { return new(types.MultiSignatureCondition) })
 
