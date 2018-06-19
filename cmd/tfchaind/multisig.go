@@ -33,3 +33,15 @@ func (msc MultiSignatureCondition) IsStandardCondition(ctx types.StandardCheckCo
 	}
 	return msc.MultiSignatureCondition.IsStandardCondition(ctx)
 }
+
+// Equal implements UnlockCondition.Equal,
+// ensuring the equality works for any expected MultiSig Combination.
+func (msc MultiSignatureCondition) Equal(c types.UnlockCondition) bool {
+	if omsc, ok := c.(*MultiSignatureCondition); ok {
+		if msc.minimumBlockHeight != omsc.minimumBlockHeight {
+			return false
+		}
+		c = &omsc.MultiSignatureCondition
+	}
+	return msc.MultiSignatureCondition.Equal(c)
+}
