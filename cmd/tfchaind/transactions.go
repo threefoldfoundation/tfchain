@@ -44,6 +44,19 @@ func RegisterTransactionTypesForTestNetwork() {
 	})
 }
 
+// RegisterTransactionTypesForDevNetwork registers he transaction controllers
+// for all transaction versions supported on the dev network.
+func RegisterTransactionTypesForDevNetwork() {
+	types.RegisterTransactionVersion(types.TransactionVersionZero, LegacyTransactionController{
+		LegacyTransactionController:    types.LegacyTransactionController{},
+		TransactionFeeCheckBlockHeight: 0,
+	})
+	types.RegisterTransactionVersion(types.TransactionVersionOne, DefaultTransactionController{
+		DefaultTransactionController:   types.DefaultTransactionController{},
+		TransactionFeeCheckBlockHeight: 0,
+	})
+}
+
 type (
 	// DefaultTransactionController wraps around Rivine's DefaultTransactionController,
 	// as to ensure that we use check the MinimumTransactionFee,
