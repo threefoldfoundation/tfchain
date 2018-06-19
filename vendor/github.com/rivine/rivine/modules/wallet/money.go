@@ -124,15 +124,15 @@ func (w *Wallet) MultiSigWallets() []modules.MultiSigWallet {
 		// Check if the wallet exists
 		if wallet, exists = wallets[address]; !exists {
 			// get the internal multisig unlock condition
-			msuc := getMultiSigCondition(co.Condition.Condition)
-			if msuc == nil {
+			unlockhashes, minSignatureCount := getMultisigConditionProperties(co.Condition.Condition)
+			if len(unlockhashes) == 0 {
 				panic("Failed to convert output to multisig condition")
 			}
 			// Create a new wallet for this address
 			wallet = &modules.MultiSigWallet{
 				Address: address,
-				Owners:  msuc.UnlockHashes,
-				MinSigs: msuc.MinimumSignatureCount,
+				Owners:  unlockhashes,
+				MinSigs: minSignatureCount,
 			}
 			wallets[address] = wallet
 		}
@@ -152,15 +152,15 @@ func (w *Wallet) MultiSigWallets() []modules.MultiSigWallet {
 		// Check if the wallet exists
 		if wallet, exists = wallets[address]; !exists {
 			// get the internal multisig unlock condition
-			msuc := getMultiSigCondition(bso.Condition.Condition)
-			if msuc == nil {
+			unlockhashes, minSignatureCount := getMultisigConditionProperties(bso.Condition.Condition)
+			if len(unlockhashes) == 0 {
 				panic("Failed to convert output to multisig condition")
 			}
 			// Create a new wallet for this address
 			wallet = &modules.MultiSigWallet{
 				Address: address,
-				Owners:  msuc.UnlockHashes,
-				MinSigs: msuc.MinimumSignatureCount,
+				Owners:  unlockhashes,
+				MinSigs: minSignatureCount,
 			}
 			wallets[address] = wallet
 		}
