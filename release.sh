@@ -30,7 +30,7 @@ for os in darwin linux windows; do
 
 	done
 	# add other artifacts
-	cp -r LICENSE README.md "$folder"
+	cp -r doc LICENSE README.md "$folder"
 	# go into the release directory
 	pushd release &> /dev/null
 	# zip
