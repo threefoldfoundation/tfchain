@@ -9,7 +9,7 @@ The ThreeFold blockchain is the technology behind the ThreeFold Grid ("TF Grid" 
 > ⚠ Attention ⚠
 >
 > `v1.0.6.1` is deprecated as of the 2nd of July, 2018.
-> Please upgrade to `v1.0.7.1`: [threefoldfoundation/tfchain@v1.0.7](https://github.com/threefoldfoundation/tfchain/releases/tag/v1.0.7.1) (released on 27th of June, 2018).
+> Please upgrade to `v1.0.7.1`: [threefoldfoundation/tfchain@v1.0.7.1](https://github.com/threefoldfoundation/tfchain/releases/tag/v1.0.7.1) (released on 27th of June, 2018).
 >
 > If you are still running `v1.0.6.1` or older, you are advised to upgrade to `v1.0.7.1` as soon as it is released.
 
