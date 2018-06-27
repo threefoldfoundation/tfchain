@@ -182,9 +182,8 @@ function appendV1Transaction(infoBody, explorerTransaction) {
 			switch (explorerTransaction.rawtransaction.data.coinoutputs[i].condition.type) {
 				// handle nil transactions
 				case undefined:
-					f = addV1NilOutput;
-					break;
 				case 0:
+					f = addV1NilOutput;
 					break;
 				case 1:
 					f = addV1T1Output;
@@ -266,11 +265,12 @@ function addV1T1Input(infoBody, explorerTransaction, i, type) {
 
 	var doms = appendStat(table, 'Parent ID', '');
 	linkHash(doms[2], explorerTransaction.rawtransaction.data[inputspecifier][i].parentid);
-	doms = appendStat(table, 'Address', '-');
-	// Could be that we are using a nil output as input, which has no address
-	if (explorerTransaction[inputoutputspecifier][i].condition.data) {
-		linkHash(doms[2], explorerTransaction[inputoutputspecifier][i].condition.data.unlockhash);
+	doms = appendStat(table, 'Address', '');
+	var unlockhash = explorerTransaction[inputoutputspecifier][i].unlockhash;
+	if (!unlockhash) {
+		unlockhash = "000000000000000000000000000000000000000000000000000000000000000000000000000000";
 	}
+	linkHash(doms[2], unlockhash);
 	var amount = explorerTransaction[inputoutputspecifier][i].value;
 	if (type === 'coins') {
 		amount = readableCoins(amount);
@@ -368,8 +368,8 @@ function addV1NilOutput(infoBody, explorerTransaction, i, type) {
 	var doms = appendStat(table, 'ID', '');
 
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
-	// doms = appendStat(table, 'Address', '');
-	// linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.unlockhash);
+	doms = appendStat(table, 'Address', '');
+	linkHash(doms[2], '000000000000000000000000000000000000000000000000000000000000000000000000000000');
 
 	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
 	if (type === 'coins') {
@@ -569,6 +569,9 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 					}
 				} else { // V1 txn
 					var address = explorerHash.transactions[i].coinoutputunlockhashes[j];
+					if (!address) {
+						address = '000000000000000000000000000000000000000000000000000000000000000000000000000000';
+					}
 					if (address == hash) {
 						found = true;
 						var table = createStatsTable();
@@ -664,6 +667,9 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 					}
 				} else { // V1 Txn
 					var address = explorerHash.transactions[i].blockstakeoutputunlockhashes[j];
+					if (!address) {
+						address = '000000000000000000000000000000000000000000000000000000000000000000000000000000';
+					}
 					if (address == hash) {
 						found = true;
 						var table = createStatsTable();
@@ -816,7 +822,6 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 						var f;
 						switch (explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.type) {
 							case undefined:
-								f = addV1NilOutput
 							case 0:
 								f = addV1NilOutput;
 								break;
