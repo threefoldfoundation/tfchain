@@ -431,17 +431,25 @@ function addV1T3Output(infoBody, explorerTransaction, i, type) {
 	var doms = appendStat(table, 'ID', '');
 
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
-	if (explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.condition.data.unlockhash) {
-		doms = appendStat(table, 'Address', '');
-		linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.condition.data.unlockhash);
-	} else if (explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.condition.data.unlockhashes) {
-		for (var j = 0; j < explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.condition.data.unlockhashes.length; j++) {
-			doms = appendStat(table, '', '');
-			linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.condition.data.unlockhashes[j]);
-		}
-	} else {
-		// nil condition
-
+	var conditionType = explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.condition.type;
+	switch (conditionType) {
+		case undefined:
+		case 0:
+			doms = appendStat(table, 'Address', '');
+			linkHash(doms[2], '000000000000000000000000000000000000000000000000000000000000000000000000000000');
+			break;
+		case 1:
+			doms = appendStat(table, 'Address', '');
+			linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.condition.data.unlockhash);
+			break;
+		case 4:
+			for (var j = 0; j < explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.condition.data.unlockhashes.length; j++) {
+				doms = appendStat(table, '', '');
+				linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.condition.data.unlockhashes[j]);
+			}
+			break;
+		default:
+			appendStat(table, 'Address', '?');
 	}
 	
 	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
