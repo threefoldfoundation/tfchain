@@ -2,22 +2,26 @@ var LockTimeMinTimestampValue = 500 * 1000 * 1000
 
 // appendTransactionStatsistics adds a list of statistics for a transaction to
 // the dom info in the form of a set of tables.
-function appendTransactionStatistics(infoBody, explorerTransaction) {
+function appendTransactionStatistics(infoBody, explorerTransaction, confirmed) {
 	switch (explorerTransaction.rawtransaction.version) {
 		case 0:
-			appendV0Transaction(infoBody, explorerTransaction);
+			appendV0Transaction(infoBody, explorerTransaction, confirmed);
 			break;
 		case 1:
-			appendV1Transaction(infoBody, explorerTransaction);
+			appendV1Transaction(infoBody, explorerTransaction, confirmed);
 			break;
 	}
 }
 
-function appendV0Transaction(infoBody, explorerTransaction) {
+function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 	var table = createStatsTable();
 	appendStatHeader(table, 'Transaction Statistics');
-	var doms = appendStat(table, 'Height', '');
-	linkHeight(doms[2], explorerTransaction.height);
+	if (confirmed) {
+		var doms = appendStat(table, 'Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+	} else {
+		doms = appendStat(table, 'Height', 'unconfirmed');
+	}
 	doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction.id);
 	if (explorerTransaction.rawtransaction.data.coininputs != null && explorerTransaction.rawtransaction.data.coininputs.length > 0) {
@@ -125,11 +129,15 @@ function appendV0Transaction(infoBody, explorerTransaction) {
 	}
 }
 
-function appendV1Transaction(infoBody, explorerTransaction) {
+function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 	var table = createStatsTable();
 	appendStatHeader(table, 'Transaction Statistics');
-	var doms = appendStat(table, 'Height', '');
-	linkHeight(doms[2], explorerTransaction.height);
+	if (confirmed) {
+		var doms = appendStat(table, 'Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+	} else {
+		doms = appendStat(table, 'Height', 'unconfirmed');
+	}
 	doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction.id);
 	if (explorerTransaction.rawtransaction.data.coininputs != null && explorerTransaction.rawtransaction.data.coininputs.length > 0) {
@@ -974,7 +982,7 @@ function populateHashPage(hash, explorerHash) {
 	} else if (hashType === "transactionid") {
 		appendHeading(infoBody, 'Hash Type: Transaction ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
-		appendTransactionStatistics(infoBody, explorerHash.transaction);
+		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
 		appendHexTransaction(infoBody, explorerHash.transaction.hextransaction);
 	} else if (hashType === "unlockhash") {
 		appendHeading(infoBody, 'Hash Type: Unlock Hash / Address');
