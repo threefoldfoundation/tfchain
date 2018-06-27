@@ -294,7 +294,12 @@ function addV1T2Input(infoBody, explorerTransaction, i, type) {
 	var doms = appendStat(table, 'Parent ID', '');
 	linkHash(doms[2], explorerTransaction.rawtransaction.data[inputspecifier][i].parentid);
 	doms = appendStat(table, 'Address', '');
-	linkHash(doms[2], explorerTransaction[inputoutputspecifier][i].condition.data.unlockhash);
+	var secret = explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.data.secret;
+	if (!secret || 0 === secret.length) {
+		linkHash(doms[2], explorerTransaction[inputoutputspecifier][i].condition.data.sender);
+	} else {
+		linkHash(doms[2], explorerTransaction[inputoutputspecifier][i].condition.data.receiver);
+	}
 	var amount = explorerTransaction[inputoutputspecifier][i].value;
 	if (type === 'coins') {
 		amount = readableCoins(amount);
