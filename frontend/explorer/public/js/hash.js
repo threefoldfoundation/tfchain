@@ -266,8 +266,11 @@ function addV1T1Input(infoBody, explorerTransaction, i, type) {
 
 	var doms = appendStat(table, 'Parent ID', '');
 	linkHash(doms[2], explorerTransaction.rawtransaction.data[inputspecifier][i].parentid);
-	doms = appendStat(table, 'Address', '');
-	linkHash(doms[2], explorerTransaction[inputoutputspecifier][i].condition.data.unlockhash);
+	doms = appendStat(table, 'Address', '-');
+	// Could be that we are using a nil output as input, which has no address
+	if (explorerTransaction[inputoutputspecifier][i].condition.data) {
+		linkHash(doms[2], explorerTransaction[inputoutputspecifier][i].condition.data.unlockhash);
+	}
 	var amount = explorerTransaction[inputoutputspecifier][i].value;
 	if (type === 'coins') {
 		amount = readableCoins(amount);
@@ -812,7 +815,10 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 						linkHash(doms[2], explorerHash.transactions[i].id);
 						var f;
 						switch (explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.type) {
+							case undefined:
+								f = addV1NilOutput
 							case 0:
+								f = addV1NilOutput;
 								break;
 							case 1:
 								f = addV1T1Output;
