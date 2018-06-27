@@ -334,12 +334,15 @@ function addV1T3Input(infoBody, explorerTransaction, i, type) {
 	appendStat(table, 'Value', amount);
 	
 	appendStatHeader(table, 'Condition');
-	doms = appendStat(table, 'Type', explorerTransaction[inputoutputspecifier][i].condition.type);
+	appendStat(table, 'Type', explorerTransaction[inputoutputspecifier][i].condition.type);
 	var rawInput = explorerTransaction[inputoutputspecifier][i];
+	doms = appendStat(table, 'MultiSignature Address', '');
+	linkHash(doms[2], rawInput.unlockhash);
 	for (var idx = 0; idx < rawInput.condition.data.unlockhashes.length; idx++) {
-		doms = appendStat(table, '', '');
+		doms = appendStat(table, 'Unlock Hash #' + (idx+1), '');
 		linkHash(doms[2], rawInput.condition.data.unlockhashes[idx]);
 	}
+	appendStat(table, 'Minimum Signature Count', rawInput.condition.data.minimumsignaturecount);
 
 	appendStatHeader(table, 'Fulfillment');
 	var rawInput = explorerTransaction.rawtransaction.data[inputspecifier][i];
@@ -450,6 +453,7 @@ function addV1T3Output(infoBody, explorerTransaction, i, type) {
 function addV1T4Output(infoBody, explorerTransaction, i, type) {
 	var outputspecifier = getOutputSpecifier(type);
 	var outputidspecifier = getOutputIDSpecifier(type);
+	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
 
 	var table = createStatsTable();
 	var doms = appendStat(table, 'ID', '');
@@ -461,11 +465,15 @@ function addV1T4Output(infoBody, explorerTransaction, i, type) {
 	}
 	appendStat(table, 'Value', amount);
 
+	doms = appendStat(table, 'MultiSignature Address', '');
+	linkHash(doms[2], explorerTransaction[outputunlockhashesspecifier][i]);
 	var rawInput = explorerTransaction.rawtransaction.data[outputspecifier][i];
 	for (var i = 0; i < rawInput.condition.data.unlockhashes.length; i++) {
-		doms = appendStat(table, '', '');
+		doms = appendStat(table, 'Unlock Hash #' + (i+1), '');
 		linkHash(doms[2], rawInput.condition.data.unlockhashes[i]);
 	}
+	appendStat(table, 'Minimum Signature Count', rawInput.condition.data.minimumsignaturecount);
+
 	infoBody.appendChild(table);
 }
 
@@ -502,6 +510,15 @@ function getOutputIDSpecifier(type) {
 			return 'coinoutputids';
 		case 'blockstakes':
 			return 'blockstakeoutputids';
+	}
+}
+
+function getOutputUnlockHashesSpecifier(type) {
+	switch (type) {
+		case 'coins':
+			return 'coinoutputunlockhashes';
+		case 'blockstakes':
+			return 'blockstakeoutputunlockhashes';
 	}
 }
 
@@ -548,24 +565,7 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 						scoidMatches.push(false);
 					}
 				} else { // V1 txn
-					// 
-					var f;
-					var type = explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.type;
-					switch (type) {
-						case undefined:
-							f = getV1NilOutputAddress;
-							break
-						case 1:
-							f = getV1T1OutputAddress;
-							break;
-						case 2:
-							f = getV1T2OutputAddress;
-							break;
-						case 3:
-							f = getV1T3OutputAddress;
-							break;
-					}
-					var address = f(explorerHash, i, j);
+					var address = explorerHash.transactions[i].coinoutputunlockhashes[j];
 					if (address == hash) {
 						found = true;
 						var table = createStatsTable();
@@ -578,6 +578,7 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 						doms = appendStat(table, 'Address', '');
 						linkHash(doms[2], hash);
 						appendStat(table, 'Value', readableCoins(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value));
+						var type = explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.type;
 						if (type === 3) {
 							appendStat(table, 'Unlocked at', formatUnlockTime(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.locktime))
 						}
@@ -641,21 +642,41 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 		if (explorerHash.transactions[i].blockstakeoutputids != null && explorerHash.transactions[i].blockstakeoutputids.length != 0) {
 			// Scan for a relevant blockstake output.
 			for (var j = 0; j < explorerHash.transactions[i].blockstakeoutputids.length; j++) {
-				if (explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].unlockhash == hash) {
-					found = true;
-					var table = createStatsTable();
-					var doms = appendStat(table, 'Height', '');
-					linkHeight(doms[2], explorerHash.transactions[i].height);
-					doms = appendStat(table, 'Parent Transaction', '');
-					linkHash(doms[2],  explorerHash.transactions[i].id);
-					doms = appendStat(table, 'ID', '');
-					linkHash(doms[2], explorerHash.transactions[i].blockstakeoutputids[j]);
-					doms = appendStat(table, 'Address', '');
-					linkHash(doms[2], hash);
-					appendStat(table, 'Value', explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].value + ' blockstakes');
-					tables.push(table);
-					sfoids.push(explorerHash.transactions[i].blockstakeoutputids[j]);
-					sfoidMatches.push(false);
+				if (explorerHash.transactions[i].rawtransaction.version === 0) {
+					if (explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].unlockhash == hash) {
+						found = true;
+						var table = createStatsTable();
+						var doms = appendStat(table, 'Height', '');
+						linkHeight(doms[2], explorerHash.transactions[i].height);
+						doms = appendStat(table, 'Parent Transaction', '');
+						linkHash(doms[2],  explorerHash.transactions[i].id);
+						doms = appendStat(table, 'ID', '');
+						linkHash(doms[2], explorerHash.transactions[i].blockstakeoutputids[j]);
+						doms = appendStat(table, 'Address', '');
+						linkHash(doms[2], hash);
+						appendStat(table, 'Value', explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].value + ' BS');
+						tables.push(table);
+						sfoids.push(explorerHash.transactions[i].blockstakeoutputids[j]);
+						sfoidMatches.push(false);
+					}
+				} else { // V1 Txn
+					var address = explorerHash.transactions[i].blockstakeoutputunlockhashes[j];
+					if (address == hash) {
+						found = true;
+						var table = createStatsTable();
+						var doms = appendStat(table, 'Height', '');
+						linkHeight(doms[2], explorerHash.transactions[i].height);
+						doms = appendStat(table, 'Parent Transaction', '');
+						linkHash(doms[2],  explorerHash.transactions[i].id);
+						doms = appendStat(table, 'ID', '');
+						linkHash(doms[2], explorerHash.transactions[i].blockstakeoutputids[j]);
+						doms = appendStat(table, 'Address', '');
+						linkHash(doms[2], hash);
+						appendStat(table, 'Value', explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].value + ' BS');
+						tables.push(table);
+						sfoids.push(explorerHash.transactions[i].blockstakeoutputids[j]);
+						sfoidMatches.push(false);
+					}
 				}
 			}
 		}
@@ -694,22 +715,6 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 			domParent.appendChild(tables[i]);
 		}
 	}
-}
-
-function getV1NilOutputAddress(explorerHash, i, j) {
-	return undefined
-}
-
-function getV1T1OutputAddress(explorerHash, i, j) {
-	return explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.unlockhash;
-}
-
-function getV1T2OutputAddress(explorerHash, i, j) {
-	return explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.unlockhash;
-}
-
-function getV1T3OutputAddress(explorerHash, i, j) {
-	return explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.condition.data.unlockhash;
 }
 
 // appendUnlockHashTables appends a series of tables that provide information
