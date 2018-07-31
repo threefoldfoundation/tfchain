@@ -102,12 +102,14 @@ function appendStat(table, statLabel, statText) {
 // appendBlockStatistics creates a block statistics table and appends it to the
 // input dom parent.
 function appendBlockStatistics(domParent, explorerBlock) {
+	var ctx = getBlockchainContext();
 	var table = createStatsTable();
 	appendStatHeader(table, 'Block Statistics');
-	var doms = appendStat(table, 'Height', '');
+	var doms = appendStat(table, 'Block Height', '');
 	linkHeight(doms[2], explorerBlock.height);
-	doms = appendStat(table, 'ID', '');
+	doms = appendStat(table, 'Block ID', '');
 	linkHash(doms[2], explorerBlock.blockid);
+	appendStat(table, 'Confirmations', ctx.height - explorerBlock.height + 1);
 	doms = appendStat(table, 'Parent Block', '');
 	linkHash(doms[2], explorerBlock.rawblock.parentid);
 	appendStat(table, 'Time', formatUnixTime(explorerBlock.rawblock.timestamp));
@@ -117,12 +119,12 @@ function appendBlockStatistics(domParent, explorerBlock) {
 }
 
 // getBlockchainTime gets the current blockchain time
-function getBlockchainTime() {
+function getBlockchainContext() {
 	var request = new XMLHttpRequest();
 	request.open('GET', '/explorer', false);
 	request.send();
 	if (request.status != 200) {
-		return 0;
+		return {};
 	}
 	var response = JSON.parse(request.responseText);
 	var height = response.height;
@@ -132,8 +134,11 @@ function getBlockchainTime() {
 	request.open('GET', reqString, false);
 	request.send();
 	if (request.status != 200) {
-		return 0;
+		return {};
 	}
 	var explorerBlock = JSON.parse(request.responseText).block;
-	return explorerBlock.rawblock.timestamp;
+	return {
+		timestamp: explorerBlock.rawblock.timestamp,
+		height: height,
+	};
 }
