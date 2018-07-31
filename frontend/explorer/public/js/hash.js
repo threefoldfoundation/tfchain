@@ -14,13 +14,16 @@ function appendTransactionStatistics(infoBody, explorerTransaction, confirmed) {
 }
 
 function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
+	var ctx = getBlockchainContext();
+
 	var table = createStatsTable();
 	appendStatHeader(table, 'Transaction Statistics');
 	if (confirmed) {
-		var doms = appendStat(table, 'Height', '');
+		var doms = appendStat(table, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
 	} else {
-		doms = appendStat(table, 'Height', 'unconfirmed');
+		doms = appendStat(table, 'Block Height', 'unconfirmed');
 	}
 	doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction.id);
@@ -130,16 +133,18 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 }
 
 function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
-	var blockChainTimestamp = getBlockchainTime();
-	var ctx = {timestamp: blockChainTimestamp};
+	var ctx = getBlockchainContext();
 
 	var table = createStatsTable();
 	appendStatHeader(table, 'Transaction Statistics');
 	if (confirmed) {
-		var doms = appendStat(table, 'Height', '');
+		var doms = appendStat(table, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		doms = appendStat(table, 'Block ID', '');
+		linkHash(doms[2], explorerTransaction.parent);
+		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
 	} else {
-		doms = appendStat(table, 'Height', 'unconfirmed');
+		doms = appendStat(table, 'Block Height', 'unconfirmed');
 	}
 	doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction.id);
@@ -380,7 +385,7 @@ function addV1T3Input(infoBody, explorerTransaction, i, type) {
 // **************
 // * V1 Outputs *
 // **************
-function addV1NilOutput(ctx, table, explorerTransaction, i, type) {
+function addV1NilOutput(_ctx, table, explorerTransaction, i, type) {
 	var outputspecifier = getOutputSpecifier(type);	
 	var outputidspecifier = getOutputIDSpecifier(type);
 
@@ -401,7 +406,7 @@ function addV1NilOutput(ctx, table, explorerTransaction, i, type) {
 	};
 }
 
-function addV1T1Output(ctx, table, explorerTransaction, i, type) {
+function addV1T1Output(_ctx, table, explorerTransaction, i, type) {
 	var outputspecifier = getOutputSpecifier(type);
 	var outputidspecifier = getOutputIDSpecifier(type);
 
@@ -422,7 +427,7 @@ function addV1T1Output(ctx, table, explorerTransaction, i, type) {
 	};
 }
 
-function addV1T2Output(ctx, table, explorerTransaction, i, type) {
+function addV1T2Output(_ctx, table, explorerTransaction, i, type) {
 	var outputspecifier = getOutputSpecifier(type);
 	var outputidspecifier = getOutputIDSpecifier(type);
 
@@ -500,7 +505,7 @@ function addV1T3Output(ctx, table, explorerTransaction, i, type) {
 	};
 }
 
-function addV1T4Output(ctx, table, explorerTransaction, i, type) {
+function addV1T4Output(_ctx, table, explorerTransaction, i, type) {
 	var outputspecifier = getOutputSpecifier(type);
 	var outputidspecifier = getOutputIDSpecifier(type);
 	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
@@ -508,7 +513,8 @@ function addV1T4Output(ctx, table, explorerTransaction, i, type) {
 	var doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
-	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
+	var output = explorerTransaction.rawtransaction.data[outputspecifier][i];
+	var amount = output.value
 	if (type === 'coins') {
 		amount = readableCoins(amount);
 	}
@@ -516,14 +522,13 @@ function addV1T4Output(ctx, table, explorerTransaction, i, type) {
 
 	doms = appendStat(table, 'MultiSignature Address', '');
 	linkHash(doms[2], explorerTransaction[outputunlockhashesspecifier][i]);
-	var rawInput = explorerTransaction.rawtransaction.data[outputspecifier][i];
-	for (var i = 0; i < rawInput.condition.data.unlockhashes.length; i++) {
+	for (var i = 0; i < output.condition.data.unlockhashes.length; i++) {
 		doms = appendStat(table, 'Unlock Hash #' + (i+1), '');
-		linkHash(doms[2], rawInput.condition.data.unlockhashes[i]);
+		linkHash(doms[2], output.condition.data.unlockhashes[i]);
 	}
-	appendStat(table, 'Minimum Signature Count', rawInput.condition.data.minimumsignaturecount);
+	appendStat(table, 'Minimum Signature Count', output.condition.data.minimumsignaturecount);
 	return {
-		value: explorerTransaction.rawtransaction.data[outputspecifier][i].value,
+		value: output.value,
 		locked: false,
 	};
 }
@@ -585,8 +590,7 @@ function formatUnlockTime(timestamp) {
 // appendUnlockHashTables that adds all of the relevent components of
 // transactions to the dom.
 function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addressInfoTable, totalCoinValue) {
-	var blockChainTimestamp = getBlockchainTime();
-	var ctx = {timestamp: blockChainTimestamp};
+	var ctx = getBlockchainContext();
 
 	// Compile a set of transactions that have siacoin outputs featuring
 	// the hash, along with the corresponding siacoin output ids. Later,
@@ -610,7 +614,7 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addr
 					if (explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].unlockhash == hash) {
 						found = true;
 						var table = createStatsTable();
-						var doms = appendStat(table, 'Height', '');
+						var doms = appendStat(table, 'Block Height', '');
 						linkHeight(doms[2], explorerHash.transactions[i].height);
 						doms = appendStat(table, 'Parent Transaction', '');
 						linkHash(doms[2], explorerHash.transactions[i].id);
@@ -632,9 +636,8 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addr
 					}
 					if (address == hash) {
 						found = true;
-						var locked = false;
 						var table = createStatsTable();
-						var doms = appendStat(table, 'Height', '');
+						var doms = appendStat(table, 'Block Height', '');
 						linkHeight(doms[2], explorerHash.transactions[i].height);
 						doms = appendStat(table, 'Parent Transaction', '');
 						linkHash(doms[2], explorerHash.transactions[i].id);
@@ -761,7 +764,7 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addr
 					if (explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].unlockhash == hash) {
 						found = true;
 						var table = createStatsTable();
-						var doms = appendStat(table, 'Height', '');
+						var doms = appendStat(table, 'Block Height', '');
 						linkHeight(doms[2], explorerHash.transactions[i].height);
 						doms = appendStat(table, 'Parent Transaction', '');
 						linkHash(doms[2],  explorerHash.transactions[i].id);
@@ -783,9 +786,8 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addr
 					}
 					if (address == hash) {
 						found = true;
-						var locked = false;
 						var table = createStatsTable();
-						var doms = appendStat(table, 'Height', '');
+						var doms = appendStat(table, 'Block Height', '');
 						linkHeight(doms[2], explorerHash.transactions[i].height);
 						doms = appendStat(table, 'Parent Transaction', '');
 						linkHash(doms[2], explorerHash.transactions[i].id);
@@ -996,8 +998,7 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 // appendCoinOutputTables appends a series of table sthat provide
 // information about a siacoin output ot the domParent.
 function appendCoinOutputTables(infoBody, hash, explorerHash) {
-	var blockChainTimestamp = getBlockchainTime();
-	var ctx = {timestamp: blockChainTimestamp};
+	var ctx = getBlockchainContext();
 
 	// Check if a coin input exists for this output.
 	var hasBeenSpent = 'No';
