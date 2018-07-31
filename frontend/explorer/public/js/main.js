@@ -115,3 +115,25 @@ function appendBlockStatistics(domParent, explorerBlock) {
 	// appendStat(table, 'Total Coins', readableCoins(explorerBlock.totalcoins));
 	domParent.appendChild(table);
 }
+
+// getBlockchainTime gets the current blockchain time
+function getBlockchainTime() {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer', false);
+	request.send();
+	if (request.status != 200) {
+		return 0;
+	}
+	var response = JSON.parse(request.responseText);
+	var height = response.height;
+
+	request = new XMLHttpRequest();
+	reqString = '/explorer/blocks/' + height;
+	request.open('GET', reqString, false);
+	request.send();
+	if (request.status != 200) {
+		return 0;
+	}
+	var explorerBlock = JSON.parse(request.responseText).block;
+	return explorerBlock.rawblock.timestamp;
+}

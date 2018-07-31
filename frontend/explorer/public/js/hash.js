@@ -349,11 +349,16 @@ function addV1T3Input(infoBody, explorerTransaction, i, type) {
 	var rawInput = explorerTransaction[inputoutputspecifier][i];
 	doms = appendStat(table, 'MultiSignature Address', '');
 	linkHash(doms[2], rawInput.unlockhash);
-	for (var idx = 0; idx < rawInput.condition.data.unlockhashes.length; idx++) {
-		doms = appendStat(table, 'Unlock Hash #' + (idx+1), '');
-		linkHash(doms[2], rawInput.condition.data.unlockhashes[idx]);
+	var condition = rawInput.condition;
+	if (condition.type == 3) {
+		// time-locked multisig: unpack it
+		condition = condition.data.condition;
 	}
-	appendStat(table, 'Minimum Signature Count', rawInput.condition.data.minimumsignaturecount);
+	for (var idx = 0; idx < condition.data.unlockhashes.length; idx++) {
+		doms = appendStat(table, 'Unlock Hash #' + (idx+1), '');
+		linkHash(doms[2], condition.data.unlockhashes[idx]);
+	}
+	appendStat(table, 'Minimum Signature Count', condition.data.minimumsignaturecount);
 
 	appendStatHeader(table, 'Fulfillment');
 	var rawInput = explorerTransaction.rawtransaction.data[inputspecifier][i];
@@ -552,13 +557,20 @@ function formatUnlockTime(timestamp) {
 // appendUnlockHashTransactionElements is a helper function for
 // appendUnlockHashTables that adds all of the relevent components of
 // transactions to the dom.
-function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
+function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addressInfoTable, totalCoinValue) {
+	var blockChainTimestamp = getBlockchainTime();
+
 	// Compile a set of transactions that have siacoin outputs featuring
 	// the hash, along with the corresponding siacoin output ids. Later,
 	// the transactions will be scanned again for siacoin inputs sharing
 	// the siacoin output id which will reveal whether the output has been
 	// spent.
 	var tables = [];
+
+	// used to compute info for addressInfoTable
+	var values = [];
+	var totalLockedValue = 0;
+
 	var scoids = []; // The siacoin output id corresponding with every siacoin output in the table, 1:1 match.
 	var scoidMatches = [];
 	var found = false; // Indicates that there are siacoin outputs.
@@ -578,7 +590,9 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 						linkHash(doms[2], explorerHash.transactions[i].coinoutputids[j]);
 						doms = appendStat(table, 'Address', '');
 						linkHash(doms[2], hash);
-						appendStat(table, 'Value', readableCoins(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value));
+						var value = explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value;
+						values.push(value);
+						appendStat(table, 'Value', readableCoins(value));
 						tables.push(table);
 						scoids.push(explorerHash.transactions[i].coinoutputids[j]);
 						scoidMatches.push(false);
@@ -590,6 +604,7 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 					}
 					if (address == hash) {
 						found = true;
+						var locked = false;
 						var table = createStatsTable();
 						var doms = appendStat(table, 'Height', '');
 						linkHeight(doms[2], explorerHash.transactions[i].height);
@@ -599,10 +614,23 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 						linkHash(doms[2], explorerHash.transactions[i].coinoutputids[j]);
 						doms = appendStat(table, 'Address', '');
 						linkHash(doms[2], hash);
-						appendStat(table, 'Value', readableCoins(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value));
+						var value = explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].value;
+						appendStat(table, 'Value', readableCoins(value));
 						var type = explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.type;
 						if (type === 3) {
-							appendStat(table, 'Unlocked at', formatUnlockTime(explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.locktime))
+							locktime = explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.locktime;
+							if (locktime > blockChainTimestamp) {
+								appendStat(table, 'To Be Unlocked at', formatUnlockTime(locktime));
+								locked = true;
+							} else {
+								appendStat(table, 'Was Unlocked at', formatUnlockTime(locktime));
+							}
+						}
+						if (locked) {
+							totalLockedValue += +value;
+							values.push(0);
+						} else {
+							values.push(value);
 						}
 						tables.push(table);
 						scoids.push(explorerHash.transactions[i].coinoutputids[j]);
@@ -612,6 +640,11 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 			}
 		}
 	}
+
+	var totalValue = totalCoinValue;
+	var lastSpendHeight = 0;
+	var lastSpendTxID = null;
+
 	// If there are any relevant siacoin outputs, scan the transaction set
 	// for relevant siacoin inputs and add a field
 	if (found) {
@@ -628,6 +661,10 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 					for (var k = 0; k < scoids.length; k++) {
 						if (explorerHash.transactions[i].rawtransaction.data.coininputs[j].parentid == scoids[k]) {
 							scoidMatches[k] = true;
+							if (explorerHash.transactions[i].height > lastSpendHeight) {
+								lastSpendHeight = explorerHash.transactions[i].height;
+								lastSpendTxID = explorerHash.transactions[i].id;
+							}
 						}
 					}
 				}
@@ -640,11 +677,30 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 		for (var i = 0; i < scoids.length; i++) {
 			if (scoidMatches[i] == true) {
 				appendStat(tables[i], 'Has Been Spent', 'Yes');
+				
 			} else {
 				appendStat(tables[i], 'Has Been Spent', 'No');
+				totalValue += +values[i];
 			}
 			domParent.appendChild(tables[i]);
 		}
+	}
+
+	// add total confirmed coin balance for the address
+	appendStat(addressInfoTable, 'Confirmed Coin Balance', readableCoins(totalValue));
+	if (totalLockedValue !== 0) {
+		appendStat(addressInfoTable, 'Locked Coin Balance', readableCoins(totalLockedValue));
+	}
+
+	// add info about last spend
+	if (lastSpendHeight !== 0) {
+		doms = appendStat(addressInfoTable, 'Last Coin Spend', '');
+		var spendTable = createStatsTable();
+		doms[2].appendChild(spendTable);
+		doms = appendStat(spendTable, 'Block Height', '');
+		linkHeight(doms[2], lastSpendHeight);
+		doms = appendStat(spendTable, 'Transaction ID', '');
+		linkHash(doms[2], lastSpendTxID);
 	}
 
 	// TODO: Compile the list of file contracts and revisions that use the
@@ -656,7 +712,9 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 	// the transactions will be scanned again for siafund inputs sharing
 	// the siafund output id which will reveal whether the output has been
 	// spent.
+	values = [];
 	tables = [];
+	totalLockedValue = 0;
 	var sfoids = []; // The siafund output id corresponding with every siafund output in the table, 1:1 match.
 	var sfoidMatches = [];
 	found = false; // Indicates that there are siafund outputs.
@@ -676,7 +734,9 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 						linkHash(doms[2], explorerHash.transactions[i].blockstakeoutputids[j]);
 						doms = appendStat(table, 'Address', '');
 						linkHash(doms[2], hash);
-						appendStat(table, 'Value', explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].value + ' BS');
+						var value = explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].value;
+						values.push(value);
+						appendStat(table, 'Value', value + ' BS');
 						tables.push(table);
 						sfoids.push(explorerHash.transactions[i].blockstakeoutputids[j]);
 						sfoidMatches.push(false);
@@ -688,6 +748,7 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 					}
 					if (address == hash) {
 						found = true;
+						var locked = false;
 						var table = createStatsTable();
 						var doms = appendStat(table, 'Height', '');
 						linkHeight(doms[2], explorerHash.transactions[i].height);
@@ -697,7 +758,23 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 						linkHash(doms[2], explorerHash.transactions[i].blockstakeoutputids[j]);
 						doms = appendStat(table, 'Address', '');
 						linkHash(doms[2], hash);
-						appendStat(table, 'Value', explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].value + ' BS');
+						var value = explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].value;
+						appendStat(table, 'Value', value + ' BS');
+						if (type === 3) {
+							locktime = explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.data.locktime;
+							if (locktime > blockChainTimestamp) {
+								appendStat(table, 'To Be Unlocked at', formatUnlockTime(locktime));
+								locked = true;
+							} else {
+								appendStat(table, 'Was Unlocked at', formatUnlockTime(locktime));
+							}
+						}
+						if (locked) {
+							totalLockedValue += +value;
+							values.push(0);
+						} else {
+							values.push(value);
+						}
 						tables.push(table);
 						sfoids.push(explorerHash.transactions[i].blockstakeoutputids[j]);
 						sfoidMatches.push(false);
@@ -706,6 +783,11 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 			}
 		}
 	}
+
+	totalValue = 0;
+	lastSpendHeight = 0;
+	lastSpendTxID = null;
+
 	// If there are any relevant siafund outputs, scan the transaction set
 	// for relevant siafund inputs and add a field.
 	if (found) {
@@ -722,6 +804,10 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 					for (var k = 0; k < sfoids.length; k++) {
 						if (explorerHash.transactions[i].rawtransaction.data.blockstakeinputs[j].parentid == sfoids[k]) {
 							sfoidMatches[k] = true;
+							if (explorerHash.transactions[i].height > lastSpendHeight) {
+								lastSpendHeight = explorerHash.transactions[i].height;
+								lastSpendTxID = explorerHash.transactions[i].id;
+							}
 						}
 					}
 				}
@@ -736,40 +822,131 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash) {
 				appendStat(tables[i], 'Has Been Spent', 'Yes');
 			} else {
 				appendStat(tables[i], 'Has Been Spent', 'No');
+				totalValue += +values[i];
 			}
 			domParent.appendChild(tables[i]);
 		}
+	}
+
+	// add total confirmed block stake balance for the address
+	appendStat(addressInfoTable, 'Confirmed Block Stake Balance', totalValue + ' BS');
+	if (totalLockedValue !== 0) {
+		appendStat(addressInfoTable, 'Locked Block Stake Balance', totalLockedValue + ' BS');
+	}
+
+	// add info about last spend
+	if (lastSpendHeight !== 0) {
+		doms = appendStat(addressInfoTable, 'Last Block Stake Spend', '');
+		var spendTable = createStatsTable();
+		doms[2].appendChild(spendTable);
+		doms = appendStat(spendTable, 'Block Height', '');
+		linkHeight(doms[2], lastSpendHeight);
+		doms = appendStat(spendTable, 'Transaction ID', '');
+		linkHash(doms[2], lastSpendTxID);
 	}
 }
 
 // appendUnlockHashTables appends a series of tables that provide information
 // about an unlock hash to the domParent.
 function appendUnlockHashTables(domParent, hash, explorerHash) {
+	// Create the main info table
+	var hashTitle = "Unknown Unlockhash Type";
+	var addressLabel = "Address"
+	switch(hash.substring(0,2)) {
+		case "00": hashTitle = "Nil Unlock Hash"; break;
+		case "01": hashTitle = "Wallet Addresss"; break;
+		case "02": hashTitle = "Legacy Atomic Swap Contract"; break;
+		case "03":
+			hashTitle = "Multisig Wallet Address";
+			addressLabel = "Multisig Address";
+			break;
+	}
+	appendStatTableTitle(domParent, hashTitle);
+	var addressInfoTable = createStatsTable();
+	domParent.appendChild(addressInfoTable)
+	var doms = appendStat(addressInfoTable, addressLabel, '');
+	linkHash(doms[2], hash);
+
+	var found = false;
+	var tables = [];
+	var values = [];
+
+	var scoids = []; // The siacoin output id corresponding with every siacoin output in the table, 1:1 match.
+	var scoidMatches = [];
+
 	// Create the tables that expose all of the miner payouts the hash has
 	// been involved in.
 	if (explorerHash.blocks != null && explorerHash.blocks.length != 0) {
-		appendStatTableTitle(domParent, 'Miner Payout Appearances');
 		for (var i = 0; i < explorerHash.blocks.length; i++) {
 			for (var j = 0; j < explorerHash.blocks[i].minerpayoutids.length; j++) {
 				if (explorerHash.blocks[i].rawblock.minerpayouts[j].unlockhash == hash) {
+					found = true;
 					var table = createStatsTable();
+					tables.push(table);
 					var doms = appendStat(table, 'Parent Block ID', '');
 					linkHash(doms[2], explorerHash.blocks[i].blockid);
 					doms = appendStat(table, 'Miner Payout ID', '');
 					linkHash(doms[2], explorerHash.blocks[i].minerpayoutids[j]);
 					doms = appendStat(table, 'Payout Address', '');
 					linkHash(doms[2], hash);
-					appendStat(table, 'Value', readableCoins(explorerHash.blocks[i].rawblock.minerpayouts[j].value));
-					domParent.appendChild(table);
+					var value = explorerHash.blocks[i].rawblock.minerpayouts[j].value;
+					values.push(value);
+					appendStat(table, 'Value', readableCoins(value));
+					scoids.push(explorerHash.blocks[i].minerpayoutids[j]);
+					scoidMatches.push(false);
 				}
 			}
 		}
 	}
 
+	var totalCoinValue = 0;
+
+	// if there were any significant miner outputs
+	if (found) {
+		// Add the header for the siacoin outputs.
+		appendStatTableTitle(domParent, 'Miner Payout Appearances');
+
+		if (explorerHash.transactions != null) {
+			for (var i = 0; i < explorerHash.transactions.length; i++) {
+				if (explorerHash.transactions[i].rawtransaction.data.coininputs != null && explorerHash.transactions[i].rawtransaction.data.coininputs.length != 0) {
+					for (var j = 0; j < explorerHash.transactions[i].rawtransaction.data.coininputs.length; j++) {
+						for (var k = 0; k < scoids.length; k++) {
+							if (explorerHash.transactions[i].rawtransaction.data.coininputs[j].parentid == scoids[k]) {
+								scoidMatches[k] = true;
+								if (explorerHash.transactions[i].height > lastSpendHeight) {
+									lastSpendHeight = explorerHash.transactions[i].height;
+									lastSpendTxID = explorerHash.transactions[i].id;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Iterate through the scoidMatches. If a match was found
+		// indicate that the miner payout has been spent. Otherwise,
+		// indicate that the miner payout has not been spent.
+		for (var i = 0; i < scoids.length; i++) {
+			if (scoidMatches[i] == true) {
+				appendStat(tables[i], 'Has Been Spent', 'Yes');
+			} else {
+				appendStat(tables[i], 'Has Been Spent', 'No');
+				totalCoinValue += +values[i];
+			}
+			domParent.appendChild(tables[i]);
+		}
+	}
+
+	
+
 	// Compile all of the tables + headers that can be created from
 	// transactions featuring the hash.
 	if (explorerHash.transactions != null && explorerHash.transactions.length != 0) {
-		appendUnlockHashTransactionElements(domParent, hash, explorerHash);
+		appendUnlockHashTransactionElements(domParent, hash, explorerHash, addressInfoTable, totalCoinValue);
+	} else {
+		// add at least the coin balanace, as it could be still non-0 due to miner payouts
+		appendStat(addressInfoTable, 'Confirmed Coin Balance', readableCoins(totalCoinValue));
 	}
 }
 
@@ -985,7 +1162,7 @@ function populateHashPage(hash, explorerHash) {
 		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
 		appendHexTransaction(infoBody, explorerHash.transaction.hextransaction);
 	} else if (hashType === "unlockhash") {
-		appendHeading(infoBody, 'Hash Type: Unlock Hash / Address');
+		appendHeading(infoBody, 'Hash Type: Unlock Hash');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendUnlockHashTables(infoBody, hash, explorerHash);
 	} else if (hashType === "coinoutputid") {
