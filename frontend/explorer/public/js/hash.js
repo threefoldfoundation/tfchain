@@ -574,7 +574,7 @@ function getOutputUnlockHashesSpecifier(type) {
 		case 'coins':
 			return 'coinoutputunlockhashes';
 		case 'blockstakes':
-			return 'blockstakeoutputunlockhashes';
+			return 'blockstakeunlockhashes';
 	}
 }
 
@@ -780,7 +780,7 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addr
 						sfoidMatches.push(false);
 					}
 				} else { // V1 Txn
-					var address = explorerHash.transactions[i].blockstakeoutputunlockhashes[j];
+					var address = explorerHash.transactions[i].blockstakeunlockhashes[j];
 					if (!address) {
 						address = '000000000000000000000000000000000000000000000000000000000000000000000000000000';
 					}
@@ -958,10 +958,6 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 						for (var k = 0; k < scoids.length; k++) {
 							if (explorerHash.transactions[i].rawtransaction.data.coininputs[j].parentid == scoids[k]) {
 								scoidMatches[k] = true;
-								if (explorerHash.transactions[i].height > lastSpendHeight) {
-									lastSpendHeight = explorerHash.transactions[i].height;
-									lastSpendTxID = explorerHash.transactions[i].id;
-								}
 							}
 						}
 					}
