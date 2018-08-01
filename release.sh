@@ -3,11 +3,7 @@ set -e
 
 package="github.com/threefoldfoundation/tfchain"
 
-if [ "$1" = "edge" ]; then
-	version="edge"
-else
-	version=$(git describe | cut -d '-' -f 1)
-fi
+version=$(git describe | cut -d '-' -f 1)
 commit="$(git rev-parse --short HEAD)"
 if [ "$commit" == "$(git rev-list -n 1 $version | cut -c1-7)" ]
 then
@@ -16,6 +12,11 @@ else
 	full_version="${version}-${commit}"
 fi
 
+# Overide the file names to edge version, keep full version at the git commit since
+# that is the expected format
+if [ "$1" = "edge" ]; then
+	version="edge"
+fi
 
 echo "building version ${version}"
 
