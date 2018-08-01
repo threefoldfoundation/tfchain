@@ -3,7 +3,11 @@ set -e
 
 package="github.com/threefoldfoundation/tfchain"
 
-version="$(git describe | cut -d '-' -f 1)"
+if [ "$1" = "edge" ]; then
+	version="edge"
+else
+	version=$(git describe | cut -d '-' -f 1)
+fi
 commit="$(git rev-parse --short HEAD)"
 if [ "$commit" == "$(git rev-list -n 1 $version | cut -c1-7)" ]
 then
@@ -11,6 +15,9 @@ then
 else
 	full_version="${version}-${commit}"
 fi
+
+
+echo "building version ${version}"
 
 for os in darwin linux windows; do
 	echo Packaging ${os}...
