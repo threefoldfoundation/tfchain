@@ -64,16 +64,10 @@
   version = "v0.8.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/rivine/bbolt"
   packages = ["."]
-  revision = "583e8937c61f1af6513608ccc75c97b6abdf4ff9"
-  version = "v1.3.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/rivine/go-bip39"
-  packages = ["."]
-  revision = "e35a707fc62766b909ae41fc6d45c1efac74bf34"
+  revision = "19c3af6fd3cefb5dc9c05dfc84122e8f74f92927"
 
 [[projects]]
   branch = "master"
@@ -98,7 +92,7 @@
     "sync",
     "types"
   ]
-  revision = "a72358a19d490f88340e8168c6f05777e7055e12"
+  revision = "10b9b9f7de4cc49b45e6b4c73b361f74746050e5"
 
 [[projects]]
   name = "github.com/rivine/smux"
@@ -117,6 +111,15 @@
   packages = ["."]
   revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
   version = "v1.0.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/tyler-smith/go-bip39"
+  packages = [
+    ".",
+    "wordlists"
+  ]
+  revision = "95c66720ed7ac2f4b78ddb31d940d59193894f49"
 
 [[projects]]
   branch = "master"
