@@ -1155,8 +1155,8 @@ function appendBlockStakeOutputTables(infoBody, hash, explorerHash) {
 }
 
 
-function appendHexTransaction(infoBody, hextransaction) {
-	if (!hextransaction) {
+function appendRawTransaction(infoBody, rawTx) {
+	if (!rawTx) {
 		return
 	}
 
@@ -1181,7 +1181,7 @@ function appendHexTransaction(infoBody, hextransaction) {
 	container.id = 'rawhash';
 	container.classList.add('raw', 'hidden');
 	var block = document.createElement('CODE');
-	block.textContent = hextransaction;
+	block.textContent = JSON.stringify(rawTx);
 	
 	buttonContainer.appendChild(button);
 	infoBody.appendChild(buttonContainer);	
@@ -1202,7 +1202,7 @@ function populateHashPage(hash, explorerHash) {
 		appendHeading(infoBody, 'Hash Type: Transaction ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
-		appendHexTransaction(infoBody, explorerHash.transaction.hextransaction);
+		appendRawTransaction(infoBody, explorerHash.transaction.rawtransaction);
 	} else if (hashType === "unlockhash") {
 		appendHeading(infoBody, 'Hash Type: Unlock Hash');
 		appendHeading(infoBody, 'Hash: ' + hash);

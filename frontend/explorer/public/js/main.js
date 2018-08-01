@@ -207,8 +207,8 @@ function appendBlockTransactions(element, explorerBlock) {
 	}
 }
 
-function appendHexBlock(element, explorerBlock) {
-	if (!explorerBlock || !explorerBlock.hexblock) {
+function appendRawBlock(element, explorerBlock) {
+	if (!explorerBlock || !explorerBlock.rawblock) {
 		return
 	}
 
@@ -233,7 +233,7 @@ function appendHexBlock(element, explorerBlock) {
 	container.id = 'rawblock';
 	container.classList.add('raw', 'hidden');
 	var block = document.createElement('CODE');
-	block.textContent = explorerBlock.hexblock;
+	block.textContent = JSON.stringify(explorerBlock.rawblock);
 
 	buttonContainer.appendChild(button);
 	element.appendChild(buttonContainer);
@@ -245,5 +245,5 @@ function appendExplorerBlock(element, explorerBlock) {
 	appendBlockStatistics(element, explorerBlock);
 	appendBlockMinerPayouts(element, explorerBlock);
 	appendBlockTransactions(element, explorerBlock);
-	appendHexBlock(element, explorerBlock);
+	appendRawBlock(element, explorerBlock);
 }
