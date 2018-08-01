@@ -11,7 +11,7 @@ function fillBlock(height) {
 		appendHeading(infoBody, 'Height: ' + height);
 	} else {
 		var explorerBlock = JSON.parse(request.responseText).block;
-		displayExplorerBlock(infoBody, explorerBlock);
+		appendExplorerBlock(infoBody, explorerBlock);
 	}
 }
 

@@ -1201,7 +1201,7 @@ function populateHashPage(hash, explorerHash) {
 	if (hashType === "blockid") {
 		appendHeading(infoBody, 'Hash Type: Block ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
-		displayExplorerBlock(infoBody, explorerHash.block);
+		appendExplorerBlock(infoBody, explorerHash.block);
 	} else if (hashType === "transactionid") {
 		appendHeading(infoBody, 'Hash Type: Transaction ID');
 		appendHeading(infoBody, 'Hash: ' + hash);

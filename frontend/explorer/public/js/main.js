@@ -143,9 +143,9 @@ function getBlockchainContext() {
 	};
 }
 
-// displayMinerPayouts fills out the css + tables that hold the miner
-// payouts.
-function displayMinerPayouts(explorerBlock) {
+// appendBlockMinerPayouts fills out the css + tables that hold the miner
+// payouts of a block
+function appendBlockMinerPayouts(element, explorerBlock) {
 	// Don't display miner payouts if there are none. Note that there
 	// should always be miner payouts.
 	if (explorerBlock.rawblock.minerpayouts == null || explorerBlock.rawblock.minerpayouts.lenght == 0) {
@@ -153,8 +153,7 @@ function displayMinerPayouts(explorerBlock) {
 	}
 
 	// In a loop, add a new table for each miner payout.
-	var infoBody = document.getElementById('dynamic-elements');
-	appendStatTableTitle(infoBody, 'Miner Payouts');
+	appendStatTableTitle(element, 'Miner Payouts');
 	for (var i = 0; i < explorerBlock.rawblock.minerpayouts.length; i++) {
 		var table = createStatsTable();
 		var doms = appendStat(table, 'ID', '');
@@ -162,21 +161,20 @@ function displayMinerPayouts(explorerBlock) {
 		doms = appendStat(table, 'Payout Address', '');
 		linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
 		appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
-		infoBody.appendChild(table);
+		element.appendChild(table);
 	}
 }
 
-// displayTransactions adds dom elements to display all of the transactions of
+// appendBlockTransactions adds dom elements to display all of the (block's) transactions of
 // a block, one table per transaciton.
-function displayTransactions(explorerBlock) {
+function appendBlockTransactions(element, explorerBlock) {
 	// Don't display transactions if there are none.
 	if (explorerBlock.transactions == null || explorerBlock.transactions.length == 0) {
 		return
 	}
 
 	// In a loop, add a new table for each transaction.
-	var infoBody = document.getElementById('dynamic-elements');
-	appendStatTableTitle(infoBody, 'Transactions');
+	appendStatTableTitle(element, 'Transactions');
 	for (var i = 0; i < explorerBlock.rawblock.transactions.length; i++) {
 		// Create a table for this transaction.
 		var transactionTable = document.createElement('table');
@@ -205,16 +203,14 @@ function displayTransactions(explorerBlock) {
 			&& explorerBlock.rawblock.transactions[i].data.arbitrarydata.length > 0) {
 			appendStat(table, 'Arbitrary Data Count', explorerBlock.rawblock.transactions[i].data.arbitrarydata.length);
 		}
-		infoBody.appendChild(table);
+		element.appendChild(table);
 	}
 }
 
-function displayHexBlock(explorerBlock) {
+function appendHexBlock(element, explorerBlock) {
 	if (!explorerBlock || !explorerBlock.hexblock) {
 		return
 	}
-
-	var infoBody = document.getElementById('dynamic-elements');
 
 	var buttonContainer = document.createElement('div');
 	buttonContainer.classList.add('toggle-button');
@@ -240,14 +236,14 @@ function displayHexBlock(explorerBlock) {
 	block.textContent = explorerBlock.hexblock;
 
 	buttonContainer.appendChild(button);
-	infoBody.appendChild(buttonContainer);
+	element.appendChild(buttonContainer);
 	container.appendChild(block);
-	infoBody.appendChild(container);
+	element.appendChild(container);
 }
 
-function displayExplorerBlock(element, explorerBlock) {
+function appendExplorerBlock(element, explorerBlock) {
 	appendBlockStatistics(element, explorerBlock);
-	displayMinerPayouts(explorerBlock);
-	displayTransactions(explorerBlock);
-	displayHexBlock(explorerBlock);
+	appendBlockMinerPayouts(element, explorerBlock);
+	appendBlockTransactions(element, explorerBlock);
+	appendHexBlock(element, explorerBlock);
 }
