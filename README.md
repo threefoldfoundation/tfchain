@@ -13,6 +13,8 @@ The ThreeFold blockchain is the technology behind the ThreeFold Grid ("TF Grid" 
 >
 > If you are still running `v1.0.6.1` or older, you are advised to upgrade to `v1.0.7` as soon as it is released.
 
+You can reach out to us for any development-related questions on [our public Telegram group](https://t.me/rivine). If you're a user of the tools distributed via this repository, you are welcome to join that chat as well. You're especially welcome if you want to contribute and wonder how.
+
 [rivine]: http://github.com/rivine/rivine
 
 ## install and use tfchain
@@ -149,3 +151,13 @@ tfchain is using and build on top of [Rivine][rivine], a generic blockchain prot
 This official (Golang) implementation is build using a vendored version of [the reference Golang implementation of Rivine][rivine].
 
 For in-depth technical information you can check the [Rivine][rivine] docs at [github.com/rivine/rivine/tree/master/doc](https://github.com/rivine/rivine/tree/master/doc). There are no technical docs in this repository, as all the technology lives and is developed within the [Rivine repository][rivine].
+
+## troubleshooting
+
+If you run into troubles while using the official `tfchaind` binary, try to find a solution for your problem in [the Rivine troubleshooting FAQ](https://github.com/rivine/rivine#troubleshooting) first. The tfchain daemon is built using the Rivine daemon package, so chances are your problem has already been solved when another user ran into the same or similar-enough issue.
+
+If your problem is not related to the official `tfchaind` binary, or if you do not find a solution in [the Rivine troubleshooting FAQ](https://github.com/rivine/rivine#troubleshooting), you should start looking into the `tfchain` issues, found at <https://github.com/threefoldfoundation/tfchain/issues?utf8=✓&q=is%3Aissue+is%3Aopen+is%3Aclosed>. You can search faster by guessing some keyword(s) that might be included in such an issue. Did you find an issue that is already talking about your problem? Post a comment in it describing your environment, version, situation, steps on how to reproduce and any info you think might be helpful. It does not matter if the issue is already closed, if you run into a problem, it is proof that the problem (still) exists.
+
+Should you not find an issue (open or closed) for your problem, you can create a new issue. Make sure to include your environment, version, situation, steps on how to reproduce and any info you think might be helpful.
+
+Please use GitHub issues as much as possible, it keeps everything tracked. Only reach out to the `tfchain` maintainers if you really have to or in case it is not issue-related. The team is small, and direct support is pretty time-expensive. 
