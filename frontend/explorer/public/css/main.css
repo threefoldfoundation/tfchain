@@ -32,6 +32,9 @@ div.content {
 .stats-info {
 	text-align: left;
 }
+.stats-unlabeled-info {
+	text-align: center;
+}
 
 /* CSS to ensure the unlocker does not break the tables */
 #dynamic-elements {

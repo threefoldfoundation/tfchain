@@ -99,6 +99,18 @@ function appendStat(table, statLabel, statText) {
 	return [tr, labelCell, textCell];
 }
 
+
+// appendUnlabeledStat appends a statistic to a table without a label. The new row and the single
+// column are returned in an array.
+function appendUnlabeledStat(table, text) {
+	var tr = document.createElement('tr');
+	var textCell = tr.insertCell(0);
+	textCell.className = 'stats-unlabeled-info';
+	textCell.appendChild(document.createTextNode(text));
+	table.appendChild(tr);
+	return [tr, textCell];
+}
+
 // appendBlockStatistics creates a block statistics table and appends it to the
 // input dom parent.
 function appendBlockStatistics(domParent, explorerBlock) {

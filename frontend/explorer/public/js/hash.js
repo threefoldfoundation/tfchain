@@ -912,6 +912,16 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 	var doms = appendStat(addressInfoTable, addressLabel, '');
 	linkHash(doms[2], hash);
 
+	if (explorerHash.multisigaddresses && explorerHash.multisigaddresses.length !== 0) {
+		appendStatTableTitle(domParent, "Multisig Wallets");
+		var walletsTable = createStatsTable();
+		for(var i = 0; i < explorerHash.multisigaddresses.length; i++) {
+			var doms = appendUnlabeledStat(walletsTable, '')
+			linkHash(doms[1], explorerHash.multisigaddresses[i]);
+		}
+		domParent.appendChild(walletsTable)
+	}
+
 	var found = false;
 	var tables = [];
 	var values = [];
