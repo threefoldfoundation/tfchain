@@ -2,8 +2,8 @@ all: install
 
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
-pkgs = $(daemonpkgs) $(clientpkgs)
-testpkgs = $(daemonpkgs)
+testpkgs = ./pkg/types
+pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
 
 version = $(shell git describe | cut -d '-' -f 1)
 commit = $(shell git rev-parse --short HEAD)

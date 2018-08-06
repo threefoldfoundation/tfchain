@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/threefoldfoundation/tfchain/pkg/config"
+	"github.com/threefoldfoundation/tfchain/pkg/types"
 
 	"github.com/rivine/rivine/pkg/daemon"
 )
@@ -26,10 +27,10 @@ func SetupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 	case config.NetworkNameStandard:
 		// Register the transaction controllers for all transaction versions
 		// supported on the standard network
-		RegisterTransactionTypesForStandardNetwork()
+		types.RegisterTransactionTypesForStandardNetwork()
 		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 		// until the blockchain reached a height of 42000 blocks.
-		RegisterBlockHeightLimitedMultiSignatureCondition(42000)
+		types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
 
 		// return the standard genesis block and bootstrap peers
 		return daemon.NetworkConfig{
@@ -40,9 +41,9 @@ func SetupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 	case config.NetworkNameTest:
 		// Register the transaction controllers for all transaction versions
 		// supported on the test network
-		RegisterTransactionTypesForTestNetwork()
+		types.RegisterTransactionTypesForTestNetwork()
 		// Use our custom MultiSignatureCondition, just for testing purposes
-		RegisterBlockHeightLimitedMultiSignatureCondition(0)
+		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		// return the testnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
@@ -53,9 +54,9 @@ func SetupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 	case config.NetworkNameDev:
 		// Register the transaction controllers for all transaction versions
 		// supported on the dev network
-		RegisterTransactionTypesForDevNetwork()
+		types.RegisterTransactionTypesForDevNetwork()
 		// Use our custom MultiSignatureCondition, just for testing purposes
-		RegisterBlockHeightLimitedMultiSignatureCondition(0)
+		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		// return the devnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
