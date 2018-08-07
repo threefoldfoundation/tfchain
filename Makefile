@@ -73,10 +73,10 @@ release-images-edge: get_hub_jwt docker-minimal-edge
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/ubuntu1604.flist\", \"tfchain/tfchain-tfchain-$(dockerVersionEdge).flist\", \"gig-official-apps/nmap.flist\"]" "https://hub.gig.tech/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersionEdge).flist"
 
 explorer: release-dir
-	tar -czvf release/explorer-$(dockerVersion).tar.gz ./frontend/explorer
+	tar -C ./frontend -czvf release/explorer-$(dockerVersion).tar.gz explorer
 
 explorer-edge: release-dir
-	tar -czvf release/explorer-$(dockerVersionEdge).tar.gz ./frontend/explorer
+	tar -C ./frontend -czvf release/explorer-$(dockerVersionEdge).tar.gz explorer
 
 release-dir:
 	[ -d release ] || mkdir release
