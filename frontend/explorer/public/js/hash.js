@@ -938,7 +938,7 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 					found = true;
 					var table = createStatsTable();
 					tables.push(table);
-					var doms = appendStat(table, 'Parent Block ID', '');
+					var doms = appendStat(table, 'Previous Block ID', '');
 					linkHash(doms[2], explorerHash.blocks[i].blockid);
 					doms = appendStat(table, 'Miner Payout ID', '');
 					linkHash(doms[2], explorerHash.blocks[i].minerpayoutids[j]);
