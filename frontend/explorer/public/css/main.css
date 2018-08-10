@@ -124,3 +124,19 @@ span.search-form-td {
 .hidden {
 	display: none;
 }
+
+#nextbutton {
+	float: right;
+}
+
+#previousbutton {
+	float:left;
+}
+
+.navigation-buttons {
+	margin-bottom: 50px;
+}
+
+button:disabled {
+	opacity: 0.3;
+}

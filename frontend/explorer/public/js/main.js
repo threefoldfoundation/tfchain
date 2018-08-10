@@ -51,6 +51,7 @@ function linkHeight(domParent, height) {
 	domParent.appendChild(a);
 }
 
+
 // appendHeading adds a heading to the hash page.
 function appendHeading(domParent, text) {
 	var heading = document.createElement('h3');
@@ -109,6 +110,88 @@ function appendUnlabeledStat(table, text) {
 	textCell.appendChild(document.createTextNode(text));
 	table.appendChild(tr);
 	return [tr, textCell];
+}
+
+
+// appendNavigationButtons appends two buttons that navigate between the previous and the next block.
+function appendNavigationButtons(element, explorerBlock) {
+	var buttonContainer = document.createElement('div');
+	buttonContainer.classList.add('navigation-buttons');
+
+	var previousButton = document.createElement('button');
+	previousButton.id = 'previousbutton';
+	previousButton.textContent = 'Previous Block';
+	if (explorerBlock.height == 0) {
+		previousButton.disabled = true;
+	}
+
+	var nextButton = document.createElement('button');
+	nextButton.id = 'nextbutton';
+	nextButton.textContent = 'Next Block';
+
+	buttonContainer.appendChild(nextButton);
+	buttonContainer.appendChild(previousButton);
+	element.appendChild(buttonContainer);
+
+	previousButton.onclick = (e) => {
+		goToPreviousBlock(explorerBlock.height);
+	}
+	
+	nextButton.onclick = (e) => {
+		goToNextBlock(explorerBlock.height);
+	}
+
+}
+
+// goToNextBlock changes the current URL to the URL of next block(height)
+function goToNextBlock(height) {
+	var nextBlockHeight = ++height;
+	window.location.href = (window.location.pathname + '?height=' + nextBlockHeight);
+}
+
+// goToPreviousBlock changes the current URL to the URL of the previous block(height) 
+function goToPreviousBlock(height) {
+	var previousBlockHeight = --height;
+	console.log (window.location.pathname + '?height=' + previousBlockHeight);
+	window.location.href = (window.location.pathname + '?height=' + previousBlockHeight);
+}
+
+function goToBlock(height) {
+	console.log (window.location.pathname + '?height=' + height);
+	window.location.href = (window.location.pathname + '?height' + height);
+}
+
+// appendBlockSearchField adds a search field for user to navigate to a specific block(height)
+function appendBlockSearchField(element, explorerBlock) {
+	var searchContainer = document.createElement('form');
+	searchContainer.classList.add('search-block-from');
+
+	var searchButton = document.createElement('button');
+	searchButton.id = 'searchbutton';
+	searchButton.textContent = 'Go to block';
+
+	var searchField = document.createElement('INPUT');
+	searchField.required = true; 
+	searchField.setAttribute('type','text');
+
+	searchField.setAttribute('placeholder', explorerBlock.height);
+
+	searchContainer.appendChild(searchButton);
+	searchContainer.appendChild(searchField);
+	element.appendChild(searchContainer);
+
+	searchButton.onclick = (e) => {
+		if (searchField.value != "" && searchField.value != searchField.placeholder && searchField.value > 0) {
+			goToBlock(searchField.value);
+		}
+	}
+
+	searchField.addEventListener("keyup", function(event){
+		event.preventDefault();
+		if (event.keyCode === 13) {
+			searchButton.click();
+		}
+	});
 }
 
 // appendBlockStatistics creates a block statistics table and appends it to the
@@ -254,6 +337,8 @@ function appendRawBlock(element, explorerBlock) {
 }
 
 function appendExplorerBlock(element, explorerBlock) {
+	appendNavigationButtons(element, explorerBlock);
+	appendBlockSearchField(element, explorerBlock);
 	appendBlockStatistics(element, explorerBlock);
 	appendBlockMinerPayouts(element, explorerBlock);
 	appendBlockTransactions(element, explorerBlock);
