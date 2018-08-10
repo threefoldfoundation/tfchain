@@ -7,7 +7,7 @@ A cross-chain swap is a trade between two users of different cryptocurrencies. F
 Atomic swaps involve each party paying into a contract transaction, one contract for each blockchain. The contracts contain an output that is spendable by either party, but the rules required for redemption are different for each party involved. 
 
 ## required tools  
-In order to execute atomic swaps as described in this document, you need to run the core tfchain daemon and client, available from https://github.com/threefoldfoundation/tfchain/releases and the decred atomic swap tools are available at https://github.com/rivine/atomicswap/releases. 
+In order to execute atomic swaps as described in this document, you need to run the core tfchain daemon and client, available from https://github.com/threefoldfoundation/tfchain/releases and the decred atomic swap tools are available at https://github.com/rivine/decredatomicswap/releases. 
 
 The original decred atomic swap project is [Decred atomic swaps](https://github.com/decred/atomicswap), the rivine fork just supplies the binaries.
  
