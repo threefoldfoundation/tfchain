@@ -165,7 +165,7 @@ function appendBlockMinerPayouts(element, explorerBlock) {
 	}
 
 	// In a loop, add a new table for each miner payout.
-	appendStatTableTitle(element, 'Miner Payouts');
+	appendStatTableTitle(element, 'Block creator rewards');
 	for (var i = 0; i < explorerBlock.rawblock.minerpayouts.length; i++) {
 		var table = createStatsTable();
 		var doms = appendStat(table, 'ID', '');

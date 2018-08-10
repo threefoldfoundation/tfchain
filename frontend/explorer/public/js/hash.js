@@ -1024,7 +1024,7 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 		// Siacoin output is a miner payout.
 		for (var i = 0; i < explorerHash.blocks[0].minerpayoutids.length; i++) {
 			if (explorerHash.blocks[0].minerpayoutids[i] == hash) {
-				appendStatTableTitle(infoBody, 'Coin Output - Block Creator Payout');
+				appendStatTableTitle(infoBody, 'Coin Output - Block Creator Reward');
 				var table = createStatsTable();
 				var doms = appendStat(table, 'ID', '');
 				linkHash(doms[2], hash);
