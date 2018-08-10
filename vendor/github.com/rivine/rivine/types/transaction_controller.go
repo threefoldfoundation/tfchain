@@ -147,10 +147,7 @@ var (
 )
 
 var (
-	_RegisteredTransactionVersions = map[TransactionVersion]TransactionController{
-		TransactionVersionZero: LegacyTransactionController{},
-		TransactionVersionOne:  DefaultTransactionController{},
-	}
+	_RegisteredTransactionVersions = map[TransactionVersion]TransactionController{}
 )
 
 // MarshalSia implements encoding.SiaMarshaller.MarshalSia
@@ -303,4 +300,9 @@ func (ltc LegacyTransactionController) InputSigHash(t Transaction, inputIndex ui
 // EncodeTransactionIDInput implements TransactionIDEncoder.EncodeTransactionIDInput
 func (ltc LegacyTransactionController) EncodeTransactionIDInput(w io.Writer, td TransactionData) error {
 	return ltc.EncodeTransactionData(w, td)
+}
+
+func init() {
+	RegisterTransactionVersion(TransactionVersionZero, LegacyTransactionController{})
+	RegisterTransactionVersion(TransactionVersionOne, DefaultTransactionController{})
 }

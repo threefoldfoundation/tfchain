@@ -11,6 +11,5 @@ func stopcmd() {
 	if err != nil {
 		Die("Could not stop daemon:", err)
 	}
-	cfg := _ConfigStorage.Config()
-	fmt.Printf("%s daemon stopped.\n", cfg.ChainName)
+	fmt.Printf("%s daemon stopped.\n", _Config.ChainName)
 }

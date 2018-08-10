@@ -1,7 +1,6 @@
 package client
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -123,8 +122,7 @@ func DieWithExitCode(code int, args ...interface{}) {
 
 // clientVersion prints the client version and exits
 func clientVersion() {
-	cfg := _ConfigStorage.Config()
-	println(fmt.Sprintf("%s Client v", strings.Title(cfg.ChainName)) + cfg.ChainVersion.String())
+	println(fmt.Sprintf("%s Client v", strings.Title(_Config.ChainName)) + _Config.ChainVersion.String())
 }
 
 // hidden globals :()
@@ -133,7 +131,7 @@ var (
 		httpClient HTTPClient
 	}
 
-	_ConfigStorage     *lazyConfigFetcher
+	_Config            Config
 	_CurrencyConvertor lazyCurrencyConvertor
 )
 
@@ -162,7 +160,7 @@ func DefaultCLIClient(address, name string, configFunc func(*Config) Config) {
 				Die("invalid", strings.Title(name), "daemon RPC address", _DefaultClient.httpClient.RootURL, ":", err)
 			}
 			_DefaultClient.httpClient.RootURL = url
-			_ConfigStorage = newLazyConfigFetcher(configFunc)
+			_Config = configFunc(fetchConfigFromDaemon())
 		},
 	}
 
@@ -265,33 +263,6 @@ func DefaultCLIClient(address, name string, configFunc func(*Config) Config) {
 	}
 }
 
-// lazyConfigFetcher can be used in order to load the config only when needing,
-// delaying the fetching of daemon constants until it is needed for the first time
-type lazyConfigFetcher struct {
-	config                     Config
-	configSanitizer            func(*Config) Config
-	fetchAndSanitizeConfigOnce sync.Once
-}
-
-func newLazyConfigFetcher(f func(*Config) Config) *lazyConfigFetcher {
-	if f == nil {
-		DieWithError(
-			"failed to create lazy config fetcher",
-			errors.New("daemon is created without a config sanitization function given to it"))
-	}
-	return &lazyConfigFetcher{configSanitizer: f}
-}
-
-// Config returns the config in a lazy manner
-func (lcf *lazyConfigFetcher) Config() Config {
-	lcf.fetchAndSanitizeConfigOnce.Do(lcf.fetchAndSanitizeConfig)
-	return lcf.config
-}
-
-func (lcf *lazyConfigFetcher) fetchAndSanitizeConfig() {
-	lcf.config = lcf.configSanitizer(fetchConfigFromDaemon())
-}
-
 // fetchConfigFromDaemon fetches constants and creates a config, by fetching the constants from the daemon.
 // Can return nil in case the fetching wasn't possible
 func fetchConfigFromDaemon() *Config {
@@ -368,6 +339,5 @@ func (cc *lazyCurrencyConvertor) getConvertor() CurrencyConvertor {
 // and creating the convertor with it. This function should only be executed once,
 // and so in a thread-safe manner.
 func (cc *lazyCurrencyConvertor) createConvertor() {
-	cfg := _ConfigStorage.Config()
-	cc.convertor = NewCurrencyConvertor(cfg.CurrencyUnits, cfg.CurrencyCoinUnit)
+	cc.convertor = NewCurrencyConvertor(_Config.CurrencyUnits, _Config.CurrencyCoinUnit)
 }
