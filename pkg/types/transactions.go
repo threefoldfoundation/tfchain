@@ -142,7 +142,7 @@ type (
 	CoinCreationTransactionController struct {
 		// MintCondition defines the condition that has to be fulfilled
 		// in order to mint new coins into existence (in the form of non-backed coin outputs).
-		MintCondition types.UnlockCondition
+		MintCondition types.UnlockConditionProxy
 	}
 )
 
@@ -162,12 +162,13 @@ var (
 
 	// ensure at compile time that CoinCreationTransactionController
 	// implements the desired interfaces
-	_ types.TransactionController     = CoinCreationTransactionController{}
-	_ types.TransactionValidator      = CoinCreationTransactionController{}
-	_ types.CoinOutputValidator       = CoinCreationTransactionController{}
-	_ types.BlockStakeOutputValidator = CoinCreationTransactionController{}
-	_ types.InputSigHasher            = CoinCreationTransactionController{}
-	_ types.TransactionIDEncoder      = CoinCreationTransactionController{}
+	_ types.TransactionController      = CoinCreationTransactionController{}
+	_ types.TransactionExtensionSigner = CoinCreationTransactionController{}
+	_ types.TransactionValidator       = CoinCreationTransactionController{}
+	_ types.CoinOutputValidator        = CoinCreationTransactionController{}
+	_ types.BlockStakeOutputValidator  = CoinCreationTransactionController{}
+	_ types.InputSigHasher             = CoinCreationTransactionController{}
+	_ types.TransactionIDEncoder       = CoinCreationTransactionController{}
 )
 
 // ValidateTransaction implements TransactionValidator.ValidateTransaction
@@ -234,6 +235,21 @@ func (cctc CoinCreationTransactionController) JSONDecodeTransactionData(data []b
 	return cctx.TransactionData(), nil
 }
 
+// SignExtension implements TransactionExtensionSigner.SignExtension
+func (cctc CoinCreationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+	// (tx) extension (data) is expected to be the mint fulfillment,
+	// which can be used to fulfill the globally defined mint condition
+	mintFulfillment, ok := extension.(types.UnlockFulfillmentProxy)
+	if !ok {
+		return nil, errors.New("invalid extension data for a CoinCreationTransaction")
+	}
+	err := sign(&mintFulfillment, cctc.MintCondition)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign mint fulfillment of coin creation tx: %v", err)
+	}
+	return mintFulfillment, nil
+}
+
 // ValidateTransaction implements TransactionValidator.ValidateTransaction
 func (cctc CoinCreationTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) (err error) {
 	err = types.TransactionFitsInABlock(t, constants.BlockSizeLimit)
@@ -244,7 +260,7 @@ func (cctc CoinCreationTransactionController) ValidateTransaction(t types.Transa
 	// get CoinCreationTxn
 	cctx, err := CoinCreationTransactionFromTransaction(t)
 	if err != nil {
-		return fmt.Errorf("failed to convert txData to a CoinCreationTx: %v", err)
+		return fmt.Errorf("failed to use tx as a coin creation tx: %v", err)
 	}
 
 	// check if MintFulfillment fulfills the Globally defined MintCondition
