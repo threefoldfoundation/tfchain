@@ -244,6 +244,7 @@ func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 {
 	"version": 129,
 	"data": {
+		"nonce": "MTIzNDU2Nzg=",
 		"mintfulfillment": {
 			"type": 3,
 			"data": {
@@ -364,7 +365,7 @@ func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 func testCompareTwoCoinCreationTransactions(t *testing.T, i int, a, b CoinCreationTransaction) {
 	// compare mint fulfillment
 	if !a.MintFulfillment.Equal(b.MintFulfillment) {
-		t.Error(i, "munt fulfillment not equal")
+		t.Error(i, "mint fulfillment not equal")
 	}
 	// compare coin outputs
 	if len(a.CoinOutputs) != len(b.CoinOutputs) {
@@ -401,6 +402,7 @@ func testCompareTwoCoinCreationTransactions(t *testing.T, i int, a, b CoinCreati
 var testCoinCreationTransactions = []CoinCreationTransaction{
 	// most minimalistic Coin Creation Transaction
 	{
+		Nonce: RandomTransactionNonce(),
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
 			PublicKey: types.SiaPublicKey{
 				Algorithm: types.SignatureEd25519,
@@ -423,6 +425,7 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 	},
 	// a more complex Coin Creation Transaction
 	{
+		Nonce: RandomTransactionNonce(),
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
@@ -480,6 +483,42 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 		// with a message
 		ArbitraryData: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
 	},
+}
+
+// tests the patch which fixes https://github.com/threefoldfoundation/tfchain/issues/164
+func TestCoinCreationTransactionIDUniqueness(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
+		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
+
+	for i, testCCTX := range testCoinCreationTransactions {
+		a := testCCTX
+		b := testCCTX
+
+		// if two cctxs use the same nonce, outputs, miner fees and fulfillment,
+		// the ID should be the same
+		idA := a.Transaction().ID()
+		idB := b.Transaction().ID()
+		if bytes.Compare(idA[:], idB[:]) != 0 {
+			t.Error(i,
+				"expected the ID of two coin creation txs to be equal when same nonce is used, but:",
+				idA.String(), " == ", idB.String(), " ; txA = ", a, " and tx B = ", b)
+		}
+
+		// if however at least the nonce is different, the ID will be different,
+		// no matter the rest of the other fields
+		b.Nonce = RandomTransactionNonce()
+		idA = a.Transaction().ID()
+		idB = b.Transaction().ID()
+		if bytes.Compare(idA[:], idB[:]) == 0 {
+			t.Error(i,
+				"expected the ID of two coin creation txs to be different when a different nonce is used, but:",
+				idA.String(), " == ", idB.String(), " ; txA = ", a, " and tx B = ", b)
+		}
+	}
 }
 
 // utility funcs

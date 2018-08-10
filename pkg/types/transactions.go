@@ -1,6 +1,7 @@
 package types
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -237,17 +238,17 @@ func (cctc CoinCreationTransactionController) JSONDecodeTransactionData(data []b
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
 func (cctc CoinCreationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
-	// (tx) extension (data) is expected to be the mint fulfillment,
-	// which can be used to fulfill the globally defined mint condition
-	mintFulfillment, ok := extension.(types.UnlockFulfillmentProxy)
+	// (tx) extension (data) is expected to be a pointer to a valid CoinCreationTransactionExtension,
+	// which contains the nonce and the mintFulfillment that can be used to fulfill the globally defined mint condition
+	ccTxExtension, ok := extension.(*CoinCreationTransactionExtension)
 	if !ok {
 		return nil, errors.New("invalid extension data for a CoinCreationTransaction")
 	}
-	err := sign(&mintFulfillment, cctc.MintCondition)
+	err := sign(&ccTxExtension.MintFulfillment, cctc.MintCondition)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign mint fulfillment of coin creation tx: %v", err)
 	}
-	return mintFulfillment, nil
+	return ccTxExtension, nil
 }
 
 // ValidateTransaction implements TransactionValidator.ValidateTransaction
@@ -272,6 +273,10 @@ func (cctc CoinCreationTransactionController) ValidateTransaction(t types.Transa
 	})
 	if err != nil {
 		return fmt.Errorf("failed to fulfill mint condition: %v", err)
+	}
+	// ensure the Nonce is not Nil
+	if cctx.Nonce == (TransactionNonce{}) {
+		return errors.New("nil nonce is not allowed for a coin creation transaction")
 	}
 
 	// validate the rest of the content
@@ -320,6 +325,7 @@ func (cctc CoinCreationTransactionController) InputSigHash(t types.Transaction, 
 	enc.EncodeAll(
 		t.Version,
 		SpecifierCoinCreationTransaction,
+		cctx.Nonce,
 	)
 
 	if len(extraObjects) > 0 {
@@ -352,6 +358,8 @@ type (
 	// as a medium in order to create coins (coin outputs), without backing them
 	// (so without having to spend previously unspend coin outputs, see: coin inputs).
 	CoinCreationTransaction struct {
+		// Nonce used to ensure the uniqueness of a CoinCreationTransaction
+		Nonce TransactionNonce `json:"nonce"`
 		// MintFulfillment defines the fulfillment which is used in order to
 		// fulfill the globally defined MintCondition.
 		MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
@@ -366,7 +374,45 @@ type (
 		// of the coin creation.
 		ArbitraryData []byte `json:"arbitrarydata,omitempty"`
 	}
+	// TransactionNonce is a nonce
+	// used to ensure the uniqueness of an otherwise potentially non-unique Tx
+	TransactionNonce [TransactionNonceLength]byte
+	// CoinCreationTransactionExtension defines the CoinCreationTx Extension Data
+	CoinCreationTransactionExtension struct {
+		Nonce           TransactionNonce
+		MintFulfillment types.UnlockFulfillmentProxy
+	}
 )
+
+// TransactionNonceLength defines the length of a TransactionNonce
+const TransactionNonceLength = 8
+
+// RandomTransactionNonce creates a random Transaction nonce
+func RandomTransactionNonce() (nonce TransactionNonce) {
+	rand.Read(nonce[:])
+	return
+}
+
+// MarshalJSON implements JSON.Marshaller.MarshalJSON
+// piggy-backing on the base64-encoding used for byte slices in the std JSON lib
+func (tn *TransactionNonce) MarshalJSON() ([]byte, error) {
+	return json.Marshal(tn[:])
+}
+
+// UnmarshalJSON implements JSON.Unmarshaller.UnmarshalJSON
+// piggy-backing on the base64-decoding used for byte slices in the std JSON lib
+func (tn *TransactionNonce) UnmarshalJSON(in []byte) error {
+	var out []byte
+	err := json.Unmarshal(in, &out)
+	if err != nil {
+		return err
+	}
+	if len(out) != TransactionNonceLength {
+		return errors.New("invalid tx nonce length")
+	}
+	copy(tn[:], out[:])
+	return nil
+}
 
 // CoinCreationTransactionFromTransaction creates a CoinCreationTransaction,
 // using a regular in-memory tfchain transaction.
@@ -393,9 +439,9 @@ func CoinCreationTransactionFromTransaction(tx types.Transaction) (CoinCreationT
 // CoinCreationTransactionFromTransactionData creates a CoinCreationTransaction,
 // using the TransactionData from a regular in-memory tfchain transaction.
 func CoinCreationTransactionFromTransactionData(txData types.TransactionData) (CoinCreationTransaction, error) {
-	// (tx) extension (data) is expected to be the mint fulfillment,
-	// which can be used to fulfill the globally defined mint condition
-	mintFulfillment, ok := txData.Extension.(types.UnlockFulfillmentProxy)
+	// (tx) extension (data) is expected to be a pointer to a valid CoinCreationTransactionExtension,
+	// which contains the nonce and the mintFulfillment that can be used to fulfill the globally defined mint condition
+	extensionData, ok := txData.Extension.(*CoinCreationTransactionExtension)
 	if !ok {
 		return CoinCreationTransaction{}, errors.New("invalid extension data for a CoinCreationTransaction")
 	}
@@ -409,7 +455,8 @@ func CoinCreationTransactionFromTransactionData(txData types.TransactionData) (C
 	}
 	// return the CoinCreationTransaction, with the data extracted from the TransactionData
 	return CoinCreationTransaction{
-		MintFulfillment: mintFulfillment,
+		Nonce:           extensionData.Nonce,
+		MintFulfillment: extensionData.MintFulfillment,
 		CoinOutputs:     txData.CoinOutputs,
 		MinerFees:       txData.MinerFees,
 		// ArbitraryData is optional
@@ -421,10 +468,13 @@ func CoinCreationTransactionFromTransactionData(txData types.TransactionData) (C
 // as regular tfchain transaction data.
 func (cctx *CoinCreationTransaction) TransactionData() types.TransactionData {
 	return types.TransactionData{
-		Extension:     cctx.MintFulfillment,
 		CoinOutputs:   cctx.CoinOutputs,
 		MinerFees:     cctx.MinerFees,
 		ArbitraryData: cctx.ArbitraryData,
+		Extension: &CoinCreationTransactionExtension{
+			Nonce:           cctx.Nonce,
+			MintFulfillment: cctx.MintFulfillment,
+		},
 	}
 }
 
@@ -433,10 +483,13 @@ func (cctx *CoinCreationTransaction) TransactionData() types.TransactionData {
 func (cctx *CoinCreationTransaction) Transaction() types.Transaction {
 	return types.Transaction{
 		Version:       TransactionVersionCoinCreation,
-		Extension:     cctx.MintFulfillment,
 		CoinOutputs:   cctx.CoinOutputs,
 		MinerFees:     cctx.MinerFees,
 		ArbitraryData: cctx.ArbitraryData,
+		Extension: &CoinCreationTransactionExtension{
+			Nonce:           cctx.Nonce,
+			MintFulfillment: cctx.MintFulfillment,
+		},
 	}
 }
 
