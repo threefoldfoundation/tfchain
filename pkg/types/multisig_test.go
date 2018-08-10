@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/hex"
-	"fmt"
 	"testing"
 
 	"github.com/rivine/rivine/encoding"
@@ -90,14 +89,6 @@ func TestRegisteredMultiSignatureCondition(t *testing.T) {
 	if err != nil {
 		t.Fatal("expected standard condition check pass, but it failed: ", err)
 	}
-}
-
-func unlockHashFromHex(hstr string) (uh types.UnlockHash) {
-	err := uh.LoadString(hstr)
-	if err != nil {
-		panic(fmt.Sprintf("func unlockHashFromHex(%s) failed: %v", hstr, err))
-	}
-	return
 }
 
 func TestDecodeBinaryCoinOutputsForIssue141(t *testing.T) {
