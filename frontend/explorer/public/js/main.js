@@ -51,6 +51,7 @@ function linkHeight(domParent, height) {
 	domParent.appendChild(a);
 }
 
+
 // appendHeading adds a heading to the hash page.
 function appendHeading(domParent, text) {
 	var heading = document.createElement('h3');
@@ -258,4 +259,36 @@ function appendExplorerBlock(element, explorerBlock) {
 	appendBlockMinerPayouts(element, explorerBlock);
 	appendBlockTransactions(element, explorerBlock);
 	appendRawBlock(element, explorerBlock);
+}
+
+// getBlockchainConstants returns the constants of the blockchain
+// as defined by the remote/local explorer
+function getBlockchainConstants() {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer/constants', false);
+	request.send();
+	if (request.status != 200) {
+		return {};
+	}
+	return JSON.parse(request.responseText);
+}
+
+//Changes the document title according to the network the page is running on
+window.onload = function() {
+	var networkName = getBlockchainConstants().chaininfo.NetworkName;
+
+	switch(networkName) {
+		case 'testnet':
+			var pageTitle = document.title.replace('Explorer', 'Testnet');
+			document.title = pageTitle;
+			var firstPartOfTitle = document.getElementById('title').innerHTML.slice(0, -8);
+			document.getElementById('title').innerHTML = firstPartOfTitle + ' <span class="red-text">Testnet</span> Explorer'; 
+			break;
+		case 'devnet':
+			var pageTitle = document.title.replace('Explorer', 'Devnet');
+			document.title = pageTitle;
+			var firstPartOfTitle = document.getElementById('title').innerHTML.slice(0, -8);
+			document.getElementById('title').innerHTML = firstPartOfTitle + ' <span class="red-text">Devnet</span> Explorer'; 
+			break;
+	}
 }
