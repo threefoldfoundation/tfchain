@@ -259,3 +259,36 @@ function appendExplorerBlock(element, explorerBlock) {
 	appendBlockTransactions(element, explorerBlock);
 	appendRawBlock(element, explorerBlock);
 }
+
+// getBlockchainConstants returns the constants of the blockchain
+// as defined by the remote/local explorer
+function getBlockchainConstants() {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer/constants', false);
+	request.send();
+	if (request.status != 200) {
+		return {};
+	}
+	return JSON.parse(request.responseText);
+}
+
+//Changes the document title according to the network the page is running on
+function buildPageTitle() {
+	var networkName = getBlockchainConstants().chaininfo.NetworkName;
+
+	switch(networkName) {
+		case 'testnet':
+			document.title = document.title.replace('Explorer', 'Testnet');
+			var htmlTitle = document.getElementById('page-title').innerHTML;
+			htmlTitle = htmlTitle.replace('Explorer', '<span class="red-text">Testnet</span> Explorer');
+			document.getElementById('page-title').innerHTML = htmlTitle;
+			break;
+		case 'devnet':
+			document.title = document.title.replace('Explorer', 'Devnet');
+			var htmlTitle = document.getElementById('page-title').innerHTML;
+			htmlTitle = htmlTitle.replace('Explorer', '<span class="red-text">Devnet</span> Explorer');
+			document.getElementById('page-title').innerHTML = htmlTitle;
+			break;
+	}
+}
+buildPageTitle();
