@@ -1028,7 +1028,7 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 				var table = createStatsTable();
 				var doms = appendStat(table, 'ID', '');
 				linkHash(doms[2], hash);
-				doms = appendStat(table, 'Parent Block', '');
+				doms = appendStat(table, 'Block', '');
 				linkHash(doms[2], explorerHash.blocks[0].blockid);
 				doms = appendStat(table, 'Address', '');
 				linkHash(doms[2], explorerHash.blocks[0].rawblock.minerpayouts[i].unlockhash);

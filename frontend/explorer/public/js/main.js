@@ -119,10 +119,10 @@ function appendBlockStatistics(domParent, explorerBlock) {
 	appendStatHeader(table, 'Block Statistics');
 	var doms = appendStat(table, 'Block Height', '');
 	linkHeight(doms[2], explorerBlock.height);
-	doms = appendStat(table, 'Block ID', '');
+	doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerBlock.blockid);
 	appendStat(table, 'Confirmations', ctx.height - explorerBlock.height + 1);
-	doms = appendStat(table, 'Parent Block', '');
+	doms = appendStat(table, 'Previous Block', '');
 	linkHash(doms[2], explorerBlock.rawblock.parentid);
 	appendStat(table, 'Time', formatUnixTime(explorerBlock.rawblock.timestamp));
 	appendStat(table, 'Active BlockStake', readableDifficulty(explorerBlock.estimatedactivebs));
