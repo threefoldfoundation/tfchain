@@ -1140,7 +1140,7 @@ function appendBlockStakeOutputTables(infoBody, hash, explorerHash) {
 				doms = appendStat(table, 'Transaction ID', '');
 				linkHash(doms[2], explorerHash.transactions[i].id);
 				doms = appendStat(table, 'Address', '');
-				linkHash(doms[2], explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].unlockhash);
+				linkHash(doms[2], explorerHash.transactions[i].blockstakeunlockhashes[j]);
 				appendStat(table, 'Value', explorerHash.transactions[i].rawtransaction.data.blockstakeoutputs[j].value);
 				appendStat(table, 'Has Been Spent', hasBeenSpent);
 				infoBody.appendChild(table);
