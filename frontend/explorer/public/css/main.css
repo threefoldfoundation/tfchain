@@ -125,22 +125,6 @@ span.search-form-td {
 	display: none;
 }
 
-#nextbutton {
-	float: right;
-}
-
-#previousbutton {
-	float:left;
-}
-
-.navigation-buttons {
-	margin-bottom: 50px;
-}
-
-button:disabled {
-	opacity: 0.3;
-}
-
 .red-text {
 	color: red;
 }
