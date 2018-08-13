@@ -140,3 +140,7 @@ span.search-form-td {
 button:disabled {
 	opacity: 0.3;
 }
+
+.red-text {
+	color: red;
+}

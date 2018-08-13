@@ -344,3 +344,32 @@ function appendExplorerBlock(element, explorerBlock) {
 	appendBlockTransactions(element, explorerBlock);
 	appendRawBlock(element, explorerBlock);
 }
+
+// getBlockchainConstants returns the constants of the blockchain
+// as defined by the remote/local explorer
+function getBlockchainConstants() {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer/constants', false);
+	request.send();
+	if (request.status != 200) {
+		return {};
+	}
+	return JSON.parse(request.responseText);
+}
+
+//Changes the document title according to the network the page is running on
+window.onload = function() {
+	var networkName = getBlockchainConstants().chaininfo.NetworkName;
+
+	switch(networkName) {
+		case 'testnet':
+			var pageTitle = document.title.replace('Explorer', 'Testnet');
+			document.title = pageTitle;
+			document.getElementById('title').outerHTML = '<h1>ThreeFold Chain <span class="red-text">Testnet</span> Explorer</h1>';
+			break;
+		case 'devnet':
+		var pageTitle = document.title.replace('Explorer', 'Devnet');
+			document.getElementById('title').outerHTML = '<h1>ThreeFold Chain <span class="red-text">Devnet</span> Explorer</h1>';
+			break;
+	}
+}
