@@ -119,10 +119,10 @@ function appendBlockStatistics(domParent, explorerBlock) {
 	appendStatHeader(table, 'Block Statistics');
 	var doms = appendStat(table, 'Block Height', '');
 	linkHeight(doms[2], explorerBlock.height);
-	doms = appendStat(table, 'Block ID', '');
+	doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerBlock.blockid);
 	appendStat(table, 'Confirmations', ctx.height - explorerBlock.height + 1);
-	doms = appendStat(table, 'Parent Block', '');
+	doms = appendStat(table, 'Previous Block', '');
 	linkHash(doms[2], explorerBlock.rawblock.parentid);
 	appendStat(table, 'Time', formatUnixTime(explorerBlock.rawblock.timestamp));
 	appendStat(table, 'Active BlockStake', readableDifficulty(explorerBlock.estimatedactivebs));
@@ -165,7 +165,7 @@ function appendBlockMinerPayouts(element, explorerBlock) {
 	}
 
 	// In a loop, add a new table for each miner payout.
-	appendStatTableTitle(element, 'Miner Payouts');
+	appendStatTableTitle(element, 'Block creator rewards');
 	for (var i = 0; i < explorerBlock.rawblock.minerpayouts.length; i++) {
 		var table = createStatsTable();
 		var doms = appendStat(table, 'ID', '');
@@ -259,3 +259,36 @@ function appendExplorerBlock(element, explorerBlock) {
 	appendBlockTransactions(element, explorerBlock);
 	appendRawBlock(element, explorerBlock);
 }
+
+// getBlockchainConstants returns the constants of the blockchain
+// as defined by the remote/local explorer
+function getBlockchainConstants() {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer/constants', false);
+	request.send();
+	if (request.status != 200) {
+		return {};
+	}
+	return JSON.parse(request.responseText);
+}
+
+//Changes the document title according to the network the page is running on
+function buildPageTitle() {
+	var networkName = getBlockchainConstants().chaininfo.NetworkName;
+
+	switch(networkName) {
+		case 'testnet':
+			document.title = document.title.replace('Explorer', 'Testnet');
+			var htmlTitle = document.getElementById('page-title').innerHTML;
+			htmlTitle = htmlTitle.replace('Explorer', '<span class="red-text">Testnet</span> Explorer');
+			document.getElementById('page-title').innerHTML = htmlTitle;
+			break;
+		case 'devnet':
+			document.title = document.title.replace('Explorer', 'Devnet');
+			var htmlTitle = document.getElementById('page-title').innerHTML;
+			htmlTitle = htmlTitle.replace('Explorer', '<span class="red-text">Devnet</span> Explorer');
+			document.getElementById('page-title').innerHTML = htmlTitle;
+			break;
+	}
+}
+buildPageTitle();
