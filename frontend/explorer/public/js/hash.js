@@ -10,8 +10,11 @@ function appendTransactionStatistics(infoBody, explorerTransaction, confirmed) {
 		case 1:
 			appendV1Transaction(infoBody, explorerTransaction, confirmed);
 			break;
+		case 129:
+			appendV129Transaction(infoBody, explorerTransaction, confirmed);
+			break;
 		default:
-		appendUnknownTransaction(infoBody, explorerTransaction, confirmed)
+			appendUnknownTransaction(infoBody, explorerTransaction, confirmed)
 	}
 }
 
@@ -66,7 +69,7 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 		appendStat(table, 'Blockstake Output Count', explorerTransaction.rawtransaction.data.blockstakeoutputs.length);
 	}
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
+		appendStat(table, 'Arbitrary Data Byte Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
 	}
 	infoBody.appendChild(table);
 
@@ -153,7 +156,7 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Data', explorerTransaction.rawtransaction.data.arbitrarydata);
+		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
 		infoBody.appendChild(table);
 	}
 }
@@ -187,7 +190,7 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 		appendStat(table, 'Blockstake Output Count', explorerTransaction.rawtransaction.data.blockstakeoutputs.length);
 	}
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
+		appendStat(table, 'Arbitrary Data Byte Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
 	}
 	infoBody.appendChild(table);
 
@@ -293,7 +296,86 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Data', explorerTransaction.rawtransaction.data.arbitrarydata);
+		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		infoBody.appendChild(table);
+	}
+}
+
+function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
+	var ctx = getBlockchainContext();
+
+	var table = createStatsTable();
+	appendStatHeader(table, 'Coin Creation Transaction Statistics');
+	if (confirmed) {
+		var doms = appendStat(table, 'Block Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+		doms = appendStat(table, 'Block ID', '');
+		linkHash(doms[2], explorerTransaction.parent);
+		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
+	} else {
+		doms = appendStat(table, 'Block Height', 'unconfirmed');
+	}
+	doms = appendStat(table, 'ID', '');
+	linkHash(doms[2], explorerTransaction.id);
+	appendStat(table, 'Coin Output Count', explorerTransaction.rawtransaction.data.coinoutputs.length);
+	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
+		appendStat(table, 'Arbitrary Data Byte Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
+	}
+	infoBody.appendChild(table);
+
+	appendStatTableTitle(infoBody, 'Coin Creation Fulfillment');
+	switch (explorerTransaction.rawtransaction.data.mintfulfillment.type) {
+		case 0:
+			break;
+		case 1:
+			f = addV1Fulfillment;
+			break;
+		case 2:
+			f = addV2Fulfillment;
+			break;
+		case 3:
+			f = addV3Fulfillment;
+			break;
+		default:
+			f = addUnknownFulfillment;
+	}
+	var table = createStatsTable();
+	f(table, explorerTransaction.rawtransaction.data.mintfulfillment);
+	infoBody.appendChild(table);
+
+	appendStatTableTitle(infoBody, 'Coin Outputs');
+	for (var i = 0; i < explorerTransaction.rawtransaction.data.coinoutputs.length; i++) {
+		var f;
+		switch (explorerTransaction.rawtransaction.data.coinoutputs[i].condition.type) {
+			// handle nil transactions
+			case undefined:
+			case 0:
+				f = addV1NilOutput;
+				break;
+			case 1:
+				f = addV1T1Output;
+				break;
+			case 2:
+				f = addV1T2Output;
+				break;
+			case 3:
+				f = addV1T3Output;
+				break;
+			case 4:
+				f = addV1T4Output;
+				break;
+			default:
+				continue;
+		}
+		var outputTable = createStatsTable();
+		f(ctx, outputTable, explorerTransaction, i, 'coins');
+		infoBody.appendChild(outputTable)
+	}
+
+	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
+		appendStatTableTitle(infoBody, 'Arbitrary Data');
+		var table = createStatsTable();
+		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
 		infoBody.appendChild(table);
 	}
 }
@@ -301,6 +383,13 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 // *************
 // * V1 Inputs *
 // *************
+
+function addUnknownFulfillment(table, fulfillment) {
+	appendStat(table, 'Unknown Type', fulfillment.type);
+	for (var key in fulfillment.data) {
+		appendStat(table, toTitleCase(key), fulfillment.data[key])
+	}
+}
 
 function addV1T1Input(infoBody, explorerTransaction, i, type) {
 	var inputspecifier = getInputSpecifier(type);
@@ -325,11 +414,15 @@ function addV1T1Input(infoBody, explorerTransaction, i, type) {
 
 
 	appendStatHeader(table, 'Fulfillment');
-	appendStat(table, 'Type', explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.type);
-	for (var key in explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.data) {
-		appendStat(table, toTitleCase(key), explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.data[key])
-	}
+	addV1Fulfillment(table, explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment)
 	infoBody.appendChild(table);
+}
+
+function addV1Fulfillment(table, fulfillment) {
+	appendStat(table, 'Type', fulfillment.type);
+	for (var key in fulfillment.data) {
+		appendStat(table, toTitleCase(key), fulfillment.data[key])
+	}
 }
 
 function addV1T2Input(infoBody, explorerTransaction, i, type) {
@@ -357,11 +450,15 @@ function addV1T2Input(infoBody, explorerTransaction, i, type) {
 
 
 	appendStatHeader(table, 'Fulfillment');
-	appendStat(table, 'Type', explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.type);
-	for (var key in explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.data) {
-		appendStat(table, toTitleCase(key), explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment.data[key])
-	}
+	addV2Fulfillment(table, explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment);
 	infoBody.appendChild(table);
+}
+
+function addV2Fulfillment(table, fulfillment) {
+	appendStat(table, 'Type', fulfillment.type);
+	for (var key in fulfillment.data) {
+		appendStat(table, toTitleCase(key), fulfillment.data[key])
+	}
 }
 
 function addV1T3Input(infoBody, explorerTransaction, i, type) {
@@ -399,13 +496,16 @@ function addV1T3Input(infoBody, explorerTransaction, i, type) {
 	appendStat(table, 'Minimum Signature Count', condition.data.minimumsignaturecount);
 
 	appendStatHeader(table, 'Fulfillment');
-	var rawInput = explorerTransaction.rawtransaction.data[inputspecifier][i];
-	appendStat(table, 'Type', rawInput.fulfillment.type);
-	for (var idx = 0; idx < rawInput.fulfillment.data.pairs.length; idx++) {
-		appendStat(table, 'PublicKey', rawInput.fulfillment.data.pairs[idx].publickey);
-		appendStat(table, 'Signature', rawInput.fulfillment.data.pairs[idx].signature)
-	}
+	addV3Fulfillment(table, explorerTransaction.rawtransaction.data[inputspecifier][i].rawInput.fulfillment)
 	infoBody.appendChild(table);
+}
+
+function addV3Fulfillment(table, fulfillment) {
+	appendStat(table, 'Type', fulfillment.type);
+	for (var idx = 0; idx < fulfillment.data.pairs.length; idx++) {
+		appendStat(table, 'PublicKey', fulfillment.data.pairs[idx].publickey);
+		appendStat(table, 'Signature', fulfillment.data.pairs[idx].signature)
+	}
 }
 
 // **************
