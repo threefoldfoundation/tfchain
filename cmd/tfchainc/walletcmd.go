@@ -38,17 +38,7 @@ The returned (raw) CoinCreationTransaction still has to be signed, prior to send
 	)
 
 	// add commands as wallet sub commands
-	var walletCreateCmd *cobra.Command
-	for _, cmd := range cli.WalletCmd.Commands() {
-		if cmd.Name() == "create" {
-			walletCreateCmd = cmd
-			break
-		}
-	}
-	if walletCreateCmd == nil {
-		panic("wallet create cmd does not exist")
-	}
-	walletCreateCmd.AddCommand(
+	cli.WalletCmd.RootCmdCreate.AddCommand(
 		createCoinCreationTxCmd,
 	)
 

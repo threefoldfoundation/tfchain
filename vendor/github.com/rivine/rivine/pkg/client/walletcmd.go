@@ -19,7 +19,7 @@ import (
 	"github.com/rivine/rivine/types"
 )
 
-func createWalletCmd(cli *CommandLineClient) *cobra.Command {
+func createWalletCmd(cli *CommandLineClient) *WalletCommand {
 	walletCmd := &walletCmd{cli: cli}
 
 	// create root explore command and all subs
@@ -273,7 +273,24 @@ func createWalletCmd(cli *CommandLineClient) *cobra.Command {
 		createBlockStakeTxCmd)
 
 	// return root command
-	return rootCmd
+	return &WalletCommand{
+		Command:       rootCmd,
+		RootCmdSend:   sendCmd,
+		RootCmdLoad:   loadCmd,
+		RootCmdList:   listCmd,
+		RootCmdCreate: createCmd,
+	}
+}
+
+// WalletCommand returns the Wallet Command as an extended cobra command,
+// exposing its sub command groups directly as public properties.
+type WalletCommand struct {
+	*cobra.Command
+
+	RootCmdSend   *cobra.Command
+	RootCmdLoad   *cobra.Command
+	RootCmdList   *cobra.Command
+	RootCmdCreate *cobra.Command
 }
 
 type walletCmd struct {

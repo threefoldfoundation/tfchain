@@ -293,8 +293,8 @@ func createAtomicSwapCmd(client *CommandLineClient) *cobra.Command {
 	auditCmd.Flags().Var(
 		cli.StringLoaderFlag{StringLoader: &atomicSwapCmd.auditCfg.ReceiverAddress}, "receiver",
 		"optionally validate the given receiver's address (unlockhash) to the one found in the atomic swap contract condition")
-	auditCmd.Flags().Var(
-		&atomicSwapCmd.auditCfg.CoinAmount, "amount",
+	auditCmd.Flags().StringVar(
+		&atomicSwapCmd.auditCfg.CoinAmountString, "amount", "",
 		"optionally validate the given coin amount to the one found in the unspent coin output")
 	auditCmd.Flags().DurationVar(
 		&atomicSwapCmd.auditCfg.MinDurationLeft, "min-duration", 0,
@@ -324,10 +324,10 @@ type atomicSwapCmd struct {
 		SourceUnlockHash types.UnlockHash
 	}
 	auditCfg struct {
-		ReceiverAddress types.UnlockHash
-		CoinAmount      coinFlag
-		HashedSecret    types.AtomicSwapHashedSecret
-		MinDurationLeft time.Duration
+		ReceiverAddress  types.UnlockHash
+		CoinAmountString string
+		HashedSecret     types.AtomicSwapHashedSecret
+		MinDurationLeft  time.Duration
 	}
 	extractSecretCfg struct {
 		HashedSecret types.AtomicSwapHashedSecret
@@ -667,8 +667,11 @@ TimeLock reached in: %s
 	}
 
 	var invalidContract bool
-	amount := atomicSwapCmd.auditCfg.CoinAmount.Amount()
-	if !amount.IsZero() {
+	if atomicSwapCmd.auditCfg.CoinAmountString != "" && atomicSwapCmd.auditCfg.CoinAmountString != "0" {
+		amount, err := currencyConverter.ParseCoinString(atomicSwapCmd.auditCfg.CoinAmountString)
+		if err != nil {
+			DieWithError("failed to parse amount string: ", err)
+		}
 		// optionally validate coin amount
 		if !amount.Equals(co.Value) {
 			invalidContract = true

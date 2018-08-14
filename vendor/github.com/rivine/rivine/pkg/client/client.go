@@ -207,7 +207,7 @@ func NewCommandLineClient(address, name string) (*CommandLineClient, error) {
 	})
 
 	cli.WalletCmd = createWalletCmd(cli)
-	cli.RootCmd.AddCommand(cli.WalletCmd)
+	cli.RootCmd.AddCommand(cli.WalletCmd.Command)
 
 	cli.AtomicSwapCmd = createAtomicSwapCmd(cli)
 	cli.RootCmd.AddCommand(cli.AtomicSwapCmd)
@@ -244,7 +244,7 @@ type CommandLineClient struct {
 	PreRunE func(*Config) (*Config, error)
 
 	RootCmd       *cobra.Command
-	WalletCmd     *cobra.Command
+	WalletCmd     *WalletCommand
 	ConsensusCmd  *cobra.Command
 	AtomicSwapCmd *cobra.Command
 	GatewayCmd    *cobra.Command
