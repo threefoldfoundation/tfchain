@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/rivine/rivine/modules"
 	"github.com/rivine/rivine/pkg/client"
@@ -10,9 +11,26 @@ import (
 )
 
 func main() {
+	// create cli
 	bchainInfo := config.GetBlockchainInfo()
-	client.DefaultCLIClient("", bchainInfo.Name, func(icfg *client.Config) client.Config {
-		cfg := daemonOrDefaultConfig(icfg)
+	cli, err := client.NewCommandLineClient("", bchainInfo.Name)
+	if err != nil {
+		panic(err)
+	}
+
+	// register tfchain-specific commands
+	createWalletSubCmds(cli)
+
+	// define preRun function
+	cli.PreRunE = func(cfg *client.Config) (*client.Config, error) {
+		if cfg == nil {
+			bchainInfo := config.GetBlockchainInfo()
+			chainConstants := config.GetStandardnetGenesis()
+			daemonConstants := modules.NewDaemonConstants(bchainInfo, chainConstants)
+			newCfg := client.ConfigFromDaemonConstants(daemonConstants)
+			cfg = &newCfg
+		}
+
 		switch cfg.NetworkName {
 		case config.NetworkNameStandard:
 			// Register the transaction controllers for all transaction versions
@@ -45,21 +63,19 @@ func main() {
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		default:
-			panic(fmt.Sprintf("Netork name %q not recognized", cfg.NetworkName))
+			return nil, fmt.Errorf("Netork name %q not recognized", cfg.NetworkName)
 		}
-		return cfg
-	})
-}
 
-// daemonOrDefaultConfig uses a default config
-// if a config was not returned originating from the used daemon's constants.
-func daemonOrDefaultConfig(icfg *client.Config) client.Config {
-	if icfg != nil {
-		return *icfg
+		return cfg, nil
 	}
 
-	bchainInfo := config.GetBlockchainInfo()
-	chainConstants := config.GetStandardnetGenesis()
-	daemonConstants := modules.NewDaemonConstants(bchainInfo, chainConstants)
-	return client.ConfigFromDaemonConstants(daemonConstants)
+	// start cli
+	if err := cli.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, "client exited with an error: ", err)
+		// Since no commands return errors (all commands set Command.Run instead of
+		// Command.RunE), Command.Execute() should only return an error on an
+		// invalid command or flag. Therefore Command.Usage() was called (assuming
+		// Command.SilenceUsage is false) and we should exit with exitCodeUsage.
+		os.Exit(client.ExitCodeUsage)
+	}
 }

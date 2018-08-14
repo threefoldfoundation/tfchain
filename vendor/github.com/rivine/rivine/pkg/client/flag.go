@@ -10,6 +10,7 @@ import (
 
 type coinFlag struct {
 	str string
+	cli *CommandLineClient
 }
 
 // String implements pflag.Value.String
@@ -28,10 +29,10 @@ func (c coinFlag) Type() string {
 	return "Coin"
 }
 
-func parseCoinArg(str string) types.Currency {
-	amount, err := _CurrencyConvertor.ParseCoinString(str)
+func parseCoinArg(cc CurrencyConvertor, str string) types.Currency {
+	amount, err := cc.ParseCoinString(str)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, _CurrencyConvertor.CoinArgDescription("amount"))
+		fmt.Fprintln(os.Stderr, cc.CoinArgDescription("amount"))
 		DieWithExitCode(ExitCodeUsage, "failed to parse coin-typed argument: ", err)
 		return types.Currency{}
 	}
@@ -42,7 +43,7 @@ func (c coinFlag) Amount() types.Currency {
 	if c.str == "" {
 		return types.Currency{}
 	}
-	return parseCoinArg(c.str)
+	return parseCoinArg(c.cli.CreateCurrencyConvertor(), c.str)
 }
 
 var (
