@@ -900,7 +900,7 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 	switch(hash.substring(0,2)) {
 		case "00": hashTitle = "Nil Unlock Hash"; break;
 		case "01": hashTitle = "Wallet Addresss"; break;
-		case "02": hashTitle = "Legacy Atomic Swap Contract"; break;
+		case "02": hashTitle = "Atomic Swap Contract"; break;
 		case "03":
 			hashTitle = "Multisig Wallet Address";
 			addressLabel = "Multisig Address";
@@ -1209,6 +1209,8 @@ function populateHashPage(hash, explorerHash) {
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendExplorerBlock(infoBody, explorerHash.block);
 	} else if (hashType === "transactionid") {
+		appendNavigationMenu();
+		appendNavigationMenuTransaction(explorerHash.transaction);
 		appendHeading(infoBody, 'Hash Type: Transaction ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
@@ -1226,6 +1228,27 @@ function populateHashPage(hash, explorerHash) {
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendBlockStakeOutputTables(infoBody, hash, explorerHash);
 	}
+}
+
+function appendNavigationMenuTransaction(explorerTransaction) {
+	/* console.log(explorerTransaction);
+	var navigation = document.getElementById('nav-links');
+	var link = document.createElement('a');
+	link.id = 'block-transaction-link';
+
+	var text = document.createTextNode(+ ' > ' + 'Transaction ' + explorerTransaction.id);
+	link.href = 'block.html?height='+explorerTransaction.height;
+	link.appendChild(text);
+	navigation.appendChild(link); */
+	var navigation = document.getElementById('nav-links');
+	var blockSpan = document.createElement('span');
+	navigation.appendChild(blockSpan);
+	linkHeight(blockSpan, explorerTransaction.height, 'Block');
+	navigation.appendChild(document.createTextNode(' > '));
+	var transactionSpan = document.createElement('span');
+	navigation.appendChild(transactionSpan);
+	linkHash(transactionSpan, explorerTransaction.id, 'Transaction');
+	
 }
 
 // fetchHashInfo queries the explorer api about in the input hash, and then
