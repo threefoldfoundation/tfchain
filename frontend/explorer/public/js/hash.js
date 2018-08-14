@@ -10,7 +10,33 @@ function appendTransactionStatistics(infoBody, explorerTransaction, confirmed) {
 		case 1:
 			appendV1Transaction(infoBody, explorerTransaction, confirmed);
 			break;
+		default:
+		appendUnknownTransaction(infoBody, explorerTransaction, confirmed)
 	}
+}
+
+function appendUnknownTransaction(infoBody, explorerTransaction, confirmed) {
+	var ctx = getBlockchainContext();
+
+	var table = createStatsTable();
+	infoBody.appendChild(table);
+
+	appendStatHeader(table, 'Transaction Statistics');
+	if (confirmed) {
+		var doms = appendStat(table, 'Block Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
+	} else {
+		doms = appendStat(table, 'Block Height', 'unconfirmed');
+	}
+	doms = appendStat(table, 'ID', '');
+	linkHash(doms[2], explorerTransaction.id);
+
+
+	table = createStatsTable();
+	infoBody.appendChild(table);
+	appendStatHeader(table, 'Unsupported Transaction Version');
+	doms = appendStat(table, 'Transaction Version', explorerTransaction.rawtransaction.version);
 }
 
 function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
