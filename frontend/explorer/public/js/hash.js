@@ -371,7 +371,7 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 	f(table, explorerTransaction.rawtransaction.data.mintfulfillment);
 	infoBody.appendChild(table);
 
-	appendStatTableTitle(infoBody, 'Coin Outputs');
+	appendStatTableTitle(infoBody, 'Coin Creation Outputs');
 	for (var i = 0; i < explorerTransaction.rawtransaction.data.coinoutputs.length; i++) {
 		var f;
 		switch (explorerTransaction.rawtransaction.data.coinoutputs[i].condition.type) {
