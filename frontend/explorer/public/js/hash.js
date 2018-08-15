@@ -159,6 +159,20 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
 		infoBody.appendChild(table);
 	}
+	var payouts = getMinerFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+	if (payouts != null) {
+		// In a loop, add a new table for each miner payout.
+		appendStatTableTitle(infoBody, 'Miner Fee Payouts');
+		for (var i = 0; i < payouts.length; i++) {
+			var table = createStatsTable();
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], payouts[i].id);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], payouts[i].unlockhash);
+			appendStat(table, 'Value', readableCoins(payouts[i].value));
+			infoBody.appendChild(table);
+		}
+	}
 }
 
 function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
@@ -299,6 +313,20 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
 		infoBody.appendChild(table);
 	}
+	var payouts = getMinerFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+	if (payouts != null) {
+		// In a loop, add a new table for each miner payout.
+		appendStatTableTitle(infoBody, 'Miner Fee Payouts');
+		for (var i = 0; i < payouts.length; i++) {
+			var table = createStatsTable();
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], payouts[i].id);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], payouts[i].unlockhash);
+			appendStat(table, 'Value', readableCoins(payouts[i].value));
+			infoBody.appendChild(table);
+		}
+	}
 }
 
 function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
@@ -377,6 +405,21 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 		var table = createStatsTable();
 		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
 		infoBody.appendChild(table);
+	}
+
+	var payouts = getMinerFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+	if (payouts != null) {
+		// In a loop, add a new table for each miner payout.
+		appendStatTableTitle(infoBody, 'Miner Fee Payouts');
+		for (var i = 0; i < payouts.length; i++) {
+			var table = createStatsTable();
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], payouts[i].id);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], payouts[i].unlockhash);
+			appendStat(table, 'Value', readableCoins(payouts[i].value));
+			infoBody.appendChild(table);
+		}
 	}
 }
 
@@ -1352,6 +1395,31 @@ function populateHashPage(hash, explorerHash) {
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendBlockStakeOutputTables(infoBody, hash, explorerHash);
 	}
+}
+
+function getMinerFeesAsFeePayouts(txID, blockID) {
+	var explorerBlock = fetchHashInfo(blockID).block;
+	var minerFeeStart = 1;
+	var minerFeeEnd = 0;
+	for (var i = 0; i < explorerBlock.transactions.length; i++) {
+		if (explorerBlock.transactions[i].rawtransaction.data.minerfees == null) {
+			continue;
+		}
+		var txMinerFeeLength = explorerBlock.transactions[i].rawtransaction.data.minerfees.length;
+		if (explorerBlock.transactions[i].id === txID) {
+			minerFeeEnd = minerFeeStart + txMinerFeeLength;
+			break;
+		}
+		minerFeeStart += txMinerFeeLength;
+	}
+	if (minerFeeEnd === 0) {
+		return null;
+	}
+	var feePayouts = explorerBlock.rawblock.minerpayouts.slice(minerFeeStart, minerFeeEnd);
+	for (var i = 0; i < feePayouts.length; i++) {
+		feePayouts[i].id = explorerBlock.minerpayoutids[minerFeeStart+i];
+	}
+	return feePayouts;
 }
 
 // fetchHashInfo queries the explorer api about in the input hash, and then
