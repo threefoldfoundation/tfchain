@@ -53,7 +53,7 @@ func RegisterTransactionTypesForStandardNetwork() {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
 		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
-			unlockHashFromHex("018c71af31670ddcc03e1de9a6951ab7b948105edb185c5fa1286a9705aec3491ed30e8a8f4525"),
+			unlockHashFromHex("01434535fd01243c02c277cd58d71423163767a575a8ae44e15807bf545e4a8456a5c4afabad51"),
 			unlockHashFromHex("01334cf68f312026ff9df84fc023558db8624bedd717adcc9edc6900488cf6df54ac8e3d1c89a8"),
 			unlockHashFromHex("0149a5496fea27315b7db6251e5dfda23bc9d4bf677c5a5c2d70f1382c44357197d8453d9dfa32"),
 		}, 2)),
@@ -82,7 +82,7 @@ func RegisterTransactionTypesForTestNetwork() {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
 		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
-			unlockHashFromHex("016438a548b6d377e87b08e8eae5ef641a4e70cc861b85b54b0921330e03084ffe0a8d9a38e3a8"),
+			unlockHashFromHex("016148ac9b17828e0933796eaca94418a376f2aa3fefa15685cea5fa462093f0150e09067f7512"),
 			unlockHashFromHex("01d553fab496f3fd6092e25ce60e6f72e24b57950bffc0d372d659e38e5a95e89fb117b4eb3481"),
 			unlockHashFromHex("013a787bf6248c518aee3a040a14b0dd3a029bc8e9b19a1823faf5bcdde397f4201ad01aace4c9"),
 		}, 2)),
