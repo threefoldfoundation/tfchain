@@ -52,13 +52,13 @@ func RegisterTransactionTypesForStandardNetwork() {
 
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		// belongs to wallet with mnemonic:
-		// carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else
-		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
-			unlockHashFromHex("018c71af31670ddcc03e1de9a6951ab7b948105edb185c5fa1286a9705aec3491ed30e8a8f4525"),
-			unlockHashFromHex("01334cf68f312026ff9df84fc023558db8624bedd717adcc9edc6900488cf6df54ac8e3d1c89a8"),
-			unlockHashFromHex("0149a5496fea27315b7db6251e5dfda23bc9d4bf677c5a5c2d70f1382c44357197d8453d9dfa32"),
-		}, 2)),
+		MintCondition: types.NewCondition(types.NewTimeLockCondition(
+			1535961600, // Monday, September 3, 2018 10:00:00 AM GMT+02:00
+			types.NewMultiSignatureCondition(types.UnlockHashSlice{
+				unlockHashFromHex("018c71af31670ddcc03e1de9a6951ab7b948105edb185c5fa1286a9705aec3491ed30e8a8f4525"),
+				unlockHashFromHex("01334cf68f312026ff9df84fc023558db8624bedd717adcc9edc6900488cf6df54ac8e3d1c89a8"),
+				unlockHashFromHex("0149a5496fea27315b7db6251e5dfda23bc9d4bf677c5a5c2d70f1382c44357197d8453d9dfa32"),
+			}, 2))),
 	})
 }
 
@@ -83,8 +83,6 @@ func RegisterTransactionTypesForTestNetwork() {
 
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		// belongs to wallet with mnemonic:
-		// carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else
 		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
 			unlockHashFromHex("016438a548b6d377e87b08e8eae5ef641a4e70cc861b85b54b0921330e03084ffe0a8d9a38e3a8"),
 			unlockHashFromHex("01d553fab496f3fd6092e25ce60e6f72e24b57950bffc0d372d659e38e5a95e89fb117b4eb3481"),
