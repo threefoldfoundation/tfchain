@@ -51,7 +51,7 @@ $ go get -u github.com/threefoldfoundation/tfchain/cmd/... && \
     tfchaind &
 ```
 
-> tfchain supports Go 1.8 and above. Older versions of Golang may work but aren't supported.
+> tfchain supports Go 1.9 and above. Older versions of Golang may work but aren't supported.
 
 At this point (if all went right) you should have a tfchain daemon running in the background which is syncing with the test net. You can follow this syncing process using the CLI client: `tfchainc`.
 

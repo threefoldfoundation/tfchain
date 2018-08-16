@@ -2,15 +2,6 @@ jobs:
   include:
     - stage: test
       language: go
-      go: 1.8.x
-      install:
-        - go get -u github.com/gordonklaus/ineffassign
-      script:
-        - make
-        - make ineffassign
-        - make test
-    - stage: test
-      language: go
       go: 1.9.x
       install:
         - go get -u github.com/gordonklaus/ineffassign
