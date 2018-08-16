@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -525,12 +526,12 @@ func TestCoinCreationTransactionIDUniqueness(t *testing.T) {
 const validDevnetJSONEncodedCoinCreationTx = `{
 	"version": 129,
 	"data": {
-		"nonce": [51, 166, 67, 34, 32, 51, 73, 70],
+		"nonce": "1oQFzIwsLs8=",
 		"mintfulfillment": {
 			"type": 1,
 			"data": {
 				"publickey": "ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780",
-				"signature": "a074b976556d6ea2e4ae8d51fbbb5ec99099f11918201abfa31cf80d415c8d5bdfda5a32d9cc167067b6b798e80c6c1a45f6fd9e0f01ac09053e767b15d31005"
+				"signature": "ad59389329ed01c5ee14ce25ae38634c2b3ef694a2bdfa714f73b175f979ba6613025f9123d68c0f11e8f0a7114833c0aab4c8596d4c31671ec8a73923f02305"
 			}
 		},
 		"coinoutputs": [{
@@ -538,12 +539,12 @@ const validDevnetJSONEncodedCoinCreationTx = `{
 			"condition": {
 				"type": 1,
 				"data": {
-					"unlockhash": "01e78fd5af261e49643dba489b29566db53fa6e195fa0e6aad4430d4f06ce88b73e047fe6a0703"
+					"unlockhash": "01e3cbc41bd3cdfec9e01a6be46a35099ba0e1e1b793904fce6aa5a444496c6d815f5e3e981ccf"
 				}
 			}
 		}],
 		"minerfees": ["1000000000"],
-		"arbitrarydata": "bW9uZXkgZnJvbSB0aGUgc2t5"
+		"arbitrarydata": "dGVzdC4uLiAxLCAyLi4uIDM="
 	}
 }`
 
@@ -917,6 +918,36 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
 	if err != nil {
 		t.Fatal("failed to validate coin creation tx, while it is supposed to be valid:", err)
+	}
+}
+
+// test to ensure we json-encode by default the tx nonce as a base64-encoded string
+func TestBase64DecodingOfJSONEncodedNonce(t *testing.T) {
+	nonce := RandomTransactionNonce()
+	b, err := json.Marshal(nonce)
+	if err != nil {
+		t.Fatal("failed to json-encode random tx nonce:", err)
+	}
+	db, err := base64.StdEncoding.DecodeString(string(b[1 : len(b)-1])) // remove quotes
+	if err != nil {
+		t.Fatalf("failed to base64-decode random tx nonce %s: %v", string(b), err)
+	}
+	if bytes.Compare(nonce[:], db[:]) != 0 {
+		t.Fatal("unexpected result:", hex.EncodeToString(nonce[:]), "!=", hex.EncodeToString(db))
+	}
+}
+
+// test to ensure that we can still accept a JSON byte array,
+// as a nonce, should the input have used that.
+func TestJSONDecodeArrayTxNonce(t *testing.T) {
+	var nonce TransactionNonce
+	err := json.Unmarshal([]byte("[52,82,198,39,242,116,81,220]"), &nonce)
+	if err != nil {
+		t.Fatal("failed to json-decode tx nonce:", err)
+	}
+	expectedNonce := TransactionNonce{52, 82, 198, 39, 242, 116, 81, 220}
+	if bytes.Compare(expectedNonce[:], nonce[:]) != 0 {
+		t.Fatal("unexpected result:", hex.EncodeToString(expectedNonce[:]), "!=", hex.EncodeToString(nonce[:]))
 	}
 }
 

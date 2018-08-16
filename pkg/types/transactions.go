@@ -329,7 +329,6 @@ func (cctc CoinCreationTransactionController) InputSigHash(t types.Transaction, 
 	}
 
 	enc.EncodeAll(
-		len(cctx.CoinOutputs),
 		cctx.CoinOutputs,
 		cctx.MinerFees,
 		cctx.ArbitraryData,
@@ -370,45 +369,12 @@ type (
 		// of the coin creation.
 		ArbitraryData []byte `json:"arbitrarydata,omitempty"`
 	}
-	// TransactionNonce is a nonce
-	// used to ensure the uniqueness of an otherwise potentially non-unique Tx
-	TransactionNonce [TransactionNonceLength]byte
 	// CoinCreationTransactionExtension defines the CoinCreationTx Extension Data
 	CoinCreationTransactionExtension struct {
 		Nonce           TransactionNonce
 		MintFulfillment types.UnlockFulfillmentProxy
 	}
 )
-
-// TransactionNonceLength defines the length of a TransactionNonce
-const TransactionNonceLength = 8
-
-// RandomTransactionNonce creates a random Transaction nonce
-func RandomTransactionNonce() (nonce TransactionNonce) {
-	rand.Read(nonce[:])
-	return
-}
-
-// MarshalJSON implements JSON.Marshaller.MarshalJSON
-// piggy-backing on the base64-encoding used for byte slices in the std JSON lib
-func (tn *TransactionNonce) MarshalJSON() ([]byte, error) {
-	return json.Marshal(tn[:])
-}
-
-// UnmarshalJSON implements JSON.Unmarshaller.UnmarshalJSON
-// piggy-backing on the base64-decoding used for byte slices in the std JSON lib
-func (tn *TransactionNonce) UnmarshalJSON(in []byte) error {
-	var out []byte
-	err := json.Unmarshal(in, &out)
-	if err != nil {
-		return err
-	}
-	if len(out) != TransactionNonceLength {
-		return errors.New("invalid tx nonce length")
-	}
-	copy(tn[:], out[:])
-	return nil
-}
 
 // CoinCreationTransactionFromTransaction creates a CoinCreationTransaction,
 // using a regular in-memory tfchain transaction.
@@ -487,6 +453,40 @@ func (cctx *CoinCreationTransaction) Transaction() types.Transaction {
 			MintFulfillment: cctx.MintFulfillment,
 		},
 	}
+}
+
+// TransactionNonce is a nonce
+// used to ensure the uniqueness of an otherwise potentially non-unique Tx
+type TransactionNonce [TransactionNonceLength]byte
+
+// TransactionNonceLength defines the length of a TransactionNonce
+const TransactionNonceLength = 8
+
+// RandomTransactionNonce creates a random Transaction nonce
+func RandomTransactionNonce() (nonce TransactionNonce) {
+	rand.Read(nonce[:])
+	return
+}
+
+// MarshalJSON implements JSON.Marshaller.MarshalJSON
+// encodes the Nonce as a base64-encoded string
+func (tn TransactionNonce) MarshalJSON() ([]byte, error) {
+	return json.Marshal(tn[:])
+}
+
+// UnmarshalJSON implements JSON.Unmarshaller.UnmarshalJSON
+// piggy-backing on the base64-decoding used for byte slices in the std JSON lib
+func (tn *TransactionNonce) UnmarshalJSON(in []byte) error {
+	var out []byte
+	err := json.Unmarshal(in, &out)
+	if err != nil {
+		return err
+	}
+	if len(out) != TransactionNonceLength {
+		return errors.New("invalid tx nonce length")
+	}
+	copy(tn[:], out[:])
+	return nil
 }
 
 func unlockHashFromHex(hstr string) (uh types.UnlockHash) {
