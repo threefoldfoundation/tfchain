@@ -162,7 +162,7 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 	var payouts = getMinerFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
 	if (payouts != null) {
 		// In a loop, add a new table for each miner payout.
-		appendStatTableTitle(infoBody, 'Miner Fee Payouts');
+		appendStatTableTitle(infoBody, 'Transaction Fee Payouts');
 		for (var i = 0; i < payouts.length; i++) {
 			var table = createStatsTable();
 			var doms = appendStat(table, 'ID', '');
@@ -316,7 +316,7 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 	var payouts = getMinerFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
 	if (payouts != null) {
 		// In a loop, add a new table for each miner payout.
-		appendStatTableTitle(infoBody, 'Miner Fee Payouts');
+		appendStatTableTitle(infoBody, 'Transaction Fee Payouts');
 		for (var i = 0; i < payouts.length; i++) {
 			var table = createStatsTable();
 			var doms = appendStat(table, 'ID', '');
@@ -410,7 +410,7 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 	var payouts = getMinerFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
 	if (payouts != null) {
 		// In a loop, add a new table for each miner payout.
-		appendStatTableTitle(infoBody, 'Miner Fee Payouts');
+		appendStatTableTitle(infoBody, 'Transaction Fee Payouts');
 		for (var i = 0; i < payouts.length; i++) {
 			var table = createStatsTable();
 			var doms = appendStat(table, 'ID', '');
