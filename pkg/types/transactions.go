@@ -52,13 +52,11 @@ func RegisterTransactionTypesForStandardNetwork() {
 
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintCondition: types.NewCondition(types.NewTimeLockCondition(
-			1535961600, // Monday, September 3, 2018 10:00:00 AM GMT+02:00
-			types.NewMultiSignatureCondition(types.UnlockHashSlice{
-				unlockHashFromHex("018c71af31670ddcc03e1de9a6951ab7b948105edb185c5fa1286a9705aec3491ed30e8a8f4525"),
-				unlockHashFromHex("01334cf68f312026ff9df84fc023558db8624bedd717adcc9edc6900488cf6df54ac8e3d1c89a8"),
-				unlockHashFromHex("0149a5496fea27315b7db6251e5dfda23bc9d4bf677c5a5c2d70f1382c44357197d8453d9dfa32"),
-			}, 2))),
+		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
+			unlockHashFromHex("018c71af31670ddcc03e1de9a6951ab7b948105edb185c5fa1286a9705aec3491ed30e8a8f4525"),
+			unlockHashFromHex("01334cf68f312026ff9df84fc023558db8624bedd717adcc9edc6900488cf6df54ac8e3d1c89a8"),
+			unlockHashFromHex("0149a5496fea27315b7db6251e5dfda23bc9d4bf677c5a5c2d70f1382c44357197d8453d9dfa32"),
+		}, 2)),
 	})
 }
 
