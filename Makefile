@@ -28,8 +28,8 @@ install:
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
 
 install-std:
-	go build -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
-	go build -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
+	go build -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
+	go build -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
 
 test:
 	go test -race -v -tags='debug testing' -timeout=60s $(testpkgs)
