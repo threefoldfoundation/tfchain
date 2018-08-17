@@ -3,7 +3,7 @@ set -e
 
 package="github.com/threefoldfoundation/tfchain"
 
-version=$(git describe | cut -d '-' -f 1)
+version=$(git describe --abbrev=0)
 commit="$(git rev-parse --short HEAD)"
 if [ "$commit" == "$(git rev-list -n 1 $version | cut -c1-7)" ]
 then

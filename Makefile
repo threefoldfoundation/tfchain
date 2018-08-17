@@ -5,7 +5,7 @@ clientpkgs = ./cmd/tfchainc
 testpkgs = ./pkg/types
 pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
 
-version = $(shell git describe | cut -d '-' -f 1)
+version = $(shell git describe --abbrev=0)
 commit = $(shell git rev-parse --short HEAD)
 ifeq ($(commit), $(shell git rev-list -n 1 $(version) | cut -c1-7))
 fullversion = $(version)
@@ -13,7 +13,7 @@ else
 fullversion = $(version)-$(commit)
 endif
 
-dockerVersion = $(shell git describe | cut -d '-' -f 1| cut -d 'v' -f 2)
+dockerVersion = $(shell git describe --abbrev=0 | cut -d 'v' -f 2)
 dockerVersionEdge = edge
 
 configpkg = github.com/threefoldfoundation/tfchain/pkg/config
