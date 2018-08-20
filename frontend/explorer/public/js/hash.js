@@ -1209,46 +1209,98 @@ function populateHashPage(hash, explorerHash) {
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendExplorerBlock(infoBody, explorerHash.block);
 	} else if (hashType === "transactionid") {
-		appendNavigationMenu();
 		appendNavigationMenuTransaction(explorerHash.transaction);
 		appendHeading(infoBody, 'Hash Type: Transaction ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
 		appendRawTransaction(infoBody, explorerHash.transaction.rawtransaction);
 	} else if (hashType === "unlockhash") {
+		appendNavigationMenuUnlockHash(hash);
 		appendHeading(infoBody, 'Hash Type: Unlock Hash');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendUnlockHashTables(infoBody, hash, explorerHash);
 	} else if (hashType === "coinoutputid") {
+		appendNavigationMenuCoinOutput(explorerHash, hash);
 		appendHeading(infoBody, 'Hash Type: Coin Output ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendCoinOutputTables(infoBody, hash, explorerHash);
 	} else if (hashType === "blockstakeoutputid") {
+		appendNavigationMenuBlockstakeOutput(explorerHash.transactions, hash);
 		appendHeading(infoBody, 'Hash Type: BlockStake Output ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendBlockStakeOutputTables(infoBody, hash, explorerHash);
 	}
 }
 
+// appendNavigationMenuTranscaction adds the transaction link to the top navigation menu
 function appendNavigationMenuTransaction(explorerTransaction) {
-	/* console.log(explorerTransaction);
+	appendNavigationMenuBlock(explorerTransaction);
 	var navigation = document.getElementById('nav-links');
-	var link = document.createElement('a');
-	link.id = 'block-transaction-link';
-
-	var text = document.createTextNode(+ ' > ' + 'Transaction ' + explorerTransaction.id);
-	link.href = 'block.html?height='+explorerTransaction.height;
-	link.appendChild(text);
-	navigation.appendChild(link); */
-	var navigation = document.getElementById('nav-links');
-	var blockSpan = document.createElement('span');
-	navigation.appendChild(blockSpan);
-	linkHeight(blockSpan, explorerTransaction.height, 'Block');
-	navigation.appendChild(document.createTextNode(' > '));
 	var transactionSpan = document.createElement('span');
+	navigation.appendChild(document.createTextNode(' > '));
 	navigation.appendChild(transactionSpan);
 	linkHash(transactionSpan, explorerTransaction.id, 'Transaction');
-	
+}
+
+// appendNavigationMenuCoinOuput adds the coin output link to the top navigation menu
+function appendNavigationMenuCoinOutput(explorerHash, hash) {
+	//Coin Ouput
+	if (explorerHash.transactions != null) {
+		for (var i = 0; i < explorerHash.transactions.length; i++) {
+			for (var j = 0; j < explorerHash.transactions[i].coinoutputids.length; j++) {
+				if (explorerHash.transactions[i].coinoutputids[j] == hash) {
+					appendNavigationMenuTransaction(explorerHash.transactions[i]);
+					var navigation = document.getElementById('nav-links');
+					var outputSpan = document.createElement('span');
+					navigation.appendChild(document.createTextNode(' > '));
+					navigation.appendChild(outputSpan);
+					linkHash(outputSpan, explorerHash.transactions[i].coinoutputids[j], 'Coin Output');
+				}
+			} 
+		}
+	//Coin Ouput - Block Creator Reward
+	} else if (explorerHash.blocks != null) {
+		for (var i = 0; i < explorerHash.blocks.length; i++) {
+			for (var j = 0; j < explorerHash.blocks[i].minerpayoutids.length; j++) {
+				if (explorerHash.blocks[i].minerpayoutids[j] == hash) {
+					appendNavigationMenuBlock(explorerHash.blocks[i]);
+					var navigation = document.getElementById('nav-links');
+					var outputSpan = document.createElement('span');
+					navigation.appendChild(document.createTextNode(' > '));
+					navigation.appendChild(outputSpan);
+					linkHash(outputSpan, explorerHash.blocks[i].minerpayoutids[j], 'Payout ID');
+				}
+			}
+		}
+	}
+}
+
+// appendNavigationMenuBlockstakeOuput adds the blockstake output link to the top navigation menu
+function appendNavigationMenuBlockstakeOutput(explorerTransactions, hash) {
+	for (var i = 0; i < explorerTransactions.length; i++) {
+		for (var j = 0; j < explorerTransactions[i].blockstakeoutputids.length; j++) {
+			if (explorerTransactions[i].blockstakeoutputids[j] == hash) {
+				appendNavigationMenuTransaction(explorerTransactions[i]);
+				var navigation = document.getElementById('nav-links');
+				var outputSpan = document.createElement('span');
+				navigation.appendChild(document.createTextNode(' > '));
+				navigation.appendChild(outputSpan);
+				linkHash(outputSpan, explorerTransactions[i].blockstakeoutputids[j], 'Blockstake Output');
+			}
+		}
+	}
+}
+
+// appendNavigationMenuUnlockHash adds the unlock hash link to the top navigation menu
+function appendNavigationMenuUnlockHash(hash) {
+	var navigation = document.getElementById('nav-links');
+	var unlockSpan = document.createElement('span');
+	navigation.appendChild(unlockSpan);
+	switch(hash.substring(0,2)) {
+		case "01": linkHash(unlockSpan, hash, 'Wallet'); break;
+		case "02": linkHash(unlockSpan, hash, 'Multisig Wallet'); break;
+		case "03": linkHash(unlockSpan, hash, 'Atomic Swap Contract'); break;
+	}
 }
 
 // fetchHashInfo queries the explorer api about in the input hash, and then

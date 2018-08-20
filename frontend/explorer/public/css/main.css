@@ -132,3 +132,7 @@ span.search-form-td {
 .grey-text {
 	color: grey;
 }
+
+#nav-links {
+	font-size: 0.8rem;
+}

@@ -261,35 +261,14 @@ function appendRawBlock(element, explorerBlock) {
 	element.appendChild(container);
 }
 
-function appendNavigationMenu() {
-	var navigationDiv = document.getElementById('page-navigation');
-	var navigation = document.createElement('p');
-	navigation.textContent = "You are here: ";
-	var linkHome = document.createElement('a');
-	linkHome.href = 'index.html';
-	var textHome = document.createTextNode("Home");
-	var space = document.createElement('p');
-	var arrow = document.createTextNode(" > ");
-	space.appendChild(arrow);
-	linkHome.appendChild(textHome);
-	navigation.appendChild(linkHome);
-	navigation.appendChild(space);
-	navigation.id = "nav-links";
-	navigationDiv.appendChild(navigation);
-}
-
 function appendNavigationMenuBlock(explorerBlock) {
 	var navigation = document.getElementById('nav-links');
-	var link = document.createElement('a');
-	link.id = 'block-link';
-	var text = document.createTextNode('Block '+ explorerBlock.height);
-	link.href = 'block.html?height='+explorerBlock.height;
-	link.appendChild(text);
-	navigation.appendChild(link);
+	var blockSpan = document.createElement('span');
+	navigation.appendChild(blockSpan);
+	linkHeight(blockSpan, explorerBlock.height, 'Block');
 }
 
 function appendExplorerBlock(element, explorerBlock) {
-	appendNavigationMenu();
 	appendNavigationMenuBlock(explorerBlock);
 	appendBlockStatistics(element, explorerBlock);
 	appendBlockMinerPayouts(element, explorerBlock);
