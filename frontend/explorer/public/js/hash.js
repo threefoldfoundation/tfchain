@@ -1378,19 +1378,23 @@ function populateHashPage(hash, explorerHash) {
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendExplorerBlock(infoBody, explorerHash.block);
 	} else if (hashType === "transactionid") {
+		appendNavigationMenuTransaction(explorerHash.transaction);
 		appendHeading(infoBody, 'Hash Type: Transaction ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
 		appendRawTransaction(infoBody, explorerHash.transaction.rawtransaction);
 	} else if (hashType === "unlockhash") {
+		appendNavigationMenuUnlockHash(hash);
 		appendHeading(infoBody, 'Hash Type: Unlock Hash');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendUnlockHashTables(infoBody, hash, explorerHash);
 	} else if (hashType === "coinoutputid") {
+		appendNavigationMenuCoinOutput(explorerHash, hash);
 		appendHeading(infoBody, 'Hash Type: Coin Output ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendCoinOutputTables(infoBody, hash, explorerHash);
 	} else if (hashType === "blockstakeoutputid") {
+		appendNavigationMenuBlockstakeOutput(explorerHash.transactions, hash);
 		appendHeading(infoBody, 'Hash Type: BlockStake Output ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendBlockStakeOutputTables(infoBody, hash, explorerHash);
@@ -1420,6 +1424,84 @@ function getMinerFeesAsFeePayouts(txID, blockID) {
 		feePayouts[i].id = explorerBlock.minerpayoutids[minerFeeStart+i];
 	}
 	return feePayouts;
+}
+
+// appendNavigationMenuTranscaction adds the transaction link to the top navigation menu
+function appendNavigationMenuTransaction(explorerTransaction) {
+	appendNavigationMenuBlock(explorerTransaction);
+	var navigation = document.getElementById('nav-links');
+	var transactionSpan = document.createElement('span');
+	transactionSpan.id = 'nav-links-transaction';
+	navigation.appendChild(transactionSpan);
+	linkHash(transactionSpan, explorerTransaction.id, 'Transaction');
+}
+
+// appendNavigationMenuCoinOuput adds the coin output link to the top navigation menu
+function appendNavigationMenuCoinOutput(explorerHash, hash) {
+	//Coin Ouput
+	if (explorerHash.transactions != null) {
+		for (var i = 0; i < explorerHash.transactions.length; i++) {
+			for (var j = 0; j < explorerHash.transactions[i].coinoutputids.length; j++) {
+				if (explorerHash.transactions[i].coinoutputids[j] == hash) {
+					appendNavigationMenuTransaction(explorerHash.transactions[i]);
+					var navigation = document.getElementById('nav-links');
+					var outputSpan = document.createElement('span');
+					outputSpan.id = 'nav-links-output';
+					navigation.appendChild(outputSpan);
+					linkHash(outputSpan, explorerHash.transactions[i].coinoutputids[j], 'Coin Output');
+					return;
+				}
+			} 
+		}
+	}
+	if (explorerHash.blocks == null) {
+		return;
+	}
+	//Coin Ouput - Block Creator Reward
+	for (var i = 0; i < explorerHash.blocks.length; i++) {
+		for (var j = 0; j < explorerHash.blocks[i].minerpayoutids.length; j++) {
+			if (explorerHash.blocks[i].minerpayoutids[j] == hash) {
+				appendNavigationMenuBlock(explorerHash.blocks[i]);
+				var navigation = document.getElementById('nav-links');
+				var outputSpan = document.createElement('span');
+				outputSpan.id = 'nav-links-output';
+				navigation.appendChild(outputSpan);
+				linkHash(outputSpan, explorerHash.blocks[i].minerpayoutids[j], 'Coin Output');
+				return;
+			}
+		}
+	}
+}
+
+// appendNavigationMenuBlockstakeOuput adds the blockstake output link to the top navigation menu
+function appendNavigationMenuBlockstakeOutput(explorerTransactions, hash) {
+	for (var i = 0; i < explorerTransactions.length; i++) {
+		for (var j = 0; j < explorerTransactions[i].blockstakeoutputids.length; j++) {
+			if (explorerTransactions[i].blockstakeoutputids[j] == hash) {
+				appendNavigationMenuTransaction(explorerTransactions[i]);
+				var navigation = document.getElementById('nav-links');
+				var outputSpan = document.createElement('span');
+				outputSpan.id = 'nav-links-output';
+				navigation.appendChild(outputSpan);
+				linkHash(outputSpan, explorerTransactions[i].blockstakeoutputids[j], 'Blockstake Output');
+				return;
+			}
+		}
+	}
+}
+
+// appendNavigationMenuUnlockHash adds the unlock hash link to the top navigation menu
+function appendNavigationMenuUnlockHash(hash) {
+	var navigation = document.getElementById('nav-links');
+	var unlockSpan = document.createElement('span');
+	unlockSpan.id = 'nav-links-unlock';
+	navigation.appendChild(unlockSpan);
+	switch(hash.substring(0,2)) {
+		case "00": linkHash(unlockSpan, hash, 'Free-for-all Wallet');
+		case "01": linkHash(unlockSpan, hash, 'Wallet'); break;
+		case "02": linkHash(unlockSpan, hash, 'Atomic Swap Contract'); break;
+		case "03": linkHash(unlockSpan, hash, 'Multisig Wallet'); break;
+	}
 }
 
 // fetchHashInfo queries the explorer api about in the input hash, and then

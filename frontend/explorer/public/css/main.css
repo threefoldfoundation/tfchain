@@ -128,3 +128,30 @@ span.search-form-td {
 .red-text {
 	color: red;
 }
+
+.grey-text {
+	color: grey;
+}
+
+#nav-links {
+	font-size: 0.8rem;
+}
+
+#nav-links-transaction {
+	display: block;
+	margin-left: 9rem; 
+}
+
+#nav-links-output {
+	display: block;
+	margin-left: 9rem;
+}
+
+#nav-links span::after {
+	color: black;
+	content: ' > ';
+}
+
+#nav-links > *:last-child::after {
+	content : '';
+}
