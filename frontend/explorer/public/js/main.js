@@ -33,9 +33,13 @@ function readableDifficulty(hashes) {
 
 // linkHash takes a hash and returns a link that has the hash as text and
 // leads to the hashes hash page.
-function linkHash(domParent, hash) {
+function linkHash(domParent, hash, label) {
 	var a = document.createElement('a');
-	var text = document.createTextNode(hash);
+	var str = hash;
+	if (label) {
+		str = label + ' ' + str;
+	}
+	var text = document.createTextNode(str);
 	a.appendChild(text);
 	a.href = 'hash.html?hash='+hash;
 	domParent.appendChild(a);
@@ -43,9 +47,13 @@ function linkHash(domParent, hash) {
 
 // linkHeight takes a height and returns a link that has the height as text
 // (with commas) and leads to the block page for the block at the input height.
-function linkHeight(domParent, height) {
+function linkHeight(domParent, height, label) {
 	var a = document.createElement('a');
-	var text = document.createTextNode(addCommasToNumber(height));
+	var str = addCommasToNumber(height);
+	if (label) {
+		str = label + ' ' + str;
+	}
+	var text = document.createTextNode(str);
 	a.appendChild(text);
 	a.href = 'block.html?height='+height;
 	domParent.appendChild(a);

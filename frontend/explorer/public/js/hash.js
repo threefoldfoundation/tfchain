@@ -169,7 +169,7 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 			linkHash(doms[2], payouts[i].id);
 			doms = appendStat(table, 'Payout Address', '');
 			linkHash(doms[2], payouts[i].unlockhash);
-			appendStat(table, 'Value', readableCoins(payouts[i].value));
+			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
 			infoBody.appendChild(table);
 		}
 	}
@@ -323,7 +323,7 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 			linkHash(doms[2], payouts[i].id);
 			doms = appendStat(table, 'Payout Address', '');
 			linkHash(doms[2], payouts[i].unlockhash);
-			appendStat(table, 'Value', readableCoins(payouts[i].value));
+			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
 			infoBody.appendChild(table);
 		}
 	}
@@ -417,7 +417,7 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 			linkHash(doms[2], payouts[i].id);
 			doms = appendStat(table, 'Payout Address', '');
 			linkHash(doms[2], payouts[i].unlockhash);
-			appendStat(table, 'Value', readableCoins(payouts[i].value));
+			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
 			infoBody.appendChild(table);
 		}
 	}
@@ -1401,29 +1401,36 @@ function populateHashPage(hash, explorerHash) {
 	}
 }
 
+// getMinerFeesAsFeePayouts assumes that all miner fees are merged into a single block reward,
+// the second one.
 function getMinerFeesAsFeePayouts(txID, blockID) {
 	var explorerBlock = fetchHashInfo(blockID).block;
-	var minerFeeStart = 1;
-	var minerFeeEnd = 0;
-	for (var i = 0; i < explorerBlock.transactions.length; i++) {
-		if (explorerBlock.transactions[i].rawtransaction.data.minerfees == null) {
-			continue;
-		}
-		var txMinerFeeLength = explorerBlock.transactions[i].rawtransaction.data.minerfees.length;
-		if (explorerBlock.transactions[i].id === txID) {
-			minerFeeEnd = minerFeeStart + txMinerFeeLength;
-			break;
-		}
-		minerFeeStart += txMinerFeeLength;
-	}
-	if (minerFeeEnd === 0) {
+	if (explorerBlock.rawblock.minerpayouts == null || explorerBlock.rawblock.minerpayouts.length < 2) {
 		return null;
 	}
-	var feePayouts = explorerBlock.rawblock.minerpayouts.slice(minerFeeStart, minerFeeEnd);
-	for (var i = 0; i < feePayouts.length; i++) {
-		feePayouts[i].id = explorerBlock.minerpayoutids[minerFeeStart+i];
+	if (explorerBlock.transactions == null) {
+		return null;
 	}
-	return feePayouts;
+	var feePayout = explorerBlock.rawblock.minerpayouts[1];
+	var feePayoutID = explorerBlock.minerpayoutids[1];
+	for (var i = 0; i < explorerBlock.transactions.length; i++) {
+		var tx = explorerBlock.transactions[i];
+		if (tx.id !== txID || tx.rawtransaction.data.minerfees == null) {
+			continue;
+		}
+		var minerFees = tx.rawtransaction.data.minerfees;
+		var feePayouts = [];
+		for (var u = 0; u < minerFees.length; u++) {
+			feePayouts.push({
+				id: feePayoutID,
+				unlockhash: feePayout.unlockhash,
+				value: feePayout.value,
+				paidvalue: minerFees[u],
+			});
+		}
+		return feePayouts;
+	}
+	return null;
 }
 
 // appendNavigationMenuTranscaction adds the transaction link to the top navigation menu
@@ -1497,7 +1504,7 @@ function appendNavigationMenuUnlockHash(hash) {
 	unlockSpan.id = 'nav-links-unlock';
 	navigation.appendChild(unlockSpan);
 	switch(hash.substring(0,2)) {
-		case "00": linkHash(unlockSpan, hash, 'Free-for-all Wallet');
+		case "00": linkHash(unlockSpan, hash, 'Free-for-all Wallet'); break;
 		case "01": linkHash(unlockSpan, hash, 'Wallet'); break;
 		case "02": linkHash(unlockSpan, hash, 'Atomic Swap Contract'); break;
 		case "03": linkHash(unlockSpan, hash, 'Multisig Wallet'); break;
