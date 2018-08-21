@@ -599,12 +599,13 @@ function addV1T1Output(_ctx, table, explorerTransaction, i, type) {
 function addV1T2Output(_ctx, table, explorerTransaction, i, type) {
 	var outputspecifier = getOutputSpecifier(type);
 	var outputidspecifier = getOutputIDSpecifier(type);
+	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
 
 	var doms = appendStat(table, 'ID', '');
 
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
-	// doms = appendStat(table, 'Address', '');
-	// linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.unlockhash);
+	doms = appendStat(table, 'Contract Address', '');
+	linkHash(doms[2], explorerTransaction[outputunlockhashesspecifier][i]);
 	doms = appendStat(table, 'Sender', '');
 	linkHash(doms[2],explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.sender);
 	doms = appendStat(table, 'Receiver', '');
@@ -1069,7 +1070,7 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 	switch(hash.substring(0,2)) {
 		case "00": hashTitle = "Nil Unlock Hash"; break;
 		case "01": hashTitle = "Wallet Addresss"; break;
-		case "02": hashTitle = "Legacy Atomic Swap Contract"; break;
+		case "02": hashTitle = "Atomic Swap Contract"; break;
 		case "03":
 			hashTitle = "Multisig Wallet Address";
 			addressLabel = "Multisig Address";
