@@ -264,6 +264,7 @@ function appendRawBlock(element, explorerBlock) {
 function appendNavigationMenuBlock(explorerBlock) {
 	var navigation = document.getElementById('nav-links');
 	var blockSpan = document.createElement('span');
+	blockSpan.id = 'nav-links-block';
 	navigation.appendChild(blockSpan);
 	linkHeight(blockSpan, explorerBlock.height, 'Block');
 }
@@ -307,4 +308,5 @@ function buildPageTitle() {
 			break;
 	}
 }
+
 buildPageTitle();

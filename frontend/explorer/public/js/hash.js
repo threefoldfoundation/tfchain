@@ -1237,7 +1237,7 @@ function appendNavigationMenuTransaction(explorerTransaction) {
 	appendNavigationMenuBlock(explorerTransaction);
 	var navigation = document.getElementById('nav-links');
 	var transactionSpan = document.createElement('span');
-	navigation.appendChild(document.createTextNode(' > '));
+	transactionSpan.id = 'nav-links-transaction';
 	navigation.appendChild(transactionSpan);
 	linkHash(transactionSpan, explorerTransaction.id, 'Transaction');
 }
@@ -1252,7 +1252,7 @@ function appendNavigationMenuCoinOutput(explorerHash, hash) {
 					appendNavigationMenuTransaction(explorerHash.transactions[i]);
 					var navigation = document.getElementById('nav-links');
 					var outputSpan = document.createElement('span');
-					navigation.appendChild(document.createTextNode(' > '));
+					outputSpan.id = 'nav-links-output';
 					navigation.appendChild(outputSpan);
 					linkHash(outputSpan, explorerHash.transactions[i].coinoutputids[j], 'Coin Output');
 					return;
@@ -1270,7 +1270,7 @@ function appendNavigationMenuCoinOutput(explorerHash, hash) {
 				appendNavigationMenuBlock(explorerHash.blocks[i]);
 				var navigation = document.getElementById('nav-links');
 				var outputSpan = document.createElement('span');
-				navigation.appendChild(document.createTextNode(' > '));
+				outputSpan.id = 'nav-links-output';
 				navigation.appendChild(outputSpan);
 				linkHash(outputSpan, explorerHash.blocks[i].minerpayoutids[j], 'Coin Output');
 				return;
@@ -1287,7 +1287,7 @@ function appendNavigationMenuBlockstakeOutput(explorerTransactions, hash) {
 				appendNavigationMenuTransaction(explorerTransactions[i]);
 				var navigation = document.getElementById('nav-links');
 				var outputSpan = document.createElement('span');
-				navigation.appendChild(document.createTextNode(' > '));
+				outputSpan.id = 'nav-links-output';
 				navigation.appendChild(outputSpan);
 				linkHash(outputSpan, explorerTransactions[i].blockstakeoutputids[j], 'Blockstake Output');
 				return;
@@ -1300,6 +1300,7 @@ function appendNavigationMenuBlockstakeOutput(explorerTransactions, hash) {
 function appendNavigationMenuUnlockHash(hash) {
 	var navigation = document.getElementById('nav-links');
 	var unlockSpan = document.createElement('span');
+	unlockSpan.id = 'nav-links-unlock';
 	navigation.appendChild(unlockSpan);
 	switch(hash.substring(0,2)) {
 		case "00": linkHash(unlockSpan, hash, 'Free-for-all Wallet');
