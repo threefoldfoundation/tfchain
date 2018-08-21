@@ -1255,21 +1255,25 @@ function appendNavigationMenuCoinOutput(explorerHash, hash) {
 					navigation.appendChild(document.createTextNode(' > '));
 					navigation.appendChild(outputSpan);
 					linkHash(outputSpan, explorerHash.transactions[i].coinoutputids[j], 'Coin Output');
+					return;
 				}
 			} 
 		}
+	}
+	if (explorerHash.blocks == null) {
+		return;
+	}
 	//Coin Ouput - Block Creator Reward
-	} else if (explorerHash.blocks != null) {
-		for (var i = 0; i < explorerHash.blocks.length; i++) {
-			for (var j = 0; j < explorerHash.blocks[i].minerpayoutids.length; j++) {
-				if (explorerHash.blocks[i].minerpayoutids[j] == hash) {
-					appendNavigationMenuBlock(explorerHash.blocks[i]);
-					var navigation = document.getElementById('nav-links');
-					var outputSpan = document.createElement('span');
-					navigation.appendChild(document.createTextNode(' > '));
-					navigation.appendChild(outputSpan);
-					linkHash(outputSpan, explorerHash.blocks[i].minerpayoutids[j], 'Payout ID');
-				}
+	for (var i = 0; i < explorerHash.blocks.length; i++) {
+		for (var j = 0; j < explorerHash.blocks[i].minerpayoutids.length; j++) {
+			if (explorerHash.blocks[i].minerpayoutids[j] == hash) {
+				appendNavigationMenuBlock(explorerHash.blocks[i]);
+				var navigation = document.getElementById('nav-links');
+				var outputSpan = document.createElement('span');
+				navigation.appendChild(document.createTextNode(' > '));
+				navigation.appendChild(outputSpan);
+				linkHash(outputSpan, explorerHash.blocks[i].minerpayoutids[j], 'Coin Output');
+				return;
 			}
 		}
 	}
@@ -1286,6 +1290,7 @@ function appendNavigationMenuBlockstakeOutput(explorerTransactions, hash) {
 				navigation.appendChild(document.createTextNode(' > '));
 				navigation.appendChild(outputSpan);
 				linkHash(outputSpan, explorerTransactions[i].blockstakeoutputids[j], 'Blockstake Output');
+				return;
 			}
 		}
 	}
@@ -1297,9 +1302,10 @@ function appendNavigationMenuUnlockHash(hash) {
 	var unlockSpan = document.createElement('span');
 	navigation.appendChild(unlockSpan);
 	switch(hash.substring(0,2)) {
+		case "00": linkHash(unlockSpan, hash, 'Free-for-all Wallet');
 		case "01": linkHash(unlockSpan, hash, 'Wallet'); break;
-		case "02": linkHash(unlockSpan, hash, 'Multisig Wallet'); break;
-		case "03": linkHash(unlockSpan, hash, 'Atomic Swap Contract'); break;
+		case "02": linkHash(unlockSpan, hash, 'Atomic Swap Contract'); break;
+		case "03": linkHash(unlockSpan, hash, 'Multisig Wallet'); break;
 	}
 }
 
