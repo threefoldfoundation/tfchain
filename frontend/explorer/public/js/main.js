@@ -59,6 +59,7 @@ function linkHeight(domParent, height, label) {
 	domParent.appendChild(a);
 }
 
+
 // appendHeading adds a heading to the hash page.
 function appendHeading(domParent, text) {
 	var heading = document.createElement('h3');
@@ -119,6 +120,89 @@ function appendUnlabeledStat(table, text) {
 	return [tr, textCell];
 }
 
+function appendNavigationElements(element, explorerBlock) {
+	//create all needed elements
+	var buttonContainer = document.createElement('div');
+	var searchButtonForm = document.createElement('form');
+	var previousButton = document.createElement('button');
+	var nextButton = document.createElement('button');
+	var searchButton = document.createElement('button');
+	var searchField = document.createElement('INPUT'); 
+
+	//add ID's to elements
+	buttonContainer.id = 'navigation-buttons-container';
+	searchButtonForm.id = 'search-button-form';
+	previousButton.id = 'button-previous';
+	nextButton.id = 'button-next';
+	searchButton.id = 'search-button';
+	searchField.id = 'search-field-input';
+
+	//add text to the buttons
+	previousButton.textContent = 'Previous Block';
+	nextButton.textContent = 'Next Block';
+	searchButton.textContent= 'Go To Block';
+
+	//disables nextButton when at last block
+	if (explorerBlock.height == getBlockchainContext().height) {
+		nextButton.classList.add('button-disabled');
+		nextButton.disabled = true;
+	}
+
+	//disables previousButton when at first block
+	if (explorerBlock.height == 0) {
+		previousButton.classList.add('button-disabled');
+		previousButton.disabled = true;
+	}
+
+	//set attributes to searchField
+	searchField.required = true;
+	searchField.setAttribute('type', 'number');
+	searchField.setAttribute('min', '0');
+	searchField.setAttribute('max', getBlockchainContext().height);
+	searchField.setAttribute('name', 'height');
+	searchField.setAttribute('placeholder', explorerBlock.height);
+
+	//set attributes to searchButton
+	searchButton.setAttribute('value', 'go');
+	searchButton.setAttribute('type', 'submit');
+
+	//set attributes to searchButtonForm
+	searchButtonForm.setAttribute('method', 'get');
+	searchButtonForm.setAttribute('action', 'block.html');
+
+	//add elements to searchButtonForm
+	searchButtonForm.appendChild(searchButton);
+	searchButtonForm.appendChild(searchField);
+
+	//add elements to buttonContainer
+	buttonContainer.appendChild(previousButton);
+	buttonContainer.appendChild(nextButton);
+	buttonContainer.appendChild(searchButtonForm);
+
+	//add container to element
+	element.appendChild(buttonContainer);
+
+	//add click-event to previousButton
+	previousButton.onclick = (e) => {
+		goToPreviousBlock(explorerBlock.height);
+	}
+
+	//add click-event to nextButton
+	nextButton.onclick = (e) => {
+		goToNextBlock(explorerBlock.height);
+	}
+}
+
+function goToNextBlock(height) {
+	var nextBlockHeight = ++height;
+	window.location.href = ('block.html?height=' + nextBlockHeight);
+}
+
+function goToPreviousBlock(height) {
+	var previousBlockHeight = --height;
+	window.location.href = ('block.html?height=' + previousBlockHeight);
+}
+
 // appendBlockStatistics creates a block statistics table and appends it to the
 // input dom parent.
 function appendBlockStatistics(domParent, explorerBlock) {
@@ -154,7 +238,7 @@ function getBlockchainContext() {
 	request.open('GET', reqString, false);
 	request.send();
 	if (request.status != 200) {
-		return {};
+		return {height : height};
 	}
 	var explorerBlock = JSON.parse(request.responseText).block;
 	return {
@@ -263,6 +347,7 @@ function appendRawBlock(element, explorerBlock) {
 
 function appendExplorerBlock(element, explorerBlock) {
 	appendNavigationMenuBlock(explorerBlock);
+	appendNavigationElements(element, explorerBlock);
 	appendBlockStatistics(element, explorerBlock);
 	appendBlockMinerPayouts(element, explorerBlock);
 	appendBlockTransactions(element, explorerBlock);
