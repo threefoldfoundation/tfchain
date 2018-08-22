@@ -180,3 +180,7 @@ span.search-form-td {
 #search-field-input {
 	width: 150px;
 }
+
+.button-disabled {
+	opacity: 0.3;
+}

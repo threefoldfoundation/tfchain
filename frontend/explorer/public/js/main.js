@@ -120,37 +120,6 @@ function appendUnlabeledStat(table, text) {
 	return [tr, textCell];
 }
 
-
-// appendNavigationButtons appends two buttons that navigate between the previous and the next block.
-/* function appendNavigationButtons(element, explorerBlock) {
-	var buttonContainer = document.createElement('div');
-	buttonContainer.classList.add('navigation-buttons');
-
-	var previousButton = document.createElement('button');
-	previousButton.id = 'previousbutton';
-	previousButton.textContent = 'Previous Block';
-	if (explorerBlock.height == 0) {
-		previousButton.disabled = true;
-	}
-
-	var nextButton = document.createElement('button');
-	nextButton.id = 'nextbutton';
-	nextButton.textContent = 'Next Block';
-
-	buttonContainer.appendChild(nextButton);
-	buttonContainer.appendChild(previousButton);
-	element.appendChild(buttonContainer);
-
-	previousButton.onclick = (e) => {
-		goToPreviousBlock(explorerBlock.height);
-	}
-	
-	nextButton.onclick = (e) => {
-		goToNextBlock(explorerBlock.height);
-	}
-
-} */
-
 function appendNavigationElements(element, explorerBlock) {
 	//create all needed elements
 	var buttonContainer = document.createElement('div');
@@ -169,13 +138,27 @@ function appendNavigationElements(element, explorerBlock) {
 	searchField.id = 'search-field-input';
 
 	//add text to the buttons
-	previousButton.textContent = 'Previous Button';
-	nextButton.textContent = 'Next Button';
+	previousButton.textContent = 'Previous Block';
+	nextButton.textContent = 'Next Block';
 	searchButton.textContent= 'Go To Block';
+
+	//disables nextButton when at last block
+	if (explorerBlock.height == getBlockchainContext().height) {
+		nextButton.classList.add('button-disabled');
+		nextButton.disabled = true;
+	}
+
+	//disables previousButton when at first block
+	if (explorerBlock.height == 0) {
+		previousButton.classList.add('button-disabled');
+		previousButton.disabled = true;
+	}
 
 	//set attributes to searchField
 	searchField.required = true;
-	searchField.setAttribute('type', 'text');
+	searchField.setAttribute('type', 'number');
+	searchField.setAttribute('min', '0');
+	searchField.setAttribute('max', getBlockchainContext().height);
 	searchField.setAttribute('name', 'height');
 	searchField.setAttribute('placeholder', explorerBlock.height);
 
@@ -220,39 +203,6 @@ function goToPreviousBlock(height) {
 	window.location.href = ('block.html?height=' + previousBlockHeight);
 }
 
-/* // appendBlockSearchField adds a search field for user to navigate to a specific block(height)
-function appendBlockSearchField(element, explorerBlock) {
-	var searchContainer = document.createElement('form');
-	searchContainer.classList.add('search-block-from');
-
-	var searchButton = document.createElement('button');
-	searchButton.id = 'searchbutton';
-	searchButton.textContent = 'Go to block';
-
-	var searchField = document.createElement('INPUT');
-	searchField.required = true; 
-	searchField.setAttribute('type','text');
-
-	searchField.setAttribute('placeholder', explorerBlock.height);
-
-	searchContainer.appendChild(searchButton);
-	searchContainer.appendChild(searchField);
-	element.appendChild(searchContainer);
-
-	searchButton.onclick = (e) => {
-		if (searchField.value != "" && searchField.value != searchField.placeholder && searchField.value > 0) {
-			goToBlock(searchField.value);
-		}
-	}
-
-	searchField.addEventListener("keyup", function(event){
-		event.preventDefault();
-		if (event.keyCode === 13) {
-			searchButton.click();
-		}
-	});
-} */
-
 // appendBlockStatistics creates a block statistics table and appends it to the
 // input dom parent.
 function appendBlockStatistics(domParent, explorerBlock) {
@@ -288,7 +238,7 @@ function getBlockchainContext() {
 	request.open('GET', reqString, false);
 	request.send();
 	if (request.status != 200) {
-		return {};
+		return {height : height};
 	}
 	var explorerBlock = JSON.parse(request.responseText).block;
 	return {
