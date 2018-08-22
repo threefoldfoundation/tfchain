@@ -122,7 +122,7 @@ function appendUnlabeledStat(table, text) {
 
 
 // appendNavigationButtons appends two buttons that navigate between the previous and the next block.
-function appendNavigationButtons(element, explorerBlock) {
+/* function appendNavigationButtons(element, explorerBlock) {
 	var buttonContainer = document.createElement('div');
 	buttonContainer.classList.add('navigation-buttons');
 
@@ -149,27 +149,78 @@ function appendNavigationButtons(element, explorerBlock) {
 		goToNextBlock(explorerBlock.height);
 	}
 
+} */
+
+function appendNavigationElements(element, explorerBlock) {
+	//create all needed elements
+	var buttonContainer = document.createElement('div');
+	var searchButtonForm = document.createElement('form');
+	var previousButton = document.createElement('button');
+	var nextButton = document.createElement('button');
+	var searchButton = document.createElement('button');
+	var searchField = document.createElement('INPUT'); 
+
+	//add ID's to elements
+	buttonContainer.id = 'navigation-buttons-container';
+	searchButtonForm.id = 'search-button-form';
+	previousButton.id = 'button-previous';
+	nextButton.id = 'button-next';
+	searchButton.id = 'search-button';
+	searchField.id = 'search-field-input';
+
+	//add text to the buttons
+	previousButton.textContent = 'Previous Button';
+	nextButton.textContent = 'Next Button';
+	searchButton.textContent= 'Go To Block';
+
+	//set attributes to searchField
+	searchField.required = true;
+	searchField.setAttribute('type', 'text');
+	searchField.setAttribute('name', 'height');
+	searchField.setAttribute('placeholder', explorerBlock.height);
+
+	//set attributes to searchButton
+	searchButton.setAttribute('value', 'go');
+	searchButton.setAttribute('type', 'submit');
+
+	//set attributes to searchButtonForm
+	searchButtonForm.setAttribute('method', 'get');
+	searchButtonForm.setAttribute('action', 'block.html');
+
+	//add elements to searchButtonForm
+	searchButtonForm.appendChild(searchButton);
+	searchButtonForm.appendChild(searchField);
+
+	//add elements to buttonContainer
+	buttonContainer.appendChild(previousButton);
+	buttonContainer.appendChild(nextButton);
+	buttonContainer.appendChild(searchButtonForm);
+
+	//add container to element
+	element.appendChild(buttonContainer);
+
+	//add click-event to previousButton
+	previousButton.onclick = (e) => {
+		goToPreviousBlock(explorerBlock.height);
+	}
+
+	//add click-event to nextButton
+	nextButton.onclick = (e) => {
+		goToNextBlock(explorerBlock.height);
+	}
 }
 
-// goToNextBlock changes the current URL to the URL of next block(height)
 function goToNextBlock(height) {
 	var nextBlockHeight = ++height;
-	window.location.href = (window.location.pathname + '?height=' + nextBlockHeight);
+	window.location.href = ('block.html?height=' + nextBlockHeight);
 }
 
-// goToPreviousBlock changes the current URL to the URL of the previous block(height) 
 function goToPreviousBlock(height) {
 	var previousBlockHeight = --height;
-	console.log (window.location.pathname + '?height=' + previousBlockHeight);
-	window.location.href = (window.location.pathname + '?height=' + previousBlockHeight);
+	window.location.href = ('block.html?height=' + previousBlockHeight);
 }
 
-function goToBlock(height) {
-	console.log (window.location.pathname + '?height=' + height);
-	window.location.href = (window.location.pathname + '?height' + height);
-}
-
-// appendBlockSearchField adds a search field for user to navigate to a specific block(height)
+/* // appendBlockSearchField adds a search field for user to navigate to a specific block(height)
 function appendBlockSearchField(element, explorerBlock) {
 	var searchContainer = document.createElement('form');
 	searchContainer.classList.add('search-block-from');
@@ -200,7 +251,7 @@ function appendBlockSearchField(element, explorerBlock) {
 			searchButton.click();
 		}
 	});
-}
+} */
 
 // appendBlockStatistics creates a block statistics table and appends it to the
 // input dom parent.
@@ -346,8 +397,7 @@ function appendRawBlock(element, explorerBlock) {
 
 function appendExplorerBlock(element, explorerBlock) {
 	appendNavigationMenuBlock(explorerBlock);
-	appendNavigationButtons(element, explorerBlock);
-	appendBlockSearchField(element, explorerBlock);
+	appendNavigationElements(element, explorerBlock);
 	appendBlockStatistics(element, explorerBlock);
 	appendBlockMinerPayouts(element, explorerBlock);
 	appendBlockTransactions(element, explorerBlock);

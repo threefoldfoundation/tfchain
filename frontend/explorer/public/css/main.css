@@ -155,3 +155,28 @@ span.search-form-td {
 #nav-links > *:last-child::after {
 	content : '';
 }
+
+#navigation-buttons-container {
+	width: 100%;
+	text-align: center;
+}
+
+#button-previous {
+	float: left;
+	width: 180px;
+}
+
+#button-next {
+	float: right;
+	width: 180px;
+}
+
+#search-button-form {
+	display: inline-block;
+	margin: 0 auto;
+	width: 300px;
+}
+
+#search-field-input {
+	width: 150px;
+}
