@@ -73,7 +73,6 @@
   branch = "master"
   name = "github.com/rivine/rivine"
   packages = [
-    "api",
     "build",
     "crypto",
     "encoding",
@@ -85,14 +84,14 @@
     "modules/transactionpool",
     "modules/wallet",
     "persist",
+    "pkg/api",
     "pkg/cli",
     "pkg/client",
     "pkg/daemon",
-    "profile",
     "sync",
     "types"
   ]
-  revision = "f88255cc06eb679554c98f0e1403509ae31d969c"
+  revision = "1719acf3c9148b89250648204edfc053b45a96df"
 
 [[projects]]
   name = "github.com/rivine/smux"
@@ -141,7 +140,7 @@
     "html/atom",
     "html/charset"
   ]
-  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
+  revision = "922f4815f713f213882e8ef45e0d315b164d705c"
 
 [[projects]]
   branch = "master"
@@ -179,6 +178,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8e404f530d619b3581b86ee86dac20c7883569771741c838a9f975c3a171afac"
+  inputs-digest = "d72febe70dfcd09a6d1c0167586bf01b2becc7f740cd7e0f6bd57ae54a42f639"
   solver-name = "gps-cdcl"
   solver-version = 1

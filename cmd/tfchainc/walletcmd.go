@@ -8,6 +8,7 @@ import (
 
 	"github.com/threefoldfoundation/tfchain/pkg/types"
 
+	"github.com/rivine/rivine/pkg/cli"
 	"github.com/rivine/rivine/pkg/client"
 	rivinetypes "github.com/rivine/rivine/types"
 
@@ -61,14 +62,14 @@ func (walletSubCmds *walletSubCmds) createCoinCreationTxCmd(cmd *cobra.Command, 
 	// Check that the remaining args are condition + value pairs
 	if len(args)%2 != 0 {
 		cmd.UsageFunc()
-		client.Die("Invalid arguments. Arguments must be of the form <dest>|<rawCondition> <amount> [<dest>|<rawCondition> <amount>]...")
+		cli.Die("Invalid arguments. Arguments must be of the form <dest>|<rawCondition> <amount> [<dest>|<rawCondition> <amount>]...")
 	}
 
 	// parse the remainder as output coditions and values
 	pairs, err := parsePairedOutputs(args, currencyConvertor.ParseCoinString)
 	if err != nil {
 		cmd.UsageFunc()(cmd)
-		client.Die(err)
+		cli.Die(err)
 	}
 
 	tx := types.CoinCreationTransaction{
