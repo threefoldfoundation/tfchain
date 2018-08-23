@@ -15,12 +15,16 @@ import (
 )
 
 const (
-	// TransactionVersionMinterDefinition TODO
+	// TransactionVersionMinterDefinition defines the Transaction version
+	// for a MinterDefinition Transaction.
+	//
+	// See the `MinterDefinitionTransactionController` and `MinterDefinitionTransaction`
+	// types for more information.
 	TransactionVersionMinterDefinition types.TransactionVersion = iota + 128
 	// TransactionVersionCoinCreation defines the Transaction version
 	// for a CoinCreation Transaction.
 	//
-	// See the `CoinCreationTransactionController` and `CoinCreationTransaction``
+	// See the `CoinCreationTransactionController` and `CoinCreationTransaction`
 	// types for more information.
 	TransactionVersionCoinCreation
 )
@@ -28,7 +32,8 @@ const (
 // These Specifiers are used internally when calculating a Transaction's ID.
 // See Rivine's Specifier for more details.
 var (
-	SpecifierCoinCreationTransaction = types.Specifier{'c', 'o', 'i', 'n', ' ', 'm', 'i', 'n', 't', ' ', 't', 'x'}
+	SpecifierMintDefinitionTransaction = types.Specifier{'m', 'i', 'n', 't', 'e', 'r', ' ', 'd', 'e', 'f', 'i', 'n', ' ', 't', 'x'}
+	SpecifierCoinCreationTransaction   = types.Specifier{'c', 'o', 'i', 'n', ' ', 'm', 'i', 'n', 't', ' ', 't', 'x'}
 )
 
 // RegisterTransactionTypesForStandardNetwork registers he transaction controllers
@@ -51,6 +56,13 @@ func RegisterTransactionTypesForStandardNetwork() {
 	})
 
 	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
+			unlockHashFromHex("01434535fd01243c02c277cd58d71423163767a575a8ae44e15807bf545e4a8456a5c4afabad51"),
+			unlockHashFromHex("01334cf68f312026ff9df84fc023558db8624bedd717adcc9edc6900488cf6df54ac8e3d1c89a8"),
+			unlockHashFromHex("0149a5496fea27315b7db6251e5dfda23bc9d4bf677c5a5c2d70f1382c44357197d8453d9dfa32"),
+		}, 2)),
+	})
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
 		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
 			unlockHashFromHex("01434535fd01243c02c277cd58d71423163767a575a8ae44e15807bf545e4a8456a5c4afabad51"),
@@ -80,6 +92,13 @@ func RegisterTransactionTypesForTestNetwork() {
 	})
 
 	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
+			unlockHashFromHex("016148ac9b17828e0933796eaca94418a376f2aa3fefa15685cea5fa462093f0150e09067f7512"),
+			unlockHashFromHex("01d553fab496f3fd6092e25ce60e6f72e24b57950bffc0d372d659e38e5a95e89fb117b4eb3481"),
+			unlockHashFromHex("013a787bf6248c518aee3a040a14b0dd3a029bc8e9b19a1823faf5bcdde397f4201ad01aace4c9"),
+		}, 2)),
+	})
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
 		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
 			unlockHashFromHex("016148ac9b17828e0933796eaca94418a376f2aa3fefa15685cea5fa462093f0150e09067f7512"),
@@ -103,6 +122,12 @@ func RegisterTransactionTypesForDevNetwork() {
 	})
 
 	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		// belongs to wallet with mnemonic:
+		// carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else
+		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+	})
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
 		// belongs to wallet with mnemonic:
 		// carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else
@@ -133,12 +158,26 @@ type (
 		TransactionFeeCheckBlockHeight types.BlockHeight
 	}
 
+	// TODO:
+	//  * develop a consensus set subscriber so we can track the last known coin creator definition
+	//  * integrate this subscriber also in the coin creation and minter definition controllers
+	//    such that he minter definition controller and coin creator controller know against which condition to fulfill a the mintfulfillment
+	//    (!) We need to ensure that the subscriber always is up to date prior to validating!!!
+
 	// CoinCreationTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 129. It allows for the creation of Coin Outputs,
 	// without requiring coin inputs, but can only be used by the defined Coin Minters.
 	CoinCreationTransactionController struct {
 		// MintCondition defines the condition that has to be fulfilled
 		// in order to mint new coins into existence (in the form of non-backed coin outputs).
+		MintCondition types.UnlockConditionProxy
+	}
+
+	// MinterDefinitionTransactionController defines a tfchain-specific transaction controller,
+	// for a transaction type reserved at type 128. It allows the transfer of coin minting powers.
+	MinterDefinitionTransactionController struct {
+		// MintCondition defines the condition that has to be fulfilled
+		// in order to be able to define the new minter definition.
 		MintCondition types.UnlockConditionProxy
 	}
 )
@@ -166,7 +205,19 @@ var (
 	_ types.BlockStakeOutputValidator  = CoinCreationTransactionController{}
 	_ types.InputSigHasher             = CoinCreationTransactionController{}
 	_ types.TransactionIDEncoder       = CoinCreationTransactionController{}
+
+	// ensure at compile time that MinterDefinitionTransactionController
+	// implements the desired interfaces
+	_ types.TransactionController      = MinterDefinitionTransactionController{}
+	_ types.TransactionExtensionSigner = MinterDefinitionTransactionController{}
+	_ types.TransactionValidator       = MinterDefinitionTransactionController{}
+	_ types.CoinOutputValidator        = MinterDefinitionTransactionController{}
+	_ types.BlockStakeOutputValidator  = MinterDefinitionTransactionController{}
+	_ types.InputSigHasher             = MinterDefinitionTransactionController{}
+	_ types.TransactionIDEncoder       = MinterDefinitionTransactionController{}
 )
+
+// DefaultTransactionController
 
 // ValidateTransaction implements TransactionValidator.ValidateTransaction
 func (dtc DefaultTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) error {
@@ -179,6 +230,8 @@ func (dtc DefaultTransactionController) ValidateTransaction(t types.Transaction,
 	return types.DefaultTransactionValidation(t, ctx, constants)
 }
 
+// LegacyTransactionController
+
 // ValidateTransaction implements TransactionValidator.ValidateTransaction
 func (ltc LegacyTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) error {
 	if ctx.Confirmed && ctx.BlockHeight < ltc.TransactionFeeCheckBlockHeight {
@@ -189,6 +242,8 @@ func (ltc LegacyTransactionController) ValidateTransaction(t types.Transaction, 
 	}
 	return types.DefaultTransactionValidation(t, ctx, constants)
 }
+
+// CoinCreationTransactionController
 
 // EncodeTransactionData implements TransactionController.EncodeTransactionData
 func (cctc CoinCreationTransactionController) EncodeTransactionData(w io.Writer, txData types.TransactionData) error {
@@ -348,12 +403,171 @@ func (cctc CoinCreationTransactionController) EncodeTransactionIDInput(w io.Writ
 	return encoding.NewEncoder(w).EncodeAll(SpecifierCoinCreationTransaction, cctx)
 }
 
+// MinterDefinitionTransactionController
+
+// EncodeTransactionData implements TransactionController.EncodeTransactionData
+func (mdtc MinterDefinitionTransactionController) EncodeTransactionData(w io.Writer, txData types.TransactionData) error {
+	mdtx, err := MinterDefinitionTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a MinterDefinitionTx: %v", err)
+	}
+	return encoding.NewEncoder(w).Encode(mdtx)
+}
+
+// DecodeTransactionData implements TransactionController.DecodeTransactionData
+func (mdtc MinterDefinitionTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
+	var mdtx MinterDefinitionTransaction
+	err := encoding.NewDecoder(r).Decode(&mdtx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to binary-decode tx as a MinterDefinitionTx: %v", err)
+	}
+	// return minter definition tx as regular tfchain tx data
+	return mdtx.TransactionData(), nil
+}
+
+// JSONEncodeTransactionData implements TransactionController.JSONEncodeTransactionData
+func (mdtc MinterDefinitionTransactionController) JSONEncodeTransactionData(txData types.TransactionData) ([]byte, error) {
+	mdtx, err := MinterDefinitionTransactionFromTransactionData(txData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert txData to a MinterDefinitionTx: %v", err)
+	}
+	return json.Marshal(mdtx)
+}
+
+// JSONDecodeTransactionData implements TransactionController.JSONDecodeTransactionData
+func (mdtc MinterDefinitionTransactionController) JSONDecodeTransactionData(data []byte) (types.TransactionData, error) {
+	var mdtx MinterDefinitionTransaction
+	err := json.Unmarshal(data, &mdtx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to json-decode tx as a MinterDefinitionTx: %v", err)
+	}
+	// return minter definition tx as regular tfchain tx data
+	return mdtx.TransactionData(), nil
+}
+
+// SignExtension implements TransactionExtensionSigner.SignExtension
+func (mdtc MinterDefinitionTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid MinterDefinitionTransactionExtension,
+	// which contains the nonce and the mintFulfillment that can be used to fulfill the globally defined mint condition
+	mdTxExtension, ok := extension.(*MinterDefinitionTransactionExtension)
+	if !ok {
+		return nil, errors.New("invalid extension data for a MinterDefinitionTx")
+	}
+	err := sign(&mdTxExtension.MintFulfillment, mdtc.MintCondition)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign mint fulfillment of MinterDefinitionTx: %v", err)
+	}
+	return mdTxExtension, nil
+}
+
+// ValidateTransaction implements TransactionValidator.ValidateTransaction
+func (mdtc MinterDefinitionTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) (err error) {
+	err = types.TransactionFitsInABlock(t, constants.BlockSizeLimit)
+	if err != nil {
+		return err
+	}
+
+	// get MinterDefinitionTx
+	mdtx, err := MinterDefinitionTransactionFromTransaction(t)
+	if err != nil {
+		return fmt.Errorf("failed to use tx as a coin creation tx: %v", err)
+	}
+
+	// check if the MintCondition is valid and not a nil condition
+	err = mdtx.MintCondition.IsStandardCondition(ctx)
+	if err != nil {
+		return fmt.Errorf("defined mint condition is not standard within the given blockchain context: %v", err)
+	}
+	if mdtx.MintCondition.ConditionType() == types.ConditionTypeNil {
+		return errors.New("nil condition is not allowed as mint condition")
+	}
+
+	// check if MintFulfillment fulfills the Globally defined MintCondition
+	err = mdtc.MintCondition.Fulfill(mdtx.MintFulfillment, types.FulfillContext{
+		InputIndex:  0, // InputIndex is ignored for coin creation signature
+		BlockHeight: ctx.BlockHeight,
+		BlockTime:   ctx.BlockTime,
+		Transaction: t,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to fulfill mint condition: %v", err)
+	}
+	// ensure the Nonce is not Nil
+	if mdtx.Nonce == (TransactionNonce{}) {
+		return errors.New("nil nonce is not allowed for a mint condition transaction")
+	}
+
+	// validate the rest of the content
+	err = types.ArbitraryDataFits(mdtx.ArbitraryData, constants.ArbitraryDataSizeLimit)
+	if err != nil {
+		return
+	}
+	for _, fee := range mdtx.MinerFees {
+		if fee.Cmp(constants.MinimumMinerFee) == -1 {
+			return types.ErrTooSmallMinerFee
+		}
+	}
+	return
+}
+
+// ValidateCoinOutputs implements CoinOutputValidator.ValidateCoinOutputs
+func (mdtc MinterDefinitionTransactionController) ValidateCoinOutputs(t types.Transaction, ctx types.FundValidationContext, coinInputs map[types.CoinOutputID]types.CoinOutput) (err error) {
+	return nil // always valid, no block stake inputs/outputs exist within a minter definition transaction
+}
+
+// ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
+func (mdtc MinterDefinitionTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
+	return nil // always valid, no block stake inputs/outputs exist within a minter definition transaction
+}
+
+// InputSigHash implements InputSigHasher.InputSigHash
+func (mdtc MinterDefinitionTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+	mdtx, err := MinterDefinitionTransactionFromTransaction(t)
+	if err != nil {
+		return crypto.Hash{}, fmt.Errorf("failed to use tx as a MinterDefinitionTx: %v", err)
+	}
+
+	h := crypto.NewHash()
+	enc := encoding.NewEncoder(h)
+
+	enc.EncodeAll(
+		t.Version,
+		SpecifierMintDefinitionTransaction,
+		mdtx.Nonce,
+	)
+
+	if len(extraObjects) > 0 {
+		enc.EncodeAll(extraObjects...)
+	}
+
+	enc.EncodeAll(
+		mdtx.MintCondition,
+		mdtx.MinerFees,
+		mdtx.ArbitraryData,
+	)
+
+	var hash crypto.Hash
+	h.Sum(hash[:0])
+	return hash, nil
+}
+
+// EncodeTransactionIDInput implements TransactionIDEncoder.EncodeTransactionIDInput
+func (mdtc MinterDefinitionTransactionController) EncodeTransactionIDInput(w io.Writer, txData types.TransactionData) error {
+	mdtx, err := MinterDefinitionTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a MinterDefinitionTx: %v", err)
+	}
+	return encoding.NewEncoder(w).EncodeAll(SpecifierMintDefinitionTransaction, mdtx)
+}
+
 type (
 	// CoinCreationTransaction is to be created only by the defined Coin Minters,
 	// as a medium in order to create coins (coin outputs), without backing them
 	// (so without having to spend previously unspend coin outputs, see: coin inputs).
 	CoinCreationTransaction struct {
-		// Nonce used to ensure the uniqueness of a CoinCreationTransaction
+		// Nonce used to ensure the uniqueness of a CoinCreationTransaction's ID and signature.
 		Nonce TransactionNonce `json:"nonce"`
 		// MintFulfillment defines the fulfillment which is used in order to
 		// fulfill the globally defined MintCondition.
@@ -451,6 +665,116 @@ func (cctx *CoinCreationTransaction) Transaction() types.Transaction {
 		Extension: &CoinCreationTransactionExtension{
 			Nonce:           cctx.Nonce,
 			MintFulfillment: cctx.MintFulfillment,
+		},
+	}
+}
+
+type (
+	// MinterDefinitionTransaction is to be created only by the defined Coin Minters,
+	// as a medium in order to transfer minting powers.
+	MinterDefinitionTransaction struct {
+		// Nonce used to ensure the uniqueness of a MinterDefinitionTransaction's ID and signature.
+		Nonce TransactionNonce `json:"nonce"`
+		// MintFulfillment defines the fulfillment which is used in order to
+		// fulfill the globally defined MintCondition.
+		MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
+		// MintCondition defines a new condition that defines who become(s) the new minter(s),
+		// and thus defines who can create coins as well as update who is/are the current minter(s)
+		//
+		// NilCondition is NOT allowed!
+		MintCondition types.UnlockConditionProxy `json:"mintcondition"`
+		// Minerfees, a fee paid for this minter definition transaction.
+		MinerFees []types.Currency `json:"minerfees"`
+		// ArbitraryData can be used for any purpose,
+		// but is mostly to be used in order to define the reason/origins
+		// of the transfer of minting power.
+		ArbitraryData []byte `json:"arbitrarydata,omitempty"`
+	}
+	// MinterDefinitionTransactionExtension defines the MinterDefinitionTx Extension Data
+	MinterDefinitionTransactionExtension struct {
+		Nonce           TransactionNonce
+		MintFulfillment types.UnlockFulfillmentProxy
+		MintCondition   types.UnlockConditionProxy
+	}
+)
+
+// MinterDefinitionTransactionFromTransaction creates a MinterDefinitionTransaction,
+// using a regular in-memory tfchain transaction.
+//
+// Past the (tx) Version validation it piggy-backs onto the
+// `MinterDefinitionTransactionFromTransactionData` constructor.
+func MinterDefinitionTransactionFromTransaction(tx types.Transaction) (MinterDefinitionTransaction, error) {
+	if tx.Version != TransactionVersionMinterDefinition {
+		return MinterDefinitionTransaction{}, fmt.Errorf(
+			"a minter definition transaction requires tx version %d",
+			TransactionVersionCoinCreation)
+	}
+	return MinterDefinitionTransactionFromTransactionData(types.TransactionData{
+		CoinInputs:        tx.CoinInputs,
+		CoinOutputs:       tx.CoinOutputs,
+		BlockStakeInputs:  tx.BlockStakeInputs,
+		BlockStakeOutputs: tx.BlockStakeOutputs,
+		MinerFees:         tx.MinerFees,
+		ArbitraryData:     tx.ArbitraryData,
+		Extension:         tx.Extension,
+	})
+}
+
+// MinterDefinitionTransactionFromTransactionData creates a MinterDefinitionTransaction,
+// using the TransactionData from a regular in-memory tfchain transaction.
+func MinterDefinitionTransactionFromTransactionData(txData types.TransactionData) (MinterDefinitionTransaction, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid MinterDefinitionTransactionExtension,
+	// which contains the nonce, the mintFulfillment that can be used to fulfill the currently globally defined mint condition,
+	// as well as a mintCondition to replace the current in-place mintCondition.
+	extensionData, ok := txData.Extension.(*MinterDefinitionTransactionExtension)
+	if !ok {
+		return MinterDefinitionTransaction{}, errors.New("invalid extension data for a MinterDefinitionTransaction")
+	}
+	// at least one miner fee is required
+	if len(txData.MinerFees) == 0 {
+		return MinterDefinitionTransaction{}, errors.New("at least one miner fee is required for a MinterDefinitionTransaction")
+	}
+	// no coin inputs, block stake inputs or block stake outputs are allowed
+	if len(txData.CoinInputs) != 0 || len(txData.CoinOutputs) != 0 || len(txData.BlockStakeInputs) != 0 || len(txData.BlockStakeOutputs) != 0 {
+		return MinterDefinitionTransaction{}, errors.New(
+			"no coin inputs/outputs and block stake inputs/outputs are allowed in a MinterDefinitionTransaction")
+	}
+	// return the MinterDefinitionTransaction, with the data extracted from the TransactionData
+	return MinterDefinitionTransaction{
+		Nonce:           extensionData.Nonce,
+		MintFulfillment: extensionData.MintFulfillment,
+		MintCondition:   extensionData.MintCondition,
+		MinerFees:       txData.MinerFees,
+		// ArbitraryData is optional
+		ArbitraryData: txData.ArbitraryData,
+	}, nil
+}
+
+// TransactionData returns this CoinCreationTransaction
+// as regular tfchain transaction data.
+func (cctx *MinterDefinitionTransaction) TransactionData() types.TransactionData {
+	return types.TransactionData{
+		MinerFees:     cctx.MinerFees,
+		ArbitraryData: cctx.ArbitraryData,
+		Extension: &MinterDefinitionTransactionExtension{
+			Nonce:           cctx.Nonce,
+			MintFulfillment: cctx.MintFulfillment,
+			MintCondition:   cctx.MintCondition,
+		},
+	}
+}
+
+// Transaction returns this CoinCreationTransaction
+// as regular tfchain transaction, using TransactionVersionCoinCreation as the type.
+func (cctx *MinterDefinitionTransaction) Transaction() types.Transaction {
+	return types.Transaction{
+		Version:       TransactionVersionMinterDefinition,
+		MinerFees:     cctx.MinerFees,
+		ArbitraryData: cctx.ArbitraryData,
+		Extension: &MinterDefinitionTransactionExtension{
+			Nonce:           cctx.Nonce,
+			MintFulfillment: cctx.MintFulfillment,
+			MintCondition:   cctx.MintCondition,
 		},
 	}
 }

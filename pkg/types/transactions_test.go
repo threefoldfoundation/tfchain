@@ -230,6 +230,70 @@ func TestCoinCreationTransactionToAndFromBinary(t *testing.T) {
 	}
 }
 
+// mdtx -> txData -> mdtx
+func TestMinterDefinitionTransactionToAndFromTransactionData(t *testing.T) {
+	for i, testCase := range testMinterDefinitionTransactions {
+		txData := testCase.TransactionData()
+		mdtx, err := MinterDefinitionTransactionFromTransactionData(txData)
+		if err != nil {
+			t.Error(i, "failed to create mdtx", err)
+			continue
+		}
+		testCompareTwoMinterDefinitionTransactions(t, i, mdtx, testCase)
+	}
+}
+
+// mdtx -> tx -> mdtx
+func TestMinterDefinitionTransactionToAndFromTransaction(t *testing.T) {
+	for i, testCase := range testMinterDefinitionTransactions {
+		tx := testCase.Transaction()
+		mdtx, err := MinterDefinitionTransactionFromTransaction(tx)
+		if err != nil {
+			t.Error(i, "failed to create mdtx", err)
+			continue
+		}
+		testCompareTwoMinterDefinitionTransactions(t, i, mdtx, testCase)
+	}
+}
+
+// mdtx -> JSON -> mdtz
+func TestMinterDefinitionTransactionToAndFromJSON(t *testing.T) {
+	for i, testCase := range testMinterDefinitionTransactions {
+		b, err := json.Marshal(testCase)
+		if err != nil {
+			t.Error(i, "failed to JSON-marshal", err)
+			continue
+		}
+		if len(b) == 0 {
+			t.Error(i, "JSON-marshal output is empty")
+		}
+		var mdtx MinterDefinitionTransaction
+		err = json.Unmarshal(b, &mdtx)
+		if err != nil {
+			t.Error(i, "failed to JSON-unmarshal tx", err)
+			continue
+		}
+		testCompareTwoMinterDefinitionTransactions(t, i, mdtx, testCase)
+	}
+}
+
+// mdtx -> Binary -> mdtx
+func TestMinterDefinitionTransactionToAndFromBinary(t *testing.T) {
+	for i, testCase := range testMinterDefinitionTransactions {
+		b := encoding.Marshal(testCase)
+		if len(b) == 0 {
+			t.Error(i, "Binary-marshal output is empty")
+		}
+		var mdtx MinterDefinitionTransaction
+		err := encoding.Unmarshal(b, &mdtx)
+		if err != nil {
+			t.Error(i, "failed to Binary-unmarshal tx", err)
+			continue
+		}
+		testCompareTwoMinterDefinitionTransactions(t, i, mdtx, testCase)
+	}
+}
+
 // tests if we can unmarshal a JSON example inspired by
 // originally proposed structure given in spec at
 // https://github.com/threefoldfoundation/tfchain/issues/155#issuecomment-408029100
@@ -364,6 +428,103 @@ func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 	})
 }
 
+// tests if we can unmarshal a JSON example inspired by
+// originally proposed structure given in spec at
+// https://github.com/threefoldfoundation/tfchain/issues/165#issue-349622350
+func TestJSONUnmarshalSpecMinterDefinitionTransactionExample(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(`
+{
+	"version": 128,
+	"data": {
+		"nonce": "MTIzNDU2Nzg=",
+		"mintfulfillment": {
+			"type": 3,
+			"data": {
+				"pairs": [
+					{
+						"publickey": "ed25519:def123def123def123def123def123def123def123def123def123def123def1",
+						"signature": "ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"
+					},
+					{
+						"publickey": "ed25519:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+						"signature": "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"
+					}
+				]
+			}
+		},
+		"mintcondition": {
+			"type": 4,
+			"data": {
+				"unlockhashes": [
+					"01e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70b1ccc65e2105",
+					"01a6a6c5584b2bfbd08738996cd7930831f958b9a5ed1595525236e861c1a0dc353bdcf54be7d8"
+				],
+				"minimumsignaturecount": 2
+			}
+		},
+		"minerfees": [
+			"3000000",
+			"1230000000"
+		],
+		"arbitrarydata": "ZGF0YQ=="
+	}
+}
+`))
+	if err != nil {
+		t.Fatalf("failed to JSON-unmarshal minter definition transaction (128): %v", err)
+	}
+	mdtx, err := MinterDefinitionTransactionFromTransaction(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testCompareTwoMinterDefinitionTransactions(t, 0, mdtx, MinterDefinitionTransaction{
+		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
+			Pairs: []types.PublicKeySignaturePair{
+				{
+					PublicKey: types.SiaPublicKey{
+						Algorithm: types.SignatureEd25519,
+						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
+					},
+					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
+				},
+				{
+					PublicKey: types.SiaPublicKey{
+						Algorithm: types.SignatureEd25519,
+						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+					},
+					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
+				},
+			},
+		}),
+		MintCondition: types.NewCondition(&types.MultiSignatureCondition{
+			MinimumSignatureCount: 2,
+			UnlockHashes: types.UnlockHashSlice{
+				types.UnlockHash{
+					Type: types.UnlockTypePubKey,
+					Hash: hs("e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
+				},
+				types.UnlockHash{
+					Type: types.UnlockTypePubKey,
+					Hash: hs("a6a6c5584b2bfbd08738996cd7930831f958b9a5ed1595525236e861c1a0dc35"),
+				},
+			},
+		}),
+		MinerFees: []types.Currency{
+			types.NewCurrency64(3000000),
+			types.NewCurrency64(1230000000),
+		},
+		ArbitraryData: []byte("data"),
+	})
+}
+
 func testCompareTwoCoinCreationTransactions(t *testing.T, i int, a, b CoinCreationTransaction) {
 	// compare mint fulfillment
 	if !a.MintFulfillment.Equal(b.MintFulfillment) {
@@ -422,7 +583,6 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 		// smallest tx fee
 		MinerFees: []types.Currency{
 			config.GetTestnetGenesis().MinimumTransactionFee,
-			config.GetTestnetGenesis().MinimumTransactionFee.Mul64(2),
 		},
 	},
 	// a more complex Coin Creation Transaction
@@ -487,6 +647,95 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 	},
 }
 
+func testCompareTwoMinterDefinitionTransactions(t *testing.T, i int, a, b MinterDefinitionTransaction) {
+	// compare mint fulfillment
+	if !a.MintFulfillment.Equal(b.MintFulfillment) {
+		t.Error(i, "mint fulfillment not equal")
+	}
+	// compare mint condition
+	if !a.MintCondition.Equal(b.MintCondition) {
+		t.Error(i, "mint condition not equal")
+	}
+	// compare miner fees
+	if len(a.MinerFees) != len(b.MinerFees) {
+		t.Error(i, "length miner fees not equal")
+	} else {
+		for u, mf := range a.MinerFees {
+			if !mf.Equals(b.MinerFees[u]) {
+				t.Error(i, u, "miner fees not equal",
+					mf.String(), "!=", b.MinerFees[u].String())
+			}
+		}
+	}
+	// compare arbitrary data
+	if bytes.Compare(a.ArbitraryData, b.ArbitraryData) != 0 {
+		t.Error(i, "arbitrary not equal",
+			string(a.ArbitraryData), "!=", string(b.ArbitraryData))
+	}
+}
+
+var testMinterDefinitionTransactions = []MinterDefinitionTransaction{
+	// most minimalistic Minter Definition Transaction
+	{
+		Nonce: RandomTransactionNonce(),
+		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
+			PublicKey: types.SiaPublicKey{
+				Algorithm: types.SignatureEd25519,
+				Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
+			},
+			Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
+		}),
+		MintCondition: types.NewCondition(types.NewUnlockHashCondition(types.UnlockHash{
+			Type: types.UnlockTypePubKey,
+			Hash: hs("def123def123def123def123def123def123def123def123def123def123def1"),
+		})),
+		// smallest tx fee
+		MinerFees: []types.Currency{
+			config.GetTestnetGenesis().MinimumTransactionFee,
+		},
+	},
+	// a more complex Minter Definition Transaction
+	{
+		Nonce: RandomTransactionNonce(),
+		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
+			Pairs: []types.PublicKeySignaturePair{
+				{
+					PublicKey: types.SiaPublicKey{
+						Algorithm: types.SignatureEd25519,
+						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
+					},
+					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
+				},
+				{
+					PublicKey: types.SiaPublicKey{
+						Algorithm: types.SignatureEd25519,
+						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+					},
+					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
+				},
+			},
+		}),
+		MintCondition: types.NewCondition(types.NewTimeLockCondition(uint64(time.Now().AddDate(1, 6, 0).Unix()),
+			&types.MultiSignatureCondition{
+				MinimumSignatureCount: 2,
+				UnlockHashes: types.UnlockHashSlice{
+					types.UnlockHash{
+						Type: types.UnlockTypePubKey,
+						Hash: hs("e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
+					},
+					types.UnlockHash{
+						Type: types.UnlockTypePubKey,
+						Hash: hs("a6a6c5584b2bfbd08738996cd7930831f958b9a5ed1595525236e861c1a0dc35"),
+					},
+				},
+			})),
+		// smallest tx fee
+		MinerFees: []types.Currency{config.GetTestnetGenesis().MinimumTransactionFee},
+		// with a message
+		ArbitraryData: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
+	},
+}
+
 // tests the patch which fixes https://github.com/threefoldfoundation/tfchain/issues/164
 func TestCoinCreationTransactionIDUniqueness(t *testing.T) {
 	// define tfchain-specific transaction versions
@@ -520,6 +769,434 @@ func TestCoinCreationTransactionIDUniqueness(t *testing.T) {
 				"expected the ID of two coin creation txs to be different when a different nonce is used, but:",
 				idA.String(), " == ", idB.String(), " ; txA = ", a, " and tx B = ", b)
 		}
+	}
+}
+
+// test inspired by TestCoinCreationTransactionIDUniqueness
+func TestMinterDefinitionTransactionIDUniqueness(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
+
+	for i, testMDTX := range testMinterDefinitionTransactions {
+		a := testMDTX
+		b := testMDTX
+
+		// if two cctxs use the same nonce, outputs, miner fees and fulfillment,
+		// the ID should be the same
+		idA := a.Transaction().ID()
+		idB := b.Transaction().ID()
+		if bytes.Compare(idA[:], idB[:]) != 0 {
+			t.Error(i,
+				"expected the ID of two minter definition txs to be equal when same nonce is used, but:",
+				idA.String(), " == ", idB.String(), " ; txA = ", a, " and tx B = ", b)
+		}
+
+		// if however at least the nonce is different, the ID will be different,
+		// no matter the rest of the other fields
+		b.Nonce = RandomTransactionNonce()
+		idA = a.Transaction().ID()
+		idB = b.Transaction().ID()
+		if bytes.Compare(idA[:], idB[:]) == 0 {
+			t.Error(i,
+				"expected the ID of two minter definition txs to be different when a different nonce is used, but:",
+				idA.String(), " == ", idB.String(), " ; txA = ", a, " and tx B = ", b)
+		}
+	}
+}
+
+const validDevnetJSONEncodedMinterDefinitionTx = `{
+	"version": 128,
+	"data": {
+		"nonce": "FoAiO8vN2eU=",
+		"mintfulfillment": {
+			"type": 1,
+			"data": {
+				"publickey": "ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780",
+				"signature": "bdf023fbe7e0efec584d254b111655e1c2f81b9488943c3a712b91d9ad3a140cb0949a8868c5f72e08ccded337b79479114bdb4ed05f94dfddb359e1a6124602"
+			}
+		},
+		"mintcondition": {
+			"type": 1,
+			"data": {
+				"unlockhash": "01e78fd5af261e49643dba489b29566db53fa6e195fa0e6aad4430d4f06ce88b73e047fe6a0703"
+			}
+		},
+		"minerfees": ["1000000000"],
+		"arbitrarydata": "YSBtaW50ZXIgZGVmaW5pdGlvbiB0ZXN0"
+	}
+}`
+
+func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
+	mintCondition := types.NewCondition(types.NewUnlockHashCondition(
+		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintCondition: mintCondition,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(validDevnetJSONEncodedMinterDefinitionTx))
+	if err != nil {
+		t.Fatal("failed to decode valid minter definition tx:", err)
+	}
+
+	// util function to sign tx
+	type testKeyPair struct {
+		types.KeyPair
+		SignCount int
+	}
+	signTxAndValidate := func(key interface{}) error {
+		t.Helper()
+
+		signCount := 1
+
+		// redefine fulfillment, as signing an already signed fulfillment is not possible
+		mdtxExtension := tx.Extension.(*MinterDefinitionTransactionExtension)
+		switch mintCondition.ConditionType() {
+		case types.ConditionTypeUnlockHash:
+			tx.Extension = &MinterDefinitionTransactionExtension{
+				Nonce: mdtxExtension.Nonce,
+				MintFulfillment: types.NewFulfillment(types.NewSingleSignatureFulfillment(
+					mdtxExtension.MintFulfillment.Fulfillment.(*types.SingleSignatureFulfillment).PublicKey,
+				)),
+				MintCondition: mdtxExtension.MintCondition,
+			}
+		case types.ConditionTypeMultiSignature:
+			k, ok := key.(testKeyPair)
+			if !ok {
+				panic("sign key should be a testKeyPair")
+			}
+			signCount = k.SignCount
+			key = k.KeyPair
+			tx.Extension = &MinterDefinitionTransactionExtension{
+				Nonce:           mdtxExtension.Nonce,
+				MintFulfillment: types.NewFulfillment(types.NewMultiSignatureFulfillment(nil)),
+				MintCondition:   mdtxExtension.MintCondition,
+			}
+		default:
+			panic("unsupported condition type")
+		}
+		for i := 0; i < signCount; i++ {
+			// sign fulfillment, which lives in the tx extension data
+			err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+				return fulfillment.Sign(types.FulfillmentSignContext{
+					InputIndex:  0, // doesn't matter really for this extension
+					Transaction: tx,
+					Key:         key,
+				})
+			})
+			if err != nil {
+				return fmt.Errorf("sign #%d failed: %v", i, err)
+			}
+		}
+		validationCtx := types.ValidationContext{
+			Confirmed:   true,
+			BlockHeight: 4072,
+			BlockTime:   1534271219,
+		}
+		chainConstants := config.GetDevnetGenesis()
+		txValidationConstants := types.TransactionValidationConstants{
+			BlockSizeLimit:         chainConstants.BlockSizeLimit,
+			ArbitraryDataSizeLimit: chainConstants.ArbitraryDataSizeLimit,
+			MinimumMinerFee:        chainConstants.MinimumTransactionFee,
+		}
+		return tx.ValidateTransaction(validationCtx, txValidationConstants)
+	}
+
+	// sign as the signer did on devnet, should succeed
+	err = signTxAndValidate(hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"))
+	if err != nil {
+		t.Fatalf("failed to sign: %v", err)
+	}
+
+	// sign as the signer did on devnet, should succeed
+	err = signTxAndValidate(func() crypto.SecretKey { sk, _ := crypto.GenerateKeyPair(); return sk }())
+	if err == nil {
+		t.Fatalf("succeeded to sign, while it should fail")
+	}
+
+	mintCondition = types.NewCondition(types.NewMultiSignatureCondition(
+		types.UnlockHashSlice{
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
+			unlockHashFromHex("016438a548b6d377e87b08e8eae5ef641a4e70cc861b85b54b0921330e03084ffe0a8d9a38e3a8"),
+		},
+		2,
+	))
+	// overwrite coin tx multisig condition to be a multisig condition instead
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintCondition: mintCondition,
+	})
+
+	// sign multisig condition, should fail as we didn't sign enough
+	err = signTxAndValidate(testKeyPair{
+		KeyPair: types.KeyPair{
+			PublicKey: types.SiaPublicKey{
+				Algorithm: types.SignatureEd25519,
+				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+			},
+			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+		},
+		SignCount: 1,
+	})
+	if err == nil {
+		t.Fatal("should fail to validate as we didn't sign twice, but it succeeded")
+	}
+
+	// sign multisig condition, should succeed
+	err = signTxAndValidate(testKeyPair{
+		KeyPair: types.KeyPair{
+			PublicKey: types.SiaPublicKey{
+				Algorithm: types.SignatureEd25519,
+				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+			},
+			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+		},
+		SignCount: 2,
+	})
+	if err != nil {
+		t.Fatalf("failed to sign multisig: %v", err)
+	}
+}
+
+func TestMinterDefinitionTransactionValidation(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(validDevnetJSONEncodedMinterDefinitionTx))
+	if err != nil {
+		t.Fatal("failed to decode valid minter definition tx:", err)
+	}
+
+	// util function to resign tx when needed,
+	// as to ensure we fail because of the reason we want it to fail
+	removeTxSignature := func() {
+		mdtxExtension := tx.Extension.(*MinterDefinitionTransactionExtension)
+		tx.Extension = &MinterDefinitionTransactionExtension{
+			Nonce: mdtxExtension.Nonce,
+			MintFulfillment: types.NewFulfillment(types.NewSingleSignatureFulfillment(
+				mdtxExtension.MintFulfillment.Fulfillment.(*types.SingleSignatureFulfillment).PublicKey,
+			)),
+			MintCondition: mdtxExtension.MintCondition,
+		}
+	}
+	resignTx := func(description string) {
+		t.Helper()
+		// redefine fulfillment, as signing an already signed fulfillment is not possible
+		removeTxSignature()
+		// sign fulfillment, which lives in the tx extension data
+		err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+			return fulfillment.Sign(types.FulfillmentSignContext{
+				InputIndex:  0, // doesn't matter really for this extension
+				Transaction: tx,
+				Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+			})
+		})
+		if err != nil {
+			t.Fatalf("failed to resign after %q: %v", description, err)
+		}
+	}
+
+	validationCtx := types.ValidationContext{
+		Confirmed:   true,
+		BlockHeight: 4072,
+		BlockTime:   1534271219,
+	}
+	chainConstants := config.GetDevnetGenesis()
+	txValidationConstants := types.TransactionValidationConstants{
+		BlockSizeLimit:         chainConstants.BlockSizeLimit,
+		ArbitraryDataSizeLimit: chainConstants.ArbitraryDataSizeLimit,
+		MinimumMinerFee:        chainConstants.MinimumTransactionFee,
+	}
+
+	// should be valid, as it was published on a local devnet
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err != nil {
+		t.Fatal("failed to validate minter definition tx, while it is supposed to be valid:", err)
+	}
+
+	origExtension := tx.Extension
+	origMDExtension := origExtension.(*MinterDefinitionTransactionExtension)
+
+	// make the arbitrary data too big, should fail
+	origArbitraryData := tx.ArbitraryData
+	tx.ArbitraryData = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
+	resignTx("changed arbitrary data")
+	// should fail now
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of exceeded arbitrary data byte size limit")
+	}
+	// restore to valid arbitrary data
+	tx.ArbitraryData = origArbitraryData
+	// use orig extension as well, as we signed
+	tx.Extension = origExtension
+
+	// mess with the extension to make it fail
+	// should all fail
+	tx.Extension = nil
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of nil extension")
+	}
+	tx.Extension = &MinterDefinitionTransactionExtension{
+		Nonce:           RandomTransactionNonce(),
+		MintFulfillment: origMDExtension.MintFulfillment,
+		MintCondition:   origMDExtension.MintCondition,
+	}
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of incompatible nonce with signature")
+	}
+	tx.Extension = &MinterDefinitionTransactionExtension{
+		Nonce:         origMDExtension.Nonce,
+		MintCondition: origMDExtension.MintCondition,
+	}
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of nil fulfillment")
+	}
+	tx.Extension = &MinterDefinitionTransactionExtension{
+		Nonce: origMDExtension.Nonce,
+		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
+			Pairs: []types.PublicKeySignaturePair{
+				{
+					PublicKey: types.SiaPublicKey{
+						Algorithm: types.SignatureEd25519,
+						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
+					},
+					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
+				},
+				{
+					PublicKey: types.SiaPublicKey{
+						Algorithm: types.SignatureEd25519,
+						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+					},
+					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
+				},
+			},
+		}),
+		MintCondition: origMDExtension.MintCondition,
+	}
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of wrong fulfillment")
+	}
+	tx.Extension = &MinterDefinitionTransactionExtension{
+		Nonce: origMDExtension.Nonce,
+		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
+			PublicKey: types.SiaPublicKey{
+				Algorithm: types.SignatureEd25519,
+				Key:       hbs("a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d"),
+			},
+			Signature: hbs("3e2ed4e893f66ffd57e26afe83d570ca4b8ba873f8236a60c018cde4852de1027256d088b2253ec061ae973f961f26cde8fa42f5d3c0ce1316560ceb25786f03"),
+		}),
+		MintCondition: origMDExtension.MintCondition,
+	}
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of wrong fulfillment")
+	}
+	tx.Extension = &MinterDefinitionTransactionExtension{
+		Nonce:           origMDExtension.Nonce,
+		MintFulfillment: origMDExtension.MintFulfillment,
+	}
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of nil condition")
+	}
+	// restore to valid extension
+	tx.Extension = origExtension
+	// TODO: remove and mess unlock condition
+
+	// at least one miner fee is given,
+	// and each miner fee has to be at least the minimum defined miner fee amount
+	origMinerFees := tx.MinerFees
+	tx.MinerFees = nil
+	removeTxSignature()
+	// should all fail now
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of no miner fees defined")
+	}
+	tx.MinerFees = []types.Currency{types.ZeroCurrency}
+	resignTx("use zero miner fee")
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of a too low miner fee defined")
+	}
+	tx.MinerFees = []types.Currency{chainConstants.MinimumTransactionFee, types.ZeroCurrency}
+	resignTx("use minimum and zero miner fees")
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of a too low miner fee defined")
+	}
+	tx.MinerFees = []types.Currency{
+		chainConstants.MinimumTransactionFee.Sub(types.NewCurrency64(1)),
+		types.NewCurrency64(1),
+	}
+	resignTx("total miner fees is good enough")
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of a too low miner fee defined")
+	}
+	tx.MinerFees = []types.Currency{
+		chainConstants.MinimumTransactionFee,
+	}
+	resignTx("use minimum miner fee")
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err != nil {
+		t.Fatal("failed to validate minter definition tx, while it is supposed to be valid:", err)
+	}
+	tx.MinerFees = []types.Currency{
+		chainConstants.MinimumTransactionFee,
+		chainConstants.MinimumTransactionFee,
+	}
+	resignTx("use more minir fees than required")
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err != nil {
+		t.Fatal("failed to validate minter definition tx, while it is supposed to be valid:", err)
+	}
+	tx.MinerFees = []types.Currency{
+		chainConstants.MinimumTransactionFee.Mul64(1000),
+		chainConstants.MinimumTransactionFee,
+	}
+	resignTx("use more minir fees than required")
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err != nil {
+		t.Fatal("failed to validate minter definition tx, while it is supposed to be valid:", err)
+	}
+	// these should all work though
+	// restore to valid miner fees
+	tx.MinerFees = origMinerFees
+	// replace extension as well with orig, as we resigned
+	tx.Extension = origExtension
+
+	// restored as it is, it should be valid
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err != nil {
+		t.Fatal("failed to validate minter definition tx, while it is supposed to be valid:", err)
 	}
 }
 
@@ -741,6 +1418,7 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 	}
 
 	origExtension := tx.Extension
+	origCCExtension := origExtension.(*CoinCreationTransactionExtension)
 
 	// make the arbitrary data too big, should fail
 	origArbitraryData := tx.ArbitraryData
@@ -765,16 +1443,25 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 		t.Fatal("succeeded to validate coin creation tx, " +
 			"while it is supposed to fail because of nil extension")
 	}
-	tx.Extension = CoinCreationTransactionExtension{
-		Nonce: RandomTransactionNonce(),
+	tx.Extension = &CoinCreationTransactionExtension{
+		Nonce:           RandomTransactionNonce(),
+		MintFulfillment: origCCExtension.MintFulfillment,
+	}
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of incompatible nonce with signature")
+	}
+	tx.Extension = &CoinCreationTransactionExtension{
+		Nonce: origCCExtension.Nonce,
 	}
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
 	if err == nil {
 		t.Fatal("succeeded to validate coin creation tx, " +
 			"while it is supposed to fail because of nil fulfillment")
 	}
-	tx.Extension = CoinCreationTransactionExtension{
-		Nonce: RandomTransactionNonce(),
+	tx.Extension = &CoinCreationTransactionExtension{
+		Nonce: origCCExtension.Nonce,
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
@@ -799,8 +1486,8 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 		t.Fatal("succeeded to validate coin creation tx, " +
 			"while it is supposed to fail because of wrong fulfillment")
 	}
-	tx.Extension = CoinCreationTransactionExtension{
-		Nonce: RandomTransactionNonce(),
+	tx.Extension = &CoinCreationTransactionExtension{
+		Nonce: origCCExtension.Nonce,
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
 			PublicKey: types.SiaPublicKey{
 				Algorithm: types.SignatureEd25519,
@@ -814,8 +1501,8 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 		t.Fatal("succeeded to validate coin creation tx, " +
 			"while it is supposed to fail because of wrong fulfillment")
 	}
-	tx.Extension = CoinCreationTransactionExtension{
-		Nonce: RandomTransactionNonce(),
+	tx.Extension = &CoinCreationTransactionExtension{
+		Nonce: origCCExtension.Nonce,
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
 			PublicKey: types.SiaPublicKey{
 				Algorithm: types.SignatureEd25519,

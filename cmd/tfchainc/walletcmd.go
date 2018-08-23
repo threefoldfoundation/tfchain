@@ -20,6 +20,17 @@ func createWalletSubCmds(cli *client.CommandLineClient) {
 
 	// define commands
 	var (
+		createMinterDefinitionTxCmd = &cobra.Command{
+			Use:   "minterdefinitiontransaction <dest>|<rawCondition>",
+			Short: "Create a new minter definition transaction",
+			Long: `Create a new minter definition transaction using the given mint condition.
+The mint condition is used to overwrite the current globally defined mint condition,
+and can be given as a raw output condition (or address, which resolved to a singlesignature condition).
+
+The returned (raw) MinterDefinitionTransaction still has to be signed, prior to sending.
+	`,
+			Run: walletSubCmds.createMinterDefinitionTxCmd,
+		}
 		createCoinCreationTxCmd = &cobra.Command{
 			Use:   "coincreationtransaction <dest>|<rawCondition> <amount> [<dest>|<rawCondition> <amount>]...",
 			Short: "Create a new coin creation transaction",
@@ -40,20 +51,57 @@ The returned (raw) CoinCreationTransaction still has to be signed, prior to send
 
 	// add commands as wallet sub commands
 	cli.WalletCmd.RootCmdCreate.AddCommand(
+		createMinterDefinitionTxCmd,
 		createCoinCreationTxCmd,
 	)
 
 	// register flags
+	createMinterDefinitionTxCmd.Flags().StringVar(
+		&walletSubCmds.minterDefinitionTxCfg.Description, "description", "",
+		"optionally add a description to describe the reasons of transfer of minting power, added as arbitrary data")
 	createCoinCreationTxCmd.Flags().StringVar(
 		&walletSubCmds.coinCreationTxCfg.Description, "description", "",
 		"optionally add a description to describe the origins of the coin creation, added as arbitrary data")
 }
 
 type walletSubCmds struct {
-	cli               *client.CommandLineClient
+	cli                   *client.CommandLineClient
+	minterDefinitionTxCfg struct {
+		Description string
+	}
 	coinCreationTxCfg struct {
 		Description string
 	}
+}
+
+func (walletSubCmds *walletSubCmds) createMinterDefinitionTxCmd(cmd *cobra.Command, args []string) {
+	if len(args) != 1 {
+		cmd.UsageFunc()
+		cli.Die("Invalid amount of arguments. One argume has to be given: <dest>|<rawCondition>")
+	}
+
+	// create a minter definition tx with a random nonce and the minimum required miner fee
+	tx := types.MinterDefinitionTransaction{
+		Nonce:     types.RandomTransactionNonce(),
+		MinerFees: []rivinetypes.Currency{walletSubCmds.cli.Config.MinimumTransactionFee},
+	}
+
+	// parse the given mint condition
+	var err error
+	tx.MintCondition, err = parseConditionString(args[0])
+	if err != nil {
+		cmd.UsageFunc()(cmd)
+		cli.Die(err)
+	}
+
+	// if a description is given, use it as arbitrary data
+	if n := len(walletSubCmds.minterDefinitionTxCfg.Description); n > 0 {
+		tx.ArbitraryData = make([]byte, n)
+		copy(tx.ArbitraryData[:], walletSubCmds.minterDefinitionTxCfg.Description[:])
+	}
+
+	// encode the transaction as a JSON-encoded string and print it to the STDOUT
+	json.NewEncoder(os.Stdout).Encode(tx.Transaction())
 }
 
 func (walletSubCmds *walletSubCmds) createCoinCreationTxCmd(cmd *cobra.Command, args []string) {
@@ -119,23 +167,36 @@ func parsePairedOutputs(args []string, parseCurrency parseCurrencyString) (pairs
 			return
 		}
 
-		// try to parse it as an unlock hash
-		var uh rivinetypes.UnlockHash
-		err = uh.LoadString(args[i])
-		if err == nil {
-			// parsing as an unlock hash was succesfull, store the pair and continue to the next pair
-			pair.Condition = rivinetypes.NewCondition(rivinetypes.NewUnlockHashCondition(uh))
-			pairs = append(pairs, pair)
-			continue
-		}
-
-		// try to parse it as a JSON-encoded unlock condition
-		err = pair.Condition.UnmarshalJSON([]byte(args[i]))
+		// parse condition second
+		pair.Condition, err = parseConditionString(args[i])
 		if err != nil {
-			err = fmt.Errorf("condition has to be UnlockHash or JSON-encoded UnlockCondition, output #%d's was neither", i/2)
+			err = fmt.Errorf("failed to parse condition for output #%d: %v", i/2, err)
 			return
 		}
+
+		// append succesfully parsed pair
 		pairs = append(pairs, pair)
+	}
+	return
+}
+
+// try to parse the string first as an unlock hash,
+// if that fails parse it as a
+func parseConditionString(str string) (condition rivinetypes.UnlockConditionProxy, err error) {
+	// try to parse it as an unlock hash
+	var uh rivinetypes.UnlockHash
+	err = uh.LoadString(str)
+	if err == nil {
+		// parsing as an unlock hash was succesfull, store the pair and continue to the next pair
+		condition = rivinetypes.NewCondition(rivinetypes.NewUnlockHashCondition(uh))
+		return
+	}
+
+	// try to parse it as a JSON-encoded unlock condition
+	err = condition.UnmarshalJSON([]byte(str))
+	if err != nil {
+		return rivinetypes.UnlockConditionProxy{}, fmt.Errorf(
+			"condition has to be UnlockHash or JSON-encoded UnlockCondition, output %q is neither", str)
 	}
 	return
 }
