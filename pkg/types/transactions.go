@@ -9,6 +9,7 @@ import (
 
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 
+	"github.com/rivine/rivine/build"
 	"github.com/rivine/rivine/crypto"
 	"github.com/rivine/rivine/encoding"
 	"github.com/rivine/rivine/types"
@@ -483,17 +484,10 @@ func (mdtc MinterDefinitionTransactionController) ValidateTransaction(t types.Tr
 	// check if the valid mint condition has a type we want to support, one of:
 	//   * PubKey-UnlockHashCondtion
 	//   * MultiSigConditions
-	switch ct := mdtx.MintCondition.ConditionType(); ct {
-	case types.ConditionTypeMultiSignature:
-		// always valid
-	case types.ConditionTypeUnlockHash:
-		// only valid for unlock hash type 1 (PubKey)
-		if mdtx.MintCondition.UnlockHash().Type != types.UnlockTypePubKey {
-			return errors.New("unlockHash conditions can be used as mint conditions, if the unlock hash type is PubKey")
-		}
-	default:
-		// all other types aren't allowed
-		return fmt.Errorf("condition type %d cannot be used as a mint condition", ct)
+	//   * TimeLockConditions (if the internal condition type is supported)
+	err = validateMintCondition(mdtx.MintCondition)
+	if err != nil {
+		return err
 	}
 
 	// check if MintFulfillment fulfills the Globally defined MintCondition
@@ -522,6 +516,41 @@ func (mdtc MinterDefinitionTransactionController) ValidateTransaction(t types.Tr
 		}
 	}
 	return
+}
+
+func validateMintCondition(condition types.UnlockCondition) error {
+	switch ct := condition.ConditionType(); ct {
+	case types.ConditionTypeMultiSignature:
+		// always valid
+		return nil
+
+	case types.ConditionTypeUnlockHash:
+		// only valid for unlock hash type 1 (PubKey)
+		if condition.UnlockHash().Type == types.UnlockTypePubKey {
+			return nil
+		}
+		return errors.New("unlockHash conditions can be used as mint conditions, if the unlock hash type is PubKey")
+
+	case types.ConditionTypeTimeLock:
+		// ensure to unpack a proxy condition first
+		if cp, ok := condition.(types.UnlockConditionProxy); ok {
+			condition = cp.Condition
+		}
+		// time lock conditions are allowed as long as the internal condition is allowed
+		cg, ok := condition.(types.MarshalableUnlockConditionGetter)
+		if !ok {
+			err := fmt.Errorf("unexpected Go-type for TimeLockCondition: %T", condition)
+			if build.DEBUG {
+				panic(err)
+			}
+			return err
+		}
+		return validateMintCondition(cg.GetMarshalableUnlockCondition())
+
+	default:
+		// all other types aren't allowed
+		return fmt.Errorf("condition type %d cannot be used as a mint condition", ct)
+	}
 }
 
 // ValidateCoinOutputs implements CoinOutputValidator.ValidateCoinOutputs

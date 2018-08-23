@@ -855,9 +855,18 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 
 		signCount := 1
 
+		// validate condition first (free validateMintCondition test)
+		err := validateMintCondition(mintCondition)
+		if err != nil {
+			return fmt.Errorf("invalid mint condition cannot be signed: %v", err)
+		}
+
 		// redefine fulfillment, as signing an already signed fulfillment is not possible
 		mdtxExtension := tx.Extension.(*MinterDefinitionTransactionExtension)
-		switch mintCondition.ConditionType() {
+
+		var condition types.UnlockCondition = mintCondition.Condition
+	signSwitch:
+		switch condition.ConditionType() {
 		case types.ConditionTypeUnlockHash:
 			tx.Extension = &MinterDefinitionTransactionExtension{
 				Nonce: mdtxExtension.Nonce,
@@ -866,6 +875,7 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 				)),
 				MintCondition: mdtxExtension.MintCondition,
 			}
+
 		case types.ConditionTypeMultiSignature:
 			k, ok := key.(testKeyPair)
 			if !ok {
@@ -878,6 +888,15 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 				MintFulfillment: types.NewFulfillment(types.NewMultiSignatureFulfillment(nil)),
 				MintCondition:   mdtxExtension.MintCondition,
 			}
+
+		case types.ConditionTypeTimeLock:
+			cg, ok := condition.(types.MarshalableUnlockConditionGetter)
+			if !ok {
+				panic(fmt.Errorf("unexpected Go-type for TimeLockCondition: %T", condition))
+			}
+			condition = cg.GetMarshalableUnlockCondition()
+			goto signSwitch
+
 		default:
 			panic("unsupported condition type")
 		}
@@ -920,6 +939,20 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 		t.Fatalf("succeeded to sign, while it should fail")
 	}
 
+	// test that we can use a time lock condition
+	mintCondition = types.NewCondition(types.NewTimeLockCondition(types.LockTimeMinTimestampValue, types.NewUnlockHashCondition(
+		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))))
+	// overwrite coin tx mint condition to be a timelocked unlock hash condition instead
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintCondition: mintCondition,
+	})
+
+	// sign as the signer did on devnet, should still succeed
+	err = signTxAndValidate(hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"))
+	if err != nil {
+		t.Fatalf("failed to sign: %v", err)
+	}
+
 	mintCondition = types.NewCondition(types.NewMultiSignatureCondition(
 		types.UnlockHashSlice{
 			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
@@ -948,6 +981,34 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 		t.Fatal("should fail to validate as we didn't sign twice, but it succeeded")
 	}
 
+	// sign multisig condition, should succeed
+	err = signTxAndValidate(testKeyPair{
+		KeyPair: types.KeyPair{
+			PublicKey: types.SiaPublicKey{
+				Algorithm: types.SignatureEd25519,
+				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+			},
+			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+		},
+		SignCount: 2,
+	})
+	if err != nil {
+		t.Fatalf("failed to sign multisig: %v", err)
+	}
+
+	// test that we can use a time lock condition with multisig
+	mintCondition = types.NewCondition(types.NewTimeLockCondition(types.LockTimeMinTimestampValue, types.NewMultiSignatureCondition(
+		types.UnlockHashSlice{
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
+			unlockHashFromHex("016438a548b6d377e87b08e8eae5ef641a4e70cc861b85b54b0921330e03084ffe0a8d9a38e3a8"),
+		},
+		2,
+	)))
+	// overwrite coin tx mint condition to be a timelocked unlock hash condition instead
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintCondition: mintCondition,
+	})
 	// sign multisig condition, should succeed
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
