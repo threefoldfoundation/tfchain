@@ -133,6 +133,11 @@ span.search-form-td {
 	color: grey;
 }
 
+#page-navigation {
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+}
+
 #nav-links {
 	font-size: 0.8rem;
 }
