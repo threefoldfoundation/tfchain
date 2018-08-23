@@ -133,26 +133,34 @@ span.search-form-td {
 	color: grey;
 }
 
+#page-navigation {
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+}
+
 #nav-links {
 	font-size: 0.8rem;
 }
 
-#nav-links-transaction {
-	display: block;
-	margin-left: 9rem; 
+#nav-links-home {
+	float: left;
 }
 
-#nav-links-output {
-	display: block;
-	margin-left: 9rem;
+#nav-container {
+	float: left;
+	margin-left: 0.5rem;
 }
 
-#nav-links span::after {
+#nav-container span {
+	display: block;
+}
+
+#nav-container span::before {
 	color: black;
 	content: ' > ';
 }
 
-#nav-links > *:last-child::after {
+#nav-container > span:first-child::after {
 	content : '';
 }
 
@@ -184,6 +192,12 @@ span.search-form-td {
 
 .button-disabled {
 	opacity: 0.3;
+}
+
+.clearfix::after {
+    content: "";
+    clear: both;
+    display: table;
 }
 
 #footer-content {

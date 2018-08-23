@@ -345,6 +345,16 @@ function appendRawBlock(element, explorerBlock) {
 	element.appendChild(container);
 }
 
+function appendNavigationMenuBlock(explorerBlock) {
+	var navigation = document.getElementById('nav-links');
+	var blockSpan = document.createElement('span');
+	var navContainer = document.getElementById('nav-container');
+	blockSpan.id = 'nav-links-block';
+	navContainer.appendChild(blockSpan);
+	navigation.appendChild(navContainer);
+	linkHeight(blockSpan, explorerBlock.height, 'Block');
+}
+
 function appendExplorerBlock(element, explorerBlock) {
 	appendNavigationMenuBlock(explorerBlock);
 	appendNavigationElements(element, explorerBlock);
@@ -352,14 +362,6 @@ function appendExplorerBlock(element, explorerBlock) {
 	appendBlockMinerPayouts(element, explorerBlock);
 	appendBlockTransactions(element, explorerBlock);
 	appendRawBlock(element, explorerBlock);
-}
-
-function appendNavigationMenuBlock(explorerBlock) {
-	var navigation = document.getElementById('nav-links');
-	var blockSpan = document.createElement('span');
-	blockSpan.id = 'nav-links-block';
-	navigation.appendChild(blockSpan);
-	linkHeight(blockSpan, explorerBlock.height, 'Block');
 }
 
 // getBlockchainConstants returns the constants of the blockchain
