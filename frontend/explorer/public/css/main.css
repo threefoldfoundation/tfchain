@@ -185,3 +185,16 @@ span.search-form-td {
 .button-disabled {
 	opacity: 0.3;
 }
+
+footer {
+	background-color: #e0e0e0;
+	text-align: center;
+	margin: 0 auto;
+	margin-top: 1rem;
+	width: 1000px;
+	border: 1px solid #cbcbcb;
+}
+
+#version {
+	font-size: 0.8rem;
+}
