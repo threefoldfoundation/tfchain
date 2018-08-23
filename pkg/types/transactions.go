@@ -475,13 +475,25 @@ func (mdtc MinterDefinitionTransactionController) ValidateTransaction(t types.Tr
 		return fmt.Errorf("failed to use tx as a coin creation tx: %v", err)
 	}
 
-	// check if the MintCondition is valid and not a nil condition
+	// check if the MintCondition is valid
 	err = mdtx.MintCondition.IsStandardCondition(ctx)
 	if err != nil {
 		return fmt.Errorf("defined mint condition is not standard within the given blockchain context: %v", err)
 	}
-	if mdtx.MintCondition.ConditionType() == types.ConditionTypeNil {
-		return errors.New("nil condition is not allowed as mint condition")
+	// check if the valid mint condition has a type we want to support, one of:
+	//   * PubKey-UnlockHashCondtion
+	//   * MultiSigConditions
+	switch ct := mdtx.MintCondition.ConditionType(); ct {
+	case types.ConditionTypeMultiSignature:
+		// always valid
+	case types.ConditionTypeUnlockHash:
+		// only valid for unlock hash type 1 (PubKey)
+		if mdtx.MintCondition.UnlockHash().Type != types.UnlockTypePubKey {
+			return errors.New("unlockHash conditions can be used as mint conditions, if the unlock hash type is PubKey")
+		}
+	default:
+		// all other types aren't allowed
+		return fmt.Errorf("condition type %d cannot be used as a mint condition", ct)
 	}
 
 	// check if MintFulfillment fulfills the Globally defined MintCondition
@@ -681,7 +693,7 @@ type (
 		// MintCondition defines a new condition that defines who become(s) the new minter(s),
 		// and thus defines who can create coins as well as update who is/are the current minter(s)
 		//
-		// NilCondition is NOT allowed!
+		// Only UnlockHash (type 1) and MultiSigConditions are allowed.
 		MintCondition types.UnlockConditionProxy `json:"mintcondition"`
 		// Minerfees, a fee paid for this minter definition transaction.
 		MinerFees []types.Currency `json:"minerfees"`

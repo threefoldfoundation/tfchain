@@ -1117,14 +1117,48 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 		Nonce:           origMDExtension.Nonce,
 		MintFulfillment: origMDExtension.MintFulfillment,
 	}
+	resignTx("changed mint condition to use nil-condition")
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
 	if err == nil {
 		t.Fatal("succeeded to validate minter definition tx, " +
 			"while it is supposed to fail because of nil condition")
 	}
+	tx.Extension = &MinterDefinitionTransactionExtension{
+		Nonce:           origMDExtension.Nonce,
+		MintFulfillment: origMDExtension.MintFulfillment,
+		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("0282bbab17110c5e3556a9ce8ef9b243cdacde2c92d2f13283501d84b920bf48fc630b7cbab96d"))),
+	}
+	resignTx("changed mint condition to use atomic-swap-unlock-hash condition")
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of non-supported unlock hash condition")
+	}
+	tx.Extension = &MinterDefinitionTransactionExtension{
+		Nonce:           origMDExtension.Nonce,
+		MintFulfillment: origMDExtension.MintFulfillment,
+		MintCondition: types.NewCondition(&types.AtomicSwapCondition{
+			Sender: types.UnlockHash{
+				Type: types.UnlockTypePubKey,
+				Hash: hs("1234567891234567891234567891234567891234567891234567891234567891"),
+			},
+			Receiver: types.UnlockHash{
+				Type: types.UnlockTypePubKey,
+				Hash: hs("6363636363636363636363636363636363636363636363636363636363636363"),
+			},
+			HashedSecret: types.AtomicSwapHashedSecret(hs("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")),
+			TimeLock:     1522068743,
+		}),
+	}
+	resignTx("changed mint condition to use atomic-swap condition")
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of non-supported atomic swap condition")
+	}
 	// restore to valid extension
 	tx.Extension = origExtension
-	// TODO: remove and mess unlock condition
 
 	// at least one miner fee is given,
 	// and each miner fee has to be at least the minimum defined miner fee amount
