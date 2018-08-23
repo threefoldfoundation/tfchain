@@ -150,16 +150,12 @@ span.search-form-td {
 	display: block;
 }
 
-#nav-container > span::after {
-	content: '<br />';
-}
-
-#nav-links span::after {
+#nav-container span::before {
 	color: black;
 	content: ' > ';
 }
 
-#nav-container > span:last-child::after {
+#nav-container > span:first-child::after {
 	content : '';
 }
 
