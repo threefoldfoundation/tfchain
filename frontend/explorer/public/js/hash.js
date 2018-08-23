@@ -1439,8 +1439,10 @@ function appendNavigationMenuTransaction(explorerTransaction) {
 	appendNavigationMenuBlock(explorerTransaction);
 	var navigation = document.getElementById('nav-links');
 	var transactionSpan = document.createElement('span');
+	var navContainer = document.getElementById('nav-container');
 	transactionSpan.id = 'nav-links-transaction';
-	navigation.appendChild(transactionSpan);
+	navContainer.appendChild(transactionSpan);
+	navigation.appendChild(navContainer);
 	linkHash(transactionSpan, explorerTransaction.id, 'Transaction');
 }
 
@@ -1454,8 +1456,10 @@ function appendNavigationMenuCoinOutput(explorerHash, hash) {
 					appendNavigationMenuTransaction(explorerHash.transactions[i]);
 					var navigation = document.getElementById('nav-links');
 					var outputSpan = document.createElement('span');
+					var navContainer = document.getElementById('nav-container');
 					outputSpan.id = 'nav-links-output';
-					navigation.appendChild(outputSpan);
+					navContainer.appendChild(outputspan);
+					navigation.appendChild(navContainer);
 					linkHash(outputSpan, explorerHash.transactions[i].coinoutputids[j], 'Coin Output');
 					return;
 				}
@@ -1472,8 +1476,10 @@ function appendNavigationMenuCoinOutput(explorerHash, hash) {
 				appendNavigationMenuBlock(explorerHash.blocks[i]);
 				var navigation = document.getElementById('nav-links');
 				var outputSpan = document.createElement('span');
+				var navContainer = document.getElementById('nav-container');
 				outputSpan.id = 'nav-links-output';
-				navigation.appendChild(outputSpan);
+				navContainer.appendChild(outputSpan);
+				navigation.appendChild(navContainer);
 				linkHash(outputSpan, explorerHash.blocks[i].minerpayoutids[j], 'Coin Output');
 				return;
 			}
@@ -1489,8 +1495,10 @@ function appendNavigationMenuBlockstakeOutput(explorerTransactions, hash) {
 				appendNavigationMenuTransaction(explorerTransactions[i]);
 				var navigation = document.getElementById('nav-links');
 				var outputSpan = document.createElement('span');
+				var navContainer = document.getElementById('nav-container');
 				outputSpan.id = 'nav-links-output';
-				navigation.appendChild(outputSpan);
+				navContainer.appendChild(outputSpan);
+				navigation.appendChild(navContainer);
 				linkHash(outputSpan, explorerTransactions[i].blockstakeoutputids[j], 'Blockstake Output');
 				return;
 			}
@@ -1502,8 +1510,10 @@ function appendNavigationMenuBlockstakeOutput(explorerTransactions, hash) {
 function appendNavigationMenuUnlockHash(hash) {
 	var navigation = document.getElementById('nav-links');
 	var unlockSpan = document.createElement('span');
+	var navContainer = document.getElementById('nav-container');
 	unlockSpan.id = 'nav-links-unlock';
-	navigation.appendChild(unlockSpan);
+	navContainer.appendChild(unlockSpan);
+	navigation.appendChild(navContainer);
 	switch(hash.substring(0,2)) {
 		case "00": linkHash(unlockSpan, hash, 'Free-for-all Wallet'); break;
 		case "01": linkHash(unlockSpan, hash, 'Wallet'); break;

@@ -137,14 +137,21 @@ span.search-form-td {
 	font-size: 0.8rem;
 }
 
-#nav-links-transaction {
-	display: block;
-	margin-left: 9rem; 
+#nav-links-home {
+	float: left;
 }
 
-#nav-links-output {
+#nav-container {
+	float: left;
+	margin-left: 0.5rem;
+}
+
+#nav-container span {
 	display: block;
-	margin-left: 9rem;
+}
+
+#nav-container > span::after {
+	content: '<br />';
 }
 
 #nav-links span::after {
@@ -152,7 +159,7 @@ span.search-form-td {
 	content: ' > ';
 }
 
-#nav-links > *:last-child::after {
+#nav-container > span:last-child::after {
 	content : '';
 }
 
@@ -184,4 +191,10 @@ span.search-form-td {
 
 .button-disabled {
 	opacity: 0.3;
+}
+
+.clearfix::after {
+    content: "";
+    clear: both;
+    display: table;
 }
