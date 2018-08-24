@@ -21,7 +21,12 @@ func main() {
 		panic(err)
 	}
 
+	mintConditionGetter := &cliMintConditionGetter{
+		client: cliClient,
+	}
+
 	// register tfchain-specific commands
+	createConsensusSubCmds(cliClient)
 	createWalletSubCmds(cliClient)
 
 	// define preRun function
@@ -38,7 +43,7 @@ func main() {
 		case config.NetworkNameStandard:
 			// Register the transaction controllers for all transaction versions
 			// supported on the standard network
-			types.RegisterTransactionTypesForStandardNetwork()
+			types.RegisterTransactionTypesForStandardNetwork(mintConditionGetter)
 			// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 			// until the blockchain reached a height of 42000 blocks.
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
@@ -51,7 +56,7 @@ func main() {
 		case config.NetworkNameTest:
 			// Register the transaction controllers for all transaction versions
 			// supported on the test network
-			types.RegisterTransactionTypesForTestNetwork()
+			types.RegisterTransactionTypesForTestNetwork(mintConditionGetter)
 			// Use our custom MultiSignatureCondition, just for testing purposes
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
@@ -61,7 +66,7 @@ func main() {
 		case config.NetworkNameDev:
 			// Register the transaction controllers for all transaction versions
 			// supported on the dev network
-			types.RegisterTransactionTypesForDevNetwork()
+			types.RegisterTransactionTypesForDevNetwork(mintConditionGetter)
 			// Use our custom MultiSignatureCondition, just for testing purposes
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 

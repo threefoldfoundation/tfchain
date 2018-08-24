@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/threefoldfoundation/tfchain/pkg/config"
+	"github.com/threefoldfoundation/tfchain/pkg/persist"
+	"github.com/threefoldfoundation/tfchain/pkg/types"
+
 	"github.com/rivine/rivine/pkg/cli"
 	"github.com/rivine/rivine/pkg/daemon"
-	"github.com/threefoldfoundation/tfchain/pkg/config"
-	"github.com/threefoldfoundation/tfchain/pkg/types"
 
 	"github.com/bgentry/speakeasy"
 	"github.com/spf13/cobra"
@@ -22,18 +24,11 @@ type commands struct {
 }
 
 func (cmds *commands) rootCommand(*cobra.Command, []string) {
-	// create and validate network config
-	networkCfg, err := setupNetworksAndTypes(cmds.cfg.BlockchainInfo.NetworkName)
-	if err != nil {
-		cli.DieWithError("failed to create network config", err)
-	}
-	err = networkCfg.Constants.Validate()
-	if err != nil {
-		cli.DieWithError("failed to validate network config", err)
-	}
+	var err error
 
 	// Silently append a subdirectory for storage with the name of the network so we don't create conflicts
 	cmds.cfg.RootPersistentDir = filepath.Join(cmds.cfg.RootPersistentDir, cmds.cfg.BlockchainInfo.NetworkName)
+
 	// Check if we require an api password
 	if cmds.cfg.AuthenticateAPI {
 		// if its not set, ask one now
@@ -57,23 +52,29 @@ func (cmds *commands) rootCommand(*cobra.Command, []string) {
 	cmds.cfg = daemon.ProcessConfig(cmds.cfg)
 
 	// run daemon
-	err = runDaemon(cmds.cfg, networkCfg, cmds.moduleSetFlag.ModuleIdentifiers())
+	err = runDaemon(cmds.cfg, cmds.moduleSetFlag.ModuleIdentifiers())
 	if err != nil {
 		cli.DieWithError("daemon failed", err)
 	}
 }
 
-// setupNetworksAndTypes injects the correct chain constants and genesis nodes based on the chosen network,
+// setupNetwork injects the correct chain constants and genesis nodes based on the chosen network,
 // it also ensures that features added during the lifetime of the blockchain,
-// only get activated on a certain block height, giving everyone sufficient time to upgrade should such features be introduced.
-func setupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
+// only get activated on a certain block height, giving everyone sufficient time to upgrade should such features be introduced,
+// it also creates the correct tfchain modules based on the given chain.
+func setupNetwork(cfg daemon.Config) (daemon.NetworkConfig, *persist.TransactionDB, error) {
 	// return the network configuration, based on the network name,
 	// which includes the genesis block as well as the bootstrap peers
-	switch name {
+	switch cfg.BlockchainInfo.NetworkName {
 	case config.NetworkNameStandard:
+		txdb, err := persist.NewTransactionDB(cfg.RootPersistentDir, config.GetStandardnetGenesisMintCondition())
+		if err != nil {
+			return daemon.NetworkConfig{}, nil, err
+		}
+
 		// Register the transaction controllers for all transaction versions
 		// supported on the standard network
-		types.RegisterTransactionTypesForStandardNetwork()
+		types.RegisterTransactionTypesForStandardNetwork(txdb)
 		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 		// until the blockchain reached a height of 42000 blocks.
 		types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
@@ -82,12 +83,17 @@ func setupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 		return daemon.NetworkConfig{
 			Constants:      config.GetStandardnetGenesis(),
 			BootstrapPeers: config.GetStandardnetBootstrapPeers(),
-		}, nil
+		}, txdb, nil
 
 	case config.NetworkNameTest:
+		txdb, err := persist.NewTransactionDB(cfg.RootPersistentDir, config.GetTestnetGenesisMintCondition())
+		if err != nil {
+			return daemon.NetworkConfig{}, nil, err
+		}
+
 		// Register the transaction controllers for all transaction versions
 		// supported on the test network
-		types.RegisterTransactionTypesForTestNetwork()
+		types.RegisterTransactionTypesForTestNetwork(txdb)
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
@@ -95,12 +101,17 @@ func setupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 		return daemon.NetworkConfig{
 			Constants:      config.GetTestnetGenesis(),
 			BootstrapPeers: config.GetTestnetBootstrapPeers(),
-		}, nil
+		}, txdb, nil
 
 	case config.NetworkNameDev:
+		txdb, err := persist.NewTransactionDB(cfg.RootPersistentDir, config.GetDevnetGenesisMintCondition())
+		if err != nil {
+			return daemon.NetworkConfig{}, nil, err
+		}
+
 		// Register the transaction controllers for all transaction versions
 		// supported on the dev network
-		types.RegisterTransactionTypesForDevNetwork()
+		types.RegisterTransactionTypesForDevNetwork(txdb)
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
@@ -108,11 +119,12 @@ func setupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
 		return daemon.NetworkConfig{
 			Constants:      config.GetDevnetGenesis(),
 			BootstrapPeers: nil,
-		}, nil
+		}, txdb, nil
 
 	default:
 		// network isn't recognised
-		return daemon.NetworkConfig{}, fmt.Errorf("Netork name %q not recognized", name)
+		return daemon.NetworkConfig{}, nil, fmt.Errorf(
+			"Netork name %q not recognized", cfg.BlockchainInfo.NetworkName)
 	}
 }
 

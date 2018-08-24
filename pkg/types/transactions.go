@@ -39,7 +39,7 @@ var (
 
 // RegisterTransactionTypesForStandardNetwork registers he transaction controllers
 // for all transaction versions supported on the standard network.
-func RegisterTransactionTypesForStandardNetwork() {
+func RegisterTransactionTypesForStandardNetwork(mintConditionGetter MintConditionGetter) {
 	const (
 		secondsInOneDay                         = 86400 + config.StandardNetworkBlockFrequency // round up
 		daysFromStartOfBlockchainUntil2ndOfJuly = 74
@@ -58,24 +58,16 @@ func RegisterTransactionTypesForStandardNetwork() {
 
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
-			unlockHashFromHex("01434535fd01243c02c277cd58d71423163767a575a8ae44e15807bf545e4a8456a5c4afabad51"),
-			unlockHashFromHex("01334cf68f312026ff9df84fc023558db8624bedd717adcc9edc6900488cf6df54ac8e3d1c89a8"),
-			unlockHashFromHex("0149a5496fea27315b7db6251e5dfda23bc9d4bf677c5a5c2d70f1382c44357197d8453d9dfa32"),
-		}, 2)),
+		MintConditionGetter: mintConditionGetter,
 	})
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
-			unlockHashFromHex("01434535fd01243c02c277cd58d71423163767a575a8ae44e15807bf545e4a8456a5c4afabad51"),
-			unlockHashFromHex("01334cf68f312026ff9df84fc023558db8624bedd717adcc9edc6900488cf6df54ac8e3d1c89a8"),
-			unlockHashFromHex("0149a5496fea27315b7db6251e5dfda23bc9d4bf677c5a5c2d70f1382c44357197d8453d9dfa32"),
-		}, 2)),
+		MintConditionGetter: mintConditionGetter,
 	})
 }
 
 // RegisterTransactionTypesForTestNetwork registers he transaction controllers
 // for all transaction versions supported on the test network.
-func RegisterTransactionTypesForTestNetwork() {
+func RegisterTransactionTypesForTestNetwork(mintConditionGetter MintConditionGetter) {
 	const (
 		secondsInOneDay                         = 86400 + config.TestNetworkBlockFrequency // round up
 		daysFromStartOfBlockchainUntil2ndOfJuly = 90
@@ -94,24 +86,16 @@ func RegisterTransactionTypesForTestNetwork() {
 
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
-			unlockHashFromHex("016148ac9b17828e0933796eaca94418a376f2aa3fefa15685cea5fa462093f0150e09067f7512"),
-			unlockHashFromHex("01d553fab496f3fd6092e25ce60e6f72e24b57950bffc0d372d659e38e5a95e89fb117b4eb3481"),
-			unlockHashFromHex("013a787bf6248c518aee3a040a14b0dd3a029bc8e9b19a1823faf5bcdde397f4201ad01aace4c9"),
-		}, 2)),
+		MintConditionGetter: mintConditionGetter,
 	})
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintCondition: types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
-			unlockHashFromHex("016148ac9b17828e0933796eaca94418a376f2aa3fefa15685cea5fa462093f0150e09067f7512"),
-			unlockHashFromHex("01d553fab496f3fd6092e25ce60e6f72e24b57950bffc0d372d659e38e5a95e89fb117b4eb3481"),
-			unlockHashFromHex("013a787bf6248c518aee3a040a14b0dd3a029bc8e9b19a1823faf5bcdde397f4201ad01aace4c9"),
-		}, 2)),
+		MintConditionGetter: mintConditionGetter,
 	})
 }
 
 // RegisterTransactionTypesForDevNetwork registers he transaction controllers
 // for all transaction versions supported on the dev network.
-func RegisterTransactionTypesForDevNetwork() {
+func RegisterTransactionTypesForDevNetwork(mintConditionGetter MintConditionGetter) {
 	// overwrite rivine-defined transaction versions
 	types.RegisterTransactionVersion(types.TransactionVersionZero, LegacyTransactionController{
 		LegacyTransactionController:    types.LegacyTransactionController{},
@@ -124,18 +108,26 @@ func RegisterTransactionTypesForDevNetwork() {
 
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		// belongs to wallet with mnemonic:
-		// carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else
-		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
-			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+		MintConditionGetter: mintConditionGetter,
 	})
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		// belongs to wallet with mnemonic:
-		// carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur proof joy intact fabric thumb rebel borrow poet chair network expire else
-		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
-			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+		MintConditionGetter: mintConditionGetter,
 	})
 }
+
+type (
+	// MintConditionGetter allows you to get the mint condition at a given block height.
+	//
+	// For the daemon this interface could be implemented directly by the DB object
+	// that keeps track of the mint condition state, while for a client this could
+	// come via the REST API from a tfchain daemon in a more indirect way.
+	MintConditionGetter interface {
+		// GetActiveMintCondition returns the active active mint condition.
+		GetActiveMintCondition() (types.UnlockConditionProxy, error)
+		// GetMintConditionAt returns the mint condition at a given block height.
+		GetMintConditionAt(height types.BlockHeight) (types.UnlockConditionProxy, error)
+	}
+)
 
 type (
 	// DefaultTransactionController wraps around Rivine's DefaultTransactionController,
@@ -169,17 +161,21 @@ type (
 	// for a transaction type reserved at type 129. It allows for the creation of Coin Outputs,
 	// without requiring coin inputs, but can only be used by the defined Coin Minters.
 	CoinCreationTransactionController struct {
-		// MintCondition defines the condition that has to be fulfilled
+		// MintConditionGetter is used to get a mint condition at the context-defined block height.
+		//
+		// The found MintCondition defines the condition that has to be fulfilled
 		// in order to mint new coins into existence (in the form of non-backed coin outputs).
-		MintCondition types.UnlockConditionProxy
+		MintConditionGetter MintConditionGetter
 	}
 
 	// MinterDefinitionTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 128. It allows the transfer of coin minting powers.
 	MinterDefinitionTransactionController struct {
-		// MintCondition defines the condition that has to be fulfilled
-		// in order to be able to define the new minter definition.
-		MintCondition types.UnlockConditionProxy
+		// MintConditionGetter is used to get a mint condition at the context-defined block height.
+		//
+		// The found MintCondition defines the condition that has to be fulfilled
+		// in order to mint new coins into existence (in the form of non-backed coin outputs).
+		MintConditionGetter MintConditionGetter
 	}
 )
 
@@ -296,7 +292,16 @@ func (cctc CoinCreationTransactionController) SignExtension(extension interface{
 	if !ok {
 		return nil, errors.New("invalid extension data for a CoinCreationTransaction")
 	}
-	err := sign(&ccTxExtension.MintFulfillment, cctc.MintCondition)
+
+	// get the active mint condition and use it to sign
+	// NOTE: this does mean that if the mint condition suddenly this transaction will be invalid,
+	// however given that only the minters (that create this coin transaction) can change the mint condition,
+	// it is unlikely that this ever gives problems
+	mintCondition, err := cctc.MintConditionGetter.GetActiveMintCondition()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the active mint condition: %v", err)
+	}
+	err = sign(&ccTxExtension.MintFulfillment, mintCondition)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign mint fulfillment of coin creation tx: %v", err)
 	}
@@ -316,8 +321,14 @@ func (cctc CoinCreationTransactionController) ValidateTransaction(t types.Transa
 		return fmt.Errorf("failed to use tx as a coin creation tx: %v", err)
 	}
 
-	// check if MintFulfillment fulfills the Globally defined MintCondition
-	err = cctc.MintCondition.Fulfill(cctx.MintFulfillment, types.FulfillContext{
+	// get MintCondition
+	mintCondition, err := cctc.MintConditionGetter.GetMintConditionAt(ctx.BlockHeight)
+	if err != nil {
+		return fmt.Errorf("failed to get mint condition at block height %d: %v", ctx.BlockHeight, err)
+	}
+
+	// check if MintFulfillment fulfills the Globally defined MintCondition for the context-defined block height
+	err = mintCondition.Fulfill(cctx.MintFulfillment, types.FulfillContext{
 		InputIndex:  0, // InputIndex is ignored for coin creation signature
 		BlockHeight: ctx.BlockHeight,
 		BlockTime:   ctx.BlockTime,
@@ -456,7 +467,16 @@ func (mdtc MinterDefinitionTransactionController) SignExtension(extension interf
 	if !ok {
 		return nil, errors.New("invalid extension data for a MinterDefinitionTx")
 	}
-	err := sign(&mdTxExtension.MintFulfillment, mdtc.MintCondition)
+
+	// get the active mint condition and use it to sign
+	// NOTE: this does mean that if the mint condition suddenly this transaction will be invalid,
+	// however given that only the minters (that create this coin transaction) can change the mint condition,
+	// it is unlikely that this ever gives problems
+	mintCondition, err := mdtc.MintConditionGetter.GetActiveMintCondition()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the active mint condition: %v", err)
+	}
+	err = sign(&mdTxExtension.MintFulfillment, mintCondition)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign mint fulfillment of MinterDefinitionTx: %v", err)
 	}
@@ -490,8 +510,14 @@ func (mdtc MinterDefinitionTransactionController) ValidateTransaction(t types.Tr
 		return err
 	}
 
-	// check if MintFulfillment fulfills the Globally defined MintCondition
-	err = mdtc.MintCondition.Fulfill(mdtx.MintFulfillment, types.FulfillContext{
+	// get MintCondition
+	mintCondition, err := mdtc.MintConditionGetter.GetMintConditionAt(ctx.BlockHeight)
+	if err != nil {
+		return fmt.Errorf("failed to get mint condition at block height %d: %v", ctx.BlockHeight, err)
+	}
+
+	// check if MintFulfillment fulfills the Globally defined MintCondition for the context-defined block height
+	err = mintCondition.Fulfill(mdtx.MintFulfillment, types.FulfillContext{
 		InputIndex:  0, // InputIndex is ignored for coin creation signature
 		BlockHeight: ctx.BlockHeight,
 		BlockTime:   ctx.BlockTime,
