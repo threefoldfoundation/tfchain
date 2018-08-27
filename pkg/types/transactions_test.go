@@ -5,7 +5,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -71,7 +73,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForStandardNetwork()
+	RegisterTransactionTypesForStandardNetwork(nil) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "standard", validationConstants)
 	constants = config.GetTestnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -79,7 +81,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForTestNetwork()
+	RegisterTransactionTypesForTestNetwork(nil) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "test", validationConstants)
 	constants = config.GetDevnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -87,7 +89,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForDevNetwork()
+	RegisterTransactionTypesForDevNetwork(nil) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "dev", validationConstants)
 }
 
@@ -300,8 +302,8 @@ func TestMinterDefinitionTransactionToAndFromBinary(t *testing.T) {
 func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
-			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
 
@@ -434,8 +436,8 @@ func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 func TestJSONUnmarshalSpecMinterDefinitionTransactionExample(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
-			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
 
@@ -740,8 +742,8 @@ var testMinterDefinitionTransactions = []MinterDefinitionTransaction{
 func TestCoinCreationTransactionIDUniqueness(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
-			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
 
@@ -776,8 +778,8 @@ func TestCoinCreationTransactionIDUniqueness(t *testing.T) {
 func TestMinterDefinitionTransactionIDUniqueness(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
-			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
 
@@ -831,11 +833,11 @@ const validDevnetJSONEncodedMinterDefinitionTx = `{
 }`
 
 func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
-	mintCondition := types.NewCondition(types.NewUnlockHashCondition(
-		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))
+	inMemoryMintConditionGetter := newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))))
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintCondition: mintCondition,
+		MintConditionGetter: inMemoryMintConditionGetter,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
 
@@ -854,6 +856,7 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 		t.Helper()
 
 		signCount := 1
+		mintCondition, _ := inMemoryMintConditionGetter.GetActiveMintCondition()
 
 		// validate condition first (free validateMintCondition test)
 		err := validateMintCondition(mintCondition)
@@ -940,12 +943,8 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 	}
 
 	// test that we can use a time lock condition
-	mintCondition = types.NewCondition(types.NewTimeLockCondition(types.LockTimeMinTimestampValue, types.NewUnlockHashCondition(
-		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))))
-	// overwrite coin tx mint condition to be a timelocked unlock hash condition instead
-	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintCondition: mintCondition,
-	})
+	inMemoryMintConditionGetter.applyMintCondition(0, types.NewCondition(types.NewTimeLockCondition(types.LockTimeMinTimestampValue, types.NewUnlockHashCondition(
+		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))))
 
 	// sign as the signer did on devnet, should still succeed
 	err = signTxAndValidate(hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"))
@@ -953,18 +952,15 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 		t.Fatalf("failed to sign: %v", err)
 	}
 
-	mintCondition = types.NewCondition(types.NewMultiSignatureCondition(
+	// overwrite coin tx multisig condition to be a multisig condition instead
+	inMemoryMintConditionGetter.applyMintCondition(0, types.NewCondition(types.NewMultiSignatureCondition(
 		types.UnlockHashSlice{
 			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
 			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
 			unlockHashFromHex("016438a548b6d377e87b08e8eae5ef641a4e70cc861b85b54b0921330e03084ffe0a8d9a38e3a8"),
 		},
 		2,
-	))
-	// overwrite coin tx multisig condition to be a multisig condition instead
-	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintCondition: mintCondition,
-	})
+	)))
 
 	// sign multisig condition, should fail as we didn't sign enough
 	err = signTxAndValidate(testKeyPair{
@@ -997,18 +993,16 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 	}
 
 	// test that we can use a time lock condition with multisig
-	mintCondition = types.NewCondition(types.NewTimeLockCondition(types.LockTimeMinTimestampValue, types.NewMultiSignatureCondition(
+	// overwrite coin tx mint condition to be a timelocked unlock hash condition instead
+	inMemoryMintConditionGetter.applyMintCondition(0, types.NewCondition(types.NewTimeLockCondition(types.LockTimeMinTimestampValue, types.NewMultiSignatureCondition(
 		types.UnlockHashSlice{
 			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
 			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
 			unlockHashFromHex("016438a548b6d377e87b08e8eae5ef641a4e70cc861b85b54b0921330e03084ffe0a8d9a38e3a8"),
 		},
 		2,
-	)))
-	// overwrite coin tx mint condition to be a timelocked unlock hash condition instead
-	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintCondition: mintCondition,
-	})
+	))))
+
 	// sign multisig condition, should succeed
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
@@ -1028,8 +1022,8 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 func TestMinterDefinitionTransactionValidation(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
-			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
 
@@ -1321,11 +1315,11 @@ const validDevnetJSONEncodedCoinCreationTx = `{
 }`
 
 func TestSignCoinCreationTransactionExtension(t *testing.T) {
-	mintCondition := types.NewCondition(types.NewUnlockHashCondition(
-		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))
+	inMemoryMintConditionGetter := newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))))
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintCondition: mintCondition,
+		MintConditionGetter: inMemoryMintConditionGetter,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
 
@@ -1347,7 +1341,7 @@ func TestSignCoinCreationTransactionExtension(t *testing.T) {
 
 		// redefine fulfillment, as signing an already signed fulfillment is not possible
 		cctxExtension := tx.Extension.(*CoinCreationTransactionExtension)
-		switch mintCondition.ConditionType() {
+		switch mc, _ := inMemoryMintConditionGetter.GetActiveMintCondition(); mc.ConditionType() {
 		case types.ConditionTypeUnlockHash:
 			tx.Extension = &CoinCreationTransactionExtension{
 				Nonce: cctxExtension.Nonce,
@@ -1408,18 +1402,15 @@ func TestSignCoinCreationTransactionExtension(t *testing.T) {
 		t.Fatalf("succeeded to sign, while it should fail")
 	}
 
-	mintCondition = types.NewCondition(types.NewMultiSignatureCondition(
+	// overwrite coin tx multisig condition to be a multisig condition instead
+	inMemoryMintConditionGetter.applyMintCondition(0, types.NewCondition(types.NewMultiSignatureCondition(
 		types.UnlockHashSlice{
 			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
 			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"),
 			unlockHashFromHex("016438a548b6d377e87b08e8eae5ef641a4e70cc861b85b54b0921330e03084ffe0a8d9a38e3a8"),
 		},
 		2,
-	))
-	// overwrite coin tx multisig condition to be a multisig condition instead
-	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintCondition: mintCondition,
-	})
+	)))
 
 	// sign multisig condition, should fail as we didn't sign enough
 	err = signTxAndValidate(testKeyPair{
@@ -1455,8 +1446,8 @@ func TestSignCoinCreationTransactionExtension(t *testing.T) {
 func TestCoinCreationTransactionValidation(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintCondition: types.NewCondition(types.NewUnlockHashCondition(
-			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))),
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
 
@@ -1745,4 +1736,242 @@ func hs(str string) (hash crypto.Hash) { // hbs -> crypto.Hash
 func hsk(str string) (pk crypto.SecretKey) { // hbs -> crypto.SecretKey
 	copy(pk[:], hbs(str))
 	return
+}
+
+// tests for utility types
+
+func TestInMemoryMintConditionGetter(t *testing.T) {
+	getter := newInMemoryMintConditionGetter()
+	if getter == nil {
+		t.Fatal("nil getter")
+	}
+	mcAsStr := func(cp types.UnlockConditionProxy) string {
+		b, err := cp.MarshalJSON()
+		if err != nil {
+			panic("failed to JSON-marshal given UnlockConditionProxy: " + err.Error())
+		}
+		return string(b)
+	}
+
+	// no mint condition should be found in nil-InMemoryMintConditionGetter
+	mc, err := getter.GetActiveMintCondition()
+	if err == nil {
+		t.Fatal("no active mint condition was expected, but found one: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(0)
+	if err == nil {
+		t.Fatal("no mint condition was expected at height 0, but found one: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(42)
+	if err == nil {
+		t.Fatal("no mint condition was expected at height 42, but found one: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(types.BlockHeight(math.MaxUint64))
+	if err == nil {
+		t.Fatal("no mint condition was expected at height math.MaxUint64, but found one: ", mcAsStr(mc))
+	}
+
+	// apply at height 1  & check
+	conditionOne := types.NewCondition(types.NewUnlockHashCondition(unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))
+	getter.applyMintCondition(1, conditionOne)
+	mc, err = getter.GetActiveMintCondition()
+	if err != nil {
+		t.Fatal("an active mint condition was expected, but none was found: ", err)
+	}
+	if !conditionOne.Equal(mc) {
+		t.Fatal("unexpected active mint condition: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(1)
+	if err != nil {
+		t.Fatal("an active mint condition was expected, but none was found: ", err)
+	}
+	if !conditionOne.Equal(mc) {
+		t.Fatal("unexpected mint condition at height 1: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(42)
+	if err != nil {
+		t.Fatal("an active mint condition was expected, but none was found: ", err)
+	}
+	if !conditionOne.Equal(mc) {
+		t.Fatal("unexpected mint condition at height 42: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(types.BlockHeight(math.MaxUint64))
+	if err != nil {
+		t.Fatal("an active mint condition was expected, but none was found: ", err)
+	}
+	if !conditionOne.Equal(mc) {
+		t.Fatal("unexpected mint condition at height 1: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(0)
+	if err == nil {
+		t.Fatal("no mint condition was expected, but found one at height 0: ", mcAsStr(mc))
+	}
+
+	// add at height 0 & check
+	conditionTwo := types.NewCondition(types.NewUnlockHashCondition(unlockHashFromHex("01e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70b1ccc65e2105")))
+	getter.applyMintCondition(0, conditionTwo)
+	mc, err = getter.GetActiveMintCondition()
+	if err != nil {
+		t.Fatal("an active mint condition was expected, but none was found: ", err)
+	}
+	if !conditionOne.Equal(mc) {
+		t.Fatal("unexpected active mint condition: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(1)
+	if err != nil {
+		t.Fatal("an active mint condition was expected, but none was found: ", err)
+	}
+	if !conditionOne.Equal(mc) {
+		t.Fatal("unexpected mint condition at height 1: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(42)
+	if err != nil {
+		t.Fatal("an active mint condition was expected, but none was found: ", err)
+	}
+	if !conditionOne.Equal(mc) {
+		t.Fatal("unexpected mint condition at height 42: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(types.BlockHeight(math.MaxUint64))
+	if err != nil {
+		t.Fatal("an active mint condition was expected, but none was found: ", err)
+	}
+	if !conditionOne.Equal(mc) {
+		t.Fatal("unexpected mint condition at height 1: ", mcAsStr(mc))
+	}
+	mc, err = getter.GetMintConditionAt(0)
+	if err != nil {
+		t.Fatal("a mint condition was expected at height, but received err: ", err)
+	}
+	if !conditionTwo.Equal(mc) {
+		t.Fatal("unexpected mint condition at height 0: ", mcAsStr(mc))
+	}
+
+	for _, heightToRevert := range []types.BlockHeight{1, 42, 3} {
+		// revert && check
+		getter.revertMintCondition(heightToRevert)
+
+		mc, err = getter.GetActiveMintCondition()
+		if err != nil {
+			t.Fatal("an active mint condition was expected, but none was found: ", err)
+		}
+		if !conditionTwo.Equal(mc) {
+			t.Fatal("unexpected active mint condition: ", mcAsStr(mc))
+		}
+		mc, err = getter.GetMintConditionAt(1)
+		if err != nil {
+			t.Fatal("an active mint condition was expected, but none was found: ", err)
+		}
+		if !conditionTwo.Equal(mc) {
+			t.Fatal("unexpected mint condition at height 1: ", mcAsStr(mc))
+		}
+		mc, err = getter.GetMintConditionAt(42)
+		if err != nil {
+			t.Fatal("an active mint condition was expected, but none was found: ", err)
+		}
+		if !conditionTwo.Equal(mc) {
+			t.Fatal("unexpected mint condition at height 42: ", mcAsStr(mc))
+		}
+		mc, err = getter.GetMintConditionAt(types.BlockHeight(math.MaxUint64))
+		if err != nil {
+			t.Fatal("an active mint condition was expected, but none was found: ", err)
+		}
+		if !conditionTwo.Equal(mc) {
+			t.Fatal("unexpected mint condition at height 1: ", mcAsStr(mc))
+		}
+		mc, err = getter.GetMintConditionAt(0)
+		if err != nil {
+			t.Fatal("a mint condition was expected at height, but received err: ", err)
+		}
+		if !conditionTwo.Equal(mc) {
+			t.Fatal("unexpected mint condition at height 0: ", mcAsStr(mc))
+		}
+	}
+}
+
+// utility types
+
+type (
+	inMemoryMintConditionGetter struct {
+		mintConditions []conditionHeightPair
+	}
+	conditionHeightPair struct {
+		Height        types.BlockHeight
+		MintCondition types.UnlockConditionProxy
+	}
+)
+
+// newInMemoryMintConditionGetter creates a new inMemoryMintConditionGetterr,
+// applying all given mint conditions using their index-as-given-in-order as the represenative block height.
+func newInMemoryMintConditionGetter(mintConditions ...types.UnlockConditionProxy) *inMemoryMintConditionGetter {
+	mem := new(inMemoryMintConditionGetter)
+	for index, mintCondition := range mintConditions {
+		mem.mintConditions = append(mem.mintConditions,
+			conditionHeightPair{types.BlockHeight(index), mintCondition})
+	}
+	return mem
+}
+
+// GetActiveMintCondition implements MintConditionGetter.GetActiveMintCondition
+func (mem *inMemoryMintConditionGetter) GetActiveMintCondition() (types.UnlockConditionProxy, error) {
+	n := len(mem.mintConditions)
+	if n == 0 {
+		return types.UnlockConditionProxy{}, errors.New("no mint condition is applied")
+	}
+	return mem.mintConditions[n-1].MintCondition, nil
+}
+
+// GetMintConditionAt implements MintConditionGetter.GetMintConditionAt
+func (mem *inMemoryMintConditionGetter) GetMintConditionAt(height types.BlockHeight) (types.UnlockConditionProxy, error) {
+	var (
+		maxHeight     types.BlockHeight
+		mintCondition types.UnlockConditionProxy
+	)
+	for _, pair := range mem.mintConditions {
+		switch {
+		case pair.Height == height:
+			mintCondition, maxHeight = pair.MintCondition, pair.Height
+			break
+		case pair.Height > height:
+			break
+		case pair.Height >= maxHeight:
+			mintCondition, maxHeight = pair.MintCondition, pair.Height
+		}
+	}
+	if mintCondition.ConditionType() == types.ConditionTypeNil {
+		return types.UnlockConditionProxy{}, errors.New("no mint condition is applied")
+	}
+	return mintCondition, nil
+}
+
+// apply/revert mint conditions for a given block height,
+// also keeping track of the highest
+func (mem *inMemoryMintConditionGetter) applyMintCondition(height types.BlockHeight, mintCondition types.UnlockConditionProxy) {
+	for index, pair := range mem.mintConditions {
+		switch {
+		case height > pair.Height:
+			// continue searching '<=' case
+			continue
+		case height == pair.Height:
+			// ovewrite
+			mem.mintConditions[index] = conditionHeightPair{height, mintCondition}
+			return // overwritten and finished
+		default:
+			// push to the front or insert somewhere in the middle
+			mem.mintConditions = append(mem.mintConditions[:index],
+				append([]conditionHeightPair{{height, mintCondition}}, mem.mintConditions[index:]...)...)
+			return // pushed and finished
+		}
+	}
+	// append to the back
+	mem.mintConditions = append(mem.mintConditions, conditionHeightPair{height, mintCondition})
+}
+
+// fint the condition for the given height and cut it out
+func (mem *inMemoryMintConditionGetter) revertMintCondition(height types.BlockHeight) {
+	for index, pair := range mem.mintConditions {
+		if pair.Height == height {
+			mem.mintConditions = append(mem.mintConditions[:index], mem.mintConditions[index+1:]...)
+			return
+		}
+	}
 }
