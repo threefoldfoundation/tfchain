@@ -84,14 +84,19 @@ release-images-edge: get_hub_jwt docker-minimal-edge
 
 explorer: release-dir
 	$(eval TEMPDIR = $(shell mktemp -d))
-	cp -r ./frontend  $(TEMPDIR)
-	sed -i 's/{{version}}/$(version)/g' $(TEMPDIR)/frontend/explorer/public/*.html
-	sed -i 's/{{commit}}/$(commit)/g' $(TEMPDIR)/frontend/explorer/public/*.html
+	cp -r ./frontend $(TEMPDIR)
+	sed -i '' 's/{{version}}/$(version)/g' $(TEMPDIR)/frontend/explorer/public/*.html
+	sed -i '' 's/{{commit}}/$(commit)/g' $(TEMPDIR)/frontend/explorer/public/*.html
 	tar -C $(TEMPDIR)/frontend -czvf release/explorer-$(dockerVersion).tar.gz explorer
 	rm -r $(TEMPDIR)
 
 explorer-edge: release-dir
-	tar -C ./frontend -czvf release/explorer-$(dockerVersionEdge).tar.gz explorer
+	$(eval TEMPDIR = $(shell mktemp -d))
+	cp -r ./frontend $(TEMPDIR)
+	sed -i '' 's/{{version}}/$(version)/g' $(TEMPDIR)/frontend/explorer/public/*.html
+	sed -i '' 's/{{commit}}/$(commit)/g' $(TEMPDIR)/frontend/explorer/public/*.html
+	tar -C $(TEMPDIR)/frontend -czvf release/explorer-$(dockerVersionEdge).tar.gz explorer
+	rm -r $(TEMPDIR)
 
 release-dir:
 	[ -d release ] || mkdir release
