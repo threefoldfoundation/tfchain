@@ -25,7 +25,7 @@ func createWalletSubCmds(cli *client.CommandLineClient) {
 			Short: "Create a new minter definition transaction",
 			Long: `Create a new minter definition transaction using the given mint condition.
 The mint condition is used to overwrite the current globally defined mint condition,
-and can be given as a raw output condition (or address, which resolved to a singlesignature condition).
+and can be given as a raw output condition (or address, which resolves to a singlesignature condition).
 
 The returned (raw) MinterDefinitionTransaction still has to be signed, prior to sending.
 	`,
@@ -36,7 +36,7 @@ The returned (raw) MinterDefinitionTransaction still has to be signed, prior to 
 			Short: "Create a new coin creation transaction",
 			Long: `Create a new coin creation transaction using the given outputs.
 The outputs can be given as a pair of value and a raw output condition (or
-address, which resolved to a singlesignature condition).
+address, which resolves to a singlesignature condition).
 
 Amounts have to be given expressed in the OneCoin unit, and without the unit of currency.
 Decimals are possible and have to be defined using the decimal point.

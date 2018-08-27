@@ -151,12 +151,6 @@ type (
 		TransactionFeeCheckBlockHeight types.BlockHeight
 	}
 
-	// TODO:
-	//  * develop a consensus set subscriber so we can track the last known coin creator definition
-	//  * integrate this subscriber also in the coin creation and minter definition controllers
-	//    such that he minter definition controller and coin creator controller know against which condition to fulfill a the mintfulfillment
-	//    (!) We need to ensure that the subscriber always is up to date prior to validating!!!
-
 	// CoinCreationTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 129. It allows for the creation of Coin Outputs,
 	// without requiring coin inputs, but can only be used by the defined Coin Minters.
@@ -748,7 +742,9 @@ type (
 		// MintCondition defines a new condition that defines who become(s) the new minter(s),
 		// and thus defines who can create coins as well as update who is/are the current minter(s)
 		//
-		// Only UnlockHash (type 1) and MultiSigConditions are allowed.
+		// UnlockHash (unlockhash type 1) and MultiSigConditions are allowed,
+		// as well as TimeLocked conditions which have UnlockHash- and MultiSigConditions as
+		// internal condition.
 		MintCondition types.UnlockConditionProxy `json:"mintcondition"`
 		// Minerfees, a fee paid for this minter definition transaction.
 		MinerFees []types.Currency `json:"minerfees"`
