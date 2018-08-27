@@ -1,7 +1,7 @@
 # Cross chain atomic swap walkthrough using the Electrum thin client.
 
 ## required tools  
-In order to execute atomic swaps as described in this document, you need to have the [Electrum wallet](https://electrum.org/) and the decred atomic swap tools that are available at https://github.com/rivine/atomicswap/releases. 
+In order to execute atomic swaps as described in this document, you need to have the [Electrum wallet](https://electrum.org/) and the Decred atomic swap tools that are available at <https://github.com/rivine/atomicswap/releases>. 
 
 The original decred atomic swap project is [Decred atomic swaps](https://github.com/decred/atomicswap), the rivine fork just supplies the binaries.
  

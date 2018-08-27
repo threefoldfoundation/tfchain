@@ -35,11 +35,13 @@ Of course, either Bob or Alice can be the initiator or the participant.
 
 ## Walkthroughs
 
-Walkthroughs of the above Bitcoin  example:
+Walkthroughs of the above Bitcoin example:
 - [using Btc Core (full node)](defaultbtcatomicswap.md)
 - [using Electrum (thin client)](electrumbtcatomicswap.md)
 
+Ethereum walkthroughs:
+- [using Go Ethereum (full or light node)](defaultethatomicswap.md)
+
 ## References
 
-Threefold atomic swaps are default [Rivine](github.com/rivine/rivine) atomic swaps
-
+Threefold atomic swaps are default [Rivine](github.com/rivine/rivine) atomic swaps.
