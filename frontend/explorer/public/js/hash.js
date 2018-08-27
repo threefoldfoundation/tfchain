@@ -10,6 +10,9 @@ function appendTransactionStatistics(infoBody, explorerTransaction, confirmed) {
 		case 1:
 			appendV1Transaction(infoBody, explorerTransaction, confirmed);
 			break;
+		case 128:
+			appendV128Transaction(infoBody, explorerTransaction, confirmed);
+			break;
 		case 129:
 			appendV129Transaction(infoBody, explorerTransaction, confirmed);
 			break;
@@ -329,6 +332,95 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 	}
 }
 
+function appendV128Transaction(infoBody, explorerTransaction, confirmed) {
+	var ctx = getBlockchainContext();
+
+	var table = createStatsTable();
+	appendStatHeader(table, 'Minter Definition Transaction Statistics');
+	if (confirmed) {
+		var doms = appendStat(table, 'Block Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+		doms = appendStat(table, 'Block ID', '');
+		linkHash(doms[2], explorerTransaction.parent);
+		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
+	} else {
+		doms = appendStat(table, 'Block Height', 'unconfirmed');
+	}
+	doms = appendStat(table, 'ID', '');
+	linkHash(doms[2], explorerTransaction.id);
+	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
+		appendStat(table, 'Arbitrary Data Byte Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
+	}
+	infoBody.appendChild(table);
+
+	appendStatTableTitle(infoBody, 'Minter Definition Fulfillment');
+	switch (explorerTransaction.rawtransaction.data.mintfulfillment.type) {
+		case 0:
+			break;
+		case 1:
+			f = addV1Fulfillment;
+			break;
+		case 2:
+			f = addV2Fulfillment;
+			break;
+		case 3:
+			f = addV3Fulfillment;
+			break;
+		default:
+			f = addUnknownFulfillment;
+	}
+	var table = createStatsTable();
+	f(table, explorerTransaction.rawtransaction.data.mintfulfillment);
+	infoBody.appendChild(table);
+
+	appendStatTableTitle(infoBody, 'New Mint Condition');
+	switch (explorerTransaction.rawtransaction.data.mintcondition.type) {
+		case undefined:
+		case 0:
+			f = addVNilCondition;
+			break;
+		case 1:
+			f = addV1Condition;
+			break;
+		case 2:
+			f = addV2Condition;
+			break;
+		case 3:
+			f = addV3Condition;
+			break;
+		case 4:
+			f = addV4Condition;
+			break;
+		default:
+			f = addUnknownCondition;
+	}
+	var table = createStatsTable();
+	f(ctx, table, explorerTransaction.rawtransaction.data.mintcondition.data, null);
+	infoBody.appendChild(table);
+
+	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
+		appendStatTableTitle(infoBody, 'Arbitrary Data');
+		var table = createStatsTable();
+		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		infoBody.appendChild(table);
+	}
+
+	var payouts = getMinerFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+	if (payouts != null) {
+		// In a loop, add a new table for each miner payout.
+		appendStatTableTitle(infoBody, 'Transaction Fee Payouts');
+		for (var i = 0; i < payouts.length; i++) {
+			var table = createStatsTable();
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], payouts[i].id);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], payouts[i].unlockhash);
+			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
+			infoBody.appendChild(table);
+		}
+	}
+}
+
 function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 	var ctx = getBlockchainContext();
 
@@ -428,7 +520,7 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 // *************
 
 function addUnknownFulfillment(table, fulfillment) {
-	appendStat(table, 'Unknown Type', fulfillment.type);
+	appendStat(table, 'Unknown UnlockFulfillment Type', fulfillment.type);
 	for (var key in fulfillment.data) {
 		appendStat(table, toTitleCase(key), fulfillment.data[key])
 	}
@@ -554,15 +646,22 @@ function addV3Fulfillment(table, fulfillment) {
 // **************
 // * V1 Outputs *
 // **************
+
+function addUnknownCondition(_ctx, table, conditiondata, unlockhash) {
+	appendStat(table, 'Unknown UnlockCondition Type', conditiondata.type);
+	for (var key in conditiondata.data) {
+		appendStat(table, toTitleCase(key), conditiondata.data[key])
+	}
+}
+
 function addV1NilOutput(_ctx, table, explorerTransaction, i, type) {
 	var outputspecifier = getOutputSpecifier(type);	
 	var outputidspecifier = getOutputIDSpecifier(type);
 
 	var doms = appendStat(table, 'ID', '');
-
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
-	doms = appendStat(table, 'Address', '');
-	linkHash(doms[2], '000000000000000000000000000000000000000000000000000000000000000000000000000000');
+	
+	var locked = addVNilCondition(_ctx, table);
 
 	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
 	if (type === 'coins') {
@@ -571,8 +670,14 @@ function addV1NilOutput(_ctx, table, explorerTransaction, i, type) {
 	appendStat(table, 'Value', amount);
 	return {
 		value: explorerTransaction.rawtransaction.data[outputspecifier][i].value,
-		locked: false,
+		locked: locked,
 	};
+}
+
+function addVNilCondition(_ctx, table, _conditiondata, _unlockhash) {
+	doms = appendStat(table, 'Address', '');
+	linkHash(doms[2], '000000000000000000000000000000000000000000000000000000000000000000000000000000');
+	return false;
 }
 
 function addV1T1Output(_ctx, table, explorerTransaction, i, type) {
@@ -580,10 +685,9 @@ function addV1T1Output(_ctx, table, explorerTransaction, i, type) {
 	var outputidspecifier = getOutputIDSpecifier(type);
 
 	var doms = appendStat(table, 'ID', '');
-
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
-	doms = appendStat(table, 'Address', '');
-	linkHash(doms[2], explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.unlockhash);
+
+	var locked = addV1Condition(_ctx, table, explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data);
 
 	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
 	if (type === 'coins') {
@@ -592,8 +696,14 @@ function addV1T1Output(_ctx, table, explorerTransaction, i, type) {
 	appendStat(table, 'Value', amount);
 	return {
 		value: explorerTransaction.rawtransaction.data[outputspecifier][i].value,
-		locked: false,
+		locked: locked,
 	};
+}
+
+function addV1Condition(_ctx, table, conditiondata, _unlockhash) {
+	doms = appendStat(table, 'Address', '');
+	linkHash(doms[2], conditiondata.unlockhash);
+	return false;
 }
 
 function addV1T2Output(_ctx, table, explorerTransaction, i, type) {
@@ -602,16 +712,11 @@ function addV1T2Output(_ctx, table, explorerTransaction, i, type) {
 	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
 
 	var doms = appendStat(table, 'ID', '');
-
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
-	doms = appendStat(table, 'Contract Address', '');
-	linkHash(doms[2], explorerTransaction[outputunlockhashesspecifier][i]);
-	doms = appendStat(table, 'Sender', '');
-	linkHash(doms[2],explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.sender);
-	doms = appendStat(table, 'Receiver', '');
-	linkHash(doms[2],explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.receiver);
-	appendStat(table, 'Hashed Secret', explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.hashedsecret);
-	appendStat(table, 'Timelock', explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data.timelock);
+
+	var conditiondata = explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data;
+	var unlockhash = explorerTransaction[outputunlockhashesspecifier][i];
+	var locked = addV2Condition(_ctx, table, conditiondata, unlockhash);
 
 	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
 	if (type === 'coins') {
@@ -620,20 +725,58 @@ function addV1T2Output(_ctx, table, explorerTransaction, i, type) {
 	appendStat(table, 'Value', amount);
 	return {
 		value: explorerTransaction.rawtransaction.data[outputspecifier][i].value,
-		locked: false,
+		locked: locked,
 	};
+}
+
+function addV2Condition(ctx, table, conditiondata, unlockhash) {
+	if (unlockhash != null) {
+		doms = appendStat(table, 'Contract Address', '');
+		linkHash(doms[2], unlockhash);
+	}
+	doms = appendStat(table, 'Sender', '');
+	linkHash(doms[2], conditiondata.sender);
+	doms = appendStat(table, 'Receiver', '');
+	linkHash(doms[2], conditiondata.receiver);
+	appendStat(table, 'Hashed Secret', conditiondata.hashedsecret);
+
+	appendStat(table, 'Timelock', conditiondata.timelock);
+	var locked = !lockTimeReached(ctx, conditiondata.timelock);
+	if (locked) {
+		appendStat(table, 'Unlocks for refunding at', formatUnlockTime(conditiondata.timelock));
+	} else {
+		appendStat(table, 'Unlocked for refunding since', formatUnlockTime(conditiondata.timelock));
+	}
+	return false; // never globally locked
 }
 
 function addV1T3Output(ctx, table, explorerTransaction, i, type) {
 	var outputspecifier = getOutputSpecifier(type);
 	var outputidspecifier = getOutputIDSpecifier(type);
-	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
 
 	var doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
+	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
+	var conditiondata = explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data;
+	var unlockhash = explorerTransaction[outputunlockhashesspecifier][i];
+	var locked = addV3Condition(ctx, table, conditiondata, unlockhash);
+
 	var output = explorerTransaction.rawtransaction.data[outputspecifier][i];
-	var internalCondition = output.condition.data.condition;
+	var amount = output.value;
+	if (type === 'coins') {
+		amount = readableCoins(amount);
+	}
+	appendStat(table, 'Value', amount);
+	
+	return {
+		value: output.value,
+		locked: locked,
+	};
+}
+
+function addV3Condition(ctx, table, conditiondata, unlockhash) {
+	var internalCondition = conditiondata.condition;
 	var conditionType = internalCondition.type;
 	switch (conditionType) {
 		case undefined:
@@ -646,8 +789,10 @@ function addV1T3Output(ctx, table, explorerTransaction, i, type) {
 			linkHash(doms[2], internalCondition.data.unlockhash);
 			break;
 		case 4:
-			doms = appendStat(table, 'MultiSignature Address', '');
-			linkHash(doms[2], explorerTransaction[outputunlockhashesspecifier][i]);
+			if (unlockhash != null) {
+				doms = appendStat(table, 'MultiSignature Address', '');
+				linkHash(doms[2], unlockhash);
+			}
 			for (var i = 0; i < internalCondition.data.unlockhashes.length; i++) {
 				doms = appendStat(table, 'Unlock Hash #' + (i+1), '');
 				linkHash(doms[2], internalCondition.data.unlockhashes[i]);
@@ -657,50 +802,54 @@ function addV1T3Output(ctx, table, explorerTransaction, i, type) {
 		default:
 			appendStat(table, 'Address', '?');
 	}
-	
-	var amount = output.value;
-	if (type === 'coins') {
-		amount = readableCoins(amount);
-	}
-	appendStat(table, 'Value', amount);
-	var locked = (output.condition.data.locktime > ctx.timestamp);
+
+	var locked = !lockTimeReached(ctx, conditiondata.locktime);
 	if (locked) {
-		appendStat(table, 'Unlocks At', formatUnlockTime(output.condition.data.locktime));
+		appendStat(table, 'Unlocks at', formatUnlockTime(conditiondata.locktime));
 	} else {
-		appendStat(table, 'Unlocked Since', formatUnlockTime(output.condition.data.locktime));
+		appendStat(table, 'Unlocked since', formatUnlockTime(conditiondata.locktime));
 	}
-	return {
-		value: output.value,
-		locked: locked,
-	};
+
+	return locked;
 }
 
 function addV1T4Output(_ctx, table, explorerTransaction, i, type) {
 	var outputspecifier = getOutputSpecifier(type);
 	var outputidspecifier = getOutputIDSpecifier(type);
-	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
 
 	var doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
 	var output = explorerTransaction.rawtransaction.data[outputspecifier][i];
+
+	var conditiondata = output.condition.data;
+	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
+	var unlockhash = explorerTransaction[outputunlockhashesspecifier][i];
+	var locked = addV4Condition(_ctx, table, conditiondata, unlockhash);
+
 	var amount = output.value
 	if (type === 'coins') {
 		amount = readableCoins(amount);
 	}
 	appendStat(table, 'Value', amount);
 
-	doms = appendStat(table, 'MultiSignature Address', '');
-	linkHash(doms[2], explorerTransaction[outputunlockhashesspecifier][i]);
-	for (var i = 0; i < output.condition.data.unlockhashes.length; i++) {
-		doms = appendStat(table, 'Unlock Hash #' + (i+1), '');
-		linkHash(doms[2], output.condition.data.unlockhashes[i]);
-	}
-	appendStat(table, 'Minimum Signature Count', output.condition.data.minimumsignaturecount);
 	return {
 		value: output.value,
-		locked: false,
+		locked: locked,
 	};
+}
+
+function addV4Condition(_ctx, table, conditiondata, unlockhash) {
+	if (unlockhash != null) {
+		doms = appendStat(table, 'MultiSignature Address', '');
+		linkHash(doms[2], unlockhash);
+	}
+	for (var i = 0; i < conditiondata.unlockhashes.length; i++) {
+		doms = appendStat(table, 'Unlock Hash #' + (i+1), '');
+		linkHash(doms[2], conditiondata.unlockhashes[i]);
+	}
+	appendStat(table, 'Minimum Signature Count', conditiondata.minimumsignaturecount);
+	return false;
 }
 
 function getInputSpecifier(type) {
@@ -745,15 +894,23 @@ function getOutputUnlockHashesSpecifier(type) {
 			return 'coinoutputunlockhashes';
 		case 'blockstakes':
 			return 'blockstakeunlockhashes';
+		default:
+			return null;
 	}
+}
+
+function lockTimeReached(ctx, locktime) {
+	if (locktime < LockTimeMinTimestampValue) {
+		return locktime <= ctx.height;
+	}
+	return locktime <= ctx.timestamp;
 }
 
 function formatUnlockTime(timestamp) {
 	if (timestamp < LockTimeMinTimestampValue) {
 		return 'Block ' + addCommasToNumber(timestamp);
-	} else {
-		return formatUnixTime(timestamp);
 	}
+	return formatUnixTime(timestamp);
 }
 
 // appendUnlockHashTransactionElements is a helper function for
@@ -1068,7 +1225,7 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 	var hashTitle = "Unknown Unlockhash Type";
 	var addressLabel = "Address"
 	switch(hash.substring(0,2)) {
-		case "00": hashTitle = "Nil Unlock Hash"; break;
+		case "00": hashTitle = "Free-for-all Wallet"; break;
 		case "01": hashTitle = "Wallet Addresss"; break;
 		case "02": hashTitle = "Atomic Swap Contract"; break;
 		case "03":

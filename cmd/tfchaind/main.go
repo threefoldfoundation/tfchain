@@ -2,70 +2,60 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
-	"github.com/threefoldfoundation/tfchain/pkg/config"
-	"github.com/threefoldfoundation/tfchain/pkg/types"
-
+	"github.com/rivine/rivine/pkg/cli"
 	"github.com/rivine/rivine/pkg/daemon"
+	"github.com/spf13/cobra"
+	"github.com/threefoldfoundation/tfchain/pkg/config"
 )
 
 func main() {
-	defaultDaemonConfig := daemon.DefaultConfig()
-	defaultDaemonConfig.BlockchainInfo = config.GetBlockchainInfo()
-	defaultDaemonConfig.CreateNetworkConfig = SetupNetworksAndTypes
+	var cmds commands
+	// load default config to start with
+	cmds.cfg = daemon.DefaultConfig()
+	cmds.cfg.BlockchainInfo = config.GetBlockchainInfo()
 
-	daemon.SetupDefaultDaemon(defaultDaemonConfig)
-}
+	// load default config flag
+	cmds.moduleSetFlag = daemon.DefaultModuleSetFlag()
 
-// SetupNetworksAndTypes injects the correct chain constants and genesis nodes based on the chosen network,
-// it also ensures that features added during the lifetime of the blockchain,
-// only get activated on a certain block height, giving everyone sufficient time to upgrade should such features be introduced.
-func SetupNetworksAndTypes(name string) (daemon.NetworkConfig, error) {
-	// return the network configuration, based on the network name,
-	// which includes the genesis block as well as the bootstrap peers
-	switch name {
-	case config.NetworkNameStandard:
-		// Register the transaction controllers for all transaction versions
-		// supported on the standard network
-		types.RegisterTransactionTypesForStandardNetwork()
-		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
-		// until the blockchain reached a height of 42000 blocks.
-		types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
+	// create the root command and add the flags to the root command
+	root := &cobra.Command{
+		Use: os.Args[0],
+		Short: strings.Title(cmds.cfg.BlockchainInfo.Name) + " Daemon v" +
+			cmds.cfg.BlockchainInfo.ChainVersion.String(),
+		Long: strings.Title(cmds.cfg.BlockchainInfo.Name) + " Daemon v" +
+			cmds.cfg.BlockchainInfo.ChainVersion.String(),
+		Run: cmds.rootCommand,
+	}
+	cmds.cfg.RegisterAsFlags(root.Flags())
+	// also add our modules as a flag
+	cmds.moduleSetFlag.RegisterFlag(root.Flags(), fmt.Sprintf("%s modules", os.Args[0]))
 
-		// return the standard genesis block and bootstrap peers
-		return daemon.NetworkConfig{
-			Constants:      config.GetStandardnetGenesis(),
-			BootstrapPeers: config.GetStandardnetBootstrapPeers(),
-		}, nil
+	// create the other commands
+	root.AddCommand(&cobra.Command{
+		Use:   "version",
+		Short: "Print version information",
+		Long: "Print version information about the " +
+			strings.Title(cmds.cfg.BlockchainInfo.Name) + " Daemon",
+		Run: cmds.versionCommand,
+	})
 
-	case config.NetworkNameTest:
-		// Register the transaction controllers for all transaction versions
-		// supported on the test network
-		types.RegisterTransactionTypesForTestNetwork()
-		// Use our custom MultiSignatureCondition, just for testing purposes
-		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
+	root.AddCommand(&cobra.Command{
+		Use:   "modules",
+		Short: "List available modules for use with -M, --modules flag",
+		Long:  "List available modules for use with -M, --modules flag and their uses",
+		Run:   cmds.modulesCommand,
+	})
 
-		// return the testnet genesis block and bootstrap peers
-		return daemon.NetworkConfig{
-			Constants:      config.GetTestnetGenesis(),
-			BootstrapPeers: config.GetTestnetBootstrapPeers(),
-		}, nil
-
-	case config.NetworkNameDev:
-		// Register the transaction controllers for all transaction versions
-		// supported on the dev network
-		types.RegisterTransactionTypesForDevNetwork()
-		// Use our custom MultiSignatureCondition, just for testing purposes
-		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
-
-		// return the devnet genesis block and bootstrap peers
-		return daemon.NetworkConfig{
-			Constants:      config.GetDevnetGenesis(),
-			BootstrapPeers: nil,
-		}, nil
-
-	default:
-		// network isn't recognised
-		return daemon.NetworkConfig{}, fmt.Errorf("Netork name %q not recognized", name)
+	// Parse cmdline flags, overwriting both the default values and the config
+	// file values.
+	if err := root.Execute(); err != nil {
+		// Since no commands return errors (all commands set Command.Run instead of
+		// Command.RunE), Command.Execute() should only return an error on an
+		// invalid command or flag. Therefore Command.Usage() was called (assuming
+		// Command.SilenceUsage is false) and we should exit with exitCodeUsage.
+		os.Exit(cli.ExitCodeUsage)
 	}
 }

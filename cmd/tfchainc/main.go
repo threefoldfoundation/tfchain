@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/rivine/rivine/pkg/cli"
+	"github.com/rivine/rivine/pkg/daemon"
+
 	"github.com/rivine/rivine/modules"
 	"github.com/rivine/rivine/pkg/client"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
@@ -13,16 +16,21 @@ import (
 func main() {
 	// create cli
 	bchainInfo := config.GetBlockchainInfo()
-	cli, err := client.NewCommandLineClient("", bchainInfo.Name)
+	cliClient, err := client.NewCommandLineClient("", bchainInfo.Name, daemon.RivineUserAgent)
 	if err != nil {
 		panic(err)
 	}
 
+	mintConditionGetter := &cliMintConditionGetter{
+		client: cliClient,
+	}
+
 	// register tfchain-specific commands
-	createWalletSubCmds(cli)
+	createConsensusSubCmds(cliClient)
+	createWalletSubCmds(cliClient)
 
 	// define preRun function
-	cli.PreRunE = func(cfg *client.Config) (*client.Config, error) {
+	cliClient.PreRunE = func(cfg *client.Config) (*client.Config, error) {
 		if cfg == nil {
 			bchainInfo := config.GetBlockchainInfo()
 			chainConstants := config.GetStandardnetGenesis()
@@ -35,7 +43,7 @@ func main() {
 		case config.NetworkNameStandard:
 			// Register the transaction controllers for all transaction versions
 			// supported on the standard network
-			types.RegisterTransactionTypesForStandardNetwork()
+			types.RegisterTransactionTypesForStandardNetwork(mintConditionGetter)
 			// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 			// until the blockchain reached a height of 42000 blocks.
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
@@ -48,7 +56,7 @@ func main() {
 		case config.NetworkNameTest:
 			// Register the transaction controllers for all transaction versions
 			// supported on the test network
-			types.RegisterTransactionTypesForTestNetwork()
+			types.RegisterTransactionTypesForTestNetwork(mintConditionGetter)
 			// Use our custom MultiSignatureCondition, just for testing purposes
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
@@ -58,7 +66,7 @@ func main() {
 		case config.NetworkNameDev:
 			// Register the transaction controllers for all transaction versions
 			// supported on the dev network
-			types.RegisterTransactionTypesForDevNetwork()
+			types.RegisterTransactionTypesForDevNetwork(mintConditionGetter)
 			// Use our custom MultiSignatureCondition, just for testing purposes
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
@@ -70,12 +78,12 @@ func main() {
 	}
 
 	// start cli
-	if err := cli.Run(); err != nil {
+	if err := cliClient.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "client exited with an error: ", err)
 		// Since no commands return errors (all commands set Command.Run instead of
 		// Command.RunE), Command.Execute() should only return an error on an
 		// invalid command or flag. Therefore Command.Usage() was called (assuming
 		// Command.SilenceUsage is false) and we should exit with exitCodeUsage.
-		os.Exit(client.ExitCodeUsage)
+		os.Exit(cli.ExitCodeUsage)
 	}
 }
