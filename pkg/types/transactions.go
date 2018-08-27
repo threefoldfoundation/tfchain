@@ -855,7 +855,10 @@ const TransactionNonceLength = 8
 
 // RandomTransactionNonce creates a random Transaction nonce
 func RandomTransactionNonce() (nonce TransactionNonce) {
-	rand.Read(nonce[:])
+	for nonce == (TransactionNonce{}) {
+		// generate non-nil crypto-Random TransactionNonce
+		rand.Read(nonce[:])
+	}
 	return
 }
 

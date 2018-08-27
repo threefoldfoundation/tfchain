@@ -34,6 +34,13 @@ install-std:
 test:
 	go test -race -v -tags='debug testing' -timeout=60s $(testpkgs)
 
+test-coverage:
+	go test -race -v -tags='debug testing' -timeout=60s \
+		-coverpkg=all -coverprofile=coverage.out -covermode=atomic $(testpkgs)
+
+test-coverage-web: test-coverage
+	go tool cover -html=coverage.out
+
 # xc builds and packages release binaries
 # for all windows, linux and mac, 64-bit only,
 # using the standard Golang toolchain.

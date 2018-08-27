@@ -215,6 +215,39 @@ func TestCoinCreationTransactionToAndFromJSON(t *testing.T) {
 	}
 }
 
+// tx(cctx) -> JSON -> tx(cctx)
+func TestCoinCreationTransactionAsTransactionToAndFromJSON(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
+
+	for i, testCase := range testCoinCreationTransactions {
+		b, err := json.Marshal(testCase.Transaction())
+		if err != nil {
+			t.Error(i, "failed to JSON-marshal", err)
+			continue
+		}
+		if len(b) == 0 {
+			t.Error(i, "JSON-marshal output is empty")
+		}
+		var tx types.Transaction
+		err = json.Unmarshal(b, &tx)
+		if err != nil {
+			t.Error(i, "failed to JSON-unmarshal tx", err)
+			continue
+		}
+		cctx, err := CoinCreationTransactionFromTransaction(tx)
+		if err != nil {
+			t.Error(i, "failed to transform tx->cctx", err)
+			continue
+		}
+		testCompareTwoCoinCreationTransactions(t, i, cctx, testCase)
+	}
+}
+
 // cctx -> Binary -> cctx
 func TestCoinCreationTransactionToAndFromBinary(t *testing.T) {
 	for i, testCase := range testCoinCreationTransactions {
@@ -226,6 +259,35 @@ func TestCoinCreationTransactionToAndFromBinary(t *testing.T) {
 		err := encoding.Unmarshal(b, &cctx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
+			continue
+		}
+		testCompareTwoCoinCreationTransactions(t, i, cctx, testCase)
+	}
+}
+
+// tx(cctx) -> Binary -> tx(cctx)
+func TestCoinCreationTransactionAsTransactionToAndFromBinary(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
+
+	for i, testCase := range testCoinCreationTransactions {
+		b := encoding.Marshal(testCase.Transaction())
+		if len(b) == 0 {
+			t.Error(i, "Binary-marshal output is empty")
+		}
+		var tx types.Transaction
+		err := encoding.Unmarshal(b, &tx)
+		if err != nil {
+			t.Error(i, "failed to Binary-unmarshal tx", err)
+			continue
+		}
+		cctx, err := CoinCreationTransactionFromTransaction(tx)
+		if err != nil {
+			t.Error(i, "failed to transform tx->cctx", err)
 			continue
 		}
 		testCompareTwoCoinCreationTransactions(t, i, cctx, testCase)
@@ -258,7 +320,7 @@ func TestMinterDefinitionTransactionToAndFromTransaction(t *testing.T) {
 	}
 }
 
-// mdtx -> JSON -> mdtz
+// mdtx -> JSON -> mdtx
 func TestMinterDefinitionTransactionToAndFromJSON(t *testing.T) {
 	for i, testCase := range testMinterDefinitionTransactions {
 		b, err := json.Marshal(testCase)
@@ -279,6 +341,39 @@ func TestMinterDefinitionTransactionToAndFromJSON(t *testing.T) {
 	}
 }
 
+// tx(mdtx) -> JSON -> tx(mdtx)
+func TestMinterDefinitionTransactionAsTransactionToAndFromJSON(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
+
+	for i, testCase := range testMinterDefinitionTransactions {
+		b, err := json.Marshal(testCase.Transaction())
+		if err != nil {
+			t.Error(i, "failed to JSON-marshal", err)
+			continue
+		}
+		if len(b) == 0 {
+			t.Error(i, "JSON-marshal output is empty")
+		}
+		var tx types.Transaction
+		err = json.Unmarshal(b, &tx)
+		if err != nil {
+			t.Error(i, "failed to JSON-unmarshal tx", err)
+			continue
+		}
+		mdtx, err := MinterDefinitionTransactionFromTransaction(tx)
+		if err != nil {
+			t.Error(i, "failed to transform tx->mdtx", err)
+			continue
+		}
+		testCompareTwoMinterDefinitionTransactions(t, i, mdtx, testCase)
+	}
+}
+
 // mdtx -> Binary -> mdtx
 func TestMinterDefinitionTransactionToAndFromBinary(t *testing.T) {
 	for i, testCase := range testMinterDefinitionTransactions {
@@ -290,6 +385,35 @@ func TestMinterDefinitionTransactionToAndFromBinary(t *testing.T) {
 		err := encoding.Unmarshal(b, &mdtx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
+			continue
+		}
+		testCompareTwoMinterDefinitionTransactions(t, i, mdtx, testCase)
+	}
+}
+
+// tx(mdtx) -> Binary -> tx(mdtx)
+func TestMinterDefinitionTransactionAsTransactionToAndFromBinary(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintConditionGetter: newInMemoryMintConditionGetter(types.NewCondition(types.NewUnlockHashCondition(
+			unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))),
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
+
+	for i, testCase := range testMinterDefinitionTransactions {
+		b := encoding.Marshal(testCase.Transaction())
+		if len(b) == 0 {
+			t.Error(i, "Binary-marshal output is empty")
+		}
+		var tx types.Transaction
+		err := encoding.Unmarshal(b, &tx)
+		if err != nil {
+			t.Error(i, "failed to Binary-unmarshal tx", err)
+			continue
+		}
+		mdtx, err := MinterDefinitionTransactionFromTransaction(tx)
+		if err != nil {
+			t.Error(i, "failed to transform tx->mdtx", err)
 			continue
 		}
 		testCompareTwoMinterDefinitionTransactions(t, i, mdtx, testCase)
@@ -1098,6 +1222,34 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 	// use orig extension as well, as we signed
 	tx.Extension = origExtension
 
+	// mess with nonce
+	tx.Extension = &MinterDefinitionTransactionExtension{
+		Nonce: TransactionNonce{}, // nil-nonce is not allowed
+		MintFulfillment: types.NewFulfillment(types.NewSingleSignatureFulfillment(
+			origMDExtension.MintFulfillment.Fulfillment.(*types.SingleSignatureFulfillment).PublicKey,
+		)),
+		MintCondition: origMDExtension.MintCondition,
+	}
+	// sign fulfillment, which lives in the tx extension data
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+		return fulfillment.Sign(types.FulfillmentSignContext{
+			InputIndex:  0, // doesn't matter really for this extension
+			Transaction: tx,
+			Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+		})
+	})
+	if err != nil {
+		t.Fatalf("failed to resign after modifying Nonce to use NilTransactionNonce: %v", err)
+	}
+	// validate, should fail
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of nil TransactionNonce")
+	}
+	// use orig extension as well, as we modified and re-signed
+	tx.Extension = origExtension
+
 	// mess with the extension to make it fail
 	// should all fail
 	tx.Extension = nil
@@ -1286,6 +1438,43 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
 	if err != nil {
 		t.Fatal("failed to validate minter definition tx, while it is supposed to be valid:", err)
+	}
+}
+
+func TestMinterDefinitionTransactionValidationWithUnknownMintCondition(t *testing.T) {
+	mintConditionGetter := newInMemoryMintConditionGetter()
+	mintConditionGetter.applyMintCondition(1, types.NewCondition(types.NewUnlockHashCondition(
+		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))))
+
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
+		MintConditionGetter: mintConditionGetter,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(validDevnetJSONEncodedMinterDefinitionTx))
+	if err != nil {
+		t.Fatal("failed to decode valid minter definition tx:", err)
+	}
+
+	validationCtx := types.ValidationContext{
+		Confirmed:   true,
+		BlockHeight: 0,
+		BlockTime:   1534271219,
+	}
+	chainConstants := config.GetDevnetGenesis()
+	txValidationConstants := types.TransactionValidationConstants{
+		BlockSizeLimit:         chainConstants.BlockSizeLimit,
+		ArbitraryDataSizeLimit: chainConstants.ArbitraryDataSizeLimit,
+		MinimumMinerFee:        chainConstants.MinimumTransactionFee,
+	}
+
+	// should be invalid, as no mint condition exists for that height (0)
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition transaction, " +
+			"while it was expected to fail due to an unknown mint condition")
 	}
 }
 
@@ -1506,6 +1695,33 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 	origExtension := tx.Extension
 	origCCExtension := origExtension.(*CoinCreationTransactionExtension)
 
+	// mess with nonce
+	tx.Extension = &CoinCreationTransactionExtension{
+		Nonce: TransactionNonce{}, // nil-nonce is not allowed
+		MintFulfillment: types.NewFulfillment(types.NewSingleSignatureFulfillment(
+			origCCExtension.MintFulfillment.Fulfillment.(*types.SingleSignatureFulfillment).PublicKey,
+		)),
+	}
+	// sign fulfillment, which lives in the tx extension data
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+		return fulfillment.Sign(types.FulfillmentSignContext{
+			InputIndex:  0, // doesn't matter really for this extension
+			Transaction: tx,
+			Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+		})
+	})
+	if err != nil {
+		t.Fatalf("failed to resign after modifying Nonce to use NilTransactionNonce: %v", err)
+	}
+	// validate, should fail
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate minter definition tx, " +
+			"while it is supposed to fail because of nil TransactionNonce")
+	}
+	// use orig extension as well, as we modified and re-signed
+	tx.Extension = origExtension
+
 	// make the arbitrary data too big, should fail
 	origArbitraryData := tx.ArbitraryData
 	tx.ArbitraryData = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
@@ -1694,6 +1910,43 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 	}
 }
 
+func TestCoinCreationTransactionValidationWithUnknownMintCondition(t *testing.T) {
+	mintConditionGetter := newInMemoryMintConditionGetter()
+	mintConditionGetter.applyMintCondition(1, types.NewCondition(types.NewUnlockHashCondition(
+		unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f"))))
+
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
+		MintConditionGetter: mintConditionGetter,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(validDevnetJSONEncodedCoinCreationTx))
+	if err != nil {
+		t.Fatal("failed to decode valid coin creation tx:", err)
+	}
+
+	validationCtx := types.ValidationContext{
+		Confirmed:   true,
+		BlockHeight: 0,
+		BlockTime:   1534271219,
+	}
+	chainConstants := config.GetDevnetGenesis()
+	txValidationConstants := types.TransactionValidationConstants{
+		BlockSizeLimit:         chainConstants.BlockSizeLimit,
+		ArbitraryDataSizeLimit: chainConstants.ArbitraryDataSizeLimit,
+		MinimumMinerFee:        chainConstants.MinimumTransactionFee,
+	}
+
+	// should be invalid, as no mint condition exists for that height (0)
+	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
+	if err == nil {
+		t.Fatal("succeeded to validate coin creation transaction, " +
+			"while it was expected to fail due to an unknown mint condition")
+	}
+}
+
 // test to ensure we json-encode by default the tx nonce as a base64-encoded string
 func TestBase64DecodingOfJSONEncodedNonce(t *testing.T) {
 	nonce := RandomTransactionNonce()
@@ -1721,6 +1974,15 @@ func TestJSONDecodeArrayTxNonce(t *testing.T) {
 	expectedNonce := TransactionNonce{52, 82, 198, 39, 242, 116, 81, 220}
 	if bytes.Compare(expectedNonce[:], nonce[:]) != 0 {
 		t.Fatal("unexpected result:", hex.EncodeToString(expectedNonce[:]), "!=", hex.EncodeToString(nonce[:]))
+	}
+}
+
+func TestNonNilRandomNonceCheck(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		nonce := RandomTransactionNonce()
+		if nonce == (TransactionNonce{}) {
+			panic("nil TransactionNonce crypto-rand created")
+		}
 	}
 }
 
