@@ -389,7 +389,7 @@ function appendV128Transaction(infoBody, explorerTransaction, confirmed) {
 			f = addV3Condition;
 			break;
 		case 4:
-			f = addV3Condition;
+			f = addV4Condition;
 			break;
 		default:
 			f = addUnknownCondition;
