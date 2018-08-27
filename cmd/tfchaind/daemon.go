@@ -27,8 +27,14 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 	fmt.Println("Loading...")
 	loadStart := time.Now()
 
-	modulesToLoad := moduleIdentifiers.Len() + 1 // transactiondb
-	i := 1
+	var (
+		i             int
+		modulesToLoad = moduleIdentifiers.Len()
+	)
+	printModuleIsLoading := func(name string) {
+		fmt.Printf("Loading %s (%d/%d)...\r\n", name, i, modulesToLoad)
+		i++
+	}
 
 	// create our server already, this way we can fail early if the API addr is already bound
 	fmt.Println("Binding API Address and serving the API...")
@@ -45,8 +51,8 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 	router := httprouter.New()
 
 	// create and validate network config, and the transactionDB as well
-	fmt.Printf("(%d/%d) Loading transaction db...\r\n", i, modulesToLoad)
-	i++
+	// txdb is on index 0, as it is not manually loaded
+	printModuleIsLoading("(auto) transaction db")
 	networkCfg, txdb, err := setupNetwork(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to create network config: %v", err)
@@ -67,8 +73,7 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 	// Initialize the Rivine modules
 	var g modules.Gateway
 	if moduleIdentifiers.Contains(daemon.GatewayModule.Identifier()) {
-		fmt.Printf("(%d/%d) Loading gateway...\r\n", i, modulesToLoad)
-		i++
+		printModuleIsLoading("gateway")
 		g, err = gateway.New(cfg.RPCaddr, !cfg.NoBootstrap,
 			filepath.Join(cfg.RootPersistentDir, modules.GatewayDir),
 			cfg.BlockchainInfo, networkCfg.Constants, networkCfg.BootstrapPeers)
@@ -87,8 +92,7 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 	}
 	var cs modules.ConsensusSet
 	if moduleIdentifiers.Contains(daemon.ConsensusSetModule.Identifier()) {
-		fmt.Printf("(%d/%d) Loading consensus set...\r\n", i, modulesToLoad)
-		i++
+		printModuleIsLoading("consensus set")
 		cs, err = consensus.New(g, !cfg.NoBootstrap,
 			filepath.Join(cfg.RootPersistentDir, modules.ConsensusDir),
 			cfg.BlockchainInfo, networkCfg.Constants)
@@ -110,8 +114,7 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 	}
 	var tpool modules.TransactionPool
 	if moduleIdentifiers.Contains(daemon.TransactionPoolModule.Identifier()) {
-		fmt.Printf("(%d/%d) Loading transaction pool...\r\n", i, modulesToLoad)
-		i++
+		printModuleIsLoading("transaction pool")
 		tpool, err = transactionpool.New(cs, g,
 			filepath.Join(cfg.RootPersistentDir, modules.TransactionPoolDir),
 			cfg.BlockchainInfo, networkCfg.Constants)
@@ -129,8 +132,7 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 	}
 	var w modules.Wallet
 	if moduleIdentifiers.Contains(daemon.WalletModule.Identifier()) {
-		fmt.Printf("(%d/%d) Loading wallet...\r\n", i, modulesToLoad)
-		i++
+		printModuleIsLoading("wallet")
 		w, err = wallet.New(cs, tpool,
 			filepath.Join(cfg.RootPersistentDir, modules.WalletDir),
 			cfg.BlockchainInfo, networkCfg.Constants)
@@ -149,8 +151,7 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 	}
 	var b modules.BlockCreator
 	if moduleIdentifiers.Contains(daemon.BlockCreatorModule.Identifier()) {
-		fmt.Printf("(%d/%d) Loading block creator...\r\n", i, modulesToLoad)
-		i++
+		printModuleIsLoading("block creator")
 		b, err = blockcreator.New(cs, tpool, w,
 			filepath.Join(cfg.RootPersistentDir, modules.BlockCreatorDir),
 			cfg.BlockchainInfo, networkCfg.Constants)
@@ -168,8 +169,7 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 	}
 	var e modules.Explorer
 	if moduleIdentifiers.Contains(daemon.ExplorerModule.Identifier()) {
-		fmt.Printf("(%d/%d) Loading explorer...\r\n", i, modulesToLoad)
-		i++
+		printModuleIsLoading("explorer")
 		e, err = explorer.New(cs,
 			filepath.Join(cfg.RootPersistentDir, modules.ExplorerDir),
 			cfg.BlockchainInfo, networkCfg.Constants)
@@ -185,6 +185,8 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 			}
 		}()
 	}
+
+	fmt.Println("Setting up root HTTP API handler...")
 
 	// register our special daemon HTTP handlers
 	router.GET("/daemon/constants", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
