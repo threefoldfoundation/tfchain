@@ -62,7 +62,7 @@ span.search-form-td {
 	padding-bottom: 10px;
 }
 .search {
-	align:      center;
+	text-align:      left;
 	margin:     0px auto;
 	margin-top: 40px;
 }
@@ -186,15 +186,19 @@ span.search-form-td {
 	opacity: 0.3;
 }
 
-footer {
+#footer-content {
 	background-color: #e0e0e0;
 	text-align: center;
 	margin: 0 auto;
-	margin-top: 1rem;
+	margin-top: 0.5rem;
 	width: 1000px;
 	border: 1px solid #cbcbcb;
 }
 
 #version {
 	font-size: 0.8rem;
+}
+
+#version p {
+	margin: 0.5rem;
 }

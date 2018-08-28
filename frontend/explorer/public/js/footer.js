@@ -1,0 +1,27 @@
+// addOptionalFooter adds an optional footer with the version content
+function addOptionalFooter() {
+    var version=0;
+    var commit=null;
+    if (version == 0) {
+        return;
+    }
+    var footer = document.getElementById('footer');
+    
+	var footerContentDiv = document.createElement('div');
+    footerContentDiv.id = 'footer-content';
+    footer.appendChild(footerContentDiv)
+    
+	var versionDiv = document.createElement('div');
+    versionDiv.id = 'version';
+    footerContentDiv.appendChild(versionDiv)
+
+    var versionParagraph = document.createElement('p');
+    versionParagraph.textContent = "Version: ";
+    versionDiv.appendChild(versionParagraph);
+
+    var commitLink = document.createElement('a')
+    commitLink.textContent = version
+    commitLink.href = "https://github.com/threefoldfoundation/tfchain/tree/" + commit;
+    versionParagraph.appendChild(commitLink);
+}
+addOptionalFooter();

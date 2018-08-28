@@ -23,9 +23,6 @@ stdoutput = $(GOPATH)/bin
 daemonbin = $(stdoutput)/tfchaind
 clientbin = $(stdoutput)/tfchainc
 
-# gets the most recent tag that is reachable from a commit
-version = $(shell git describe)
-
 install:
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
@@ -82,21 +79,20 @@ release-images-edge: get_hub_jwt docker-minimal-edge
 	# Merge the flist with ubuntu and nmap flist, so we have a tty file etc...
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/ubuntu1604.flist\", \"tfchain/tfchain-tfchain-$(dockerVersionEdge).flist\", \"gig-official-apps/nmap.flist\"]" "https://hub.gig.tech/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersionEdge).flist"
 
-explorer: release-dir
-	$(eval TEMPDIR = $(shell mktemp -d))
-	cp -r ./frontend $(TEMPDIR)
-	sed -i '' 's/{{version}}/$(version)/g' $(TEMPDIR)/frontend/explorer/public/*.html
-	sed -i '' 's/{{commit}}/$(commit)/g' $(TEMPDIR)/frontend/explorer/public/*.html
+explorer: release-dir embed-explorer-version
 	tar -C $(TEMPDIR)/frontend -czvf release/explorer-$(dockerVersion).tar.gz explorer
 	rm -r $(TEMPDIR)
 
-explorer-edge: release-dir
-	$(eval TEMPDIR = $(shell mktemp -d))
-	cp -r ./frontend $(TEMPDIR)
-	sed -i '' 's/{{version}}/$(version)/g' $(TEMPDIR)/frontend/explorer/public/*.html
-	sed -i '' 's/{{commit}}/$(commit)/g' $(TEMPDIR)/frontend/explorer/public/*.html
+explorer-edge: release-dir embed-explorer-version
 	tar -C $(TEMPDIR)/frontend -czvf release/explorer-$(dockerVersionEdge).tar.gz explorer
 	rm -r $(TEMPDIR)
+
+embed-explorer-version:
+	$(eval TEMPDIR = $(shell mktemp -d))
+	cp -r ./frontend $(TEMPDIR)
+	sed -i '' 's/version=0/version=$(version)/g' $(TEMPDIR)/frontend/explorer/public/*.html
+	sed -i '' 's/version=0/version=\"$(version)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
+	sed -i '' 's/commit=null/commit=\"$(commit)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
 
 release-dir:
 	[ -d release ] || mkdir release
