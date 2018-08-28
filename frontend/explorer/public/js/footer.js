@@ -1,8 +1,8 @@
 // addOptionalFooter adds an optional footer with the version content
 function addOptionalFooter() {
-    var version=0;
-    var commit=null;
-    if (version == 0) {
+    var version=null;
+    var versionpath=null;
+    if (version == null) {
         return;
     }
     var footer = document.getElementById('footer');
@@ -21,7 +21,7 @@ function addOptionalFooter() {
 
     var commitLink = document.createElement('a')
     commitLink.textContent = version
-    commitLink.href = "https://github.com/threefoldfoundation/tfchain/tree/" + commit;
+    commitLink.href = "https://github.com/threefoldfoundation/tfchain" + versionpath;
     versionParagraph.appendChild(commitLink);
 }
 addOptionalFooter();

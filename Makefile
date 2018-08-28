@@ -8,9 +8,11 @@ pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
 version = $(shell git describe --abbrev=0)
 commit = $(shell git rev-parse --short HEAD)
 ifeq ($(commit), $(shell git rev-list -n 1 $(version) | cut -c1-7))
-fullversion = $(version)
+	fullversion = $(version)
+	fullversionpath = \/releases\/tag\/$(version)
 else
-fullversion = $(version)-$(commit)
+	fullversion = $(version)-$(commit)
+	fullversionpath = \/tree\/$(commit)
 endif
 
 dockerVersion = $(shell git describe --abbrev=0 | cut -d 'v' -f 2)
@@ -90,9 +92,9 @@ explorer-edge: release-dir embed-explorer-version
 embed-explorer-version:
 	$(eval TEMPDIR = $(shell mktemp -d))
 	cp -r ./frontend $(TEMPDIR)
-	sed -i '' 's/version=0/version=$(version)/g' $(TEMPDIR)/frontend/explorer/public/*.html
-	sed -i '' 's/version=0/version=\"$(version)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
-	sed -i '' 's/commit=null/commit=\"$(commit)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
+	sed -i '' 's/version=0/version=$(fullversion)/g' $(TEMPDIR)/frontend/explorer/public/*.html
+	sed -i '' 's/version=null/version=\"$(fullversion)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
+	sed -i '' 's/versionpath=null/versionpath=\"$(fullversionpath)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
 
 release-dir:
 	[ -d release ] || mkdir release
