@@ -1669,6 +1669,15 @@ function appendNavigationMenuUnlockHash(hash) {
 	}
 }
 
+function appendNavigationInvalidHash() {
+	var navigation = document.getElementById('nav-links');
+	var invalidHashSpan = document.createElement('span');
+	var invalidText = document.createTextNode('Invalid Hash page');
+	invalidHashSpan.id = 'nav-link-invalid-has';
+	invalidHashSpan.appendChild(invalidText);
+	navigation.appendChild(invalidHashSpan);
+}
+
 // fetchHashInfo queries the explorer api about in the input hash, and then
 // fills out the page with the response.
 function fetchHashInfo(hash) {
@@ -1704,12 +1713,113 @@ function parseHashQuery() {
 function buildHashPage() {
 	var hash = parseHashQuery();
 	var explorerHash = fetchHashInfo(hash);
-	if (explorerHash == 'error') {
+	if (explorerHash == 'error') { // fi an error occurs: check the different scenarios
+		appendNavigationInvalidHash();
+		buildHashErrorPage(hash);
 		var infoBody = document.getElementById('dynamic-elements');
-		appendHeading(infoBody, 'Hash not Found in Database');
-		appendHeading(infoBody, 'Hash: ' + hash);
 	} else {
 		populateHashPage(hash, explorerHash);
 	}
 }
+
+function checkHexadecimal(hash) {
+	var hexRegex = /^[0-9A-Fa-f]+$/; //regex for checking if the hash is hexadecimal
+	return hexRegex.test(hash);
+}
+
+// Checks if the hash is supposed to be a wallet address
+function checkWallet(hash) {
+	var hashIsWallet;
+	switch(hash.substring(0,2)) {
+		case '00': hashIsWallet = true; break;
+		case '01': hashIsWallet = true; break;
+		case '02': hashIsWallet = true; break;
+		case '03': hashIsWallet = true; break;
+		default: hashIsWallet = false; break;
+	}
+	return hashIsWallet;
+}
+
+function buildHashErrorPage(hash) {
+	var errorBody = document.getElementById('dynamic-elements');
+
+	var errorMessageBody = document.createElement('div');
+	errorMessageBody.id = 'error-message-body'
+
+	var errorMessageTitles = document.createElement('div');
+	errorMessageTitles.id = 'error-message-titles';
+
+	var errorMessageList = document.createElement('ul');
+	errorMessageList.id = 'error-message-list';
+
+	var errorMessageListItems = [];
+
+	if (!checkHexadecimal(hash)) {
+		var errorMessageTitle = document.createElement('p');
+		errorMessageTitle.id = 'hash-format-error-title';
+		errorMessageTitle.innerHTML = 'The format of the hash is incorrect.';
+		errorMessageTitles.appendChild(errorMessageTitle);
+
+		errorMessageListItems.push('Only use numbers 0-9');
+		errorMessageListItems.push('Only use letters A-F (case unsensitive)');
+	}
+
+	if (hash.length != 64 && hash.length != 78) {
+		var errorMessageTitle = document.createElement('p');
+		errorMessageTitle.id = 'hash-length-error-title';
+		errorMessageTitle.innerHTML = 'The length of the hash is incorrect.';
+		errorMessageTitles.appendChild(errorMessageTitle);
+
+		errorMessageListItems.push('For Unlock Hashes: 78 character length');
+		errorMessageListItems.push('For Transaction or Block ID Hashes: 64 character length');
+		errorMessageListItems.push('For Coin of Blockstake Output Hashes: 64 character length');
+	}
+
+	if (checkHexadecimal(hash) && (hash.length == 64 || hash.length == 78) && !checkWallet(hash)) {
+		var errorMessageTitle = document.createElement('p');
+		errorMessageTitle.id = 'correct-hash-error-title';
+		errorMessageTitle.innerHTML = 'The hash you entered does not exist'
+		errorMessageTitles.appendChild(errorMessageTitle);
+
+		errorMessageListItems.push('The given identifier couldn\'t be linked to any existing coin output, block stake output, transaction or block');
+		errorMessageListItems.push('Make sure there are no typo\'s in the hash (e.g. the letter \'o\' instead of the number \'0\')');
+		errorMessageListItems.push('The hash may not have been indexed yet');
+	}
+
+	if (checkHexadecimal(hash) && hash.length == 78 && hash.substring(0,2) == '00') {
+		var regex = /^0+$/;
+		if (!(regex.test(hash))) {
+			var errorMessageTitle = document.createElement('p');
+			errorMessageTitle.id = 'nil-unlockhash-error-title';
+			errorMessageTitle.innerHTML = 'The hash you entered is incorrect';
+			errorMessageTitles.appendChild(errorMessageTitle);
+
+			errorMessageListItems.push('The only hash that starts with \'00\' is the NilUnlockHash');
+			errorMessageListItems.push('Make sure all 78 characters are \'0\' (zeroes) or just click <a href="hash.html?hash=0000000000000000000000000e0000000000000000000000000000000000000000000000000000">here</a>');
+		}
+	}
+
+	if (checkHexadecimal(hash) && hash.length == 78 && (hash.substring(0,2) == '01' || hash.substring(0,2) == '02' || hash.substring(0,2) == '03')) {
+		var errorMessageTitle = document.createElement('p');
+		errorMessageTitle.id = 'wallet-hash-error-title';
+		errorMessageTitle.innerHTML = 'Wallet Not Found';
+		errorMessageTitles.appendChild(errorMessageTitle);
+
+		errorMessageListItems.push('The wallet might not have received any coin or block stake outputs yet.');
+		errorMessageListItems.push('The wallet is not reffered as part of a Multisig Wallet');
+	}
+
+	for (var i = 0; i < errorMessageListItems.length; i++) {
+		var errorMessageListItem = document.createElement('li');
+		errorMessageListItem.innerHTML = errorMessageListItems[i];
+		errorMessageList.appendChild(errorMessageListItem);
+	}
+
+	appendHeading(errorBody, "Hash Not Found");
+	errorBody.appendChild(errorMessageBody);
+	errorMessageBody.appendChild(errorMessageTitles);
+	errorMessageBody.appendChild(errorMessageList);
+}
+
+
 buildHashPage();

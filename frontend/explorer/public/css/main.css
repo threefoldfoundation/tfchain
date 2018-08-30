@@ -202,3 +202,18 @@ span.search-form-td {
 #version p {
 	margin: 0.5rem;
 }
+
+#error-message p{
+	margin-top: 2.5rem;
+	color: red;
+	font-weight: 900;
+}
+
+.bold-text {
+	font-weight: 900;
+}
+
+#error-message-titles p {
+	font-weight: 900;
+	color: red;
+}
