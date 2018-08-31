@@ -213,7 +213,39 @@ span.search-form-td {
 	font-weight: 900;
 }
 
-#error-message-titles p {
+#dynamic-elements div {
+	margin-top: 2rem;
+}
+
+#dynamic-elements div p {
 	font-weight: 900;
 	color: red;
+	font-size: 1rem;
+	text-align: left;
 }
+
+#dynamic-elements p {
+	text-align: center;	
+}
+
+#dynamic-elements form {
+	margin-top: 5rem;
+}
+
+#dynamic-elements form p {
+	text-align: left;
+	font-size: 0.9rem;
+}
+
+input#search-hash-field {
+	width: 830px;
+}
+
+button#search-hash-button {
+	width: 15%;
+}
+
+p#ffa-wallet-link {
+	text-align: left;
+}
+
