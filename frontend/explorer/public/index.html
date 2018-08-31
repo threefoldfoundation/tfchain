@@ -57,12 +57,12 @@
 	<div class='search-form search'>
 		<form class='search-form-tr' method='get' action='block.html'>
 			<span class='search-form-td'>Search by Block Height:</span>
-			<span class='search-form-td'><input type='text' name='height' size='50'></span>
+			<span class='search-form-td'><input required type='number' name='height' min='0' size='50' class='input-field'></span>
 			<span class='search-form-td'><input type='submit' value='Go'></span>
 		</form>
 		<form class='search-form-tr' method='get' action='hash.html'>
 			<span class='search-form-td'>Search by Hash:</span>
-			<span class='search-form-td'><input type='text' name='hash' size='50'></span>
+			<span class='search-form-td'><input type='text' name='hash' size='50' class='input-field'></span>
 			<span class='search-form-td'><input type='submit' value='Go'></span>
 		</form>
 	</div>
