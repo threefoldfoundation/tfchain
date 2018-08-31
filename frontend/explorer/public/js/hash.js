@@ -1682,10 +1682,12 @@ function appendNavigationMenuUnlockHash(hash) {
 function appendNavigationInvalidHash() {
 	var navigation = document.getElementById('nav-links');
 	var invalidHashSpan = document.createElement('span');
-	var invalidText = document.createTextNode('Invalid Hash page');
-	invalidHashSpan.id = 'nav-link-invalid-has';
+	var navContainer = document.getElementById('nav-container');
+	invalidHashSpan.id = 'nav-links-output';
+	var invalidText = document.createTextNode('Invalid Hash Page');
 	invalidHashSpan.appendChild(invalidText);
-	navigation.appendChild(invalidHashSpan);
+	navContainer.appendChild(invalidHashSpan);
+	navigation.appendChild(navContainer);
 }
 
 // fetchHashInfo queries the explorer api about in the input hash, and then
@@ -1723,139 +1725,176 @@ function parseHashQuery() {
 function buildHashPage() {
 	var hash = parseHashQuery();
 	var explorerHash = fetchHashInfo(hash);
-	if (explorerHash == 'error') { // fi an error occurs: check the different scenarios
+	if (explorerHash == 'error') { // if an error occurs: check the different scenarios
 		appendNavigationInvalidHash();
 		buildErrorPage(hash);
 		appendSearchHash();
-		var infoBody = document.getElementById('dynamic-elements');
 	} else {
 		populateHashPage(hash, explorerHash);
 	}
 }
 
-function checkHexadecimal(hash) {
-	var hexRegex = /^[0-9A-Fa-f]+$/; //regex for checking if the hash is hexadecimal
-	return hexRegex.test(hash);
-}
-
-function hashStartsWithZero(hash) {
-	var hashStartsWithZero = (hash.substring(0,1) == '0');
-	return hashStartsWithZero;
-}
-
 function buildErrorPage(hash) {
-	var errorBody = document.getElementById('dynamic-elements');
+	var dynamicElements = document.getElementById('dynamic-elements');
 	var invalidHash = document.createElement('p');
 	invalidHash.innerHTML = 'Invalid hash: ' + hash;
-	errorBody.appendChild(invalidHash);
+	dynamicElements.appendChild(invalidHash);
+
+	var errorBody = document.createElement('div');
+	errorBody.id = 'error-not-found';
+	dynamicElements.appendChild(errorBody);
 
 	//check if hash is only use hexadecimal characters
-	if (!checkHexadecimal(hash)) {
+	if (!hash.match(/^[0-9A-Fa-f]+$/)) {
 		var title = 'The format of the hash is incorrect';
 		var suggestions = [
-			'Only use numbers from 0 to 9 and letters from A to F (hexadecimal characters)'
-		]
-		makeErrorMessage(title, suggestions);
+			'Only hexadecimal characters &mdash;meaning <i>numeric</i> characters as well as the letters <i>A</i> to <i>F</i>&mdash; are allowed as part of the hash'
+		];
+		makeErrorMessage(errorBody, title, suggestions);
 	}
 
-	//check if hash is correct length
-	if (hash.length != 64 && hash.length != 78) {
-		var title = 'The length of the hash is incorrect';
-		var suggestions = [
-			'Transaction, Block, Coin Output and Blockstake Ouput IDs have a length of 64 characters',
-			'Unlock Hashes, meaning Wallet and Contract Addresses have a length of 78 characters'
-		]
-		makeErrorMessage(title, suggestions);
+	// assume it is an unlock hash
+	if (hash.length >= 74 && hash.length <= 82) {
+		var title = '';
+		var suggestions = [];
+		var suggestionFooterElement = null;
+		if (hash.length != 78) {
+			suggestions.push("All addresses, also called unlock hashes, have a fixed total length of 78 characters");
+		}
+
+		switch (hash.substring(0,2)) {
+		case '00':
+			// set title and add suggestions, assuming the user meant the Free-For-All wallet
+			title = 'Your hash looks like the Free-For-All Wallet Address'
+			suggestions.push("As the address starts with '00', you might be looking for the Free-For-All wallet, please make sure the address is correct");
+			if (!hash.match(/^0+$/)) {
+				suggestions.push("All characters of the Free-For-All Wallet's address have to be zero, resulting in 78 zeroes in total");
+			}
+			if (hash.length == 78) {
+				title += ' but is invalid';
+				suggestions.push('The MultiSig Wallet might not have received any coin or block stake outputs yet or be referenced by a MultiSig wallet, '+
+					'in which case it is not visible in this explorer. Once a coin or block stake has been received into this wallet or a MultiSig wallet references it,'+
+					'it will show up');
+			} else {
+				title += ' but has an invalid length';
+			}
+
+			// also add some extra text to help the user get directly to the Free-For-All Wallet
+			suggestionFooterElement = document.createElement('p');
+			suggestionFooterElement.id = 'ffa-wallet-link'
+			suggestionFooterElement.innerHTML = 'Click <a href="hash.html?hash=000000000000000000000000000000000000000000000000000000000000000000000000000000">here</a> to access the Free-For-All Wallet Address.';
+			break;
+
+		case '01':
+			// set title and add suggestions, assuming the user meant a wallet
+			title = 'Your hash looks like a Wallet Address';
+			suggestions.push("As the address starts with '01', you might be looking for a Wallet, please make sure the address is correct");
+			if (hash.length == 78) {
+				title += ' but could not be found';
+				suggestions.push('The wallet might not have received any coin or block stake outputs yet or be referenced by a multi signature wallet, '+
+					'in which case it is not visible in this explorer. Once a coin or block stake has been received into this wallet or a multi signature wallet references it,'+
+					'it will show up');
+			} else {
+				title += ' but has an invalid length';
+			}
+			break;
+
+		case '02':
+		// set title and add suggestions, assuming the user meant an atomic swap contract
+			title = 'Your hash looks like an Atomic Swap Contract address';
+			suggestions.push("As the address starts with '02', you might be looking for an Atomic Swap Contract, please make sure the address is correct");
+			if (hash.length == 78) {
+				title += ' but could not be found';
+				suggestions.push('The contract might not exist yet');
+			} else {
+				title += ' but has an invalid length';
+			}
+			break;
+
+		case '03':
+			// set title and add suggestions, assuming the user meant a multisig wallet
+			title = 'Your hash looks like a MultiSig Wallet Address';
+			suggestions.push("As the address starts with '03', you might be looking for a Multsig Wallet, please make sure the address is correct");
+			if (hash.length == 78) {
+				title += ' but could not be found';
+				suggestions.push('The MultiSig Wallet might not have received any coin or block stake outputs yet, '+
+					'in which case it is not visible in this explorer. Once a coin or block stake has been received into this wallet, it will show up.');
+			} else {
+				title += ' but has an invalid length';
+			}
+			break;
+
+		default:
+			title = 'The given hash looks like an Unlock Hash, but has an invalid prefix';
+			suggestions.push(
+				"The Free-For-All Wallet address can contain only zeroes, including a '00' prefix",
+				"Wallet addresses always start with the prefix '01'",
+				"Atomic Swap Contract addresses always start with the prefix '02'",
+				"MultiSig Wallets addresses always start with the prefix '03'",
+			)
+		}
+
+		// add error
+		makeErrorMessage(errorBody, title, suggestions);
+
+		if (suggestionFooterElement != null) {
+			errorBody.appendChild(suggestionFooterElement);
+		}
+
+		// add a last suggestion
+		var lastSuggestion = document.createElement('div');
+		errorBody.appendChild(lastSuggestion)
+		lastSuggestion.appendChild(document.createTextNode('Were you looking for an identifier instead? Please take into account the following:'));
+		var lastSuggestionList = document.createElement('ul');
+		lastSuggestion.appendChild(lastSuggestionList);
+		var li = document.createElement('li');
+		li.innerHTML = "All transaction&dash;, Block&dash;, Coin Output&dash; and Blockstake Ouput&dash;identifiers have a fixed length of 64 characters.";
+		lastSuggestionList.appendChild(li);
+		return;
 	}
 
-	if (hash.charAt(0) == '0' && hash.length > 70 && hash.length < 90) {
-		if (hash.charAt(1) == 0) {
-			var container = document.getElementById('dynamic-elements');
-			var title = 'Your hash looks like a Free-For-All Wallet Address (Unlock Hash), but was not found'
-			var suggestions = [
-				'As the hash starts with \'00\', make sure the 76 other characters are zeroes as well.',
-			]
-			var text = document.createElement('p');
-			text.id = 'ffa-wallet-link'
-			text.innerHTML = 'Click <a href="hash.html?hash=000000000000000000000000000000000000000000000000000000000000000000000000000000">here</a> to access the For-For-All Wallet Address';
-			makeErrorMessage(title, suggestions);
-			container.appendChild(text);
-		}
-		else if (hash.charAt(1) == 1) {
-			var title = 'Your hash looks like a Wallet Address (Unlock Hash), but was not found';
-			var suggestions = [
-				'As the hash starts with \'01\', you might be looking for a Wallet Address, please make sure the hash was typed over correctly',
-				'A Wallet Address hash has a length of 78 characters',
-				'The wallet might not have received any coin or block stake outputs yet',
-				'The wallet is not reffered as part of a Multisig wallet'
-			]
-			makeErrorMessage(title, suggestions);
-		}
-		else if (hash.charAt(1) == 1 && hash.length == 78) {
-			var title = 'You entered a Wallet Address, but the Wallet was not found';
-			var suggestions = [
-				'Please make sure the hash was typed over correctly',
-				'The wallet might not have received any coin or block stake outputs yet',
-				'The wallet is not reffered as part of a MultiSig wallet'
-			]
-			makeErrorMessage(title, suggestions);
-		}
-		else if (hash.charAt(1) == 2) {
-			var title = 'Your hash looks like an Atomic Swap Contract (Unlock Hash), but was not found';
-			var suggestions = [
-				'As the hash starts with \'02\', you might be looking for an Atomic Swap Contract, please make sure the hash was typed over correctly',
-				'An Atomic Swap Contract Address has a length of 78 characters'
-			]
-			makeErrorMessage(title, suggestions);
-		}
-		else if (hash.charAt(1) == 2 && hash.length == 78) {
-			var title = 'You entered a Atomic Swap Contract Address, but the Contract was not found';
-			var suggestions = [
-				'Please make sure the hash was typed over correctly',
-				'The Contract might not exist (yet)'
-			]
-			makeErrorMessage(title, suggestions);
-		}
-		else if (hash.charAt(1) == 3) {
-			var title = 'Your hash looks like a MultiSig Wallet Address (Unlock Hash), but was not found';
-			var suggestions = [
-				'As the hash starts with \'03\', you might be looking for a Multsig Wallet Address, please make sure the hash was typed over correctly',
-				'A Multisig Wallet Address hash has a length of 78 characters',
-				'The MultiSig Wallet might not have received any coin or block stake outputs yet',
-			]
-			makeErrorMessage(title, suggestions);
-		}
-		else if (hash.charAt(1) == 3 && hash.length == 78) {
-			var title = 'You entered a Multisig Wallet Address, but the Multisig Wallet was not found';
-			var suggestions = [
-				'Please make sure the hash was typed over correctly',
-				'The MultiSig Wallet might not have received any coin or block stake outputs yet'
-			]
-			makeErrorMessage(title, suggestions);
-		}
-		else {
-			var title = 'Your hash looks like a Unlock Hash, but was not found';
-			var suggestions = [
-				'For Free-For-All Wallet Address make sure your Unlock Hash has to start with \'00\'',
-				'For Wallet Addresses make sure your Unlock Hash has to start with \'01\'',
-				'For Atomic Swap Contracts make sure your Unlock Hash has to start with \'02\'',
-				'For MultiSig Wallets make sure your Unlock Hash has to start with \'03\''
-			]
-			makeErrorMessage(title, suggestions);
-		}
-	} 
-	if (checkHexadecimal(hash) && hash.length == 64) {
-		var title = 'Your hash looks like a ID, please consider the following:';
+	// assume it is an identifier
+	if (hash.length >= 60 && hash.length <= 68) {
+		var title = 'Your hash looks like an identifier';
 		var suggestions = [
-			'Make sure your hash was typed over correctly',
-			'Transaction, Block, Coin Output and Blockstake Output IDS have a length of 64 characters'
+			'Make sure your identifier is correct',
+			'Transaction&dash;, Block&dash;, Coin Output&dash; and Blockstake Output&dash;identifiers have a fixed length of 64 characters'
 		]
-		makeErrorMessage(title, suggestions);
-	} 
+		if (hash.length == 64) {
+			title += ' but could not be found';
+			suggestions.push(
+				'The transaction, Block, Coin Output or Blockstake Output'+
+				' &mdash;referenced by the given identifier&mdash; might have been reverted as part of a fork');
+		} else {
+			title += ' has an invalid length;'	
+		}
+		makeErrorMessage(errorBody, title, suggestions);
+	
+		// add a last suggestion
+		var lastSuggestion = document.createElement('div');
+		errorBody.appendChild(lastSuggestion)
+		lastSuggestion.appendChild(document.createTextNode('Were you looking for a wallet or contract address instead? Please take into account the following:'));
+		var lastSuggestionList = document.createElement('ul');
+		lastSuggestion.appendChild(lastSuggestionList);
+		var li = document.createElement('li');
+		li.innerHTML = "All addresses, also called unlock hashes, have a fixed total length of 78 characters;"
+		lastSuggestionList.appendChild(li);
+		li = document.createElement('li');
+		li.innerHTML = "All addresses start with a 2 character prefix indicating the type of address.";
+		lastSuggestionList.appendChild(li);
+		return;
+	}
+
+	// failed to make any assumptions
+	var title = 'The length of the hash is incorrect';
+	var suggestions = [
+		'Transaction&dash;, Block&dash;, Coin Output&dash; and Blockstake Ouput&dash;identifiers have a length of 64 characters',
+		'Unlock Hashes &mdash;meaning Wallet and Contract Addresses&mdash; have a length of 78 characters'
+	]
+	makeErrorMessage(errorBody, title, suggestions);
 } 
 
-function makeErrorMessage(title, suggestions) {
-	var errorBody = document.getElementById('dynamic-elements');
+function makeErrorMessage(body, title, suggestions) {
 	var errorMessage = document.createElement('div');
 	var errorTitle = document.createElement('p');
 	var errorSuggestionList = document.createElement('ul');
@@ -1865,9 +1904,14 @@ function makeErrorMessage(title, suggestions) {
 	for (var i = 0; i < suggestions.length; i++) {
 		var errorSuggestion = document.createElement('li');
 		errorSuggestion.innerHTML = suggestions[i];
+		if (i < suggestions.length-1) {
+			errorSuggestion.innerHTML += ";";
+		} else {
+			errorSuggestion.innerHTML += ".";
+		}
 		errorSuggestionList.appendChild(errorSuggestion);
 	}
-	errorBody.appendChild(errorMessage);
+	body.appendChild(errorMessage);
 }
 
 function appendSearchHash() {
@@ -1882,7 +1926,7 @@ function appendSearchHash() {
 	searchButton.textContent = 'Search Hash';
 	searchField.id = 'search-hash-field';
 
-	text.innerHTML = "Please correct your hash and search by hash again here:";
+	text.innerHTML = "Would you like to try again? Please correct your hash, and paste it here in order to search for it:";
 
 	searchField.required = true;              
 	searchField.setAttribute('name', 'hash');

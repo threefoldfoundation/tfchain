@@ -48,6 +48,12 @@ div.content {
 	word-break: break-all;
 }
 
+#error-not-found {
+	white-space: normal;
+	word-wrap: normal;
+	word-break: normal;
+}
+
 /* CSS for managing the search bars at the bottom */
 div.search-form {
 	display: table;
@@ -253,6 +259,10 @@ span.search-form-td {
 #dynamic-elements form p {
 	text-align: left;
 	font-size: 0.9rem;
+}
+
+form#search-hash-container {
+	margin-top: 3rem;
 }
 
 input#search-hash-field {
