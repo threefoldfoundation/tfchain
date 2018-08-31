@@ -348,9 +348,8 @@ function appendRawBlock(element, explorerBlock) {
 function appendNavigationMenuBlock(explorerBlock) {
 	var navigation = document.getElementById('nav-links');
 	var blockSpan = document.createElement('span');
-	var navContainer = document.createElement('div');
+	var navContainer = document.getElementById('nav-container');
 	blockSpan.id = 'nav-links-block';
-	navContainer.id = 'nav-container';
 	navContainer.appendChild(blockSpan);
 	navigation.appendChild(navContainer);
 	linkHeight(blockSpan, explorerBlock.height, 'Block');
