@@ -67,6 +67,10 @@ span.search-form-td {
 	margin-top: 40px;
 }
 
+.input-field {
+	width: 475px;
+}
+
 .header {
 	display: flex;
 	justify-content: space-between;
