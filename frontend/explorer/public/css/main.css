@@ -191,7 +191,6 @@ span.search-form-td {
 }
 
 #search-button-form {
-	display: inline-block;
 	margin: 0 auto;
 	width: 300px;
 }
@@ -250,10 +249,6 @@ span.search-form-td {
 
 #dynamic-elements p {
 	text-align: center;	
-}
-
-#dynamic-elements form {
-	margin-top: 5rem;
 }
 
 #dynamic-elements form p {
