@@ -4,14 +4,14 @@ tfchain is the official Go implementation of the ThreeFold blockchain client. It
 
 The ThreeFold blockchain is used as a ledger for the ThreeFold Token ("TFT"), a digital currency backed by neutral and sustainable internet capacity. You can learn more about the ThreeFold token on [threefoldtoken.com](https://threefoldtoken.com).
 
-The ThreeFold blockchain is the technology behind the ThreeFold Grid ("TF Grid" or "Grid"), a grid where your data is local and controlled by you, shaping a new neutral and sustainable Internet. To learn more about this grid you can find and read the whitepaper at [threefoldtoken.com/pdf/tf_whitepaper.pdf](https://threefoldtoken.com/pdf/tf_whitepaper.pdf).
+The ThreeFold blockchain is the technology behind the ThreeFold Grid ("TF Grid" or "Grid"), a grid where your data is local and controlled by you, shaping a new neutral and sustainable Internet. To learn more about this grid you can find and read the white paper at [http://whitepaper.threefold.me](http://whitepaper.threefold.me).
 
 > ⚠ Attention ⚠
 >
-> `v1.0.6.1` is deprecated as of the 2nd of July, 2018.
-> Please upgrade to `v1.0.7`: [threefoldfoundation/tfchain@v1.0.7](https://github.com/threefoldfoundation/tfchain/releases/tag/v1.0.7) (released on 27th of June, 2018).
+> `v1.0.8` is deprecated as of the 6th of September, 2018.
+> Please upgrade to `v1.1.0`: [threefoldfoundation/tfchain@v1.1.0](https://github.com/threefoldfoundation/tfchain/releases/tag/v1.1.0).
 >
-> If you are still running `v1.0.6.1` or older, you are advised to upgrade to `v1.0.7` as soon as it is released.
+> If you are still running `v1.0.8` or older, you are advised to upgrade to `v1.1.0` as soon as you can or risk getting out-of-sync with the rest of the network due to your ConsensusSet not accepting two new transaction types.
 
 You can reach out to us for any development-related questions on [our public Telegram group](https://t.me/rivine). If you're a user of the tools distributed via this repository, you are welcome to join that chat as well. You're especially welcome if you want to contribute and wonder how.
 
