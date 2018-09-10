@@ -44,6 +44,9 @@ Configure and start Electrum as a daemon :
 ./Electrum --testnet  setconfig rpcpassword pass
 ./Electrum --testnet  setconfig rpcport 7777
 ./Electrum --testnet daemon
+```
+While the daemon is running, make it load the wallet in a different shell:
+```
 ./Electrum --testnet daemon load_wallet
 ```
 Start the tfchain daemon on testnet:
