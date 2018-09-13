@@ -95,7 +95,6 @@ Bob sends Alice the contract and the contract transaction. Alice should now veri
 command:`btcatomicswap auditcontract <contract> <contract transaction>`
 
  ```
- TODO update
 $ ./btcatomicswap --testnet --rpcuser=user --rpcpass=pass  -s  "localhost:7777" auditcontract 6382012088a82017b723d2a2f23480fc464194038419e178306525c3279881843c4e2618293d6c8876a914ab076c229f91119fb0b732fc601682875e8a124467043d9b7e5bb17576a914067c329d318fb219b5fa7aab6544355ada62d9d86888ac 010000000121cd88b06bf680267cfed188ebd589f4bc19264cf20c919b3a845237bc3d998a010000006a47304402201b6f8ab2ac153f2eac87b9a4869a35acf66a300cedaa6346f4ebd72bccd89b2302201f2b7c9e3fccf2466362752b3257a4386ceeab353e93ad5b5476fb5aafbe1cf4012103da30f32bcb4e25f54dc8a507dc8c721176834eaf96bcc9e12afd2a2d17b18003fdffffff021f4bbc000000000017a914b61fef374878697ecd2c6628b34b2d9ccc22521d87c144e904000000001976a91418bb87066a98c37dfceb5ffa00fddbe2d1cfe34b88ac62211500 
 Contract address:        2N9rDE3K93eKm6gBfMFpDK3c6jVBJkdCQYW
 Contract value:          0.12339999 BTC
@@ -124,7 +123,6 @@ Created new address: 01f90b58b929ba434c256eea2b7895eb159ea72f76f8b7084f985163bc8
 Bob sends this address to Alice who uses it to participate in the swap.
 command:`tfchainc atomicswap participate <initiator address> <amount> <secret hash>`
 ```
-TODO update
 $ tfchainc atomicswap participate 01f90b58b929ba434c256eea2b7895eb159ea72f76f8b7084f985163bc84bdf06bd853161fc431 567 17b723d2a2f23480fc464194038419e178306525c3279881843c4e2618293d6c
 Contract address: 02504acff12707d6df959f68d94aeb863f985320a6b604a8ccdb3a0fc5212b3e7661d942779726
 Contract value: 567 TFT
@@ -170,7 +168,6 @@ Bob verifies if:
 command:`tfchainc atomicswap auditcontract outputid`
 flags are available to automatically check the information in the contract.
 ```
-TODO update
 $ ./tfchainc atomicswap auditcontract f3ec88e3238f922882f5dc0b4d7c80256187d672a4effeb6563849c0245ee53b
 Atomic Swap Contract (condition) found:
 
@@ -194,7 +191,6 @@ Now that both Bob and Alice have paid into their respective contracts, Bob may w
 command:`tfchainc atomicswap redeem outputid secret`
 
 ```
-TODO update
 $ tfchainc atomicswap redeem f3ec88e3238f922882f5dc0b4d7c80256187d672a4effeb6563849c0245ee53b 0720ee3138a7646e12f1c5b9adb5be59502f738cdbfed198cb676b4842865915
 Contract address: 02504acff12707d6df959f68d94aeb863f985320a6b604a8ccdb3a0fc5212b3e7661d942779726
 Contract value: 567 TFT
@@ -225,7 +221,6 @@ Alice can automatically extract the secret from the input where it is used by Bo
 
 command:`tfchainc atomicswap extractsecret transactionid`
 ```
-TODO update
 $/tfchainc atomicswap extractsecret 21dd60aa8c0720840c701721a2dc76c1f9e68cd3a9d2b64eb5280f79e03396b1
 atomic swap contract was redeemed
 extracted secret: 0720ee3138a7646e12f1c5b9adb5be59502f738cdbfed198cb676b4842865915
@@ -234,7 +229,9 @@ extracted secret: 0720ee3138a7646e12f1c5b9adb5be59502f738cdbfed198cb676b48428659
 With the secret known, Alice may redeem from Bob's Bitcoin contract:
 command: `btcatomicswap redeem <contract> <contract transaction> <secret>`
 ```
-./btcatomicswap --testnet --rpcuser=user --rpcpass=pass -s  "localhost:7777" redeem 6382012088a82017b723d2a2f23480fc464194038419e178306525c3279881843c4e2618293d6c8876a914ab076c229f91119fb0b732fc601682875e8a124467043d9b7e5bb17576a914067c329d318fb219b5fa7aab6544355ada62d9d86888ac 010000000121cd88b06bf680267cfed188ebd589f4bc19264cf20c919b3a845237bc3d998a010000006a47304402201b6f8ab2ac153f2eac87b9a4869a35acf66a300cedaa6346f4ebd72bccd89b2302201f2b7c9e3fccf2466362752b3257a4386ceeab353e93ad5b5476fb5aafbe1cf4012103da30f32bcb4e25f54dc8a507dc8c721176834eaf96bcc9e12afd2a2d17b18003fdffffff021f4bbc000000000017a914b61fef374878697ecd2c6628b34b2d9ccc22521d87c144e904000000001976a91418bb87066a98c37dfceb5ffa00fddbe2d1cfe34b88ac62211500 0720ee3138a7646e12f1c5b9adb5be59502f738cdbfed198cb676b4842865915
+./btcatomicswap --testnet --rpcuser=user --rpcpass=pass -s  "localhost:7777" redeem 6382012088a82017b723d2a2f23480fc464194038419e178306525c3279881843c4e2618293d6c8876a914ab076c229f91119fb0b732fc601682875e8a124467043d9b7e5bb17576a914067c329d318fb219b5fa7aab6544355ada62d9d86888ac 010000000121cd88b06bf68026
+
+7cfed188ebd589f4bc19264cf20c919b3a845237bc3d998a010000006a47304402201b6f8ab2ac153f2eac87b9a4869a35acf66a300cedaa6346f4ebd72bccd89b2302201f2b7c9e3fccf2466362752b3257a4386ceeab353e93ad5b5476fb5aafbe1cf4012103da30f32bcb4e25f54dc8a507dc8c721176834eaf96bcc9e12afd2a2d17b18003fdffffff021f4bbc000000000017a914b61fef374878697ecd2c6628b34b2d9ccc22521d87c144e904000000001976a91418bb87066a98c37dfceb5ffa00fddbe2d1cfe34b88ac62211500 0720ee3138a7646e12f1c5b9adb5be59502f738cdbfed198cb676b4842865915
 Redeem fee: 0.00495 BTC (0.01527778 BTC/kB)
 
 Redeem transaction (f46d0198cdeeedbf5ad81c0a79f7b8296fde281deff1a70d418cd012eb853763):
