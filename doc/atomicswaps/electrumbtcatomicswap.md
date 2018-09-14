@@ -36,8 +36,9 @@ Of course, either Bob or Alice can be the initiator or the participant.
 This example is a walkthrough of an actual atomic swap  on the threefold and bitcoin testnets.
  
 
-Start Electrum on testnet and create a default wallet: 
+Start Electrum on testnet and create a default wallet but do not set a password on it: 
 `./Electrum --testnet`
+
 Configure and start Electrum as a daemon :
 ```
 ./Electrum --testnet  setconfig rpcuser user
