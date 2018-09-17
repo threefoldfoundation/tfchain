@@ -31,7 +31,9 @@ func RegisterTransactionDBHTTPHandlers(router api.Router, txdb *persist.Transact
 	}
 
 	router.GET("/consensus/mintcondition", NewTransactionDBGetActiveMintConditionHandler(txdb))
+	router.GET("/explorer/mintcondition", NewTransactionDBGetActiveMintConditionHandler(txdb))
 	router.GET("/consensus/mintcondition/:height", NewTransactionDBGetMintConditionAtHandler(txdb))
+	router.GET("/explorer/mintcondition/:height", NewTransactionDBGetMintConditionAtHandler(txdb))
 }
 
 // NewTransactionDBGetActiveMintConditionHandler creates a handler to handle the API calls to /transactiondb/mintcondition.

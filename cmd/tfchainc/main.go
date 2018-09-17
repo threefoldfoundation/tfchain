@@ -27,6 +27,7 @@ func main() {
 
 	// register tfchain-specific commands
 	createConsensusSubCmds(cliClient)
+	createExplorerSubCmds(cliClient)
 	createWalletSubCmds(cliClient)
 
 	// define preRun function
