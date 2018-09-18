@@ -33,6 +33,9 @@ install-std:
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
 
+update:
+	git pull && git submodule update --recursive --remote
+
 test:
 	go test -race -v -tags='debug testing' -timeout=60s $(testpkgs)
 

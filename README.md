@@ -25,17 +25,17 @@ You have 2 easy options to install tfchain in your work environment, as a prequi
 
 The easiest is pulling and using the latest prebuilt docker container:
 
-```
-$ docker pull tfchain/tfchain
-$ docker run -d --name tfchain tfchain/tfchain
+```bash
+docker pull tfchain/tfchain
+docker run -d --name tfchain tfchain/tfchain
 ```
 
 This will pull and configure the latest tfchain container, and it will start a container using that image in the program, named `tfchaind`.
 
 Should you want to use to use the CLI client, you can do so doing the running container:
 
-```
-$ docker exec -ti tfchain /tfchainc 
+```bash
+docker exec -ti tfchain /tfchainc 
 ```
 
 Note that this minimal tfchain docker container is not really meant to be used for much tfchain CLI client interaction. If you wish to do a lot of that, it is probably more easy/useful to run a the tfchain binary CLI from your host machine. If you are interested in that, you can check out [the "tfchain from source" section](#tfchain-from-source).
@@ -46,8 +46,8 @@ Even though the image for these containers is prebuilt available for you, should
 
 tfchain is developed and implemented using [Golang](http://golang.org). Using the golang toolchain it is very easy to download, update and install the tfchain binaries used to run a full node and interact with it:
 
-```
-$ go get -u github.com/threefoldfoundation/tfchain/cmd/... && \
+```bash
+go get -u github.com/threefoldfoundation/tfchain/cmd/... && \
     tfchaind &
 ```
 
@@ -56,6 +56,27 @@ $ go get -u github.com/threefoldfoundation/tfchain/cmd/... && \
 At this point (if all went right) you should have a tfchain daemon running in the background which is syncing with the test net. You can follow this syncing process using the CLI client: `tfchainc`.
 
 Should you want to learn more, you can find additional daemon documentation of the daemon at [/doc/tfchaind.md](/doc/tfchaind.md) and the (CLI) client on [doc/tfchainc.md](doc/tfchainc.md).
+
+### tfchain development and deployment
+
+If you are a tfchain developer you probably also want to pull all submodules locally,
+to do so, you can get this entire repo and all its submodules locally using the following command:
+
+```bash
+go get -d -u github.com/threefoldfoundation/tfchain && \
+    cd $GOPATH/src/github.com/threefoldfoundation/tfchain && \
+    submodule update --init --recursive
+```
+
+Once you have that repo, you can pull from than on the latest commit
+(including submodule updates) using the following command:
+
+```bash
+cd $GOPATH/src/github.com/threefoldfoundation/tfchain && make update
+```
+
+> NOTE that if you didn't execute `submodule update --init --recursive` when cloning this repo
+> `make update` will fail, as submodules have to initialized first.
 
 ## standard (net)
 

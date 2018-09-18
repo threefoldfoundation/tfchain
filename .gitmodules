@@ -1,0 +1,3 @@
+[submodule "deployment/templates"]
+	path = deployment/templates
+	url = git@github.com:threefoldfoundation/tfchain-templates.git
