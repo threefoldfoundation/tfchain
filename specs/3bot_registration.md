@@ -669,7 +669,7 @@ use any kind of prefix byte.
 + 8 bytes: `uint64`, `int64`, `uint`, `int`
 
 While it is true, that it would still waste for example 3 bytes in the case of a `uint32` value of 255 or less,
-optimizing at this level would start to be about trade-offs. If continue with the `uint32` type example:
+optimizing at this level would start to be about trade-offs. If we continue with the `uint32` type example:
 using 2 bits you could represent whether it requires 1, 2, 3 or 4 bytes. It does however mean you can now only have
 a maximum value of `2^28` (268,435,456) instead of `2^32`.
 
@@ -687,7 +687,7 @@ Therefore a pair of a public key and signature only requires in fact a 1 byte ov
 allowing 256 different algorithms, which seems more sufficient, given that today we have only 1 algorithm that we support.
 
 For stand-alone signatures this would mean that we also still get this 1 byte overhead,
-which would do as good as the smallest possible [Dynamic Slice](#dynamic-slice) proposed earlier.
+which would do as good as the smallest possible [Dynamic Slice](#dynamic-slices) proposed earlier.
 Given that a signature is a byte slice, it makes this proposed optimization even for stand-alone signatures
 an efficient approach, that wouldn't be beaten by giving up the type-info for the dynamic slice info.
 On top of that. Encoding the a type byte, instead of a 1-byte length byte, gives us on top of that the advantage,
