@@ -351,7 +351,13 @@ For the most part the binary encoding of the Registration Tx is straightforward,
   (the first 4 bits defines amount of addresses, and other 4 bits the amount of names);
 
 > NOTE: See [The Compact Binary Properties Chapter](#compact-binary-properties) to see how other (common) properties,
-> such as coin inputs and coin outputs are proposed to be binary-encoded.
+> are also highly optimized as to keep the binary-encoded Tx as small as possible.
+
+> NOTE: for the address type we have 3 different possibilities. IPv4, IPv6 and domain host names.
+> The first 2 have fixed-size values, and only the latter (domain host names) requires a length.
+> For this one we make use of the remaining 5 bits:
+>  * Is the first bit equal to `0`, than the length is defined by the remaining 4 bits;
+>  * Otherwise the length is defined the next {1,2,3,4} byte(s) depending if the 2nd, 3rd, 4th or 5th bit is 1;
 
 ### Update Tx
 
@@ -448,7 +454,25 @@ For the most part the binary encoding of the Update Tx is straightforward, but t
   (the first 4 bits defines amount of names added, and the other 4 bits the amount of names removed);
 
 > NOTE: See [The Compact Binary Properties Chapter](#compact-binary-properties) to see how other (common) properties,
-> such as the coin inputs and coin outputs are proposed to be binary-encoded.
+> are also highly optimized as to keep the binary-encoded Tx as small as possible.
+
+> NOTE: for the address type we have 3 different possibilities. IPv4, IPv6 and domain host names.
+> The first 2 have fixed-size values, and only the latter (domain host names) requires a length.
+> For this one we make use of the remaining 5 bits:
+>  * Is the first bit equal to `0`, than the length is defined by the remaining 4 bits;
+>  * Otherwise the length is defined the next {1,2,3,4} byte(s) depending if the 2nd, 3rd, 4th or 5th bit is 1;
+
+To keep the Update Tx as compact as possible for small updates
+(including the smallest possible update where only the months of values is updated),
+the Tx (binary) encoding defines the following compressed (1 byte) value:
+
+```
+[ 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 ]
+| NrOfMonths        | V | V | flag to indicate if a refund is given
+|                   | V | flag to indicate if any name is added/removed
+|                   | flag to indicate if any address is added/removed
+```
+> This byte is encoded instead of an uint8 value (that you might have expected as the type for NrOfMonths).
 
 ### Name Transfer Tx
 
@@ -569,7 +593,25 @@ For the most part the binary encoding of the Update Tx is straightforward, but t
   (the first 4 bits defines amount of names added, and the other 4 bits the amount of names removed);
 
 > NOTE: See [The Compact Binary Properties Chapter](#compact-binary-properties) to see how other (common) properties,
-> such as the coin inputs and coin outputs are proposed to be binary-encoded.
+> are also highly optimized as to keep the binary-encoded Tx as small as possible.
+
+> NOTE: for the address type we have 3 different possibilities. IPv4, IPv6 and domain host names.
+> The first 2 have fixed-size values, and only the latter (domain host names) requires a length.
+> For this one we make use of the remaining 5 bits:
+>  * Is the first bit equal to `0`, than the length is defined by the remaining 4 bits;
+>  * Otherwise the length is defined the next {1,2,3,4} byte(s) depending if the 2nd, 3rd, 4th or 5th bit is 1;
+
+To keep the Update Tx as compact as possible for small updates
+(including the smallest possible update where only the months of values is updated),
+the Tx (binary) encoding defines the following compressed (1 byte) value:
+
+```
+[ 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 ]
+| NrOfMonths        | V | V | flag to indicate if a refund is given
+|                   | V | ALWAYS 1, as a (DNS) name transfer HAS to include at least one added name
+|                   | flag to indicate if any address is added/removed
+```
+> This byte is encoded instead of an uint8 value (that you might have expected as the type for NrOfMonths).
 
 ## Compact Binary Properties
 
@@ -580,22 +622,86 @@ With an aim on keeping the memory footprint of these properties as small as poss
 such is already achieved with the new properties discussed in [The Transactions Chapter](#transactions),
 it is needed to decode these more "classic" types in a new way as well, at least already when used as part of these Transaction Types.
 
-### Tiny Slices
+### Dynamic Slices
 
-In all previous Tx types eight bytes are used to prefix a slice and indicates its length.
-There are however situations where this is way more than is ever expected to be used.
+In [Rivine][rivine] _slice_ types (which include the `string` type) are prefixed with 8 bytes,
+containing an 64-bit unsigned integer to indicate the length of the _slice_ value.
+Because the dynamic nature of _slices_ the encoding of the length together with its value is unavoidable.
+It is however a waste to always use 8 bytes to indicate the slice. It is especially weird as
+the [Rivine][rivine] encoding library defines a maximum limit of ~5MB for the size of a slice,
+which, when expressed in bytes, gives a number that fits in 4 bytes. Meaning 4 bytes are ALWAYS wasted.
+We can however do better than just save 4 bytes, for some instances, without giving up the ability to
+encode slices that do require a length that cannot be encoded in less than 4 bytes.
 
-Therefore the introduction of a Tiny Slice type is in place,
-which will allow slices of a value up to 255 elements,
-which for many things is more than enough.
-As a consequence we only require a single byte instead of eight bytes,
-in order to prefix the length of value.
+```
+         b   b   b   b     b
+Given: [ 0 | 1 | 2 | ... | N - 1 ]
 
+bit(0)=0 --> (A) length fits in 1 byte, with a max value (N) of (2^7)-1 (127 Bytes)
+bit(0)=1 -+-> bit(1)=0 --> (B) length fits in 2 bytes, with a max value (N) of (2^14)-1 (16+ KB)
+          |
+          +-> bit(1)=1 -+-> bit(2)=0 --> (C) length fits in 3 bytes, with a max value (N) of (2^21)-1 (2+ MB)
+                        |
+                        +-> bit(2)=1 --> (D) length fits in 4 bytes, with a max value (N) of (2^29)-1 (536+ MB)
+```
 
-Within the context of spec, it will be used for the binary encoding
-of names (strings = char slices) as well as coin inputs.
-A coin input is already binary-encoded in a very compact way, and does not require
-a new type.
+This compact scheme allows us for most slices (as most slices we use in Tx's do really fit in 127 bytes or less)
+to encode the length as a single byte, while for the rare cases where we need more than 127 bytes,
+we can still save 6 bytes by encoding the length as 2 bytes (including the 2bit prefix of case B).
+
+It allows us to encode much compactor, without becoming more CPU intensive.
+
+> It will require a overwrite of type, but the binary encoding of the `Currency` type
+> can make use of this optimization as well.
+
+### Dynamic Integers
+
+In [Rivine][rivine] all integral types are little-endian binary encoded as unsigned 64-bit integers,
+regardless of their actual type, resulting always in 8 bytes.
+
+This is a waste, and given we assume the decode-callee always gives typed values to decode into,
+we can very easily vary between the requirement of 1, 2, 4 or 8 bytes, without having to
+use any kind of prefix byte.
+
++ 1 byte: `uint8`, `int8`
++ 2 bytes: `uint16`, `int16`
++ 4 bytes: `uint32`, `int32`
++ 8 bytes: `uint64`, `int64`, `uint`, `int`
+
+While it is true, that it would still waste for example 3 bytes in the case of a `uint32` value of 255 or less,
+optimizing at this level would start to be about trade-offs. If continue with the `uint32` type example:
+using 2 bits you could represent whether it requires 1, 2, 3 or 4 bytes. It does however mean you can now only have
+a maximum value of `2^28` (268,435,456) instead of `2^32`.
+
+In general this isn't really something you would want to do. For the rare cases where you do think you could use it,
+it is probably best to implement a specialized solution just for it.
+
+### Optimized Public Keys and Signatures
+
+In [Rivine][rivine] public keys and signatures are binary-encoded in a very inefficient way.
+Signatures are prefixed with 8 bytes, to indicate the length. Public keys have a overhead of 24 bytes,
+8 bytes for the hash length, and 16 bytes for the algorithm specifier.
+
+The length of both the public key and signature should however be static per algorithm type.
+Therefore a pair of a public key and signature only requires in fact a 1 byte overhead (in total),
+allowing 256 different algorithms, which seems more sufficient, given that today we have only 1 algorithm that we support.
+
+For stand-alone signatures this would mean that we also still get this 1 byte overhead,
+which would do as good as the smallest possible [Dynamic Slice](#dynamic-slice) proposed earlier.
+Given that a signature is a byte slice, it makes this proposed optimization even for stand-alone signatures
+an efficient approach, that wouldn't be beaten by giving up the type-info for the dynamic slice info.
+On top of that. Encoding the a type byte, instead of a 1-byte length byte, gives us on top of that the advantage,
+that we can make our signatures typed in-memory, providing for an optional cheap pre-check,
+based on the public key's type.
+
+### Optimized Coin Inputs and Outputs
+
+Inspired by all optimizations proposed in this spec,
+it becomes clear that we can also save a lot of bytes by optimizing
+all coin inputs and coin outputs.
+
+For Coin inputs that means optimizing the Fulfillments, as the ParentID is an array.
+For Coin outputs that means optimizing the encoding of the Currency and the Conditions.
 
 [tfchain]: http://github.com/threefoldfoundation/
 [rivine]: http://github.com/rivine/rivine
