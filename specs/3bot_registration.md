@@ -580,15 +580,6 @@ With an aim on keeping the memory footprint of these properties as small as poss
 such is already achieved with the new properties discussed in [The Transactions Chapter](#transactions),
 it is needed to decode these more "classic" types in a new way as well, at least already when used as part of these Transaction Types.
 
-### Optional Value
-
-This type makes a value of any (binary) Marshalable optional.
-This is achieved by prefixing the value with a byte, 1 or 0,
-defining whether or not it is defined.
-
-Within the context of spec,
-it will be used for the binary encoding of the optional single refund Coin Output.
-
 ### Tiny Slices
 
 In all previous Tx types eight bytes are used to prefix a slice and indicates its length.
