@@ -2,4 +2,4 @@ release/
 dist/
 debug
 testnet/
-coverage.out
+*.out
