@@ -45,112 +45,65 @@ Extra information, which is not strictly required in order to consume the data, 
 
 ## Fees
 
-Registering a new 3bot as well updating an existing 3bot (record) requires
-additional fees on top of the regular Tx fee (which is currently defined at the minimum of `0.1 TFT`).
+Registering a new 3bot as well as other actions require additional fees,
+That go on top of the regular required (minimum) Tx fee.
 
-Here are the base values used for the computation of the total additional fees:
+Here are these fees, as suggested in
+[the functional spec](https://github.com/rivine/home/blob/master/specs/3bot_registration.md):
 
-- each (DNS) name costs `10 TFT` (with a maximum of 5 names and thus a maximum of `50 TFT`);
-- the first 3 network addresses requires no additional fees;
-- every extra network address costs `5 TFT` (a maximum amount of 10 network addresses, and thus a maximum of `35 TFT`);
-- deleting data never requires additional fees;
-- registration costs are `80 TFT`;
-- per month is a `10 TFT` additional fee required for operational costs;
-- modification of a properties costs `40 TFT` (with number of months being an exception);
+- registration of a new 3bot (static price): `100 TFT`;
+- monthly fee per 3bot (static price): `10 TFT`:
+  - first month is for free at registration time;
+- deletion and transfer of a name: _free_;
+- per name: `50 TFT`:
+  - at registration time the fee is to be paid only for each additional name,
+    while the first one is for free;
+  - when modifying a 3bot record the fee is applied to each added name;
+- network address info change (static price): `20 TFT`;
 
-In terms of a 3bot record:
+The monthly fee is a static value, and ensures the 3bot remains active.
+An inactive bot will still exist in the registry, but will no longer be supported
+by any ThreeFold Foundation service that runs on top of such registry.
 
-- a month is 30 days;
-- years do not exist in 3bot terminology, giving us `360` days for `12` months (**not** `365`);
+Registering a 3bot also requires a minimum of one month
+(which is already paid for in the registration costs of `100 TFT`),
+as a consequence it is not possible to register an inactive 3bot.
+In other words, a 3bot can only become inactive by not paying the
+required monthly fee of `10 TFT` before its expiration timestamp has been reached
+at least one block less than the highest block.
 
-Depending upon the number of months, an automatic discount is applied,
-decreasing the amount of additional fees required:
+A 3bot can register one name and up to 10 network addresses free of charge.
+At any given block height, a 3bot is only allowed up to 5 names and 10 network addresses.
 
-- 15% discount is applied if at least 3 months, but less than 12 months is paid at once;
-- 30% discount is applied if at least 12 months, but less than 24 months is paid at once;
-- 50% discount is applied if at least 24 months is paid at once;
+Additionally, [the functional spec](https://github.com/rivine/home/blob/master/specs/3bot_registration.md) suggests discounts on the monthly fees if paying sufficiently months at once:
 
-These discounts are given for 2 reasons:
+- `30%` discount if paying `[12,23]` months<sup>(1)</sup>;
+- `50%` discount if paying `24+` months<sup>(1)</sup>;
 
-- to reward the 3bot's tokens paid up front;
-- to reward the 3bot of saving us precious bytes on the blockchain, given that the 3bot won't have to extend the Expiration time (using the Nr of months) as fast;
+> (1) one month is defined as `30 * 24 * 60 * 60 = 2592000` seconds.
 
-All this gives us the following formula to compute the total amount of required additional fees for a registration Tx Fee:
-
-> F<sub>additional</sub> = `80 TFT` +
->   (
->       (C<sub>names</sub> * `10 TFT`) +
->       ((C<sub>addresses</sub> < 3 ? 0 : C<sub>addresses</sub>-3) * `5 TFT`) +
->       `10` TFT
->   ) * T<sub>months</sub> * R<sub>discount</sub>
->
-> where:
->  - `R` is one of {`1.0`, `0.85`, `0.7`, `0.5`} (see discounts)
-
-For update Tx's the formula gets a bit more hairy:
-
-> F<sub>additional</sub> = `X TFT` +
->   ((
->       (C<sub>new names</sub> * `10 TFT`) +
->       ((C<sub>new addresses</sub> < 3 ? 0 : C<sub>new addresses</sub>-3) * `5 TFT`) +
->       `10` TFT
->   ) * T<sub>months</sub> * R<sub>discount(T)</sub>) +
->   ((
->       (C<sub>remaining names</sub> * `10 TFT`) +
->       ((C<sub>remaining addresses</sub> < 3 ? 0 : C<sub>remaining addresses</sub>-3) * `5 TFT`) +
->       `10 TFT`
->   ) * N<sub>months</sub> * R<sub>discount(N)</sub>)
->
-> where:
->  - `X` equals:
->    - `0` if only Nr of months is defined
->    - `40` if any other property are (also) defined
->  - `R` is one of {`1.0`, `0.85`, `0.7`, `0.5`} (see discounts)
->  - T<sub>months</sub> equals the the total amount of months (remaining months the both is active + the given Nr of months)
->  - N<sub>months</sub> equals the the given Nr of months
->  - remaining meaning the names/addresses that were not removed and not added,
->    but already registered in a previous registration/update Tx
->  - no refunds are given, meaning that if you remove an address and/or name
->    which was already paid for (T<sub>months</sub> - N<sub>months</sub>) amount of months, those months are lost
->    - ⚠ Note that removing a (DNS) name makes it immediately available for any 3bot to claim it
-
-### Examples
-
-#### a minimal bot
+### Example: a minimal bot
 
 In order to minimize the costs for a 3bot one can therefore choose
-to register only the required data would give us:
+to register only what is included in the required frees and use what is free:
 
-- no (DNS) names;
-- 1 to 3 network addresses;
-
-Which would give us the following example additional fee table for the registration for the 3bot:
-
-|number of months|additional fees in TFT|total discount in TFT|discount per month in TFT|
-|-|-|-|-|
-|1|`90`|`0`|`0`|
-|3|`110`|`0`|`0`|
-|12|`164`|`36`|`3`|
-|24|`200`|`120`|`5`|
-
-#### a typical bot
-
-A more typical bot would have:
-
-- (at least) one DNS name;
-- 2 to 3 network addresses;
+- 0 or 1 (DNS) name(s);
+- 0 to 10 network addresses;
 
 Which would give us the following example additional fee table for the registration for the 3bot:
 
 |number of months|additional fees in TFT|total discount in TFT|discount per month in TFT|
 |-|-|-|-|
 |1|`100`|`0`|`0`|
-|3|`140`|`0`|`0`|
-|12|`248`|`72`|`6`|
-|24|`320`|`240`|`10`|
+|3|`100`|`0`|`0`|
+|12|`174`|`36`|`3`|
+|24|`210`|`120`|`5`|
 
-> ⚠ It is no coincidence that the registration of a "typical" 3bot
-> for 1 month costs exactly `100 TFT`. 
+As you can see, the difference between 12 months and 24 months is pretty small,
+making it pretty attractive to sign up immediately for a 2 year period.
+While saving you a lot of coins, it doesn't lock you to a specific (set of) name(s),
+as this information (as well as the network addresses used) can still be changed,
+without affecting the activity period of the 3bot (or its (to be) paid fees).
 
 ## Consensus Rules
 
@@ -170,7 +123,7 @@ Here is the complete list of rules applied on all
 - At any _resulting_ point no more than 10 network addresses can be registered for a single 3bot (_resulting_ meaning that if you update a 3bot that already has 9 DNS names you can add 2 DNS names ONLY if you also remove 1 in that same update Tx);
 - All DNS names have to be valid (more about this later);
 - All network addresses have to be valid, a network address can be: IPv4, IPv6 or a (domain) hostname);
-- At any resulting point the number of months has to be in the inclusive range of `[1, 24]` (meaning after the combination of the remaining months plus the newly added number of months);
+- At any resulting point the number of months has to be in the inclusive range of `[0, 24]`;
 - The signature has to be valid:
   - meaning the input data is as expected, and completely based on the given Tx data;
   - the signature is signed using the private key paired with the known/given public key (only at registration the public key has to be given);
@@ -258,6 +211,33 @@ If found, an object in the structure of the following example is returned:
         // in the order that it happened.
         "a6aca83fe8f51e939db0431e78f59686b5bd9d1b744308fe958fb9a9f7c17b9c",
     ]
+}
+```
+
+#### `GET /explorer/3bot/whois/:name`
+
+`:name` is a 3bot (DNS) name.
+
+If found (and thus registered), the record of the 3bot is returned who owns that name:
+
+```javascript
+{
+    // unique ID (4 byte unsigned integer)
+    "id": 42,
+    // list of registered (DNS) names,
+    // each name is a string.
+    // The returned record will contain at least one name (the name searched for).
+    "names": [],
+    // list of registered network addresses,
+    // each address is a string
+    "addresses": [],
+    // string encoded public key, defined in the registration Tx
+    "publickey": "ed25519:28c1edd4c35f662cccfa7fc02194959d75855c02d342c1131b110c9e96764d9b",
+    // Unix Epoch Time in seconds,
+    // of when the 3bot is to expire,
+    // meaning the 3bot (DNS) names will no longer
+    // be pointing to the network addresses of this 3bot
+    "expiration": 943916400,
 }
 ```
 
