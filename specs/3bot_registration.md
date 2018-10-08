@@ -114,7 +114,7 @@ Here is the complete list of rules applied on all
 3bot Registration/Update Tx's:
 
 - The total sum of Miner Fees has to equal at least the minimum Tx fee (`0.1 TFT`);
-- The additional fees have to at equal at least the amount of additional fees computed as described in [the fees chapter](#fees), anything extra is considered a donation towards the Threefold Foundation (fair CLI tools would warn the user for this though);
+- The additional fees have to be exactly the amount of additional fees computed as described in [the fees chapter](#fees), for simplicity and fairness there can be no extra fees given;
 - All fees (meaning the combination of miner and additional fees) should be funded with given coin inputs;
 - Each coin input has to be valid according to the standard rules;
 - The refund coin output is optional and can be defined only to allow change given back to a wallet of choice);
