@@ -118,7 +118,6 @@ Here is the complete list of rules applied on all
 - All fees (meaning the combination of miner and additional fees) should be funded with given coin inputs;
 - Each coin input has to be valid according to the standard rules;
 - The refund coin output is optional and can be defined only to allow change given back to a wallet of choice);
-- No extra coin inputs can be defined than needed (meaning that if you need to pay 100 TFT, and have already 2 coin inputs of `30 TFT` and `70 TFT`, than a third coin input would not be allowed, as it would result in a pure coin transfer, which is not allowed as part of a 3bot Tx);
 - At any _resulting_ point no more than 5 (DNS) names can be registered for a single 3bot (_resulting_ meaning that if you update a 3bot that already has 4 DNS names you can add 2 DNS names ONLY if you also remove 1 in that same update Tx);
 - At any _resulting_ point no more than 10 network addresses can be registered for a single 3bot (_resulting_ meaning that if you update a 3bot that already has 9 DNS names you can add 2 DNS names ONLY if you also remove 1 in that same update Tx);
 - All DNS names have to be valid (more about this later);
