@@ -140,6 +140,7 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 			return err
 		}
 		rivineapi.RegisterWalletHTTPHandlers(router, w, cfg.APIPassword)
+		api.RegisterWalletHTTPHandlers(router, w, cfg.APIPassword)
 		defer func() {
 			fmt.Println("Closing wallet...")
 			err := w.Close()

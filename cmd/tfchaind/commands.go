@@ -73,16 +73,19 @@ func setupNetwork(cfg daemon.Config) (daemon.NetworkConfig, *persist.Transaction
 			return daemon.NetworkConfig{}, nil, err
 		}
 
+		constants := config.GetStandardnetGenesis()
+		networkConfig := config.GetStandardDaemonNetworkConfig()
+
 		// Register the transaction controllers for all transaction versions
 		// supported on the standard network
-		types.RegisterTransactionTypesForStandardNetwork(txdb)
+		types.RegisterTransactionTypesForStandardNetwork(txdb, constants.CurrencyUnits.OneCoin, networkConfig)
 		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 		// until the blockchain reached a height of 42000 blocks.
 		types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
 
 		// return the standard genesis block and bootstrap peers
 		return daemon.NetworkConfig{
-			Constants:      config.GetStandardnetGenesis(),
+			Constants:      constants,
 			BootstrapPeers: config.GetStandardnetBootstrapPeers(),
 		}, txdb, nil
 
@@ -92,15 +95,18 @@ func setupNetwork(cfg daemon.Config) (daemon.NetworkConfig, *persist.Transaction
 			return daemon.NetworkConfig{}, nil, err
 		}
 
+		constants := config.GetTestnetGenesis()
+		networkConfig := config.GetTestnetDaemonNetworkConfig()
+
 		// Register the transaction controllers for all transaction versions
 		// supported on the test network
-		types.RegisterTransactionTypesForTestNetwork(txdb)
+		types.RegisterTransactionTypesForTestNetwork(txdb, constants.CurrencyUnits.OneCoin, networkConfig)
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		// return the testnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
-			Constants:      config.GetTestnetGenesis(),
+			Constants:      constants,
 			BootstrapPeers: config.GetTestnetBootstrapPeers(),
 		}, txdb, nil
 
@@ -110,15 +116,18 @@ func setupNetwork(cfg daemon.Config) (daemon.NetworkConfig, *persist.Transaction
 			return daemon.NetworkConfig{}, nil, err
 		}
 
+		constants := config.GetDevnetGenesis()
+		networkConfig := config.GetDevnetDaemonNetworkConfig()
+
 		// Register the transaction controllers for all transaction versions
 		// supported on the dev network
-		types.RegisterTransactionTypesForDevNetwork(txdb)
+		types.RegisterTransactionTypesForDevNetwork(txdb, constants.CurrencyUnits.OneCoin, networkConfig)
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		// return the devnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
-			Constants:      config.GetDevnetGenesis(),
+			Constants:      constants,
 			BootstrapPeers: nil,
 		}, txdb, nil
 

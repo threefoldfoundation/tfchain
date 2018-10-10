@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -56,6 +57,11 @@ type NetworkAddress struct {
 	addr []byte
 }
 
+var (
+	v4InV6Prefix    = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff}
+	v4InV6PrefixLen = len(v4InV6Prefix)
+)
+
 // NewNetworkAddress creates a new NetworkAddress from a given (valid) string.
 func NewNetworkAddress(addr string) (NetworkAddress, error) {
 	if addr == "" {
@@ -71,6 +77,9 @@ func NewNetworkAddress(addr string) (NetworkAddress, error) {
 		}, nil
 	}
 	na := NetworkAddress{addr: []byte(net.ParseIP(addr))}
+	if bytes.Equal(na.addr[:v4InV6PrefixLen], v4InV6Prefix) {
+		na.addr = na.addr[v4InV6PrefixLen:]
+	}
 	switch len(na.addr) {
 	case 4:
 		na.t = NetworkAddressIPv4
@@ -135,11 +144,17 @@ func (na *NetworkAddress) UnmarshalSia(r io.Reader) error {
 
 // String returns this NetworkAddress in a (human-readable) string format.
 func (na NetworkAddress) String() string {
-	if na.t == NetworkAddressHostname {
+	switch na.t {
+	case NetworkAddressIPv4:
+		p := make(net.IP, net.IPv6len)
+		copy(p, v4InV6Prefix)
+		copy(p[v4InV6PrefixLen:], na.addr)
+		return p.String()
+	case NetworkAddressIPv6:
+		return net.IP(na.addr).String()
+	default: // NetworkAddressHostname
 		return string(na.addr) // also covers a nil address
 	}
-	// given we assume our NetworkAddress is valid, the type must be IPv4 or IPv6
-	return net.IP(na.addr).String()
 }
 
 // LoadString loads the NetworkAddress from a human-readable string.
@@ -160,4 +175,9 @@ func (na *NetworkAddress) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	return na.LoadString(str)
+}
+
+// Equal returns true if this NetworkAddress and the given NetworkAddress are equal.
+func (na NetworkAddress) Equal(ona NetworkAddress) bool {
+	return na.t == ona.t && bytes.Compare(na.addr, ona.addr) == 0
 }

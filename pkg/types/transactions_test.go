@@ -15,6 +15,7 @@ import (
 	"github.com/rivine/rivine/encoding"
 	"github.com/rivine/rivine/types"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
+	tfencoding "github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 
 var (
@@ -73,7 +74,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForStandardNetwork(nil) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForStandardNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "standard", validationConstants)
 	constants = config.GetTestnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -81,7 +82,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForTestNetwork(nil) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForTestNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "test", validationConstants)
 	constants = config.GetDevnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -89,7 +90,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForDevNetwork(nil) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForDevNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "dev", validationConstants)
 }
 
@@ -2236,4 +2237,91 @@ func (mem *inMemoryMintConditionGetter) revertMintCondition(height types.BlockHe
 			return
 		}
 	}
+}
+
+func TestBotTransactionVersionConstants(t *testing.T) {
+	if TransactionVersionBotRegistration != 0x90 {
+		t.Errorf("unexpected bot registration Tx version: %x", TransactionVersionBotRegistration)
+	}
+	if TransactionVersionBotRecordUpdate != 0x91 {
+		t.Errorf("unexpected bot record update Tx version: %x", TransactionVersionBotRecordUpdate)
+	}
+	if TransactionVersionBotNameTransfer != 0x92 {
+		t.Errorf("unexpected bot name transfer Tx version: %x", TransactionVersionBotNameTransfer)
+	}
+}
+
+func TestBotMonthsAndFlagsData(t *testing.T) {
+	testCases := []struct {
+		Input    uint8
+		Expected BotMonthsAndFlagsData
+	}{
+		{0, BotMonthsAndFlagsData{}},
+		{4 | 32, BotMonthsAndFlagsData{NrOfMonths: 4, HasAddresses: true}},
+		{1 | 64, BotMonthsAndFlagsData{NrOfMonths: 1, HasNames: true}},
+		{29 | 128, BotMonthsAndFlagsData{NrOfMonths: 29, HasRefund: true}},
+		{2 | 32 | 128, BotMonthsAndFlagsData{NrOfMonths: 2, HasAddresses: true, HasRefund: true}},
+		{3 | 32 | 64, BotMonthsAndFlagsData{NrOfMonths: 3, HasAddresses: true, HasNames: true}},
+		{5 | 64 | 128, BotMonthsAndFlagsData{NrOfMonths: 5, HasNames: true, HasRefund: true}},
+		{31 | 32 | 64 | 128, BotMonthsAndFlagsData{NrOfMonths: 31, HasAddresses: true, HasNames: true, HasRefund: true}},
+	}
+	for idx, testCase := range testCases {
+		var result BotMonthsAndFlagsData
+		err := tfencoding.Unmarshal(tfencoding.Marshal(testCase.Input), &result)
+		if err != nil {
+			t.Error(idx, "error(Unmarshal:BotMonthsAndFlagData)", err)
+			continue
+		}
+		if result != testCase.Expected {
+			t.Error(idx, "unexpected result", result, "!=", testCase.Expected)
+			continue
+		}
+		var number uint8
+		err = tfencoding.Unmarshal(tfencoding.Marshal(result), &number)
+		if err != nil {
+			t.Error(idx, "error(Unmarshal:uint8)", err)
+			continue
+		}
+		if number != testCase.Input {
+			t.Error(idx, "unexpected number result", number, "!=", testCase.Input)
+		}
+	}
+}
+
+func TestComputeMonthlyBotFees(t *testing.T) {
+	oneCoin := types.NewCurrency64(10)
+	testCases := []struct {
+		NrOfMonths  uint8
+		ExpectedFee types.Currency
+	}{
+		{0, types.Currency{}},
+		{1, types.NewCurrency64(100)},
+		{2, types.NewCurrency64(200)},
+		{8, types.NewCurrency64(800)},
+		{11, types.NewCurrency64(1100)},
+		{12, types.NewCurrency64(840)},
+		{16, types.NewCurrency64(1120)},
+		{23, types.NewCurrency64(1610)},
+		{24, types.NewCurrency64(1200)},
+		{31, types.NewCurrency64(1550)},
+		{32, types.NewCurrency64(1600)},
+		{math.MaxUint8, types.NewCurrency64(12750)},
+	}
+	for idx, testCase := range testCases {
+		fee := ComputeMonthlyBotFees(testCase.NrOfMonths, oneCoin)
+		if !fee.Equals(testCase.ExpectedFee) {
+			t.Error(idx, testCase.NrOfMonths, "unexpected result", fee, "!=", testCase.ExpectedFee)
+		}
+	}
+}
+
+func TestBotRegistrationFees(t *testing.T) {
+	// TODO:
+	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
+}
+
+func TestBotUpdateFees(t *testing.T) {
+	// TODO:
+	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
+	//  - test (*BotNameTransferTransaction)::RequiredBotFee
 }

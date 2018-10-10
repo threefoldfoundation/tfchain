@@ -71,17 +71,19 @@ func TestBotNameBinaryMarshalUnmarshal(t *testing.T) {
 	}
 }
 
+// TODO: TestBotNameEquality
+
 var (
 	ExampleBotJSONRecord = []byte(`{
 	"id": 42,
-	"names": [
-		"threefold.token",
-		"trading.botzone"
-	],
 	"addresses": [
 		"network.address.com",
 		"83.200.201.201",
 		"2001:db8:85a3::8a2e:370:7334"
+	],
+	"names": [
+		"threefold.token",
+		"trading.botzone"
 	],
 	"publickey": "ed25519:28c1edd4c35f662cccfa7fc02194959d75855c02d342c1131b110c9e96764d9b",
 	"expiration": 1538484360
@@ -145,11 +147,11 @@ func TestExampleBotRecordBinarySia(t *testing.T) {
 	}
 }
 
-// a total of 42 bytes, for the most minimalistic record in the current context
+// a total of 46 bytes, for the most minimalistic record in the current context
 const minimalHexEncodedBinaryBotRecord = `00000000` + // first bot, index 0
-	`10` + // 16 => 0 names and 1 addr
+	`01` + // 1 => 0 names and 1 addr
 	`117F000001` + // IPv4 => 127.0.0.1
-	`00404683705f729a65e9e133e1719d05ad8ac45a14e44fcf6c85de19e5ac7fcd2e9d` + // ed25519 pub key
+	`004683705f729a65e9e133e1719d05ad8ac45a14e44fcf6c85de19e5ac7fcd2e9d` + // ed25519 pub key
 	`7AF905` // some data
 
 func TestMinimalHexEncodedBinaryBotRecord(t *testing.T) {
@@ -181,3 +183,10 @@ func TestMinimalHexEncodedBinaryBotRecord(t *testing.T) {
 		t.Error("unexpected expiration time", record.Expiration, "!=", 1538492760)
 	}
 }
+
+// TODO:
+// TestAddNames
+// TestRemoveNames
+// TestAddNetworkAddresses
+// TestRemoveNetworkAddresses
+// TestExtendExpirationDate

@@ -213,7 +213,7 @@ If found, an object in the structure of the following example is returned:
 }
 ```
 
-#### `GET /explorer/3bot/whois/:name`
+#### `GET /explorer/whois/3bot/:name`
 
 `:name` is a 3bot (DNS) name.
 

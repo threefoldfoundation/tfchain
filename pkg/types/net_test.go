@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/rivine/rivine/encoding"
+	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 
 var exampleNetworkAddresses = []string{
@@ -65,3 +65,5 @@ func TestNetworkAddressBinaryMarshalUnmarshal(t *testing.T) {
 		}
 	}
 }
+
+// TODO: TestNetworkAddressEquality

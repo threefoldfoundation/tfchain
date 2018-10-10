@@ -180,7 +180,7 @@ func TestPublicKeyEd25519BinaryEncodedByteLength(t *testing.T) {
 		t.Error(err)
 	}
 	b := encoding.Marshal(pk)
-	if len(b) != 34 {
-		t.Error(len(b), "!=", 34, hex.EncodeToString(b))
+	if len(b) != 33 {
+		t.Error(len(b), "!=", 33, hex.EncodeToString(b))
 	}
 }

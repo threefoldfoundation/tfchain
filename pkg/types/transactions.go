@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/threefoldfoundation/tfchain/pkg/config"
+	tfencoding "github.com/threefoldfoundation/tfchain/pkg/encoding"
 
 	"github.com/rivine/rivine/build"
 	"github.com/rivine/rivine/crypto"
@@ -30,16 +32,47 @@ const (
 	TransactionVersionCoinCreation
 )
 
+const (
+	// TransactionVersionBotRegistration defines the Transaction version
+	// for a BotRegistration Transaction, used to register a new 3bot,
+	// where new means that the used public key cannot yet exist.
+	TransactionVersionBotRegistration types.TransactionVersion = iota + 144
+	// TransactionVersionBotRecordUpdate defines the Transaction version
+	// for a Tx used to update a 3bot Record by the owner. where owner
+	// means the 3bot that created the record to be updated initially using the BotRegistration Tx.
+	TransactionVersionBotRecordUpdate
+	// TransactionVersionBotNameTransfer defines the Transaction version
+	// for a Tx used to transfer one or multiple names from the active
+	// 3bot that up to the point of that Tx to another 3bot.
+	TransactionVersionBotNameTransfer
+)
+
 // These Specifiers are used internally when calculating a Transaction's ID.
 // See Rivine's Specifier for more details.
 var (
-	SpecifierMintDefinitionTransaction = types.Specifier{'m', 'i', 'n', 't', 'e', 'r', ' ', 'd', 'e', 'f', 'i', 'n', ' ', 't', 'x'}
-	SpecifierCoinCreationTransaction   = types.Specifier{'c', 'o', 'i', 'n', ' ', 'm', 'i', 'n', 't', ' ', 't', 'x'}
+	SpecifierMintDefinitionTransaction  = types.Specifier{'m', 'i', 'n', 't', 'e', 'r', ' ', 'd', 'e', 'f', 'i', 'n', ' ', 't', 'x'}
+	SpecifierCoinCreationTransaction    = types.Specifier{'c', 'o', 'i', 'n', ' ', 'm', 'i', 'n', 't', ' ', 't', 'x'}
+	SpecifierBotRegistrationTransaction = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'g', 'i', 's', 't', 'e', 'r', ' ', 't', 'x'}
+	SpecifierBotRecordUpdateTransaction = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'c', 'u', 'p', 'd', 'a', 't', 'e', ' ', 't', 'x'}
+	SpecifierBotNameTransferTransaction = types.Specifier{'b', 'o', 't', ' ', 'n', 'a', 'm', 'e', 't', 'r', 'a', 'n', 's', ' ', 't', 'x'}
 )
+
+// Bot validation errors
+var (
+	ErrBotKeyAlreadyRegistered  = errors.New("bot key is already registered")
+	ErrBotNameAlreadyRegistered = errors.New("bot name is already registered")
+)
+
+// TFChainReadDB is the Read-Only Database that is required in order to fetch the
+// different transaction-related data from required by Tfchain transactions.
+type TFChainReadDB interface {
+	MintConditionGetter
+	BotRecordReadRegistry
+}
 
 // RegisterTransactionTypesForStandardNetwork registers he transaction controllers
 // for all transaction versions supported on the standard network.
-func RegisterTransactionTypesForStandardNetwork(mintConditionGetter MintConditionGetter) {
+func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.Currency, cfg config.DaemonNetworkConfig) {
 	const (
 		secondsInOneDay                         = 86400 + config.StandardNetworkBlockFrequency // round up
 		daysFromStartOfBlockchainUntil2ndOfJuly = 74
@@ -57,17 +90,24 @@ func RegisterTransactionTypesForStandardNetwork(mintConditionGetter MintConditio
 	})
 
 	// define tfchain-specific transaction versions
+
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintConditionGetter: mintConditionGetter,
+		MintConditionGetter: db,
 	})
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintConditionGetter: mintConditionGetter,
+		MintConditionGetter: db,
+	})
+
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              db,
+		RegistryPoolCondition: cfg.FoundationPoolCondition,
+		OneCoin:               oneCoin,
 	})
 }
 
 // RegisterTransactionTypesForTestNetwork registers he transaction controllers
 // for all transaction versions supported on the test network.
-func RegisterTransactionTypesForTestNetwork(mintConditionGetter MintConditionGetter) {
+func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Currency, cfg config.DaemonNetworkConfig) {
 	const (
 		secondsInOneDay                         = 86400 + config.TestNetworkBlockFrequency // round up
 		daysFromStartOfBlockchainUntil2ndOfJuly = 90
@@ -85,17 +125,24 @@ func RegisterTransactionTypesForTestNetwork(mintConditionGetter MintConditionGet
 	})
 
 	// define tfchain-specific transaction versions
+
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintConditionGetter: mintConditionGetter,
+		MintConditionGetter: db,
 	})
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintConditionGetter: mintConditionGetter,
+		MintConditionGetter: db,
+	})
+
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              db,
+		RegistryPoolCondition: cfg.FoundationPoolCondition,
+		OneCoin:               oneCoin,
 	})
 }
 
 // RegisterTransactionTypesForDevNetwork registers he transaction controllers
 // for all transaction versions supported on the dev network.
-func RegisterTransactionTypesForDevNetwork(mintConditionGetter MintConditionGetter) {
+func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Currency, cfg config.DaemonNetworkConfig) {
 	// overwrite rivine-defined transaction versions
 	types.RegisterTransactionVersion(types.TransactionVersionZero, LegacyTransactionController{
 		LegacyTransactionController:    types.LegacyTransactionController{},
@@ -107,11 +154,18 @@ func RegisterTransactionTypesForDevNetwork(mintConditionGetter MintConditionGett
 	})
 
 	// define tfchain-specific transaction versions
+
 	types.RegisterTransactionVersion(TransactionVersionMinterDefinition, MinterDefinitionTransactionController{
-		MintConditionGetter: mintConditionGetter,
+		MintConditionGetter: db,
 	})
 	types.RegisterTransactionVersion(TransactionVersionCoinCreation, CoinCreationTransactionController{
-		MintConditionGetter: mintConditionGetter,
+		MintConditionGetter: db,
+	})
+
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              db,
+		RegistryPoolCondition: cfg.FoundationPoolCondition,
+		OneCoin:               oneCoin,
 	})
 }
 
@@ -840,6 +894,1135 @@ func (cctx *MinterDefinitionTransaction) Transaction() types.Transaction {
 			MintCondition:   cctx.MintCondition,
 		},
 	}
+}
+
+// 3bot Multiplier fees that have to be multiplied with the OneCoin definition,
+// in order to know the amount in the used chain currency (TFT).
+const (
+	BotFeePerAdditionalNameMultiplier           = 50
+	BotFeeForNetworkAddressInfoChangeMultiplier = 20
+	BotRegistrationFeeMultiplier                = 90
+	BotMonthlyFeeMultiplier                     = 10
+)
+
+// [DONE] define the binary marshalling for each of the 3bot Tx's
+//   TODO: ^TEST THIS LOGIC^
+// TODO: define the Tx controllers for each of the 3bot Tx's
+//   TODO: ^TEST THIS LOGIC^
+
+type (
+	// BotRegistrationTransaction defines the Transaction (with version 0x90)
+	// used to register a new 3bot, where new means that the used public key
+	// (identification) cannot yet exist.
+	BotRegistrationTransaction struct {
+		// Addresses contains the optional network addresses used to reach the 3bot.
+		// Normally at least one is given, none are required however.
+		// All addresses (max 10) can be of any of the following types: IPv4, IPv6, hostname
+		Addresses []NetworkAddress `json:"addresses"`
+		// Names contains the optional names (max 5) that can be used to reach the bot,
+		// using a name, instead of one of its network addresses, comparable to how DNS works.
+		Names []BotName `json:"names"`
+
+		// NrOfMonths defines the amount of months that
+		// is desired to be paid upfront. Note that the amount of
+		// months defined here indicates how much additional fees are to be paid.
+		// The NrOfMonths has to be within this inclusive range [1,24].
+		NrOfMonths uint8 `json:"nrofmonths"`
+
+		// TransactionFee defines the regular Tx fee.
+		TransactionFee types.Currency `json:"txfee"`
+
+		// CoinInputs are only used for the required fees,
+		// which contains the regular Tx fee as well as the additional fees,
+		// to be paid for a 3bot registration. At least one CoinInput is required.
+		CoinInputs []types.CoinInput `json:"coininputs"`
+		// RefundCoinOutput is an optional coin output that can be used
+		// to refund coins paid as inputs for the required fees.
+		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput"`
+
+		// Identification is used to identify the 3bot and verify its identity.
+		// The identification is only given at registration, for all other
+		// 3bot Tx types it is identified by a combination of its unique ID and signature.
+		Identification PublicKeySignaturePair `json:"identification"`
+	}
+	// BotRegistrationTransactionExtension defines the BotRegistrationTransaction Extension Data
+	BotRegistrationTransactionExtension struct {
+		Addresses      []NetworkAddress
+		Names          []BotName
+		NrOfMonths     uint8
+		Identification PublicKeySignaturePair
+	}
+)
+
+// BotRegistrationTransactionFromTransaction creates a BotRegistrationTransaction,
+// using a regular in-memory tfchain transaction.
+//
+// Past the (tx) Version validation it piggy-backs onto the
+// `BotRegistrationTransactionFromTransactionData` constructor.
+func BotRegistrationTransactionFromTransaction(tx types.Transaction) (BotRegistrationTransaction, error) {
+	if tx.Version != TransactionVersionBotRegistration {
+		return BotRegistrationTransaction{}, fmt.Errorf(
+			"a bot registration transaction requires tx version %d",
+			TransactionVersionBotRegistration)
+	}
+	return BotRegistrationTransactionFromTransactionData(types.TransactionData{
+		CoinInputs:        tx.CoinInputs,
+		CoinOutputs:       tx.CoinOutputs,
+		BlockStakeInputs:  tx.BlockStakeInputs,
+		BlockStakeOutputs: tx.BlockStakeOutputs,
+		MinerFees:         tx.MinerFees,
+		ArbitraryData:     tx.ArbitraryData,
+		Extension:         tx.Extension,
+	})
+}
+
+// BotRegistrationTransactionFromTransactionData creates a BotRegistrationTransaction,
+// using the TransactionData from a regular in-memory tfchain transaction.
+func BotRegistrationTransactionFromTransactionData(txData types.TransactionData) (BotRegistrationTransaction, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid BotRegistrationTransaction,
+	// which contains all the properties unique to a 3bot (registration) Tx
+	extensionData, ok := txData.Extension.(*BotRegistrationTransactionExtension)
+	if !ok {
+		return BotRegistrationTransaction{}, errors.New("invalid extension data for a BotRegistrationTransaction")
+	}
+	// at least one coin input as well as one miner fee is required
+	if len(txData.CoinInputs) == 0 || len(txData.MinerFees) != 1 {
+		return BotRegistrationTransaction{}, errors.New("at least one coin input and exactly one miner fee is required for a BotRegistrationTransaction")
+	}
+	// no block stake inputs or block stake outputs are allowed
+	if len(txData.BlockStakeInputs) != 0 || len(txData.BlockStakeOutputs) != 0 {
+		return BotRegistrationTransaction{}, errors.New("no block stake inputs/outputs are allowed in a BotRegistrationTransaction")
+	}
+
+	tx := BotRegistrationTransaction{
+		Addresses:      extensionData.Addresses,
+		Names:          extensionData.Names,
+		NrOfMonths:     extensionData.NrOfMonths,
+		TransactionFee: txData.MinerFees[0],
+		CoinInputs:     txData.CoinInputs,
+		Identification: extensionData.Identification,
+	}
+	switch len(txData.CoinOutputs) {
+	case 2:
+		// take refund coin output
+		// convention always assumed to be the required BotFee
+		tx.RefundCoinOutput = &txData.CoinOutputs[1]
+		return tx, nil
+	case 1:
+		// nothing to do
+		return tx, nil
+	default:
+		// return with an error, maximum one coin output can be set, not more
+		return BotRegistrationTransaction{}, errors.New("only one coinoutput is allowed")
+	}
+}
+
+// TransactionData returns this BotRegistrationTransaction
+// as regular tfchain transaction data.
+func (brtx *BotRegistrationTransaction) TransactionData(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.TransactionData {
+	txData := types.TransactionData{
+		CoinInputs: brtx.CoinInputs,
+		CoinOutputs: []types.CoinOutput{
+			{
+				Value:     brtx.RequiredBotFee(oneCoin),
+				Condition: registryPoolCondition,
+			},
+		},
+		MinerFees: []types.Currency{brtx.TransactionFee},
+		Extension: &BotRegistrationTransactionExtension{
+			Addresses:      brtx.Addresses,
+			Names:          brtx.Names,
+			NrOfMonths:     brtx.NrOfMonths,
+			Identification: brtx.Identification,
+		},
+	}
+	if brtx.RefundCoinOutput != nil {
+		txData.CoinOutputs = append(txData.CoinOutputs, *brtx.RefundCoinOutput)
+	}
+	return txData
+}
+
+// Transaction returns this BotRegistrationTransaction
+// as regular tfchain transaction, using TransactionVersionBotRegistration as the type.
+func (brtx *BotRegistrationTransaction) Transaction(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.Transaction {
+	tx := types.Transaction{
+		Version:    TransactionVersionBotRegistration,
+		CoinInputs: brtx.CoinInputs,
+		CoinOutputs: []types.CoinOutput{
+			{
+				Value:     brtx.RequiredBotFee(oneCoin),
+				Condition: registryPoolCondition,
+			},
+		},
+		MinerFees: []types.Currency{brtx.TransactionFee},
+		Extension: &BotRegistrationTransactionExtension{
+			Addresses:      brtx.Addresses,
+			Names:          brtx.Names,
+			NrOfMonths:     brtx.NrOfMonths,
+			Identification: brtx.Identification,
+		},
+	}
+	if brtx.RefundCoinOutput != nil {
+		tx.CoinOutputs = append(tx.CoinOutputs, *brtx.RefundCoinOutput)
+	}
+	return tx
+}
+
+// RequiredBotFee computes the required Bot Fee, that is to be applied as a required
+// additional fee on top of the regular required (minimum) Tx fee.
+func (brtx *BotRegistrationTransaction) RequiredBotFee(oneCoin types.Currency) types.Currency {
+	// a static registration fee has to be paid
+	fee := oneCoin.Mul64(BotRegistrationFeeMultiplier)
+	// the amount of desired months also has to be paid
+	fee = fee.Add(ComputeMonthlyBotFees(brtx.NrOfMonths, oneCoin))
+	// if more than one name is defined it also has to be paid
+	if n := len(brtx.Names); n > 1 {
+		fee = fee.Add(oneCoin.Mul64(uint64(n-1) * BotFeePerAdditionalNameMultiplier))
+	}
+	// no fee has to be paid for the used network addresses during registration
+	// return the total fees
+	return fee
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia
+func (brtx BotRegistrationTransaction) MarshalSia(w io.Writer) error {
+	// the tfchain binary encoder used for this implementation
+	enc := encoding.NewEncoder(w)
+
+	// encode the nr of months, flags and paired lenghts
+	addrLen := len(brtx.Addresses)
+	nameLen := len(brtx.Names)
+	maf := &BotMonthsAndFlagsData{
+		NrOfMonths:   brtx.NrOfMonths,
+		HasAddresses: addrLen != 0,
+		HasNames:     nameLen != 0,
+		HasRefund:    brtx.RefundCoinOutput != nil,
+	}
+	err := enc.EncodeAll(maf, (uint8(addrLen<<4) | uint8(nameLen)))
+	if err != nil {
+		return err
+	}
+	// encode all addresses
+	for _, addr := range brtx.Addresses {
+		err = enc.Encode(addr)
+		if err != nil {
+			return err
+		}
+	}
+	// encode all names
+	for _, name := range brtx.Names {
+		err = enc.Encode(name)
+		if err != nil {
+			return err
+		}
+	}
+	// encode TxFee and CoinInputs
+	err = enc.EncodeAll(brtx.TransactionFee, brtx.CoinInputs)
+	if err != nil {
+		return err
+	}
+	// encode refund coin output, if given
+	if maf.HasRefund {
+		// deref to ensure we do not also encode one byte
+		// for the pointer indication
+		err = enc.Encode(*brtx.RefundCoinOutput)
+		if err != nil {
+			return err
+		}
+	}
+	// encode the identification at the end
+	return enc.Encode(brtx.Identification)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
+func (brtx *BotRegistrationTransaction) UnmarshalSia(r io.Reader) error {
+	dec := tfencoding.NewDecoder(r)
+
+	var maf BotMonthsAndFlagsData
+	err := dec.Decode(&maf)
+	if err != nil {
+		return err
+	}
+
+	// assign number of months
+	brtx.NrOfMonths = maf.NrOfMonths
+
+	// decode the pair length (length of both names and addresses in one byte)
+	var pairLength uint8
+	err = dec.Decode(&pairLength)
+	if err != nil {
+		return err
+	}
+	addrLen, nameLen := pairLength&15, pairLength>>4
+
+	// decode all addresses and all names and store them in this Tx
+	brtx.Addresses = make([]NetworkAddress, addrLen)
+	for i := range brtx.Addresses {
+		err = dec.Decode(&brtx.Addresses[i])
+		if err != nil {
+			return err
+		}
+	}
+	brtx.Names = make([]BotName, nameLen)
+	for i := range brtx.Names {
+		err = dec.Decode(&brtx.Names[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	// decode tx fee and coin inputs
+	err = dec.DecodeAll(&brtx.TransactionFee, &brtx.CoinInputs)
+	if err != nil {
+		return err
+	}
+
+	// decode the refund coin output, only if its flag is defined
+	if maf.HasRefund {
+		err = dec.Decode(brtx.RefundCoinOutput)
+		if err != nil {
+			return err
+		}
+	} else {
+		brtx.RefundCoinOutput = nil // explicitly set it nil
+	}
+
+	// decode identification as the last step
+	return dec.Decode(&brtx.Identification)
+}
+
+type (
+	// BotRecordUpdateTransaction defines the Transaction (with version 0x91)
+	// used to update a 3bot Record by the owner. where owner
+	// means the 3bot that created the record to be updated initially using the BotRegistration Tx.
+	BotRecordUpdateTransaction struct {
+		// Identifier of the 3bot, used to find the 3bot record to be updated,
+		// and verify that the Tx is authorized to do so.
+		Identifier BotID `json:"id"`
+
+		// Addresses can be used to add and/or remove network addresses
+		// to/from the existing 3bot record. Note that after each Tx,
+		// no more than 10 addresses can be linked to a single 3bot record.
+		Addresses struct {
+			Add    []NetworkAddress `json:"add"`
+			Remove []NetworkAddress `json:"remove"`
+		} `json:"addresses"`
+
+		// Names can be used to add and/or remove names
+		// to/from the existing 3bot record. Note that after each Tx,
+		// no more than 5 names can be linked to a single 3bot record.
+		Names struct {
+			Add    []BotName `json:"add"`
+			Remove []BotName `json:"remove"`
+		} `json:"names"`
+
+		// NrOfMonths defines the optional amount of months that
+		// is desired to be paid upfront in this update. Note that the amount of
+		// months defined here defines how much additional fees are to be paid.
+		// The NrOfMonths has to be within this inclusive range [0,24].
+		NrOfMonths uint8 `json:"nrofmonths"`
+
+		// TransactionFee defines the regular Tx fee.
+		TransactionFee types.Currency `json:"txfee"`
+
+		// CoinInputs are only used for the required fees,
+		// which contains the regular Tx fee as well as the additional fees,
+		// to be paid for a 3bot record update. At least one CoinInput is required.
+		// If this 3bot record update is only to pay for extending the 3bot activity,
+		// than no fees are required other than the monthly fees as defined by this bots usage.
+		CoinInputs []types.CoinInput `json:"coininputs"`
+		// RefundCoinOutput is an optional coin output that can be used
+		// to refund coins paid as inputs for the required fees.
+		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput"`
+
+		// Signature is used to proof the ownership of the 3bot record to be updated,
+		// and is verified using the public key defined in the 3bot linked
+		// to the given (3bot) identifier.
+		Signature types.ByteSlice `json:"signature"`
+	}
+	// BotRecordUpdateTransactionExtension defines the BotRecordUpdateTransaction Extension Data
+	BotRecordUpdateTransactionExtension struct {
+		Identifier       BotID
+		Signature        types.ByteSlice
+		AddressesAdded   []NetworkAddress
+		AddressesRemoved []NetworkAddress
+		NamesAdded       []BotName
+		NamesRemoved     []BotName
+		NrOfMonths       uint8
+	}
+)
+
+// RequiredBotFee computes the required Bot Fee, that is to be applied as a required
+// additional fee on top of the regular required (minimum) Tx fee.
+func (brutx *BotRecordUpdateTransaction) RequiredBotFee(oneCoin types.Currency) (fee types.Currency) {
+	// all additional months have to be paid
+	if brutx.NrOfMonths > 0 {
+		fee = fee.Add(ComputeMonthlyBotFees(brutx.NrOfMonths, oneCoin))
+	}
+	// a Tx that modifies the network address info of a 3bot record also has to be paid
+	if len(brutx.Addresses.Add) > 0 || len(brutx.Addresses.Remove) > 0 {
+		fee = fee.Add(oneCoin.Mul64(BotFeeForNetworkAddressInfoChangeMultiplier))
+	}
+	// each additional name has to be paid as well
+	// (regardless of the fact that the 3bot has a name or not)
+	if n := len(brutx.Names.Add); n > 0 {
+		fee = fee.Add(oneCoin.Mul64(BotFeePerAdditionalNameMultiplier * uint64(n)))
+	}
+	// return the total fees
+	return fee
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia
+func (brutx BotRecordUpdateTransaction) MarshalSia(w io.Writer) error {
+	// collect length of all the name/addr slices
+	addrAddLen, addrRemoveLen := len(brutx.Addresses.Add), len(brutx.Addresses.Remove)
+	nameAddLen, nameRemoveLen := len(brutx.Names.Add), len(brutx.Names.Remove)
+
+	// the tfchain binary encoder used for this implementation
+	enc := encoding.NewEncoder(w)
+
+	// encode the identifier, nr of months, flags and paired lenghts
+	maf := BotMonthsAndFlagsData{
+		NrOfMonths:   brutx.NrOfMonths,
+		HasAddresses: addrAddLen > 0 || addrRemoveLen > 0,
+		HasNames:     nameAddLen > 0 || nameRemoveLen > 0,
+		HasRefund:    brutx.RefundCoinOutput != nil,
+	}
+	err := enc.EncodeAll(brutx.Identifier, maf)
+	if err != nil {
+		return err
+	}
+
+	// encode addressed added and removed, if defined
+	if maf.HasAddresses {
+		err = enc.Encode(uint8(addrAddLen<<4) | uint8(addrRemoveLen))
+		if err != nil {
+			return err
+		}
+		for _, addr := range brutx.Addresses.Add {
+			err = enc.Encode(addr)
+			if err != nil {
+				return err
+			}
+		}
+		for _, addr := range brutx.Addresses.Remove {
+			err = enc.Encode(addr)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// encode names added and removed, if defined
+	if maf.HasNames {
+		err = enc.Encode(uint8(nameAddLen<<4) | uint8(nameRemoveLen))
+		if err != nil {
+			return err
+		}
+		for _, name := range brutx.Names.Add {
+			err = enc.Encode(name)
+			if err != nil {
+				return err
+			}
+		}
+		for _, name := range brutx.Names.Remove {
+			err = enc.Encode(name)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// encode TxFee and CoinInputs
+	err = enc.EncodeAll(brutx.TransactionFee, brutx.CoinInputs)
+	if err != nil {
+		return err
+	}
+	// encode refund coin output, if given
+	if maf.HasRefund {
+		// deref to ensure we do not also encode one byte
+		// for the pointer indication
+		err = enc.Encode(*brutx.RefundCoinOutput)
+		if err != nil {
+			return err
+		}
+	}
+	// encode the signature at the end
+	return enc.Encode(brutx.Signature)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
+func (brutx *BotRecordUpdateTransaction) UnmarshalSia(r io.Reader) error {
+	dec := tfencoding.NewDecoder(r)
+
+	// unmarshal identifier, NrOfMonths and flags
+	var maf BotMonthsAndFlagsData
+	err := dec.DecodeAll(&brutx.Identifier, &maf)
+	if err != nil {
+		return err
+	}
+
+	// assign number of months
+	brutx.NrOfMonths = maf.NrOfMonths
+
+	// decode addressed added and removed, if defined
+	if maf.HasAddresses {
+		var pairLength uint8
+		err = dec.Decode(&pairLength)
+		if err != nil {
+			return err
+		}
+		addrAddLen, addrRemoveLen := pairLength&15, pairLength>>4
+		brutx.Addresses.Add = make([]NetworkAddress, addrAddLen)
+		for i := range brutx.Addresses.Add {
+			err = dec.Decode(&brutx.Addresses.Add[i])
+			if err != nil {
+				return err
+			}
+		}
+		brutx.Addresses.Remove = make([]NetworkAddress, addrRemoveLen)
+		for i := range brutx.Addresses.Remove {
+			err = dec.Decode(&brutx.Addresses.Remove[i])
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// explicitly set added/removed address to nil
+		brutx.Addresses.Add, brutx.Addresses.Remove = nil, nil
+	}
+
+	if maf.HasNames {
+		var pairLength uint8
+		err = dec.Decode(&pairLength)
+		if err != nil {
+			return err
+		}
+		nameAddLen, nameRemoveLen := pairLength&15, pairLength>>4
+		brutx.Names.Add = make([]BotName, nameAddLen)
+		for i := range brutx.Names.Add {
+			err = dec.Decode(&brutx.Names.Add[i])
+			if err != nil {
+				return err
+			}
+		}
+		brutx.Names.Remove = make([]BotName, nameRemoveLen)
+		for i := range brutx.Names.Remove {
+			err = dec.Decode(&brutx.Names.Remove[i])
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// explicitly set added/removed address to nil
+		brutx.Names.Add, brutx.Names.Remove = nil, nil
+	}
+
+	// encode TxFee and CoinInputs
+	err = dec.DecodeAll(&brutx.TransactionFee, &brutx.CoinInputs)
+	if err != nil {
+		return err
+	}
+	// decode refund coin output, if defined
+	if maf.HasRefund {
+		// deref to ensure we do not also encode one byte
+		// for the pointer indication
+		err = dec.Decode(brutx.RefundCoinOutput)
+		if err != nil {
+			return err
+		}
+	}
+	// decode the signature at the end
+	return dec.Decode(&brutx.Signature)
+}
+
+type (
+	// BotNameTransferTransaction defines the Transaction (with version 0x92)
+	// used to transfer one or multiple names from the active
+	// 3bot that up to the point of the Tx to another 3bot.
+	BotNameTransferTransaction struct {
+		// Sender is in this context the 3bot that owns and transfers the names
+		// defined in this Tx to the 3bot defined in this Tx as the Receiver.
+		// The Sender has to be different from the Receiver.
+		Sender struct {
+			Identifier BotID           `json:"id"`
+			Signature  types.ByteSlice `json:"signature"`
+		} `json:"sender"`
+		// Receiver is in this context the 3bot that receives the names
+		// defined in this Tx from the 3bot defined in this Tx as the Sender.
+		// The Receiver has to be different from the Sender.
+		Receiver struct {
+			Identifier BotID           `json:"id"`
+			Signature  types.ByteSlice `json:"signature"`
+		} `json:"receiver"`
+
+		// Addresses can be used to add and/or remove network addresses
+		// to/from the existing 3bot record. Note that after each Tx,
+		// no more than 10 addresses can be linked to a single 3bot record.
+		Addresses struct {
+			Add    []NetworkAddress `json:"add"`
+			Remove []NetworkAddress `json:"remove"`
+		} `json:"addresses"`
+
+		// Names can be used to add and/or remove names
+		// to/from the existing 3bot record. Note that after each Tx,
+		// no more than 5 names can be linked to a single 3bot record.
+		Names struct {
+			Add    []BotName `json:"add"`
+			Remove []BotName `json:"remove"`
+		} `json:"names"`
+
+		// NrOfMonths defines the optional amount of months that
+		// is desired to be paid upfront in this update. Note that the amount of
+		// months defined here defines how much additional fees are to be paid.
+		// The NrOfMonths has to be within this inclusive range [0,24].
+		NrOfMonths uint8 `json:"nrofmonths"`
+
+		// TransactionFee defines the regular Tx fee.
+		TransactionFee types.Currency `json:"txfee"`
+
+		// CoinInputs are only used for the required fees,
+		// which contains the regular Tx fee as well as the additional fees,
+		// to be paid for a 3bot record update. At least one CoinInput is required.
+		// If this 3bot record update is only to pay for extending the 3bot activity,
+		// than no fees are required other than the monthly fees as defined by this bots usage.
+		CoinInputs []types.CoinInput `json:"coininputs"`
+		// RefundCoinOutput is an optional coin output that can be used
+		// to refund coins paid as inputs for the required fees.
+		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput"`
+	}
+	// BotNameTransferTransactionExtension defines the BotNameTransferTransaction Extension Data
+	BotNameTransferTransactionExtension struct {
+		SenderIdentifier        BotID
+		SenderSignature         types.ByteSlice
+		ReceiverIdentifier      BotID
+		ReceiverSenderSignature types.ByteSlice
+		AddressesAdded          []NetworkAddress
+		AddressesRemoved        []NetworkAddress
+		NamesAdded              []BotName
+		NamesRemoved            []BotName
+		NrOfMonths              uint8
+	}
+)
+
+// RequiredBotFee computes the required Bot Fee, that is to be applied as a required
+// additional fee on top of the regular required (minimum) Tx fee.
+func (bnttx *BotNameTransferTransaction) RequiredBotFee(oneCoin types.Currency) (fee types.Currency) {
+	// all additional months have to be paid
+	if bnttx.NrOfMonths > 0 {
+		fee = fee.Add(ComputeMonthlyBotFees(bnttx.NrOfMonths, oneCoin))
+	}
+	// a Tx that modifies the network address info of a 3bot record also has to be paid
+	if len(bnttx.Addresses.Add) > 0 || len(bnttx.Addresses.Remove) > 0 {
+		fee = fee.Add(oneCoin.Mul64(BotFeeForNetworkAddressInfoChangeMultiplier))
+	}
+	// each additional name has to be paid as well
+	// (regardless of the fact that the 3bot has a name or not)
+	if n := len(bnttx.Names.Add); n > 0 {
+		fee = fee.Add(oneCoin.Mul64(BotFeePerAdditionalNameMultiplier * uint64(n)))
+	}
+	// return the total fees
+	return fee
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia
+func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
+	addrAddLen, addrRemoveLen := len(bnttx.Addresses.Add), len(bnttx.Addresses.Remove)
+	nameAddLen, nameRemoveLen := len(bnttx.Names.Add), len(bnttx.Names.Remove)
+
+	// the tfchain binary encoder used for this implementation
+	enc := encoding.NewEncoder(w)
+
+	// encode the sender, receiver, nr of months, flags and paired lenghts
+	maf := BotMonthsAndFlagsData{
+		NrOfMonths:   bnttx.NrOfMonths,
+		HasAddresses: addrAddLen > 0 || addrRemoveLen > 0,
+		HasNames:     nameAddLen > 0 || nameRemoveLen > 0,
+		HasRefund:    bnttx.RefundCoinOutput != nil,
+	}
+	err := enc.EncodeAll(bnttx.Sender, bnttx.Receiver, maf)
+	if err != nil {
+		return err
+	}
+
+	// encode addressed added and removed, if defined
+	if maf.HasAddresses {
+		err = enc.Encode(uint8(addrAddLen<<4) | uint8(addrRemoveLen))
+		if err != nil {
+			return err
+		}
+		for _, addr := range bnttx.Addresses.Add {
+			err = enc.Encode(addr)
+			if err != nil {
+				return err
+			}
+		}
+		for _, addr := range bnttx.Addresses.Remove {
+			err = enc.Encode(addr)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// encode names added and removed, if defined
+	if maf.HasNames {
+		err = enc.Encode(uint8(nameAddLen<<4) | uint8(nameRemoveLen))
+		if err != nil {
+			return err
+		}
+		for _, name := range bnttx.Names.Add {
+			err = enc.Encode(name)
+			if err != nil {
+				return err
+			}
+		}
+		for _, name := range bnttx.Names.Remove {
+			err = enc.Encode(name)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// encode TxFee and CoinInputs
+	err = enc.EncodeAll(bnttx.TransactionFee, bnttx.CoinInputs)
+	if err != nil {
+		return err
+	}
+	// encode refund coin output, if given
+	if maf.HasRefund {
+		// deref to ensure we do not also encode one byte
+		// for the pointer indication
+		err = enc.Encode(*bnttx.RefundCoinOutput)
+		if err != nil {
+			return err
+		}
+	}
+	// nothing more to do
+	return nil
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
+func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
+	dec := tfencoding.NewDecoder(r)
+
+	// unmarshal sender, receiver, NrOfMonths and flags
+	var maf BotMonthsAndFlagsData
+	err := dec.DecodeAll(&bnttx.Sender, &bnttx.Receiver, &maf)
+	if err != nil {
+		return err
+	}
+
+	// assign number of months
+	bnttx.NrOfMonths = maf.NrOfMonths
+
+	// decode addressed added and removed, if defined
+	if maf.HasAddresses {
+		var pairLength uint8
+		err = dec.Decode(&pairLength)
+		if err != nil {
+			return err
+		}
+		addrAddLen, addrRemoveLen := pairLength&15, pairLength>>4
+		bnttx.Addresses.Add = make([]NetworkAddress, addrAddLen)
+		for i := range bnttx.Addresses.Add {
+			err = dec.Decode(&bnttx.Addresses.Add[i])
+			if err != nil {
+				return err
+			}
+		}
+		bnttx.Addresses.Remove = make([]NetworkAddress, addrRemoveLen)
+		for i := range bnttx.Addresses.Remove {
+			err = dec.Decode(&bnttx.Addresses.Remove[i])
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// explicitly set added/removed address to nil
+		bnttx.Addresses.Add, bnttx.Addresses.Remove = nil, nil
+	}
+
+	if maf.HasNames {
+		var pairLength uint8
+		err = dec.Decode(&pairLength)
+		if err != nil {
+			return err
+		}
+		nameAddLen, nameRemoveLen := pairLength&15, pairLength>>4
+		bnttx.Names.Add = make([]BotName, nameAddLen)
+		for i := range bnttx.Names.Add {
+			err = dec.Decode(&bnttx.Names.Add[i])
+			if err != nil {
+				return err
+			}
+		}
+		bnttx.Names.Remove = make([]BotName, nameRemoveLen)
+		for i := range bnttx.Names.Remove {
+			err = dec.Decode(&bnttx.Names.Remove[i])
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// explicitly set added/removed address to nil
+		bnttx.Names.Add, bnttx.Names.Remove = nil, nil
+	}
+
+	// encode TxFee and CoinInputs
+	err = dec.DecodeAll(&bnttx.TransactionFee, &bnttx.CoinInputs)
+	if err != nil {
+		return err
+	}
+	// decode refund coin output, if defined
+	if maf.HasRefund {
+		// deref to ensure we do not also encode one byte
+		// for the pointer indication
+		err = dec.Decode(bnttx.RefundCoinOutput)
+		if err != nil {
+			return err
+		}
+	}
+	// nothing more to do
+	return nil
+}
+
+type (
+	// BotRecordReadRegistry defines the public READ API expected from a bot record Read-Only registry.
+	BotRecordReadRegistry interface {
+		// GetRecordForID returns the record mapped to the given BotID.
+		GetRecordForID(id BotID) (*BotRecord, error)
+		// GetRecordForKey returns the record mapped to the given Key.
+		GetRecordForKey(key PublicKey) (*BotRecord, error)
+		// GetRecordForName returns the record mapped to the given Name.
+		GetRecordForName(name BotName) (*BotRecord, error)
+	}
+)
+
+// public BotRecordReadRegistry errors
+var (
+	ErrBotNotFound     = errors.New("3bot not found")
+	ErrBotKeyNotFound  = errors.New("3bot public key not found")
+	ErrBotNameNotFound = errors.New("3bot name not found")
+)
+
+// 3bot Tx controllers
+
+type (
+	// BotRegistrationTransactionController defines a tfchain-specific transaction controller,
+	// for a transaction type reserved at type 0x90. It allows the registration of a new3bot.
+	BotRegistrationTransactionController struct {
+		Registry              BotRecordReadRegistry
+		RegistryPoolCondition types.UnlockConditionProxy
+		OneCoin               types.Currency
+	}
+)
+
+var (
+	// ensure at compile time that BotRegistrationTransactionController
+	// implements the desired interfaces
+	_ types.TransactionController      = BotRegistrationTransactionController{}
+	_ types.TransactionExtensionSigner = BotRegistrationTransactionController{}
+	_ types.TransactionValidator       = BotRegistrationTransactionController{}
+	_ types.BlockStakeOutputValidator  = BotRegistrationTransactionController{}
+	_ types.InputSigHasher             = BotRegistrationTransactionController{}
+	_ types.TransactionIDEncoder       = BotRegistrationTransactionController{}
+)
+
+// EncodeTransactionData implements TransactionController.EncodeTransactionData
+func (brtc BotRegistrationTransactionController) EncodeTransactionData(w io.Writer, txData types.TransactionData) error {
+	brtx, err := BotRegistrationTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a BotRegistrationTx: %v", err)
+	}
+	return encoding.NewEncoder(w).Encode(brtx)
+}
+
+// DecodeTransactionData implements TransactionController.DecodeTransactionData
+func (brtc BotRegistrationTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
+	var brtx BotRegistrationTransaction
+	err := encoding.NewDecoder(r).Decode(&brtx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to binary-decode tx as a BotRegistrationTx: %v", err)
+	}
+	// return minter definition tx as regular tfchain tx data
+	return brtx.TransactionData(brtc.OneCoin, brtc.RegistryPoolCondition), nil
+}
+
+// JSONEncodeTransactionData implements TransactionController.JSONEncodeTransactionData
+func (brtc BotRegistrationTransactionController) JSONEncodeTransactionData(txData types.TransactionData) ([]byte, error) {
+	brtx, err := BotRegistrationTransactionFromTransactionData(txData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert txData to a BotRegistrationTx: %v", err)
+	}
+	return json.Marshal(brtx)
+}
+
+// JSONDecodeTransactionData implements TransactionController.JSONDecodeTransactionData
+func (brtc BotRegistrationTransactionController) JSONDecodeTransactionData(data []byte) (types.TransactionData, error) {
+	var brtx BotRegistrationTransaction
+	err := json.Unmarshal(data, &brtx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to json-decode tx as a BotRegistrationTx: %v", err)
+	}
+	// return minter definition tx as regular tfchain tx data
+	return brtx.TransactionData(brtc.OneCoin, brtc.RegistryPoolCondition), nil
+}
+
+// SignExtension implements TransactionExtensionSigner.SignExtension
+func (brtc BotRegistrationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid BotRegistrationTransactionExtension
+	brtxExtension, ok := extension.(*BotRegistrationTransactionExtension)
+	if !ok {
+		return nil, errors.New("invalid extension data for a BotRegistrationTx")
+	}
+
+	// create a publicKeyUnlockHashCondition
+	spk, err := brtxExtension.Identification.PublicKey.SiaPublicKey()
+	if err != nil {
+		return nil, errors.New("invalid public key in extension data for a BotRegistrationTx")
+	}
+	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(spk)))
+	// and a matching single-signature fulfillment
+	fulfillment := types.NewFulfillment(types.NewSingleSignatureFulfillment(spk))
+
+	// sign the fulfillment
+	err = sign(&fulfillment, condition)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign BotRegistrationTx: %v", err)
+	}
+
+	// extract signature
+	signature := fulfillment.Fulfillment.(*types.SingleSignatureFulfillment).Signature
+	brtxExtension.Identification.Signature = signature
+	// and return the signed extension
+	return brtxExtension, nil
+}
+
+// ValidateTransaction implements TransactionValidator.ValidateTransaction
+func (brtc BotRegistrationTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) error {
+	err := types.TransactionFitsInABlock(t, constants.BlockSizeLimit)
+	if err != nil {
+		return err
+	}
+
+	// get BotRegistrationTx
+	brtx, err := BotRegistrationTransactionFromTransaction(t)
+	if err != nil {
+		return fmt.Errorf("failed to use tx as a bot registration tx: %v", err)
+	}
+
+	// look up the public key, to ensure it is not registered yet
+	_, err = brtc.Registry.GetRecordForKey(brtx.Identification.PublicKey)
+	if err == nil {
+		return ErrBotNameAlreadyRegistered
+	}
+	if err != ErrBotKeyNotFound {
+		return fmt.Errorf("unexpected error while validating non-existence of bot's public key: %v", err)
+	}
+
+	// create a publicKeyUnlockHashCondition
+	err = validateBotSignature(t, brtx.Identification.PublicKey, brtx.Identification.Signature, ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fulfill bot registration condition: %v", err)
+	}
+
+	// ensure the NrOfMonths is in the inclusive range of [1, 24]
+	if brtx.NrOfMonths == 0 {
+		return errors.New("bot registration requires at least one month to be paid already")
+	}
+	if brtx.NrOfMonths > MaxBotPrepaidMonths {
+		return ErrBotExpirationExtendOverflow
+	}
+
+	// validate the lengths,
+	// and ensure that at least one name or one addr is registered
+	addrLen := len(brtx.Addresses)
+	if addrLen > MaxAddressesPerBot {
+		return ErrTooManyBotAddresses
+	}
+	nameLen := len(brtx.Names)
+	if nameLen > MaxNamesPerBot {
+		return ErrTooManyBotNames
+	}
+	if addrLen == 0 && nameLen == 0 {
+		return errors.New("bot registration requires a name or address to be defined")
+	}
+
+	// validate that all network addresses are unique
+	err = validateUniquenessOfNetworkAddresses(brtx.Addresses)
+	if err != nil {
+		return fmt.Errorf("invalid bot registration Tx: %v", err)
+	}
+
+	// validate that all names are unique
+	err = validateUniquenessOfBotNames(brtx.Names)
+	if err != nil {
+		return fmt.Errorf("invalid bot registration Tx: %v", err)
+	}
+
+	// validate that the names are not registered yet
+	for _, name := range brtx.Names {
+		_, err = brtc.Registry.GetRecordForName(name)
+		if err == nil {
+			return ErrBotNameAlreadyRegistered
+		}
+		if err != ErrBotNameNotFound {
+			return fmt.Errorf(
+				"unexpected error while validating non-existence of bot's name %v: %v",
+				name, err)
+		}
+	}
+
+	// validate the miner fee
+	if brtx.TransactionFee.Cmp(constants.MinimumMinerFee) == -1 {
+		return types.ErrTooSmallMinerFee
+	}
+	return nil
+}
+
+// Rivine handles ValidateCoinOutputs,
+// which is possible as all our coin inputs are standard,
+// the (single) miner fee is standard as well, and
+// the additional (bot) fee is seen by Rivine as a coin output to a hardcoded condition.
+
+// ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
+func (brtc BotRegistrationTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
+	return nil // always valid, no block stake inputs/outputs exist within a bot registration transaction
+}
+
+// InputSigHash implements InputSigHasher.InputSigHash
+func (brtc BotRegistrationTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+	brtx, err := BotRegistrationTransactionFromTransaction(t)
+	if err != nil {
+		return crypto.Hash{}, fmt.Errorf("failed to use tx as a BotRegistrationTx: %v", err)
+	}
+
+	h := crypto.NewHash()
+	enc := encoding.NewEncoder(h)
+
+	enc.EncodeAll(
+		t.Version,
+		SpecifierBotRegistrationTransaction,
+	)
+
+	if len(extraObjects) > 0 {
+		enc.EncodeAll(extraObjects...)
+	}
+
+	enc.EncodeAll(
+		brtx.Addresses,
+		brtx.Names,
+		brtx.NrOfMonths,
+	)
+
+	enc.Encode(len(brtx.CoinInputs))
+	for _, ci := range brtx.CoinInputs {
+		enc.Encode(ci.ParentID)
+	}
+
+	enc.EncodeAll(
+		brtx.TransactionFee,
+		brtx.RefundCoinOutput,
+		brtx.Identification.PublicKey,
+	)
+
+	var hash crypto.Hash
+	h.Sum(hash[:0])
+	return hash, nil
+}
+
+// EncodeTransactionIDInput implements TransactionIDEncoder.EncodeTransactionIDInput
+func (brtc BotRegistrationTransactionController) EncodeTransactionIDInput(w io.Writer, txData types.TransactionData) error {
+	brtx, err := BotRegistrationTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a BotRegistrationTx: %v", err)
+	}
+	return encoding.NewEncoder(w).EncodeAll(SpecifierBotRegistrationTransaction, brtx)
+}
+
+type (
+	// BotUpdateRecordTransactionController defines a tfchain-specific transaction controller,
+	// for a transaction type reserved at type 0x91. It allows the update of the record of an existing 3bot.
+	BotUpdateRecordTransactionController struct {
+		registry BotRecordReadRegistry
+		oneCoin  types.Currency
+	}
+)
+
+// TODO: implement BotUpdateRecordTransactionController controller
+
+type (
+	// BotNameTransferTransactionController defines a tfchain-specific transaction controller,
+	// for a transaction type reserved at type 0x92. It allows the transfer of names and update of the record
+	// of the two existing 3bot that participate in this transfer.
+	BotNameTransferTransactionController struct {
+		registry BotRecordReadRegistry
+		oneCoin  types.Currency
+	}
+)
+
+// TODO: implement BotNameTransferTransactionController controller
+
+// ComputeMonthlyBotFees computes the total monthly fees required for the given months,
+// using the given oneCoin value as the currency's unit value.
+func ComputeMonthlyBotFees(months uint8, oneCoin types.Currency) types.Currency {
+	multiplier := uint64(months) * BotMonthlyFeeMultiplier
+	if months < 12 {
+		// return plain monthly fees without discounts
+		return oneCoin.Mul64(multiplier)
+	}
+	fees := big.NewFloat(float64(multiplier))
+	fees.Mul(fees, new(big.Float).SetInt(oneCoin.Big()))
+	if months < 24 {
+		// return plain monthly fees with 30% discount applied to the total
+		i, _ := fees.Mul(fees, big.NewFloat(0.7)).Int(nil)
+		return types.NewCurrency(i)
+	}
+	// return plain monthly fees with 50% discount applied to the total
+	i, _ := fees.Mul(fees, big.NewFloat(0.5)).Int(nil)
+	return types.NewCurrency(i)
+}
+
+// BotMonthsAndFlagsData is a utility structure that is used to encode
+// the NrOfMonths (paid up front for a 3bot) as well as several flags
+// in a single byte.
+type BotMonthsAndFlagsData struct {
+	NrOfMonths   uint8
+	HasAddresses bool
+	HasNames     bool
+	HasRefund    bool
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia
+func (maf BotMonthsAndFlagsData) MarshalSia(w io.Writer) error {
+	x := uint8(maf.NrOfMonths)
+	if maf.HasAddresses {
+		x |= 32
+	}
+	if maf.HasNames {
+		x |= 64
+	}
+	if maf.HasRefund {
+		x |= 128
+	}
+	return tfencoding.MarshalUint8(w, x)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
+func (maf *BotMonthsAndFlagsData) UnmarshalSia(r io.Reader) error {
+	x, err := tfencoding.UnmarshalUint8(r)
+	if err != nil {
+		return err
+	}
+	maf.NrOfMonths = x & 31
+	maf.HasAddresses = ((x & 32) != 0)
+	maf.HasNames = ((x & 64) != 0)
+	maf.HasRefund = ((x & 128) != 0)
+	return nil
 }
 
 // TransactionNonce is a nonce

@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
+	"github.com/rivine/rivine/crypto"
 	"github.com/rivine/rivine/types"
+	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 
 // SignatureAlgoType identifies a signature algorithm as a single byte.
@@ -53,6 +56,42 @@ func FromSiaPublicKey(spk types.SiaPublicKey) (PublicKey, error) {
 type PublicKey struct {
 	Algorithm SignatureAlgoType
 	Key       types.ByteSlice
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia
+func (pk PublicKey) MarshalSia(w io.Writer) error {
+	err := encoding.NewEncoder(w).Encode(pk.Algorithm)
+	if err != nil {
+		return err
+	}
+	l, err := w.Write([]byte(pk.Key))
+	if err != nil {
+		return err
+	}
+	if l != len(pk.Key) {
+		return io.ErrShortWrite
+	}
+	return nil
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
+func (pk *PublicKey) UnmarshalSia(r io.Reader) error {
+	// decode the algorithm type, required to know
+	// what length of byte slice to expect
+	err := encoding.NewDecoder(r).Decode(&pk.Algorithm)
+	if err != nil {
+		return err
+	}
+	// create the expected sized byte slice, depending on the algorithm type
+	switch pk.Algorithm {
+	case SignatureAlgoEd25519:
+		pk.Key = make(types.ByteSlice, crypto.PublicKeySize)
+	default:
+		return fmt.Errorf("unknown SignatureAlgoType %d", pk.Algorithm)
+	}
+	// read byte slice
+	_, err = io.ReadFull(r, pk.Key[:])
+	return err
 }
 
 // LoadString is the inverse of SiaPublicKey.String().
@@ -104,4 +143,40 @@ func (pk PublicKey) SiaPublicKey() (types.SiaPublicKey, error) {
 type PublicKeySignaturePair struct {
 	PublicKey PublicKey       `json:"publickey"`
 	Signature types.ByteSlice `json:"signature"`
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia
+func (pksp PublicKeySignaturePair) MarshalSia(w io.Writer) error {
+	err := pksp.PublicKey.MarshalSia(w)
+	if err != nil {
+		return err
+	}
+	l, err := w.Write([]byte(pksp.Signature))
+	if err != nil {
+		return err
+	}
+	if l != len(pksp.Signature) {
+		return io.ErrShortWrite
+	}
+	return nil
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
+func (pksp *PublicKeySignaturePair) UnmarshalSia(r io.Reader) error {
+	// decode the public key first, which includes the algorithm type, required to know
+	// what length of byte slice to expect for the signature
+	err := pksp.PublicKey.UnmarshalSia(r)
+	if err != nil {
+		return err
+	}
+	// create the expected sized byte slice, depending on the algorithm type
+	switch pksp.PublicKey.Algorithm {
+	case SignatureAlgoEd25519:
+		pksp.Signature = make(types.ByteSlice, crypto.SignatureSize)
+	default:
+		return fmt.Errorf("unknown SignatureAlgoType %d", pksp.PublicKey.Algorithm)
+	}
+	// read byte slice
+	_, err = io.ReadFull(r, pksp.Signature[:])
+	return err
 }
