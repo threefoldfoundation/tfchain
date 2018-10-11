@@ -1013,7 +1013,7 @@ func BotRegistrationTransactionFromTransactionData(txData types.TransactionData)
 		return tx, nil
 	default:
 		// return with an error, maximum one coin output can be set, not more
-		return BotRegistrationTransaction{}, errors.New("only one coinoutput is allowed")
+		return BotRegistrationTransaction{}, errors.New("only one coinoutput is allowed (and required)")
 	}
 }
 
@@ -1087,7 +1087,7 @@ func (brtx *BotRegistrationTransaction) RequiredBotFee(oneCoin types.Currency) t
 // MarshalSia implements SiaMarshaler.MarshalSia
 func (brtx BotRegistrationTransaction) MarshalSia(w io.Writer) error {
 	// the tfchain binary encoder used for this implementation
-	enc := encoding.NewEncoder(w)
+	enc := tfencoding.NewEncoder(w)
 
 	// encode the nr of months, flags and paired lenghts
 	addrLen := len(brtx.Addresses)
@@ -1098,7 +1098,7 @@ func (brtx BotRegistrationTransaction) MarshalSia(w io.Writer) error {
 		HasNames:     nameLen != 0,
 		HasRefund:    brtx.RefundCoinOutput != nil,
 	}
-	err := enc.EncodeAll(maf, (uint8(addrLen<<4) | uint8(nameLen)))
+	err := enc.EncodeAll(maf, (uint8(addrLen) | (uint8(nameLen) << 4)))
 	if err != nil {
 		return err
 	}
@@ -1153,22 +1153,31 @@ func (brtx *BotRegistrationTransaction) UnmarshalSia(r io.Reader) error {
 	if err != nil {
 		return err
 	}
+
 	addrLen, nameLen := pairLength&15, pairLength>>4
 
 	// decode all addresses and all names and store them in this Tx
-	brtx.Addresses = make([]NetworkAddress, addrLen)
-	for i := range brtx.Addresses {
-		err = dec.Decode(&brtx.Addresses[i])
-		if err != nil {
-			return err
+	if addrLen > 0 {
+		brtx.Addresses = make([]NetworkAddress, addrLen)
+		for i := range brtx.Addresses {
+			err = dec.Decode(&brtx.Addresses[i])
+			if err != nil {
+				return err
+			}
 		}
+	} else {
+		brtx.Addresses = nil
 	}
-	brtx.Names = make([]BotName, nameLen)
-	for i := range brtx.Names {
-		err = dec.Decode(&brtx.Names[i])
-		if err != nil {
-			return err
+	if nameLen > 0 {
+		brtx.Names = make([]BotName, nameLen)
+		for i := range brtx.Names {
+			err = dec.Decode(&brtx.Names[i])
+			if err != nil {
+				return err
+			}
 		}
+	} else {
+		brtx.Names = nil
 	}
 
 	// decode tx fee and coin inputs
@@ -1179,6 +1188,7 @@ func (brtx *BotRegistrationTransaction) UnmarshalSia(r io.Reader) error {
 
 	// decode the refund coin output, only if its flag is defined
 	if maf.HasRefund {
+		brtx.RefundCoinOutput = new(types.CoinOutput)
 		err = dec.Decode(brtx.RefundCoinOutput)
 		if err != nil {
 			return err
@@ -1279,7 +1289,7 @@ func (brutx BotRecordUpdateTransaction) MarshalSia(w io.Writer) error {
 	nameAddLen, nameRemoveLen := len(brutx.Names.Add), len(brutx.Names.Remove)
 
 	// the tfchain binary encoder used for this implementation
-	enc := encoding.NewEncoder(w)
+	enc := tfencoding.NewEncoder(w)
 
 	// encode the identifier, nr of months, flags and paired lenghts
 	maf := BotMonthsAndFlagsData{
@@ -1295,7 +1305,7 @@ func (brutx BotRecordUpdateTransaction) MarshalSia(w io.Writer) error {
 
 	// encode addressed added and removed, if defined
 	if maf.HasAddresses {
-		err = enc.Encode(uint8(addrAddLen<<4) | uint8(addrRemoveLen))
+		err = enc.Encode(uint8(addrAddLen) | (uint8(addrRemoveLen) << 4))
 		if err != nil {
 			return err
 		}
@@ -1315,7 +1325,7 @@ func (brutx BotRecordUpdateTransaction) MarshalSia(w io.Writer) error {
 
 	// encode names added and removed, if defined
 	if maf.HasNames {
-		err = enc.Encode(uint8(nameAddLen<<4) | uint8(nameRemoveLen))
+		err = enc.Encode(uint8(nameAddLen) | (uint8(nameRemoveLen) << 4))
 		if err != nil {
 			return err
 		}
@@ -1373,19 +1383,27 @@ func (brutx *BotRecordUpdateTransaction) UnmarshalSia(r io.Reader) error {
 			return err
 		}
 		addrAddLen, addrRemoveLen := pairLength&15, pairLength>>4
-		brutx.Addresses.Add = make([]NetworkAddress, addrAddLen)
-		for i := range brutx.Addresses.Add {
-			err = dec.Decode(&brutx.Addresses.Add[i])
-			if err != nil {
-				return err
+		if addrAddLen > 0 {
+			brutx.Addresses.Add = make([]NetworkAddress, addrAddLen)
+			for i := range brutx.Addresses.Add {
+				err = dec.Decode(&brutx.Addresses.Add[i])
+				if err != nil {
+					return err
+				}
 			}
+		} else {
+			brutx.Addresses.Add = nil
 		}
-		brutx.Addresses.Remove = make([]NetworkAddress, addrRemoveLen)
-		for i := range brutx.Addresses.Remove {
-			err = dec.Decode(&brutx.Addresses.Remove[i])
-			if err != nil {
-				return err
+		if addrRemoveLen > 0 {
+			brutx.Addresses.Remove = make([]NetworkAddress, addrRemoveLen)
+			for i := range brutx.Addresses.Remove {
+				err = dec.Decode(&brutx.Addresses.Remove[i])
+				if err != nil {
+					return err
+				}
 			}
+		} else {
+			brutx.Addresses.Remove = nil
 		}
 	} else {
 		// explicitly set added/removed address to nil
@@ -1399,19 +1417,27 @@ func (brutx *BotRecordUpdateTransaction) UnmarshalSia(r io.Reader) error {
 			return err
 		}
 		nameAddLen, nameRemoveLen := pairLength&15, pairLength>>4
-		brutx.Names.Add = make([]BotName, nameAddLen)
-		for i := range brutx.Names.Add {
-			err = dec.Decode(&brutx.Names.Add[i])
-			if err != nil {
-				return err
+		if nameAddLen > 0 {
+			brutx.Names.Add = make([]BotName, nameAddLen)
+			for i := range brutx.Names.Add {
+				err = dec.Decode(&brutx.Names.Add[i])
+				if err != nil {
+					return err
+				}
 			}
+		} else {
+			brutx.Names.Add = nil
 		}
-		brutx.Names.Remove = make([]BotName, nameRemoveLen)
-		for i := range brutx.Names.Remove {
-			err = dec.Decode(&brutx.Names.Remove[i])
-			if err != nil {
-				return err
+		if nameRemoveLen > 0 {
+			brutx.Names.Remove = make([]BotName, nameRemoveLen)
+			for i := range brutx.Names.Remove {
+				err = dec.Decode(&brutx.Names.Remove[i])
+				if err != nil {
+					return err
+				}
 			}
+		} else {
+			brutx.Names.Remove = nil
 		}
 	} else {
 		// explicitly set added/removed address to nil
@@ -1425,8 +1451,7 @@ func (brutx *BotRecordUpdateTransaction) UnmarshalSia(r io.Reader) error {
 	}
 	// decode refund coin output, if defined
 	if maf.HasRefund {
-		// deref to ensure we do not also encode one byte
-		// for the pointer indication
+		brutx.RefundCoinOutput = new(types.CoinOutput)
 		err = dec.Decode(brutx.RefundCoinOutput)
 		if err != nil {
 			return err
@@ -1531,7 +1556,7 @@ func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
 	nameAddLen, nameRemoveLen := len(bnttx.Names.Add), len(bnttx.Names.Remove)
 
 	// the tfchain binary encoder used for this implementation
-	enc := encoding.NewEncoder(w)
+	enc := tfencoding.NewEncoder(w)
 
 	// encode the sender, receiver, nr of months, flags and paired lenghts
 	maf := BotMonthsAndFlagsData{
@@ -1547,7 +1572,7 @@ func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
 
 	// encode addressed added and removed, if defined
 	if maf.HasAddresses {
-		err = enc.Encode(uint8(addrAddLen<<4) | uint8(addrRemoveLen))
+		err = enc.Encode(uint8(addrAddLen) | (uint8(addrRemoveLen) << 4))
 		if err != nil {
 			return err
 		}
@@ -1567,7 +1592,7 @@ func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
 
 	// encode names added and removed, if defined
 	if maf.HasNames {
-		err = enc.Encode(uint8(nameAddLen<<4) | uint8(nameRemoveLen))
+		err = enc.Encode(uint8(nameAddLen) | (uint8(nameRemoveLen) << 4))
 		if err != nil {
 			return err
 		}
@@ -1625,19 +1650,27 @@ func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
 			return err
 		}
 		addrAddLen, addrRemoveLen := pairLength&15, pairLength>>4
-		bnttx.Addresses.Add = make([]NetworkAddress, addrAddLen)
-		for i := range bnttx.Addresses.Add {
-			err = dec.Decode(&bnttx.Addresses.Add[i])
-			if err != nil {
-				return err
+		if addrAddLen > 0 {
+			bnttx.Addresses.Add = make([]NetworkAddress, addrAddLen)
+			for i := range bnttx.Addresses.Add {
+				err = dec.Decode(&bnttx.Addresses.Add[i])
+				if err != nil {
+					return err
+				}
 			}
+		} else {
+			bnttx.Addresses.Add = nil
 		}
-		bnttx.Addresses.Remove = make([]NetworkAddress, addrRemoveLen)
-		for i := range bnttx.Addresses.Remove {
-			err = dec.Decode(&bnttx.Addresses.Remove[i])
-			if err != nil {
-				return err
+		if addrRemoveLen > 0 {
+			bnttx.Addresses.Remove = make([]NetworkAddress, addrRemoveLen)
+			for i := range bnttx.Addresses.Remove {
+				err = dec.Decode(&bnttx.Addresses.Remove[i])
+				if err != nil {
+					return err
+				}
 			}
+		} else {
+			bnttx.Addresses.Remove = nil
 		}
 	} else {
 		// explicitly set added/removed address to nil
@@ -1651,19 +1684,27 @@ func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
 			return err
 		}
 		nameAddLen, nameRemoveLen := pairLength&15, pairLength>>4
-		bnttx.Names.Add = make([]BotName, nameAddLen)
-		for i := range bnttx.Names.Add {
-			err = dec.Decode(&bnttx.Names.Add[i])
-			if err != nil {
-				return err
+		if nameAddLen > 0 {
+			bnttx.Names.Add = make([]BotName, nameAddLen)
+			for i := range bnttx.Names.Add {
+				err = dec.Decode(&bnttx.Names.Add[i])
+				if err != nil {
+					return err
+				}
 			}
+		} else {
+			bnttx.Names.Add = nil
 		}
-		bnttx.Names.Remove = make([]BotName, nameRemoveLen)
-		for i := range bnttx.Names.Remove {
-			err = dec.Decode(&bnttx.Names.Remove[i])
-			if err != nil {
-				return err
+		if nameRemoveLen > 0 {
+			bnttx.Names.Remove = make([]BotName, nameRemoveLen)
+			for i := range bnttx.Names.Remove {
+				err = dec.Decode(&bnttx.Names.Remove[i])
+				if err != nil {
+					return err
+				}
 			}
+		} else {
+			bnttx.Names.Remove = nil
 		}
 	} else {
 		// explicitly set added/removed address to nil
@@ -1677,8 +1718,7 @@ func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
 	}
 	// decode refund coin output, if defined
 	if maf.HasRefund {
-		// deref to ensure we do not also encode one byte
-		// for the pointer indication
+		bnttx.RefundCoinOutput = new(types.CoinOutput)
 		err = dec.Decode(bnttx.RefundCoinOutput)
 		if err != nil {
 			return err
@@ -1736,13 +1776,13 @@ func (brtc BotRegistrationTransactionController) EncodeTransactionData(w io.Writ
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotRegistrationTx: %v", err)
 	}
-	return encoding.NewEncoder(w).Encode(brtx)
+	return tfencoding.NewEncoder(w).Encode(brtx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (brtc BotRegistrationTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var brtx BotRegistrationTransaction
-	err := encoding.NewDecoder(r).Decode(&brtx)
+	err := tfencoding.NewDecoder(r).Decode(&brtx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a BotRegistrationTx: %v", err)
@@ -1902,7 +1942,7 @@ func (brtc BotRegistrationTransactionController) InputSigHash(t types.Transactio
 	}
 
 	h := crypto.NewHash()
-	enc := encoding.NewEncoder(h)
+	enc := tfencoding.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -1941,7 +1981,7 @@ func (brtc BotRegistrationTransactionController) EncodeTransactionIDInput(w io.W
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotRegistrationTx: %v", err)
 	}
-	return encoding.NewEncoder(w).EncodeAll(SpecifierBotRegistrationTransaction, brtx)
+	return tfencoding.NewEncoder(w).EncodeAll(SpecifierBotRegistrationTransaction, brtx)
 }
 
 type (

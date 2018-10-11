@@ -2315,6 +2315,74 @@ func TestComputeMonthlyBotFees(t *testing.T) {
 	}
 }
 
+func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              nil,
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
+
+	const input = `{"version":144,"data":{"addresses":null,"names":["crazybot.foobar"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"6678e3a75da2026da76753a60ac44f7e7737784015676b37cc2cdcf670dce2e5","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"cd07fbfd78be0edd1c9ca46bc18f91cde1ed05848083828c5d3848cd9671054527b630af72f7d95c0ddcd3a0f0c940eb8cfe4b085cb00efc8338b28f39155809"}}}],"refundcoinoutput":{"value":"99979897000000000","condition":{"type":1,"data":{"unlockhash":"017fda17489854109399aa8c1bfa6bdef40f93606744d95cc5055270d78b465e6acd263c96ab2b"}}},"identification":{"publickey":"ed25519:adc4090edbe28e3628f08a85d20b5055ea301cdb080d3b65a337a326e2e3556d","signature":"5211f813fb4e34ae348e2e746846bc72255512dc246ccafbb3bd3b916aac738bfe2737308d87cced4f9476be8715983cc6000e37f8e82e7b83f120776a358105"}}}`
+	var tx types.Transaction
+	err := json.Unmarshal([]byte(input), &tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := tx.ID()
+	b := tfencoding.Marshal(tx)
+
+	// go to 3bot Tx and back
+	botRegistrationTx, err := BotRegistrationTransactionFromTransaction(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oTx := botRegistrationTx.Transaction(config.GetCurrencyUnits().OneCoin, types.UnlockConditionProxy{})
+	oID := oTx.ID()
+	oB := tfencoding.Marshal(oTx)
+	if id != oID {
+		t.Fatal(id, "!=", oID)
+	}
+	if !bytes.Equal(b, oB) {
+		t.Fatal(hex.EncodeToString(b), "!=", hex.EncodeToString(oB))
+	}
+}
+
+func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              nil,
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
+
+	const (
+		hexBlock       = `89235b4d5e8e405a82fe08a362e785ca010186c6f6bf0ae86660082a52c1e40bf77ebf5b000000000100000000000000000000000000000000000000000000000200000000000000050000000000000002540be400015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e67915804000000000000003b9aca00015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580200000000000000010d010000000000000000000000000000000000000000000001000000000000001d7f4ac218a2f360dd802843a0003443f77d151ba9329fdecbd8da37519b3419018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d77804000000000000000b82990bcbdd96acb14a877f8b0364abbd8ceab232ce9caa3f8f3a15f7277978484a390d928cce671e9829d780715a6aaf8c686cc7074f7d558b03a4a73f96b07010000000000000002000000000000000bb8012100000000000000015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580000000000000000000000000000000090c1101e6372617a79626f742e666f6f62617204000000000000003b9aca0002a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778040000000000000000f04f2332054c4e0257a9a6878ef6fea3f2864c2366e1bd021f9a9eaa0051cffbd5352ed55b691b29b555e9a87ab00c47ad0b1c364ee0af7f0724eeea5aa2500080000000000000001634560d9784e0001210000000000000001b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960000bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c6778066143ad399128fce9b80ad3bf9d9edf6e202903e06b9a9153dd86c600d1e9171d4db1650574c8b6bcca7de1bdf273dc8a8563711204db6b647afc28d1e7c2aa9bd02`
+		expectedJSONTx = `{"version":144,"data":{"addresses":null,"names":["crazybot.foobar"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"0f04f2332054c4e0257a9a6878ef6fea3f2864c2366e1bd021f9a9eaa0051cffbd5352ed55b691b29b555e9a87ab00c47ad0b1c364ee0af7f0724eeea5aa2500"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614","signature":"3ad399128fce9b80ad3bf9d9edf6e202903e06b9a9153dd86c600d1e9171d4db1650574c8b6bcca7de1bdf273dc8a8563711204db6b647afc28d1e7c2aa9bd02"}}}`
+	)
+
+	b, err := hex.DecodeString(hexBlock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var block types.Block
+	err = encoding.Unmarshal(b, &block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx := block.Transactions[1]
+	b, err = json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonTx := string(b)
+	if expectedJSONTx != jsonTx {
+		t.Fatal(expectedJSONTx, "!=", jsonTx)
+	}
+}
+
 func TestBotRegistrationFees(t *testing.T) {
 	// TODO:
 	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
