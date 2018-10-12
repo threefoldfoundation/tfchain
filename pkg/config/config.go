@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	rawVersion = "v1.1.0"
+	rawVersion = "v1.1.1-rc1"
 	// Version of the tfchain binaries.
 	//
 	// Value is defined by a private build flag,
