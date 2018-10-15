@@ -3,6 +3,7 @@ package persist
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 
@@ -40,6 +41,19 @@ const (
 //      for the checking of unique names and unique addresses
 //     see: https://github.com/threefoldfoundation/tfchain/issues/195
 
+// TODO:
+//   add an in-memory cache (layer), such that we do not constantly have to look up the same
+//   names/records/identifiers/publickeys
+//   (for mint condition I do not think it is required, as interaction with minting is minimal)
+
+// TODO:
+//    facilitate :id/transactions (how to handle nicely from the explorer POV)
+//		BotTransaction{
+//			NewExpirationTime (?)
+//			Names{add+remove}
+//			Address{add+remove}
+//		}
+
 // internal bucket database keys used for the transactionDB
 var (
 	bucketInternal         = []byte("internal")
@@ -50,9 +64,10 @@ var (
 	bucketMintConditions = []byte("mintconditions")
 
 	// buckets for the 3bot feature
-	bucketBotRecords         = []byte("botrecords") // ID => name
-	bucketBotKeyToIDMapping  = []byte("botkeys")    // Key => ID
-	bucketBotNameToIDMapping = []byte("botnames")   // Name => ID
+	bucketBotRecords               = []byte("botrecords")     // ID => name
+	bucketBotKeyToIDMapping        = []byte("botkeys")        // Key => ID
+	bucketBotNameToIDMapping       = []byte("botnames")       // Name => ID
+	bucketBotRecordImplicitUpdates = []byte("botimplupdates") // txID => implicitBotRecordUpdate
 )
 
 type (
@@ -86,6 +101,7 @@ type (
 	transactionDBStats struct {
 		ConsensusChangeID modules.ConsensusChangeID
 		BlockHeight       rivinetypes.BlockHeight
+		ChainTime         rivinetypes.Timestamp
 		Synced            bool
 	}
 )
@@ -293,7 +309,14 @@ func (txdb *TransactionDB) GetRecordForName(name types.BotName) (record *types.B
 		}
 
 		record, err = getRecordForID(tx, id)
-		return err
+		if err != nil {
+			return err
+		}
+		if record.Expiration.SiaTimestamp() <= txdb.stats.ChainTime {
+			// a botname automatically expires as soon as the last 3bot that owned it expired as well
+			return types.ErrBotNameExpired
+		}
+		return nil
 	})
 	return
 }
@@ -331,7 +354,7 @@ func (txdb *TransactionDB) openDB(filename string, genesisMintCondition rivinety
 	var (
 		dbMetadata = persist.Metadata{
 			Header:  "TFChain Transaction Database",
-			Version: "1.1.1",
+			Version: "1.1.2",
 		}
 	)
 
@@ -356,6 +379,7 @@ func (txdb *TransactionDB) openDB(filename string, genesisMintCondition rivinety
 				bucketBotRecords,
 				bucketBotKeyToIDMapping,
 				bucketBotNameToIDMapping,
+				bucketBotRecordImplicitUpdates,
 			}
 			for _, bucket := range buckets {
 				_, err = tx.CreateBucket(bucket)
@@ -363,10 +387,35 @@ func (txdb *TransactionDB) openDB(filename string, genesisMintCondition rivinety
 					return err
 				}
 			}
-			return nil
+			// update the stats bucket
+			var oldStats struct {
+				ConsensusChangeID modules.ConsensusChangeID
+				BlockHeight       rivinetypes.BlockHeight
+				Synced            bool
+			}
+			internalBucket := tx.Bucket(bucketInternal)
+			b := internalBucket.Get(bucketInternalKeyStats)
+			if len(b) == 0 {
+				return errors.New("structured stats value could not be found in existing transaction db")
+			}
+			err = encoding.Unmarshal(b, &oldStats)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal structured stats value from existing transaction db: %v", err)
+			}
+			return internalBucket.Put(bucketInternalKeyStats, encoding.Marshal(transactionDBStats{
+				ConsensusChangeID: oldStats.ConsensusChangeID,
+				BlockHeight:       oldStats.BlockHeight,
+				ChainTime:         0, // will fix itself on the first block it receives
+				Synced:            oldStats.Synced,
+			}))
 		})
 		if err != nil {
-			return fmt.Errorf("error adding v1.1.1 buckets to tfchain transaction database: %v", err)
+			return fmt.Errorf("error adding v1.1.2 buckets to tfchain transaction database: %v", err)
+		}
+		txdb.db.Metadata = dbMetadata
+		err = txdb.db.SaveMetadata()
+		if err != nil {
+			return fmt.Errorf("error while saving the v1.1.2 metadata in the tfchain transaction database: %v", err)
 		}
 	}
 	return txdb.db.Update(func(tx *bolt.Tx) (err error) {
@@ -426,6 +475,7 @@ func (txdb *TransactionDB) createDB(tx *bolt.Tx, genesisMintCondition rivinetype
 		bucketBotRecords,
 		bucketBotKeyToIDMapping,
 		bucketBotNameToIDMapping,
+		bucketBotRecordImplicitUpdates,
 	}
 	for _, bucket := range buckets {
 		_, err = tx.CreateBucket(bucket)
@@ -530,6 +580,10 @@ func (txdb *TransactionDB) revertBlocks(tx *bolt.Tx, blocks []rivinetypes.Block)
 				continue
 			case types.TransactionVersionBotRegistration:
 				err = txdb.revertBotRegistrationTx(tx, rtx)
+			case types.TransactionVersionBotRecordUpdate:
+				err = txdb.revertRecordUpdateTx(tx, block.Timestamp, rtx)
+			case types.TransactionVersionBotNameTransfer:
+				err = txdb.revertBotNameTransferTx(tx, block.Timestamp, rtx)
 			case types.TransactionVersionMinterDefinition:
 				err = txdb.revertMintConditionTx(tx, rtx)
 			}
@@ -540,6 +594,8 @@ func (txdb *TransactionDB) revertBlocks(tx *bolt.Tx, blocks []rivinetypes.Block)
 
 		// decrease block height (store later)
 		txdb.stats.BlockHeight--
+		// not super accurate, should be accurate enough and will fix itself when new blocks get applied
+		txdb.stats.ChainTime = block.Timestamp
 	}
 
 	// all good
@@ -562,6 +618,7 @@ func (txdb *TransactionDB) applyBlocks(tx *bolt.Tx, blocks []rivinetypes.Block) 
 	for _, block := range blocks {
 		// increase block height (store later)
 		txdb.stats.BlockHeight++
+		txdb.stats.ChainTime = block.Timestamp
 
 		for i := range block.Transactions {
 			rtx = &block.Transactions[i]
@@ -572,6 +629,10 @@ func (txdb *TransactionDB) applyBlocks(tx *bolt.Tx, blocks []rivinetypes.Block) 
 				continue
 			case types.TransactionVersionBotRegistration:
 				err = txdb.applyBotRegistrationTx(tx, block.Timestamp, rtx)
+			case types.TransactionVersionBotRecordUpdate:
+				err = txdb.applyRecordUpdateTx(tx, block.Timestamp, rtx)
+			case types.TransactionVersionBotNameTransfer:
+				err = txdb.applyBotNameTransferTx(tx, block.Timestamp, rtx)
 			case types.TransactionVersionMinterDefinition:
 				err = txdb.applyMintConditionTx(tx, rtx)
 			}
@@ -635,15 +696,23 @@ func (txdb *TransactionDB) applyBotRegistrationTx(tx *bolt.Tx, blockTime rivinet
 		return errors.New("error while getting auto incrementing sequence bot ID: value exceeds 32 bit")
 	}
 	id := types.BotID(sequenceIndex)
-	// store the record, and the other mappings, assuming the consensus validated that
-	// the registration Tx is completely valid
-	err = recordBucket.Put(tfencoding.Marshal(id), tfencoding.Marshal(types.BotRecord{
+	// create the record
+	record := types.BotRecord{
 		ID:         id,
-		Addresses:  brtx.Addresses,
-		Names:      brtx.Names,
 		PublicKey:  brtx.Identification.PublicKey,
 		Expiration: types.SiaTimestampAsCompactTimestamp(blockTime) + types.CompactTimestamp(brtx.NrOfMonths)*types.BotMonth,
-	}))
+	}
+	err = record.AddNetworkAddresses(brtx.Addresses...)
+	if err != nil {
+		return fmt.Errorf("error while adding network addresses to bot (%v): %v", brtx.Identification.PublicKey, err)
+	}
+	err = record.AddNames(brtx.Names...)
+	if err != nil {
+		return fmt.Errorf("error while adding bot names to bot (%v): %v", brtx.Identification.PublicKey, err)
+	}
+	// store the record, and the other mappings, assuming the consensus validated that
+	// the registration Tx is completely valid
+	err = recordBucket.Put(tfencoding.Marshal(id), tfencoding.Marshal(record))
 	if err != nil {
 		return fmt.Errorf("error while storing record for bot %d with public key %v: %v", id, brtx.Identification.PublicKey, err)
 	}
@@ -702,6 +771,293 @@ func (txdb *TransactionDB) revertBotRegistrationTx(tx *bolt.Tx, rtx *rivinetypes
 	return nil
 }
 
+func (txdb *TransactionDB) applyRecordUpdateTx(tx *bolt.Tx, blockTime rivinetypes.Timestamp, rtx *rivinetypes.Transaction) error {
+	recordBucket := tx.Bucket(bucketBotRecords)
+	if recordBucket == nil {
+		return errors.New("corrupt transaction DB: bot record bucket does not exist")
+	}
+	brutx, err := types.BotRecordUpdateTransactionFromTransaction(*rtx)
+	if err != nil {
+		return fmt.Errorf("unexpected error while unpacking the bot record update tx type: %v", err)
+	}
+
+	// get the bot record
+	b := recordBucket.Get(tfencoding.Marshal(brutx.Identifier))
+	if len(b) == 0 {
+		return errors.New("no bot record found for the specified identifier")
+	}
+	var record types.BotRecord
+	err = tfencoding.Unmarshal(b, &record)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal found bot record: %v", err)
+	}
+
+	// check if bot is still active,
+	// if the bot is still active we expect that the Tx defines the names to remove
+	// otherwise we require that all names should be removed
+	var namesInRecordRemovedImplicitly []types.BotName
+	if record.IsExpired(blockTime) {
+		namesInRecordRemovedImplicitly = record.Names.Difference(types.BotNameSortedSet{}) // A \ {} = A
+		// store the implicit update that will happen due to the invalid period prior to this Tx,
+		// this will help is in reverting the record back to its original state,
+		// as such implicit updates cannot be easily reverted otherwise
+		err = applyImplicitBotRecordUpdate(tx, rtx.ID(), implicitBotRecordUpdate{
+			PreviousExpirationTime: record.Expiration,
+			InactiveNamesRemoved:   namesInRecordRemovedImplicitly,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to apply implicit record update: %v", err)
+		}
+	}
+
+	// update it (will also reset names of an inactive bot)
+	err = brutx.UpdateBotRecord(blockTime, &record)
+	if err != nil {
+		return fmt.Errorf("failed to update bot record: %v", err)
+	}
+
+	// save it
+	err = recordBucket.Put(tfencoding.Marshal(brutx.Identifier), tfencoding.Marshal(record))
+	if err != nil {
+		return fmt.Errorf("error while updating record for bot %d: %v", brutx.Identifier, err)
+	}
+
+	if len(namesInRecordRemovedImplicitly) > 0 {
+		// otherwise remove all names that previously active,
+		// as we can assume that an update of a record update HAS to make it active again
+		for _, name := range namesInRecordRemovedImplicitly {
+			err = revertNameToIDMappingIfOwnedByBot(tx, name, record.ID)
+			if err != nil {
+				return fmt.Errorf("failed to update bot record: error while tx-removing mapping of name %v: %v", name, err)
+			}
+		}
+	} else {
+		// if the bot was active, we apply the removals as defined by the Tx
+		for _, name := range brutx.Names.Remove {
+			err = revertNameToIDMapping(tx, name)
+			if err != nil {
+				return fmt.Errorf("failed to update bot record: error while record-removing mapping of name %v: %v", name, err)
+			}
+		}
+	}
+
+	// add mapping for all the added names
+	for _, name := range brutx.Names.Add {
+		err = applyNameToIDMapping(tx, name, record.ID)
+		if err != nil {
+			return fmt.Errorf("failed to update bot record: error while name %v to ID %v: %v", name, record.ID, err)
+		}
+	}
+
+	// all information is applied
+	return nil
+}
+
+func (txdb *TransactionDB) revertRecordUpdateTx(tx *bolt.Tx, blockTime rivinetypes.Timestamp, rtx *rivinetypes.Transaction) error {
+	recordBucket := tx.Bucket(bucketBotRecords)
+	if recordBucket == nil {
+		return errors.New("corrupt transaction DB: bot record bucket does not exist")
+	}
+	brutx, err := types.BotRecordUpdateTransactionFromTransaction(*rtx)
+	if err != nil {
+		return fmt.Errorf("unexpected error while unpacking the bot record update tx type: %v", err)
+	}
+
+	// get the bot record
+	b := recordBucket.Get(tfencoding.Marshal(brutx.Identifier))
+	if len(b) == 0 {
+		return errors.New("no bot record found for the specified identifier")
+	}
+	var record types.BotRecord
+	err = tfencoding.Unmarshal(b, &record)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal found bot record: %v", err)
+	}
+
+	// first revert the Tx
+	err = brutx.RevertBotRecordUpdate(&record)
+	if err != nil {
+		return fmt.Errorf("failed to revert bot record: %v", err)
+	}
+
+	// now check if we're expired, if so,
+	// we might need to revert an implicit update that happened during the apply phase of this Tx
+	if record.IsExpired(blockTime) {
+		txID := rtx.ID()
+
+		// if the record is expired, there is a big chance that
+		// there was an implicit update, as such let's try to get it,
+		// if an implicit update did indeed take place, let's restore that info
+		update, err := getImplicitBotRecordUpdate(tx, txID)
+		if err != nil {
+			return fmt.Errorf("failed to revert bot record: failed to fetch implicit record update: %v", err)
+		}
+
+		if update.PreviousExpirationTime != 0 {
+			// only if the previous expiration time was set,
+			// could there have been an update (in the current setup)
+			record.Expiration = update.PreviousExpirationTime
+
+			// add all names to the record again (they were removed as well, so no error is expected)
+			err = record.AddNames(update.InactiveNamesRemoved...)
+			if err != nil {
+				return fmt.Errorf("failed to revert bot record: unexpected error while adding implicitly removed names back to record: %v", err)
+			}
+
+			// apply all removed names again in the mapping bucket as well (for all those names that aren't taken in the meanwhile)
+			for _, name := range update.InactiveNamesRemoved {
+				err = applyNameToIDMappingIfAvailable(tx, name, record.ID)
+				if err != nil {
+					return fmt.Errorf("failed to revert bot record: :"+
+						"failed to add back mapping of expired bot's name %v to its ID %d: %v", name, record.ID, err)
+				}
+			}
+
+			// delete the implicit record update, it is no longer required
+			err = revertImplicitBotRecordUpdate(tx, txID)
+			if err != nil {
+				return fmt.Errorf("failed to revert bot record: failed to revert implicit bot record update content:%v", err)
+			}
+		}
+	}
+
+	// save it
+	err = recordBucket.Put(tfencoding.Marshal(brutx.Identifier), tfencoding.Marshal(record))
+	if err != nil {
+		return fmt.Errorf("error while updating record for bot %d: %v", brutx.Identifier, err)
+	}
+
+	// revert all names that were added
+	for _, name := range brutx.Names.Add {
+		err = revertNameToIDMapping(tx, name)
+		if err != nil {
+			return fmt.Errorf("failed to update bot record: error while name %v to ID %v: %v", name, record.ID, err)
+		}
+	}
+
+	// apply all names again that were removed,
+	// which can only be in case the bot was active
+	for _, name := range brutx.Names.Remove {
+		err = applyNameToIDMapping(tx, name, record.ID)
+		if err != nil {
+			return fmt.Errorf("failed to revert update bot record: error while revert mapping of name %v that was removed: %v", name, err)
+		}
+	}
+
+	// all information is applied
+	return nil
+}
+
+func (txdb *TransactionDB) applyBotNameTransferTx(tx *bolt.Tx, blockTime rivinetypes.Timestamp, rtx *rivinetypes.Transaction) error {
+	recordBucket := tx.Bucket(bucketBotRecords)
+	if recordBucket == nil {
+		return errors.New("corrupt transaction DB: bot record bucket does not exist")
+	}
+	bnttx, err := types.BotNameTransferTransactionFromTransaction(*rtx)
+	if err != nil {
+		return fmt.Errorf("unexpected error while unpacking the bot name transfer tx type: %v", err)
+	}
+
+	// get the sender bot record
+	b := recordBucket.Get(tfencoding.Marshal(bnttx.Sender.Identifier))
+	if len(b) == 0 {
+		return errors.New("no bot record found for the specified sender bot identifier")
+	}
+	var record types.BotRecord
+	err = tfencoding.Unmarshal(b, &record)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal found record of sender bot %d: %v", bnttx.Sender.Identifier, err)
+	}
+	// update sender bot (this also ensures the sender bot isn't expired)
+	_, err = bnttx.UpdateSenderBotRecord(blockTime, &record)
+	if err != nil { // automatically checks also if at least one name is transferred, returning an error if not
+		return fmt.Errorf("failed to update record of sender bot %d: %v", record.ID, err)
+	}
+	// save the record of the sender bot
+	err = recordBucket.Put(tfencoding.Marshal(record.ID), tfencoding.Marshal(record))
+	if err != nil {
+		return fmt.Errorf("error while saving the updated record for sender bot %d: %v", record.ID, err)
+	}
+
+	// piggy-back now on a regular update Tx for the receiver's bot update:
+	rrtx := (&types.BotRecordUpdateTransaction{
+		Identifier:       bnttx.Receiver.Identifier,
+		Addresses:        bnttx.Addresses,
+		Names:            bnttx.Names,
+		NrOfMonths:       bnttx.NrOfMonths,
+		TransactionFee:   bnttx.TransactionFee,
+		CoinInputs:       bnttx.CoinInputs,
+		RefundCoinOutput: bnttx.RefundCoinOutput,
+		Signature:        bnttx.Receiver.Signature,
+	}).Transaction(rivinetypes.Currency{}, rivinetypes.UnlockConditionProxy{}) // onecoin and pool condition is not relevant for applyRecordUpdateTx
+	err = txdb.applyRecordUpdateTx(tx, blockTime, &rrtx)
+	if err != nil {
+		return fmt.Errorf("failed to apply name transfer update for receiver bot %d: %v", bnttx.Receiver.Identifier, err)
+	}
+
+	// update went fine
+	return nil
+}
+func (txdb *TransactionDB) revertBotNameTransferTx(tx *bolt.Tx, blockTime rivinetypes.Timestamp, rtx *rivinetypes.Transaction) error {
+	recordBucket := tx.Bucket(bucketBotRecords)
+	if recordBucket == nil {
+		return errors.New("corrupt transaction DB: bot record bucket does not exist")
+	}
+	bnttx, err := types.BotNameTransferTransactionFromTransaction(*rtx)
+	if err != nil {
+		return fmt.Errorf("unexpected error while unpacking the bot name transfer tx type: %v", err)
+	}
+
+	// get the sender bot record
+	b := recordBucket.Get(tfencoding.Marshal(bnttx.Sender.Identifier))
+	if len(b) == 0 {
+		return errors.New("no bot record found for the specified sender bot identifier")
+	}
+	var record types.BotRecord
+	err = tfencoding.Unmarshal(b, &record)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal found record of sender bot %d: %v", bnttx.Sender.Identifier, err)
+	}
+	// revert sender bot (this also ensures the sender bot isn't expired)
+	namesToMapForSender, err := bnttx.RevertSenderBotRecordUpdate(blockTime, &record)
+	if err != nil { // automatically checks also if at least one name is transferred, returning an error if not
+		return fmt.Errorf("failed to revert record of sender bot %d: %v", record.ID, err)
+	}
+	// save the record of the sender bot
+	err = recordBucket.Put(tfencoding.Marshal(record.ID), tfencoding.Marshal(record))
+	if err != nil {
+		return fmt.Errorf("error while saving the reverted record for sender bot %d: %v", record.ID, err)
+	}
+
+	// piggy-back now on a regular update Tx for the receiver's bot update revert:
+	rrtx := (&types.BotRecordUpdateTransaction{
+		Identifier:       bnttx.Receiver.Identifier,
+		Addresses:        bnttx.Addresses,
+		Names:            bnttx.Names,
+		NrOfMonths:       bnttx.NrOfMonths,
+		TransactionFee:   bnttx.TransactionFee,
+		CoinInputs:       bnttx.CoinInputs,
+		RefundCoinOutput: bnttx.RefundCoinOutput,
+		Signature:        bnttx.Receiver.Signature,
+	}).Transaction(rivinetypes.Currency{}, rivinetypes.UnlockConditionProxy{}) // onecoin and pool condition is not relevant for applyRecordUpdateTx
+	err = txdb.revertRecordUpdateTx(tx, blockTime, &rrtx)
+	if err != nil {
+		return fmt.Errorf("failed to revert name transfer update for receiver bot %d: %v", bnttx.Receiver.Identifier, err)
+	}
+
+	// apply all name mappings for sender bot (assumed to be overwritten during the apply phase of this Tx)
+	for _, name := range namesToMapForSender {
+		err = applyNameToIDMapping(tx, name, bnttx.Sender.Identifier)
+		if err != nil {
+			return fmt.Errorf("failed to revert bot name transfer: "+
+				"error while mapping name %v to sender bot ID %v: %v", name, bnttx.Receiver.Identifier, err)
+		}
+	}
+
+	// revert went fine
+	return nil
+}
+
 // apply/revert the Key->ID mapping for a 3bot
 func applyKeyToIDMapping(tx *bolt.Tx, key types.PublicKey, id types.BotID) error {
 	mappingBucket := tx.Bucket(bucketBotKeyToIDMapping)
@@ -732,4 +1088,154 @@ func revertNameToIDMapping(tx *bolt.Tx, name types.BotName) error {
 		return errors.New("corrupt transaction DB: bot name bucket does not exist")
 	}
 	return mappingBucket.Delete(tfencoding.Marshal(name))
+}
+func revertNameToIDMappingIfOwnedByBot(tx *bolt.Tx, name types.BotName, id types.BotID) error {
+	mappingBucket := tx.Bucket(bucketBotNameToIDMapping)
+	if mappingBucket == nil {
+		return errors.New("corrupt transaction DB: bot name bucket does not exist")
+	}
+	b := mappingBucket.Get(tfencoding.Marshal(name))
+	if len(b) == 0 {
+		return nil // might be deleted by another bot, who took over ownership
+	}
+	var mappedID types.BotID
+	err := tfencoding.Unmarshal(b, &mappedID)
+	if err != nil {
+		return fmt.Errorf("corrupt BotID used as key in mapping of bot name %v", name)
+	}
+	if mappedID != id {
+		return nil // ID no longer owned by this bot, ignore removal request in the mapping context
+	}
+	// delete name (mapping), as it was still owned by this bot
+	return mappingBucket.Delete(tfencoding.Marshal(name))
+}
+func applyNameToIDMappingIfAvailable(tx *bolt.Tx, name types.BotName, id types.BotID) error {
+	mappingBucket := tx.Bucket(bucketBotNameToIDMapping)
+	if mappingBucket == nil {
+		return errors.New("corrupt transaction DB: bot name bucket does not exist")
+	}
+	b := mappingBucket.Get(tfencoding.Marshal(name))
+	if len(b) != 0 {
+		return nil // already taken
+	}
+	return mappingBucket.Put(tfencoding.Marshal(name), tfencoding.Marshal(id))
+}
+
+func applyImplicitBotRecordUpdate(tx *bolt.Tx, txID rivinetypes.TransactionID, update implicitBotRecordUpdate) error {
+	updateBucket := tx.Bucket(bucketBotRecordImplicitUpdates)
+	if updateBucket == nil {
+		return errors.New("corrupt transaction DB: implicit bot record update bucket does not exist")
+	}
+	return updateBucket.Put(tfencoding.Marshal(txID), tfencoding.Marshal(update))
+}
+func revertImplicitBotRecordUpdate(tx *bolt.Tx, txID rivinetypes.TransactionID) error {
+	updateBucket := tx.Bucket(bucketBotRecordImplicitUpdates)
+	if updateBucket == nil {
+		return errors.New("corrupt transaction DB: implicit bot record update bucket does not exist")
+	}
+	return updateBucket.Delete(tfencoding.Marshal(txID))
+}
+func getImplicitBotRecordUpdate(tx *bolt.Tx, txID rivinetypes.TransactionID) (implicitBotRecordUpdate, error) {
+	var update implicitBotRecordUpdate
+
+	updateBucket := tx.Bucket(bucketBotRecordImplicitUpdates)
+	if updateBucket == nil {
+		return update, errors.New("corrupt transaction DB: implicit bot record update bucket does not exist")
+	}
+	b := updateBucket.Get(tfencoding.Marshal(txID))
+	if len(b) == 0 {
+		return update, nil
+	}
+	err := tfencoding.Unmarshal(b, &update)
+	if err != nil {
+		return update, fmt.Errorf("failed to fetch implicit record update for tx %v: %v", txID, err)
+	}
+	return update, nil
+}
+
+// implicitBotRecordUpdate collects all info that was erased/changed due to
+// implicit updates to a bot record as part of a record update Tx.
+// Such an implicit update is possible in case the bot was made active again by the update Tx,
+// after being inactive prior to that.
+type implicitBotRecordUpdate struct {
+	PreviousExpirationTime types.CompactTimestamp
+	InactiveNamesRemoved   []types.BotName
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia
+func (ibru implicitBotRecordUpdate) MarshalSia(w io.Writer) error {
+	// write the info prefix byte first, containing
+	// flags and length information
+	var infoPrefixByte uint8
+	if ibru.PreviousExpirationTime != 0 {
+		infoPrefixByte |= 1 // first bit indicates if a previous expiration time is to be added
+	}
+	lenNamesRemoved := len(ibru.InactiveNamesRemoved)
+	if lenNamesRemoved > types.MaxNamesPerBot {
+		return errors.New("too many bot names were implicitly removed")
+	}
+	// next 3 bits indicate the length of names that were implicitly removed
+	infoPrefixByte |= uint8(lenNamesRemoved) << 1
+	// write the info prefix byte
+	err := tfencoding.MarshalUint8(w, infoPrefixByte)
+	if err != nil {
+		return fmt.Errorf("failed to write the info (implicit bot record update) prefix byte: %v", err)
+	}
+
+	// write the previous expiration time if non-0
+	if ibru.PreviousExpirationTime != 0 {
+		err = ibru.PreviousExpirationTime.MarshalSia(w)
+		if err != nil {
+			return fmt.Errorf("implicitBotRecordUpdate: %v", err)
+		}
+	}
+
+	// write all names one by one
+	for _, name := range ibru.InactiveNamesRemoved {
+		err = name.MarshalSia(w)
+		if err != nil {
+			return fmt.Errorf("implicitBotRecordUpdate: %v", err)
+		}
+	}
+
+	// all written succesfully
+	return nil
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
+func (ibru *implicitBotRecordUpdate) UnmarshalSia(r io.Reader) error {
+	infoPrefixByte, err := tfencoding.UnmarshalUint8(r)
+	if err != nil {
+		return fmt.Errorf("implicitBotRecordUpdate: %v", err)
+	}
+	// read or reset the PreviousExpirationTime
+	if infoPrefixByte&1 != 0 {
+		err = ibru.PreviousExpirationTime.UnmarshalSia(r)
+		if err != nil {
+			return fmt.Errorf("implicitBotRecordUpdate: %v", err)
+		}
+	} else {
+		ibru.PreviousExpirationTime = 0
+	}
+	// read or reset the implicitly removed names
+	length := (infoPrefixByte >> 1) & 7
+	if length == 0 {
+		ibru.InactiveNamesRemoved = nil
+		return nil
+	}
+	if length > types.MaxNamesPerBot {
+		return errors.New("too many bot names were implicitly removed")
+	}
+	ibru.InactiveNamesRemoved = make([]types.BotName, 0, length)
+	for i := uint8(0); i < length; i++ {
+		var name types.BotName
+		err = name.UnmarshalSia(r)
+		if err != nil {
+			return fmt.Errorf("implicitBotRecordUpdate: %v", err)
+		}
+		ibru.InactiveNamesRemoved = append(ibru.InactiveNamesRemoved, name)
+	}
+
+	// all read succesfully
+	return nil
 }

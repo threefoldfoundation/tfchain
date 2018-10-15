@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"regexp"
+	"sort"
 
 	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
@@ -177,7 +179,179 @@ func (na *NetworkAddress) UnmarshalJSON(b []byte) error {
 	return na.LoadString(str)
 }
 
-// Equal returns true if this NetworkAddress and the given NetworkAddress are equal.
-func (na NetworkAddress) Equal(ona NetworkAddress) bool {
+// Equals returns true if this NetworkAddress and the given NetworkAddress are equal.
+func (na NetworkAddress) Equals(ona NetworkAddress) bool {
 	return na.t == ona.t && bytes.Compare(na.addr, ona.addr) == 0
+}
+
+// Compare returns an integer comparing two network addresses.
+// If the types are equal the addresses are compared lexicographically,
+// otherwise the compare result of the network address types is returned.
+// The final result will be 0 if a==b, -1 if a < b, and +1 if a > b.
+func (na NetworkAddress) Compare(ona NetworkAddress) int {
+	if na.t < ona.t {
+		return -1
+	}
+	if na.t > ona.t {
+		return 1
+	}
+	return bytes.Compare(na.addr, ona.addr)
+}
+
+type (
+	// NetworkAddressSortedSet represents a sorted set of (unique) network addresses.
+	//
+	// A NetworkAddressSortedSet does not expose it elements, as this is not a feature-requirement of tfchain,
+	// all it aims for is to ensure the set consists only of unique elements.
+	NetworkAddressSortedSet struct {
+		slice networkAddressSlice
+	}
+	networkAddressSlice []NetworkAddress
+)
+
+// Len returns the amount of network addresses in this sorted set.
+func (nass NetworkAddressSortedSet) Len() int {
+	return nass.slice.Len()
+}
+
+// AddAddress adds a new (unique) network address to this sorted set of network addresses,
+// returning an error if the address already exists within this sorted set.
+func (nass *NetworkAddressSortedSet) AddAddress(address NetworkAddress) error {
+	// binary search through our slice,
+	// and if not found return the index where to insert the address as well
+	limit := nass.slice.Len()
+	index := sort.Search(limit, func(i int) bool {
+		return nass.slice[i].Compare(address) >= 0
+	})
+	if index < limit && nass.slice[index].Equals(address) {
+		return ErrNetworkAddressNotUnique
+	}
+	// insert the new network address in the correct place
+	nass.slice = append(nass.slice, NetworkAddress{})
+	copy(nass.slice[index+1:], nass.slice[index:])
+	nass.slice[index] = address
+	return nil
+}
+
+// RemoveAddress removes an existing network address from this sorted set of network addresses,
+// returning an error if the address did not yet exist in this sorted set.
+func (nass *NetworkAddressSortedSet) RemoveAddress(address NetworkAddress) error {
+	limit := nass.slice.Len()
+	index := sort.Search(limit, func(i int) bool {
+		return nass.slice[i].Compare(address) >= 0
+	})
+	if index >= limit || !nass.slice[index].Equals(address) {
+		return ErrNetworkAddressNotUnique
+	}
+	copy(nass.slice[index:], nass.slice[index+1:])
+	nass.slice[nass.slice.Len()-1] = NetworkAddress{}
+	nass.slice = nass.slice[:nass.slice.Len()-1]
+	return nil
+}
+
+// MarshalJSON implements encoding/json.Marshaler.MarshalJSON
+func (nass NetworkAddressSortedSet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(nass.slice)
+}
+
+// UnmarshalJSON implements encoding/json.Unmarshaler.UnmarshalJSON
+func (nass *NetworkAddressSortedSet) UnmarshalJSON(data []byte) error {
+	// decode the slice
+	var slice networkAddressSlice
+	err := json.Unmarshal(data, &slice)
+	if err != nil {
+		return err
+	}
+	// allocate suffecient memory (and erase) our internal slice
+	nass.slice = make(networkAddressSlice, 0, len(slice))
+	// add the elements on by one, guaranteeing the addresses are in order and unique
+	for _, addr := range slice {
+		err = nass.AddAddress(addr)
+		if err != nil {
+			return fmt.Errorf("error while unmarshaling addr %v: %v", addr, err)
+		}
+	}
+	return nil
+}
+
+// MarshalSia implements rivine/encoding.SiaMarshaler.MarshalSia
+func (nass NetworkAddressSortedSet) MarshalSia(w io.Writer) error {
+	return encoding.NewEncoder(w).Encode(nass.slice)
+}
+
+// UnmarshalSia implements rivine/encoding.SiaUnmarshaler.UnmarshalSia
+func (nass *NetworkAddressSortedSet) UnmarshalSia(r io.Reader) error {
+	// decode the slice
+	var slice networkAddressSlice
+	err := encoding.NewDecoder(r).Decode(&slice)
+	if err != nil {
+		return err
+	}
+	// allocate suffecient memory (and erase) our internal slice
+	nass.slice = make(networkAddressSlice, 0, len(slice))
+	// add the elements on by one, guaranteeing the addresses are in order and unique
+	for _, addr := range slice {
+		err = nass.AddAddress(addr)
+		if err != nil {
+			return fmt.Errorf("error while unmarshaling addr %v: %v", addr, err)
+		}
+	}
+	return nil
+}
+
+// BinaryEncode can be used instead of MarshalSia, should one want to
+// encode the length prefix in a way other than the standard tfchain-slice approach.
+// The encoding of the length has to happen prior to calling this method.
+func (nass NetworkAddressSortedSet) BinaryEncode(w io.Writer) (int, error) {
+	var (
+		err     error
+		encoder = encoding.NewEncoder(w)
+	)
+	for _, addr := range nass.slice {
+		err = encoder.Encode(addr)
+		if err != nil {
+			return -1, err
+		}
+	}
+	return nass.slice.Len(), nil
+}
+
+// BinaryDecode can be used instead of UnmarshalSia, should one need to
+// decode the length prefix in a way other than the standard tfchain-slice approach.
+// The decoding of the length has to happen prior to calling this method.
+func (nass *NetworkAddressSortedSet) BinaryDecode(r io.Reader, length int) error {
+	var (
+		err     error
+		decoder = encoding.NewDecoder(r)
+	)
+	// allocate suffecient memory (and erase) our internal slice
+	nass.slice = make(networkAddressSlice, 0, length)
+	// add the elements on by one, guaranteeing the addresses are in order and unique
+	for i := 0; i < length; i++ {
+		var addr NetworkAddress
+		err = decoder.Decode(&addr)
+		if err != nil {
+			return err
+		}
+		err = nass.AddAddress(addr)
+		if err != nil {
+			return fmt.Errorf("error while unmarshaling addr %v: %v", addr, err)
+		}
+	}
+	return nil
+}
+
+// Len implements sort.Interface.Len
+func (slice networkAddressSlice) Len() int {
+	return len(slice)
+}
+
+// Less implements sort.Interface.Less
+func (slice networkAddressSlice) Less(i, j int) bool {
+	return slice[i].Compare(slice[j]) == -1
+}
+
+// Swap implements sort.Interface.Swap
+func (slice networkAddressSlice) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
 }

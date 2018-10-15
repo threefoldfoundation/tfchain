@@ -103,6 +103,16 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.
 		RegistryPoolCondition: cfg.FoundationPoolCondition,
 		OneCoin:               oneCoin,
 	})
+	types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, BotUpdateRecordTransactionController{
+		Registry:              db,
+		RegistryPoolCondition: cfg.FoundationPoolCondition,
+		OneCoin:               oneCoin,
+	})
+	types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, BotNameTransferTransactionController{
+		Registry:              db,
+		RegistryPoolCondition: cfg.FoundationPoolCondition,
+		OneCoin:               oneCoin,
+	})
 }
 
 // RegisterTransactionTypesForTestNetwork registers he transaction controllers
@@ -138,6 +148,16 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Curr
 		RegistryPoolCondition: cfg.FoundationPoolCondition,
 		OneCoin:               oneCoin,
 	})
+	types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, BotUpdateRecordTransactionController{
+		Registry:              db,
+		RegistryPoolCondition: cfg.FoundationPoolCondition,
+		OneCoin:               oneCoin,
+	})
+	types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, BotNameTransferTransactionController{
+		Registry:              db,
+		RegistryPoolCondition: cfg.FoundationPoolCondition,
+		OneCoin:               oneCoin,
+	})
 }
 
 // RegisterTransactionTypesForDevNetwork registers he transaction controllers
@@ -163,6 +183,16 @@ func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Curre
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              db,
+		RegistryPoolCondition: cfg.FoundationPoolCondition,
+		OneCoin:               oneCoin,
+	})
+	types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, BotUpdateRecordTransactionController{
+		Registry:              db,
+		RegistryPoolCondition: cfg.FoundationPoolCondition,
+		OneCoin:               oneCoin,
+	})
+	types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, BotNameTransferTransactionController{
 		Registry:              db,
 		RegistryPoolCondition: cfg.FoundationPoolCondition,
 		OneCoin:               oneCoin,
@@ -979,21 +1009,21 @@ func BotRegistrationTransactionFromTransaction(tx types.Transaction) (BotRegistr
 // BotRegistrationTransactionFromTransactionData creates a BotRegistrationTransaction,
 // using the TransactionData from a regular in-memory tfchain transaction.
 func BotRegistrationTransactionFromTransactionData(txData types.TransactionData) (BotRegistrationTransaction, error) {
+	// validate the Transaction Data
+	err := validateBotInMemoryTransactionDataRequirements(txData)
+	if err != nil {
+		return BotRegistrationTransaction{}, fmt.Errorf("BotRegistrationTransaction: %v", err)
+	}
+
 	// (tx) extension (data) is expected to be a pointer to a valid BotRegistrationTransaction,
 	// which contains all the properties unique to a 3bot (registration) Tx
 	extensionData, ok := txData.Extension.(*BotRegistrationTransactionExtension)
 	if !ok {
 		return BotRegistrationTransaction{}, errors.New("invalid extension data for a BotRegistrationTransaction")
 	}
-	// at least one coin input as well as one miner fee is required
-	if len(txData.CoinInputs) == 0 || len(txData.MinerFees) != 1 {
-		return BotRegistrationTransaction{}, errors.New("at least one coin input and exactly one miner fee is required for a BotRegistrationTransaction")
-	}
-	// no block stake inputs or block stake outputs are allowed
-	if len(txData.BlockStakeInputs) != 0 || len(txData.BlockStakeOutputs) != 0 {
-		return BotRegistrationTransaction{}, errors.New("no block stake inputs/outputs are allowed in a BotRegistrationTransaction")
-	}
 
+	// create the BotRegistrationTransaction and return it,
+	// all should be good (at least the common requirements, it might still be invalid for version-specific reasons)
 	tx := BotRegistrationTransaction{
 		Addresses:      extensionData.Addresses,
 		Names:          extensionData.Names,
@@ -1002,19 +1032,12 @@ func BotRegistrationTransactionFromTransactionData(txData types.TransactionData)
 		CoinInputs:     txData.CoinInputs,
 		Identification: extensionData.Identification,
 	}
-	switch len(txData.CoinOutputs) {
-	case 2:
+	if len(txData.CoinOutputs) == 2 {
 		// take refund coin output
 		// convention always assumed to be the required BotFee
 		tx.RefundCoinOutput = &txData.CoinOutputs[1]
-		return tx, nil
-	case 1:
-		// nothing to do
-		return tx, nil
-	default:
-		// return with an error, maximum one coin output can be set, not more
-		return BotRegistrationTransaction{}, errors.New("only one coinoutput is allowed (and required)")
 	}
+	return tx, nil
 }
 
 // TransactionData returns this BotRegistrationTransaction
@@ -1213,18 +1236,12 @@ type (
 		// Addresses can be used to add and/or remove network addresses
 		// to/from the existing 3bot record. Note that after each Tx,
 		// no more than 10 addresses can be linked to a single 3bot record.
-		Addresses struct {
-			Add    []NetworkAddress `json:"add"`
-			Remove []NetworkAddress `json:"remove"`
-		} `json:"addresses"`
+		Addresses BotRecordAddressUpdate `json:"addresses"`
 
 		// Names can be used to add and/or remove names
 		// to/from the existing 3bot record. Note that after each Tx,
 		// no more than 5 names can be linked to a single 3bot record.
-		Names struct {
-			Add    []BotName `json:"add"`
-			Remove []BotName `json:"remove"`
-		} `json:"names"`
+		Names BotRecordNameUpdate `json:"names"`
 
 		// NrOfMonths defines the optional amount of months that
 		// is desired to be paid upfront in this update. Note that the amount of
@@ -1250,17 +1267,137 @@ type (
 		// to the given (3bot) identifier.
 		Signature types.ByteSlice `json:"signature"`
 	}
+	// BotRecordAddressUpdate contains all information required for an update
+	// to the addresses of a bot's record.
+	BotRecordAddressUpdate struct {
+		Add    []NetworkAddress `json:"add"`
+		Remove []NetworkAddress `json:"remove"`
+	}
+	// BotRecordNameUpdate contains all information required for an update
+	// to the names of a bot's record.
+	BotRecordNameUpdate struct {
+		Add    []BotName `json:"add"`
+		Remove []BotName `json:"remove"`
+	}
 	// BotRecordUpdateTransactionExtension defines the BotRecordUpdateTransaction Extension Data
 	BotRecordUpdateTransactionExtension struct {
-		Identifier       BotID
-		Signature        types.ByteSlice
-		AddressesAdded   []NetworkAddress
-		AddressesRemoved []NetworkAddress
-		NamesAdded       []BotName
-		NamesRemoved     []BotName
-		NrOfMonths       uint8
+		Identifier    BotID
+		Signature     types.ByteSlice
+		AddressUpdate BotRecordAddressUpdate
+		NameUpdate    BotRecordNameUpdate
+		NrOfMonths    uint8
 	}
 )
+
+// BotRecordUpdateTransactionFromTransaction creates a BotRecordUpdateTransaction,
+// using a regular in-memory tfchain transaction.
+//
+// Past the (tx) Version validation it piggy-backs onto the
+// `BotRecordUpdateTransactionFromTransactionData` constructor.
+func BotRecordUpdateTransactionFromTransaction(tx types.Transaction) (BotRecordUpdateTransaction, error) {
+	if tx.Version != TransactionVersionBotRecordUpdate {
+		return BotRecordUpdateTransaction{}, fmt.Errorf(
+			"a bot record update transaction requires tx version %d",
+			TransactionVersionBotRecordUpdate)
+	}
+	return BotRecordUpdateTransactionFromTransactionData(types.TransactionData{
+		CoinInputs:        tx.CoinInputs,
+		CoinOutputs:       tx.CoinOutputs,
+		BlockStakeInputs:  tx.BlockStakeInputs,
+		BlockStakeOutputs: tx.BlockStakeOutputs,
+		MinerFees:         tx.MinerFees,
+		ArbitraryData:     tx.ArbitraryData,
+		Extension:         tx.Extension,
+	})
+}
+
+// BotRecordUpdateTransactionFromTransactionData creates a BotRecordUpdateTransaction,
+// using the TransactionData from a regular in-memory tfchain transaction.
+func BotRecordUpdateTransactionFromTransactionData(txData types.TransactionData) (BotRecordUpdateTransaction, error) {
+	// validate the Transaction Data
+	err := validateBotInMemoryTransactionDataRequirements(txData)
+	if err != nil {
+		return BotRecordUpdateTransaction{}, fmt.Errorf("BotRecordUpdateTransaction: %v", err)
+	}
+
+	// (tx) extension (data) is expected to be a pointer to a valid BotRecordUpdateTransaction,
+	// which contains all the properties unique to a 3bot (record update) Tx
+	extensionData, ok := txData.Extension.(*BotRecordUpdateTransactionExtension)
+	if !ok {
+		return BotRecordUpdateTransaction{}, errors.New("invalid extension data for a BotRecordUpdateTransaction")
+	}
+
+	// create the BotRecordUpdateTransaction and return it,
+	// all should be good (at least the common requirements, it might still be invalid for version-specific reasons)
+	tx := BotRecordUpdateTransaction{
+		Identifier:     extensionData.Identifier,
+		Addresses:      extensionData.AddressUpdate,
+		Names:          extensionData.NameUpdate,
+		NrOfMonths:     extensionData.NrOfMonths,
+		TransactionFee: txData.MinerFees[0],
+		CoinInputs:     txData.CoinInputs,
+		Signature:      extensionData.Signature,
+	}
+	if len(txData.CoinOutputs) == 2 {
+		// take refund coin output
+		// convention always assumed to be the required BotFee
+		tx.RefundCoinOutput = &txData.CoinOutputs[1]
+	}
+	return tx, nil
+}
+
+// TransactionData returns this BotRecordUpdateTransaction
+// as regular tfchain transaction data.
+func (brutx *BotRecordUpdateTransaction) TransactionData(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.TransactionData {
+	txData := types.TransactionData{
+		CoinInputs: brutx.CoinInputs,
+		CoinOutputs: []types.CoinOutput{
+			{
+				Value:     brutx.RequiredBotFee(oneCoin),
+				Condition: registryPoolCondition,
+			},
+		},
+		MinerFees: []types.Currency{brutx.TransactionFee},
+		Extension: &BotRecordUpdateTransactionExtension{
+			Identifier:    brutx.Identifier,
+			Signature:     brutx.Signature,
+			AddressUpdate: brutx.Addresses,
+			NameUpdate:    brutx.Names,
+			NrOfMonths:    brutx.NrOfMonths,
+		},
+	}
+	if brutx.RefundCoinOutput != nil {
+		txData.CoinOutputs = append(txData.CoinOutputs, *brutx.RefundCoinOutput)
+	}
+	return txData
+}
+
+// Transaction returns this BotRecordUpdateTransaction
+// as regular tfchain transaction, using TransactionVersionBotRecordUpdate as the type.
+func (brutx *BotRecordUpdateTransaction) Transaction(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.Transaction {
+	tx := types.Transaction{
+		Version:    TransactionVersionBotRecordUpdate,
+		CoinInputs: brutx.CoinInputs,
+		CoinOutputs: []types.CoinOutput{
+			{
+				Value:     brutx.RequiredBotFee(oneCoin),
+				Condition: registryPoolCondition,
+			},
+		},
+		MinerFees: []types.Currency{brutx.TransactionFee},
+		Extension: &BotRecordUpdateTransactionExtension{
+			Identifier:    brutx.Identifier,
+			Signature:     brutx.Signature,
+			AddressUpdate: brutx.Addresses,
+			NameUpdate:    brutx.Names,
+			NrOfMonths:    brutx.NrOfMonths,
+		},
+	}
+	if brutx.RefundCoinOutput != nil {
+		tx.CoinOutputs = append(tx.CoinOutputs, *brutx.RefundCoinOutput)
+	}
+	return tx
+}
 
 // RequiredBotFee computes the required Bot Fee, that is to be applied as a required
 // additional fee on top of the regular required (minimum) Tx fee.
@@ -1280,6 +1417,102 @@ func (brutx *BotRecordUpdateTransaction) RequiredBotFee(oneCoin types.Currency) 
 	}
 	// return the total fees
 	return fee
+}
+
+// UpdateBotRecord updates the given record, within the context of the given blockTime,
+// using the information of this BotRecordUpdateTransaction.
+//
+// This method should only be called once for the given record,
+// as it has no way of checking whether or not it already updated the given record.
+func (brutx *BotRecordUpdateTransaction) UpdateBotRecord(blockTime types.Timestamp, record *BotRecord) error {
+	var err error
+
+	// if the record indicate the bot is expired, we ensure to reset the names,
+	// and also make sure the NrOfMonths is greater than 0
+	if record.IsExpired(blockTime) {
+		if brutx.NrOfMonths == 0 {
+			return errors.New("record update Tx does not make bot active, while bot is already expired")
+		}
+		record.ResetNames()
+	}
+
+	// update the expiration time
+	if brutx.NrOfMonths != 0 {
+		err = record.ExtendExpirationDate(blockTime, brutx.NrOfMonths)
+		if err != nil {
+			return err
+		}
+	}
+
+	// remove all addresses first, afterwards add the new addresses.
+	// By removing first we ensure that we can add addresses that were removed by this Tx,
+	// but more importantly it ensures that we don't invalidly report that an overflow has happened.
+	err = record.RemoveNetworkAddresses(brutx.Addresses.Remove...) // passing a nil slice is valid
+	if err != nil {
+		return err
+	}
+	err = record.AddNetworkAddresses(brutx.Addresses.Add...) // passing a nil slice is valid
+	if err != nil {
+		return err
+	}
+
+	// remove all names first, afterwards add the new names.
+	// By removing first we ensure that we can add names that were removed by this Tx,
+	// but more importantly it ensures that we don't invalidly report that an overflow has happened.
+	err = record.RemoveNames(brutx.Names.Remove...) // passing a nil slice is valid
+	if err != nil {
+		// an error will also occur here, in case names are removed from a bot that was previously inactive,
+		// as our earlier logic has already reset the names of the revord, making this step implicitly invalid,
+		// which is what we want, as an inative revord no longer owns any names, no matter what was last known about the record.
+		return err
+	}
+	err = record.AddNames(brutx.Names.Add...) // passing a nil slice is valid
+	if err != nil {
+		return err
+	}
+
+	// all good
+	return nil
+}
+
+// RevertBotRecordUpdate reverts the given record update, within the context of the given blockTime,
+// using the information of this BotRecordUpdateTransaction.
+//
+// This method should only be called once for the given record,
+// as it has no way of checking whether or not it already reverted the update of the given record.
+//
+// NOTE: implicit updates such as time jumps in expiration time (due to an inactive bot that became active again)
+// and names that were implicitly removed because the bot was inactive, are not reverted by this method,
+// and have to be added manually reverted.
+func (brutx *BotRecordUpdateTransaction) RevertBotRecordUpdate(record *BotRecord) error {
+	// update the record expiration time in the most simple way possible,
+	// should there have been a time jump, the caller might have to correct expiration time
+	record.Expiration -= BotMonth * CompactTimestamp(brutx.NrOfMonths)
+
+	// remove all addresses that were added
+	err := record.RemoveNetworkAddresses(brutx.Addresses.Add...) // passing a nil slice is valid
+	if err != nil {
+		return err
+	}
+	// add all adderesses that were removed
+	err = record.AddNetworkAddresses(brutx.Addresses.Remove...) // passing a nil slice is valid
+	if err != nil {
+		return err
+	}
+
+	// remove all names that were added
+	err = record.RemoveNames(brutx.Names.Add...) // passing a nil slice is valid
+	if err != nil {
+		return err
+	}
+	// add all names that were removed
+	err = record.AddNames(brutx.Names.Remove...) // passing a nil slice is valid
+	if err != nil {
+		return err
+	}
+
+	// all good
+	return nil
 }
 
 // MarshalSia implements SiaMarshaler.MarshalSia
@@ -1469,33 +1702,21 @@ type (
 		// Sender is in this context the 3bot that owns and transfers the names
 		// defined in this Tx to the 3bot defined in this Tx as the Receiver.
 		// The Sender has to be different from the Receiver.
-		Sender struct {
-			Identifier BotID           `json:"id"`
-			Signature  types.ByteSlice `json:"signature"`
-		} `json:"sender"`
+		Sender BotIdentifierSignaturePair `json:"sender"`
 		// Receiver is in this context the 3bot that receives the names
 		// defined in this Tx from the 3bot defined in this Tx as the Sender.
 		// The Receiver has to be different from the Sender.
-		Receiver struct {
-			Identifier BotID           `json:"id"`
-			Signature  types.ByteSlice `json:"signature"`
-		} `json:"receiver"`
+		Receiver BotIdentifierSignaturePair `json:"receiver"`
 
 		// Addresses can be used to add and/or remove network addresses
 		// to/from the existing 3bot record. Note that after each Tx,
 		// no more than 10 addresses can be linked to a single 3bot record.
-		Addresses struct {
-			Add    []NetworkAddress `json:"add"`
-			Remove []NetworkAddress `json:"remove"`
-		} `json:"addresses"`
+		Addresses BotRecordAddressUpdate `json:"addresses"`
 
 		// Names can be used to add and/or remove names
 		// to/from the existing 3bot record. Note that after each Tx,
 		// no more than 5 names can be linked to a single 3bot record.
-		Names struct {
-			Add    []BotName `json:"add"`
-			Remove []BotName `json:"remove"`
-		} `json:"names"`
+		Names BotRecordNameUpdate `json:"names"`
 
 		// NrOfMonths defines the optional amount of months that
 		// is desired to be paid upfront in this update. Note that the amount of
@@ -1516,19 +1737,131 @@ type (
 		// to refund coins paid as inputs for the required fees.
 		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput"`
 	}
+	// BotIdentifierSignaturePair pairs a bot identifier and a signature assumed
+	// to be created by the bot linked to that ID.
+	BotIdentifierSignaturePair struct {
+		Identifier BotID           `json:"id"`
+		Signature  types.ByteSlice `json:"signature"`
+	}
 	// BotNameTransferTransactionExtension defines the BotNameTransferTransaction Extension Data
 	BotNameTransferTransactionExtension struct {
-		SenderIdentifier        BotID
-		SenderSignature         types.ByteSlice
-		ReceiverIdentifier      BotID
-		ReceiverSenderSignature types.ByteSlice
-		AddressesAdded          []NetworkAddress
-		AddressesRemoved        []NetworkAddress
-		NamesAdded              []BotName
-		NamesRemoved            []BotName
-		NrOfMonths              uint8
+		Sender        BotIdentifierSignaturePair
+		Receiver      BotIdentifierSignaturePair
+		AddressUpdate BotRecordAddressUpdate
+		NameUpdate    BotRecordNameUpdate
+		NrOfMonths    uint8
 	}
 )
+
+// BotNameTransferTransactionFromTransaction creates a BotNameTransferTransaction,
+// using a regular in-memory tfchain transaction.
+//
+// Past the (tx) Version validation it piggy-backs onto the
+// `BotNameTransferTransactionFromTransactionData` constructor.
+func BotNameTransferTransactionFromTransaction(tx types.Transaction) (BotNameTransferTransaction, error) {
+	if tx.Version != TransactionVersionBotNameTransfer {
+		return BotNameTransferTransaction{}, fmt.Errorf(
+			"a bot name transfer transaction requires tx version %d",
+			TransactionVersionBotNameTransfer)
+	}
+	return BotNameTransferTransactionFromTransactionData(types.TransactionData{
+		CoinInputs:        tx.CoinInputs,
+		CoinOutputs:       tx.CoinOutputs,
+		BlockStakeInputs:  tx.BlockStakeInputs,
+		BlockStakeOutputs: tx.BlockStakeOutputs,
+		MinerFees:         tx.MinerFees,
+		ArbitraryData:     tx.ArbitraryData,
+		Extension:         tx.Extension,
+	})
+}
+
+// BotNameTransferTransactionFromTransactionData creates a BotNameTransferTransaction,
+// using the TransactionData from a regular in-memory tfchain transaction.
+func BotNameTransferTransactionFromTransactionData(txData types.TransactionData) (BotNameTransferTransaction, error) {
+	// validate the Transaction Data
+	err := validateBotInMemoryTransactionDataRequirements(txData)
+	if err != nil {
+		return BotNameTransferTransaction{}, fmt.Errorf("BotNameTransferTransaction: %v", err)
+	}
+
+	// (tx) extension (data) is expected to be a pointer to a valid BotNameTransferTransaction,
+	// which contains all the properties unique to a 3bot (name transfer) Tx
+	extensionData, ok := txData.Extension.(*BotNameTransferTransactionExtension)
+	if !ok {
+		return BotNameTransferTransaction{}, errors.New("invalid extension data for a BotNameTransferTransaction")
+	}
+
+	// create the BotNameTransferTransaction and return it,
+	// all should be good (at least the common requirements, it might still be invalid for version-specific reasons)
+	tx := BotNameTransferTransaction{
+		Sender:         extensionData.Sender,
+		Receiver:       extensionData.Receiver,
+		Addresses:      extensionData.AddressUpdate,
+		Names:          extensionData.NameUpdate,
+		NrOfMonths:     extensionData.NrOfMonths,
+		TransactionFee: txData.MinerFees[0],
+		CoinInputs:     txData.CoinInputs,
+	}
+	if len(txData.CoinOutputs) == 2 {
+		// take refund coin output
+		// convention always assumed to be the required BotFee
+		tx.RefundCoinOutput = &txData.CoinOutputs[1]
+	}
+	return tx, nil
+}
+
+// TransactionData returns this BotNameTransferTransaction
+// as regular tfchain transaction data.
+func (bnttx *BotNameTransferTransaction) TransactionData(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.TransactionData {
+	txData := types.TransactionData{
+		CoinInputs: bnttx.CoinInputs,
+		CoinOutputs: []types.CoinOutput{
+			{
+				Value:     bnttx.RequiredBotFee(oneCoin),
+				Condition: registryPoolCondition,
+			},
+		},
+		MinerFees: []types.Currency{bnttx.TransactionFee},
+		Extension: &BotNameTransferTransactionExtension{
+			Sender:        bnttx.Sender,
+			Receiver:      bnttx.Receiver,
+			AddressUpdate: bnttx.Addresses,
+			NameUpdate:    bnttx.Names,
+			NrOfMonths:    bnttx.NrOfMonths,
+		},
+	}
+	if bnttx.RefundCoinOutput != nil {
+		txData.CoinOutputs = append(txData.CoinOutputs, *bnttx.RefundCoinOutput)
+	}
+	return txData
+}
+
+// Transaction returns this BotNameTransferTransaction
+// as regular tfchain transaction, using TransactionVersionBotNameTransfer as the type.
+func (bnttx *BotNameTransferTransaction) Transaction(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.Transaction {
+	tx := types.Transaction{
+		Version:    TransactionVersionBotNameTransfer,
+		CoinInputs: bnttx.CoinInputs,
+		CoinOutputs: []types.CoinOutput{
+			{
+				Value:     bnttx.RequiredBotFee(oneCoin),
+				Condition: registryPoolCondition,
+			},
+		},
+		MinerFees: []types.Currency{bnttx.TransactionFee},
+		Extension: &BotNameTransferTransactionExtension{
+			Sender:        bnttx.Sender,
+			Receiver:      bnttx.Receiver,
+			AddressUpdate: bnttx.Addresses,
+			NameUpdate:    bnttx.Names,
+			NrOfMonths:    bnttx.NrOfMonths,
+		},
+	}
+	if bnttx.RefundCoinOutput != nil {
+		tx.CoinOutputs = append(tx.CoinOutputs, *bnttx.RefundCoinOutput)
+	}
+	return tx
+}
 
 // RequiredBotFee computes the required Bot Fee, that is to be applied as a required
 // additional fee on top of the regular required (minimum) Tx fee.
@@ -1548,6 +1881,108 @@ func (bnttx *BotNameTransferTransaction) RequiredBotFee(oneCoin types.Currency) 
 	}
 	// return the total fees
 	return fee
+}
+
+// UpdateReceiverBotRecord updates the given (receiver bot) record, within the context of the given blockTime,
+// using the information of this BotNameTransferTransaction.
+//
+// This method should only be called once for the given (receiver bot) record,
+// as it has no way of checking whether or not it already updated the given record.
+func (bnttx *BotNameTransferTransaction) UpdateReceiverBotRecord(blockTime types.Timestamp, record *BotRecord) error {
+	// piggy-back on an BotRecordUpdateTransaction, as the receiver gets the exact same update,
+	// as would happen if that receiver did a regular BotRecordUpdateTransaction,
+	// the only difference is that with a BotNameTransferTransaction the receiver can use a occupied name,
+	// using the owner's consent, a difference irrelevant for the UpdateBotRecord logic.
+	err := (&BotRecordUpdateTransaction{
+		Identifier:       bnttx.Receiver.Identifier,
+		Addresses:        bnttx.Addresses,
+		Names:            bnttx.Names,
+		NrOfMonths:       bnttx.NrOfMonths,
+		TransactionFee:   bnttx.TransactionFee,
+		CoinInputs:       bnttx.CoinInputs,
+		RefundCoinOutput: bnttx.RefundCoinOutput,
+		Signature:        bnttx.Receiver.Signature,
+	}).UpdateBotRecord(blockTime, record)
+	if err != nil {
+		return fmt.Errorf("BotNameTransferTransaction: %v", err)
+	}
+	return nil
+}
+
+// RevertReceiverBotRecordUpdate reverts the given record update, within the context of the given blockTime,
+// using the information of this BotRecordUpdateTransaction.
+//
+// This method should only be called once for the given record,
+// as it has no way of checking whether or not it already reverted the update of the given record.
+//
+// NOTE: implicit updates such as time jumps in expiration time (due to an inactive bot that became active again)
+// and names that were implicitly removed because the bot was inactive, are not reverted by this method,
+// and have to be added manually reverted.
+func (bnttx *BotNameTransferTransaction) RevertReceiverBotRecordUpdate(record *BotRecord) error {
+	// piggy-back on an BotRecordUpdateTransaction, as the receiver gets the exact same revert,
+	// as would happen if that receiver was affected by a regular RevertBotRecordUpdate,
+	// the only difference is that with a BotNameTransferTransaction the receiver can use a occupied name,
+	// using the owner's consent, a difference irrelevant for the RevertBotRecordUpdate logic.
+	err := (&BotRecordUpdateTransaction{
+		Identifier:       bnttx.Receiver.Identifier,
+		Addresses:        bnttx.Addresses,
+		Names:            bnttx.Names,
+		NrOfMonths:       bnttx.NrOfMonths,
+		TransactionFee:   bnttx.TransactionFee,
+		CoinInputs:       bnttx.CoinInputs,
+		RefundCoinOutput: bnttx.RefundCoinOutput,
+		Signature:        bnttx.Receiver.Signature,
+	}).RevertBotRecordUpdate(record)
+	if err != nil {
+		return fmt.Errorf("BotNameTransferTransaction: %v", err)
+	}
+	return nil
+}
+
+// UpdateSenderBotRecord updates the given (sender bot) record, within the context of the given blockTime,
+// using the information of this BotNameTransferTransaction.
+//
+// This method should only be called once for the given (sender bot) record,
+// as it has no way of checking whether or not it already updated the given record.
+func (bnttx *BotNameTransferTransaction) UpdateSenderBotRecord(blockTime types.Timestamp, record *BotRecord) ([]BotName, error) {
+	// if the record indicate the bot is expired, we cannot continue
+	if record.IsExpired(blockTime) {
+		return nil, fmt.Errorf("sender bot %d is expired: name transfer update cannot continue", record.ID)
+	}
+
+	// get the record names to remove
+	namesToRemoveFromSender := record.Names.Intersection(BotNameSortedSet{slice: bnttx.Names.Add})
+	if len(namesToRemoveFromSender) == 0 {
+		// a BotNameTransferTransaction requires at least one of the names to be transfered from the sender bot
+		return nil, fmt.Errorf("sender bot %d owns none of the added names and "+
+			"as such no transfer is taken place: apply a regular update Tx instead", record.ID)
+	}
+
+	// shouldn't fail, but return the error value anyhow
+	return namesToRemoveFromSender, record.RemoveNames(namesToRemoveFromSender...)
+}
+
+// RevertSenderBotRecordUpdate reverts the given record update, within the context of the given blockTime,
+// using the information of this BotRecordUpdateTransaction.
+//
+// This method should only be called once for the given record,
+// as it has no way of checking whether or not it already reverted the update of the given record.
+func (bnttx *BotNameTransferTransaction) RevertSenderBotRecordUpdate(blockTime types.Timestamp, record *BotRecord) ([]BotName, error) {
+	// if the record indicate the bot is expired, we cannot continue
+	if record.IsExpired(blockTime) {
+		return nil, fmt.Errorf("sender bot %d is expired: name transfer revert cannot continue", record.ID)
+	}
+
+	// get the record names to add back (because of the revert)
+	namesToAddBackToSender := record.Names.Intersection(BotNameSortedSet{slice: bnttx.Names.Add})
+	if len(namesToAddBackToSender) == 0 {
+		// a BotNameTransferTransaction requires at least one of the names to be transfered from the sender bot
+		return nil, fmt.Errorf("sender bot %d owns none of the added names and "+
+			"as such no transfer was taken place: please file a bug report", record.ID)
+	}
+
+	// shouldn't fail, but return the error value anyhow
+	return namesToAddBackToSender, record.AddNames(namesToAddBackToSender...)
 }
 
 // MarshalSia implements SiaMarshaler.MarshalSia
@@ -1745,6 +2180,7 @@ var (
 	ErrBotNotFound     = errors.New("3bot not found")
 	ErrBotKeyNotFound  = errors.New("3bot public key not found")
 	ErrBotNameNotFound = errors.New("3bot name not found")
+	ErrBotNameExpired  = errors.New("3bot name expired")
 )
 
 // 3bot Tx controllers
@@ -1787,7 +2223,7 @@ func (brtc BotRegistrationTransactionController) DecodeTransactionData(r io.Read
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a BotRegistrationTx: %v", err)
 	}
-	// return minter definition tx as regular tfchain tx data
+	// return bot registration tx as regular tfchain tx data
 	return brtx.TransactionData(brtc.OneCoin, brtc.RegistryPoolCondition), nil
 }
 
@@ -1808,7 +2244,7 @@ func (brtc BotRegistrationTransactionController) JSONDecodeTransactionData(data 
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to json-decode tx as a BotRegistrationTx: %v", err)
 	}
-	// return minter definition tx as regular tfchain tx data
+	// return bot registration tx as regular tfchain tx data
 	return brtx.TransactionData(brtc.OneCoin, brtc.RegistryPoolCondition), nil
 }
 
@@ -1821,13 +2257,10 @@ func (brtc BotRegistrationTransactionController) SignExtension(extension interfa
 	}
 
 	// create a publicKeyUnlockHashCondition
-	spk, err := brtxExtension.Identification.PublicKey.SiaPublicKey()
+	condition, fulfillment, err := getConditionAndFulfillmentForBotPublicKey(brtxExtension.Identification.PublicKey)
 	if err != nil {
-		return nil, errors.New("invalid public key in extension data for a BotRegistrationTx")
+		return nil, fmt.Errorf("failed to prepare the signing of BotRegistrationTx: %v", err)
 	}
-	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(spk)))
-	// and a matching single-signature fulfillment
-	fulfillment := types.NewFulfillment(types.NewSingleSignatureFulfillment(spk))
 
 	// sign the fulfillment
 	err = sign(&fulfillment, condition)
@@ -1837,17 +2270,19 @@ func (brtc BotRegistrationTransactionController) SignExtension(extension interfa
 
 	// extract signature
 	signature := fulfillment.Fulfillment.(*types.SingleSignatureFulfillment).Signature
-	brtxExtension.Identification.Signature = signature
+	// only assign it if we actually signed
+	if len(signature) > 0 {
+		brtxExtension.Identification.Signature = signature
+	}
 	// and return the signed extension
 	return brtxExtension, nil
 }
 
 // ValidateTransaction implements TransactionValidator.ValidateTransaction
 func (brtc BotRegistrationTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) error {
-	err := types.TransactionFitsInABlock(t, constants.BlockSizeLimit)
-	if err != nil {
-		return err
-	}
+	// given the strict typing of 3bot transactions,
+	// it is guaranteed by its properties that it will always fit within a Block,
+	// and thus the TransactionFitsInABlock is not needed.
 
 	// get BotRegistrationTx
 	brtx, err := BotRegistrationTransactionFromTransaction(t)
@@ -1864,7 +2299,7 @@ func (brtc BotRegistrationTransactionController) ValidateTransaction(t types.Tra
 		return fmt.Errorf("unexpected error while validating non-existence of bot's public key: %v", err)
 	}
 
-	// create a publicKeyUnlockHashCondition
+	// validate the signature of the to-be-registered bot
 	err = validateBotSignature(t, brtx.Identification.PublicKey, brtx.Identification.Signature, ctx)
 	if err != nil {
 		return fmt.Errorf("failed to fulfill bot registration condition: %v", err)
@@ -1988,24 +2423,481 @@ type (
 	// BotUpdateRecordTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 0x91. It allows the update of the record of an existing 3bot.
 	BotUpdateRecordTransactionController struct {
-		registry BotRecordReadRegistry
-		oneCoin  types.Currency
+		Registry              BotRecordReadRegistry
+		RegistryPoolCondition types.UnlockConditionProxy
+		OneCoin               types.Currency
 	}
 )
 
-// TODO: implement BotUpdateRecordTransactionController controller
+var (
+	// ensure at compile time that BotUpdateRecordTransactionController
+	// implements the desired interfaces
+	_ types.TransactionController      = BotUpdateRecordTransactionController{}
+	_ types.TransactionExtensionSigner = BotUpdateRecordTransactionController{}
+	_ types.TransactionValidator       = BotUpdateRecordTransactionController{}
+	_ types.BlockStakeOutputValidator  = BotUpdateRecordTransactionController{}
+	_ types.InputSigHasher             = BotUpdateRecordTransactionController{}
+	_ types.TransactionIDEncoder       = BotUpdateRecordTransactionController{}
+)
+
+// EncodeTransactionData implements TransactionController.EncodeTransactionData
+func (brutc BotUpdateRecordTransactionController) EncodeTransactionData(w io.Writer, txData types.TransactionData) error {
+	burtx, err := BotRecordUpdateTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a BotUpdateRecordTx: %v", err)
+	}
+	return tfencoding.NewEncoder(w).Encode(burtx)
+}
+
+// DecodeTransactionData implements TransactionController.DecodeTransactionData
+func (brutc BotUpdateRecordTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
+	var burtx BotRecordUpdateTransaction
+	err := tfencoding.NewDecoder(r).Decode(&burtx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to binary-decode tx as a BotUpdateRecordTx: %v", err)
+	}
+	// return bot record update tx as regular tfchain tx data
+	return burtx.TransactionData(brutc.OneCoin, brutc.RegistryPoolCondition), nil
+}
+
+// JSONEncodeTransactionData implements TransactionController.JSONEncodeTransactionData
+func (brutc BotUpdateRecordTransactionController) JSONEncodeTransactionData(txData types.TransactionData) ([]byte, error) {
+	burtx, err := BotRecordUpdateTransactionFromTransactionData(txData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert txData to a BotUpdateRecordTx: %v", err)
+	}
+	return json.Marshal(burtx)
+}
+
+// JSONDecodeTransactionData implements TransactionController.JSONDecodeTransactionData
+func (brutc BotUpdateRecordTransactionController) JSONDecodeTransactionData(data []byte) (types.TransactionData, error) {
+	var burtx BotRecordUpdateTransaction
+	err := json.Unmarshal(data, &burtx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to json-decode tx as a BotUpdateRecordTx: %v", err)
+	}
+	// return bot record update tx as regular tfchain tx data
+	return burtx.TransactionData(brutc.OneCoin, brutc.RegistryPoolCondition), nil
+}
+
+// SignExtension implements TransactionExtensionSigner.SignExtension
+func (brutc BotUpdateRecordTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid BotRecordUpdateTransactionExtension
+	brutxExtension, ok := extension.(*BotRecordUpdateTransactionExtension)
+	if !ok {
+		return nil, errors.New("invalid extension data for a BotUpdateRecordTx")
+	}
+
+	// get condition and fulfillment for the bot, so we can sign
+	condition, fulfillment, err := getConditionAndFulfillmentForBotID(brutc.Registry, brutxExtension.Identifier)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare the signing of BotUpdateRecordTx: %v", err)
+	}
+
+	// sign the fulfillment
+	err = sign(&fulfillment, condition)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign BotUpdateRecordTx: %v", err)
+	}
+
+	// extract signature
+	brutxExtension.Signature = fulfillment.Fulfillment.(*types.SingleSignatureFulfillment).Signature
+	// and return the signed extension
+	return brutxExtension, nil
+}
+
+// ValidateTransaction implements TransactionValidator.ValidateTransaction
+func (brutc BotUpdateRecordTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) error {
+	// given the strict typing of 3bot transactions,
+	// it is guaranteed by its properties that it will always fit within a Block,
+	// and thus the TransactionFitsInABlock is not needed.
+
+	// get BotRecordUpdateTx
+	brutx, err := BotRecordUpdateTransactionFromTransaction(t)
+	if err != nil {
+		return fmt.Errorf("failed to use tx as a bot record update tx: %v", err)
+	}
+
+	// validate the miner fee
+	if brutx.TransactionFee.Cmp(constants.MinimumMinerFee) == -1 {
+		return types.ErrTooSmallMinerFee
+	}
+
+	// look up the record, using the given ID, to ensure it is registered
+	record, err := brutc.Registry.GetRecordForID(brutx.Identifier)
+	if err != nil {
+		return fmt.Errorf("bot cannot be updated: %v", err)
+	}
+
+	// validate the signature of the to-be-updated bot
+	err = validateBotSignature(t, record.PublicKey, brutx.Signature, ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fulfill bot record update condition: %v", err)
+	}
+
+	// at least something has to be updated, a nop-update is not allowed
+	if brutx.NrOfMonths == 0 &&
+		len(brutx.Addresses.Add) == 0 && len(brutx.Addresses.Remove) == 0 &&
+		len(brutx.Names.Add) == 0 && len(brutx.Names.Remove) == 0 {
+		return errors.New("bot record updates requires nrOfMonths, a name or address to be defined")
+	}
+
+	// ensure all to-be-added names are available
+	err = areBotNamesAvailable(brutc.Registry, brutx.Names.Add...)
+	if err != nil {
+		return fmt.Errorf("bot cannot be updated: %v", err)
+	}
+
+	// try to update the record, to spot any errors should that happen for real
+	err = brutx.UpdateBotRecord(ctx.BlockTime, record)
+	if err != nil {
+		return fmt.Errorf("bot cannot be updated: %v", err)
+	}
+
+	// update Tx is valid
+	return nil
+}
+
+// Rivine handles ValidateCoinOutputs,
+// which is possible as all our coin inputs are standard,
+// the (single) miner fee is standard as well, and
+// the additional (bot) fee is seen by Rivine as a coin output to a hardcoded condition.
+
+// ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
+func (brutc BotUpdateRecordTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
+	return nil // always valid, no block stake inputs/outputs exist within a bot record update transaction
+}
+
+// InputSigHash implements InputSigHasher.InputSigHash
+func (brutc BotUpdateRecordTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+	brutx, err := BotRecordUpdateTransactionFromTransaction(t)
+	if err != nil {
+		return crypto.Hash{}, fmt.Errorf("failed to use tx as a BotRecordUpdateTx: %v", err)
+	}
+
+	h := crypto.NewHash()
+	enc := tfencoding.NewEncoder(h)
+
+	enc.EncodeAll(
+		t.Version,
+		SpecifierBotRecordUpdateTransaction,
+		brutx.Identifier,
+	)
+
+	if len(extraObjects) > 0 {
+		enc.EncodeAll(extraObjects...)
+	}
+
+	enc.EncodeAll(
+		brutx.Addresses,
+		brutx.Names,
+		brutx.NrOfMonths,
+	)
+
+	enc.Encode(len(brutx.CoinInputs))
+	for _, ci := range brutx.CoinInputs {
+		enc.Encode(ci.ParentID)
+	}
+
+	enc.EncodeAll(
+		brutx.TransactionFee,
+		brutx.RefundCoinOutput,
+	)
+
+	var hash crypto.Hash
+	h.Sum(hash[:0])
+	return hash, nil
+}
+
+// EncodeTransactionIDInput implements TransactionIDEncoder.EncodeTransactionIDInput
+func (brutc BotUpdateRecordTransactionController) EncodeTransactionIDInput(w io.Writer, txData types.TransactionData) error {
+	brutx, err := BotRecordUpdateTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a BotRecordUpdateTx: %v", err)
+	}
+	return tfencoding.NewEncoder(w).EncodeAll(SpecifierBotRecordUpdateTransaction, brutx)
+}
 
 type (
 	// BotNameTransferTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 0x92. It allows the transfer of names and update of the record
 	// of the two existing 3bot that participate in this transfer.
 	BotNameTransferTransactionController struct {
-		registry BotRecordReadRegistry
-		oneCoin  types.Currency
+		Registry              BotRecordReadRegistry
+		RegistryPoolCondition types.UnlockConditionProxy
+		OneCoin               types.Currency
 	}
 )
 
-// TODO: implement BotNameTransferTransactionController controller
+var (
+	// ensure at compile time that BotNameTransferTransactionController
+	// implements the desired interfaces
+	_ types.TransactionController      = BotNameTransferTransactionController{}
+	_ types.TransactionExtensionSigner = BotNameTransferTransactionController{}
+	_ types.TransactionValidator       = BotNameTransferTransactionController{}
+	_ types.BlockStakeOutputValidator  = BotNameTransferTransactionController{}
+	_ types.InputSigHasher             = BotNameTransferTransactionController{}
+	_ types.TransactionIDEncoder       = BotNameTransferTransactionController{}
+)
+
+// EncodeTransactionData implements TransactionController.EncodeTransactionData
+func (bnttc BotNameTransferTransactionController) EncodeTransactionData(w io.Writer, txData types.TransactionData) error {
+	bnttx, err := BotNameTransferTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a BotNameTransferTx: %v", err)
+	}
+	return tfencoding.NewEncoder(w).Encode(bnttx)
+}
+
+// DecodeTransactionData implements TransactionController.DecodeTransactionData
+func (bnttc BotNameTransferTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
+	var bnttx BotNameTransferTransaction
+	err := tfencoding.NewDecoder(r).Decode(&bnttx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to binary-decode tx as a BotNameTransferTx: %v", err)
+	}
+	// return bot record update tx as regular tfchain tx data
+	return bnttx.TransactionData(bnttc.OneCoin, bnttc.RegistryPoolCondition), nil
+}
+
+// JSONEncodeTransactionData implements TransactionController.JSONEncodeTransactionData
+func (bnttc BotNameTransferTransactionController) JSONEncodeTransactionData(txData types.TransactionData) ([]byte, error) {
+	bnttx, err := BotNameTransferTransactionFromTransactionData(txData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert txData to a BotNameTransferTx: %v", err)
+	}
+	return json.Marshal(bnttx)
+}
+
+// JSONDecodeTransactionData implements TransactionController.JSONDecodeTransactionData
+func (bnttc BotNameTransferTransactionController) JSONDecodeTransactionData(data []byte) (types.TransactionData, error) {
+	var bnttx BotNameTransferTransaction
+	err := json.Unmarshal(data, &bnttx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to json-decode tx as a BotNameTransferTx: %v", err)
+	}
+	// return bot record update tx as regular tfchain tx data
+	return bnttx.TransactionData(bnttc.OneCoin, bnttc.RegistryPoolCondition), nil
+}
+
+// SignExtension implements TransactionExtensionSigner.SignExtension
+func (bnttc BotNameTransferTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid BotNameTransferTransactionExtension
+	bnttxExtension, ok := extension.(*BotNameTransferTransactionExtension)
+	if !ok {
+		return nil, errors.New("invalid extension data for a BotNameTransferTx")
+	}
+
+	// sign the sender
+	condition, fulfillment, err := getConditionAndFulfillmentForBotID(bnttc.Registry, bnttxExtension.Sender.Identifier)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare the signing (as the sender) of the BotNameTransferTx: %v", err)
+	}
+	err = sign(&fulfillment, condition)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign (as the sender) the BotNameTransferTx: %v", err)
+	}
+	signature := fulfillment.Fulfillment.(*types.SingleSignatureFulfillment).Signature
+	if len(signature) > 0 { // extract signature, only if we actually signed
+		bnttxExtension.Sender.Signature = signature
+	}
+
+	// (or) sign the receiver
+	condition, fulfillment, err = getConditionAndFulfillmentForBotID(bnttc.Registry, bnttxExtension.Receiver.Identifier)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare the signing (as the receiver) of the BotNameTransferTx: %v", err)
+	}
+	err = sign(&fulfillment, condition)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign (as the receiver) the BotNameTransferTx: %v", err)
+	}
+	signature = fulfillment.Fulfillment.(*types.SingleSignatureFulfillment).Signature
+	if len(signature) > 0 { // extract signature, only if we actually signed
+		bnttxExtension.Receiver.Signature = signature
+	}
+
+	// and return the signed extension
+	return bnttxExtension, nil
+}
+
+// ValidateTransaction implements TransactionValidator.ValidateTransaction
+func (bnttc BotNameTransferTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) error {
+	// given the strict typing of 3bot transactions,
+	// it is guaranteed by its properties that it will always fit within a Block,
+	// and thus the TransactionFitsInABlock is not needed.
+
+	// get BotRecordUpdateTx
+	bnttx, err := BotNameTransferTransactionFromTransaction(t)
+	if err != nil {
+		return fmt.Errorf("failed to use tx as a bot name transfer tx: %v", err)
+	}
+
+	// validate the miner fee
+	if bnttx.TransactionFee.Cmp(constants.MinimumMinerFee) == -1 {
+		return types.ErrTooSmallMinerFee
+	}
+
+	// look up the record of the sender, using the given (sender) ID, to ensure it is registered,
+	// as well as for validation checks that follow
+	recordSender, err := bnttc.Registry.GetRecordForID(bnttx.Sender.Identifier)
+	if err != nil {
+		return fmt.Errorf("invalid sender (%d) of bot name transfer: %v", bnttx.Sender.Identifier, err)
+	}
+
+	// look up the record of the sender, using the given (sender) ID, to ensure it is registered,
+	// as well as for validation checks that follow
+	recordReceiver, err := bnttc.Registry.GetRecordForID(bnttx.Receiver.Identifier)
+	if err != nil {
+		return fmt.Errorf("invalid sender (%d) of bot name transfer: %v", bnttx.Receiver.Identifier, err)
+	}
+
+	// validate the signature of the sender
+	err = validateBotSignature(t, recordSender.PublicKey, bnttx.Sender.Signature, ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fulfill bot record name transfer condition of the sender: %v", err)
+	}
+	// validate the signature of the receiver
+	err = validateBotSignature(t, recordReceiver.PublicKey, bnttx.Receiver.Signature, ctx)
+	if err != nil {
+		return fmt.Errorf("failed to fulfill bot record name transfer condition of the receiver: %v", err)
+	}
+
+	// at least one name has to be added (the one to be removed from the sender)
+	if len(bnttx.Names.Add) == 0 {
+		return errors.New("a bot name transfer transaction has to add at least one name (transfered from the sender)")
+	}
+
+	// try to update the sender bot (if the sender bot is expired, an error is returned as well)
+	namesTransferred, err := bnttx.UpdateSenderBotRecord(ctx.BlockTime, recordSender)
+	if err != nil {
+		return fmt.Errorf("sender bot cannot be updated by name transfer: %v", err)
+	}
+
+	// try to update the receiver bot
+	// (the sender bot doesn't need this validation,
+	// as we already checked that it owns the address, the only update to that bot)
+	err = bnttx.UpdateReceiverBotRecord(ctx.BlockTime, recordReceiver)
+	if err != nil {
+		return fmt.Errorf("receiver bot cannot be updated by name transfer: %v", err)
+	}
+
+	// Check if all the new names to be added (That are not transfered from the sender) are available
+	newNamesToAdd := (BotNameSortedSet{slice: bnttx.Names.Add}).Difference(BotNameSortedSet{slice: namesTransferred})
+	err = areBotNamesAvailable(bnttc.Registry, newNamesToAdd...)
+	if err != nil {
+		return fmt.Errorf("bot name transfer tx cannot proceed as some non-transfered name to be added is not available: %v", err)
+	}
+
+	// name transfer Tx is valid
+	return nil
+}
+
+// Rivine handles ValidateCoinOutputs,
+// which is possible as all our coin inputs are standard,
+// the (single) miner fee is standard as well, and
+// the additional (bot) fee is seen by Rivine as a coin output to a hardcoded condition.
+
+// ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
+func (bnttc BotNameTransferTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
+	return nil // always valid, no block stake inputs/outputs exist within a bot record update transaction
+}
+
+// InputSigHash implements InputSigHasher.InputSigHash
+func (bnttc BotNameTransferTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+	bnttx, err := BotNameTransferTransactionFromTransaction(t)
+	if err != nil {
+		return crypto.Hash{}, fmt.Errorf("failed to use tx as a BotNameTransferTx: %v", err)
+	}
+
+	h := crypto.NewHash()
+	enc := tfencoding.NewEncoder(h)
+
+	enc.EncodeAll(
+		t.Version,
+		SpecifierBotNameTransferTransaction,
+		bnttx.Sender.Identifier,
+		bnttx.Receiver.Identifier,
+	)
+
+	if len(extraObjects) > 0 {
+		enc.EncodeAll(extraObjects...)
+	}
+
+	enc.EncodeAll(
+		bnttx.Addresses,
+		bnttx.Names,
+		bnttx.NrOfMonths,
+	)
+
+	enc.Encode(len(bnttx.CoinInputs))
+	for _, ci := range bnttx.CoinInputs {
+		enc.Encode(ci.ParentID)
+	}
+
+	enc.EncodeAll(
+		bnttx.TransactionFee,
+		bnttx.RefundCoinOutput,
+	)
+
+	var hash crypto.Hash
+	h.Sum(hash[:0])
+	return hash, nil
+}
+
+// EncodeTransactionIDInput implements TransactionIDEncoder.EncodeTransactionIDInput
+func (bnttc BotNameTransferTransactionController) EncodeTransactionIDInput(w io.Writer, txData types.TransactionData) error {
+	bnttx, err := BotNameTransferTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a BotNameTransferTx: %v", err)
+	}
+	return tfencoding.NewEncoder(w).EncodeAll(SpecifierBotNameTransferTransaction, bnttx)
+}
+
+func getConditionAndFulfillmentForBotID(registry BotRecordReadRegistry, id BotID) (types.UnlockConditionProxy, types.UnlockFulfillmentProxy, error) {
+	record, err := registry.GetRecordForID(id)
+	if err != nil {
+		return types.UnlockConditionProxy{}, types.UnlockFulfillmentProxy{}, err
+	}
+	return getConditionAndFulfillmentForBotPublicKey(record.PublicKey)
+}
+
+func getConditionAndFulfillmentForBotPublicKey(pk PublicKey) (types.UnlockConditionProxy, types.UnlockFulfillmentProxy, error) {
+	// create a publicKeyUnlockHashCondition
+	spk, err := pk.SiaPublicKey()
+	if err != nil {
+		return types.UnlockConditionProxy{}, types.UnlockFulfillmentProxy{}, fmt.Errorf("invalid public public key: %v", err)
+	}
+	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(spk)))
+	// and a matching single-signature fulfillment
+	fulfillment := types.NewFulfillment(types.NewSingleSignatureFulfillment(spk))
+
+	// return the condition and fulfillment
+	return condition, fulfillment, nil
+}
+
+func validateBotInMemoryTransactionDataRequirements(txData types.TransactionData) error {
+	// at least one coin input as well as one miner fee is required
+	if len(txData.CoinInputs) == 0 || len(txData.MinerFees) != 1 {
+		return errors.New("at least one coin input and exactly one miner fee is required for a Bot Transaction")
+	}
+	// no block stake inputs or block stake outputs are allowed
+	if len(txData.BlockStakeInputs) != 0 || len(txData.BlockStakeOutputs) != 0 {
+		return errors.New("no block stake inputs/outputs are allowed in a Bot Transaction")
+	}
+	// no arbitrary data is allowed
+	if len(txData.ArbitraryData) > 0 {
+		return errors.New("no arbitrary data is allowed in a Bot Transaction")
+	}
+	// validate that the coin outputs is within the expected range
+	if s := len(txData.CoinOutputs); s == 0 || s > 2 {
+		return errors.New("a Bot Transaction requires one or two coin outputs")
+	}
+	return nil
+}
 
 // ComputeMonthlyBotFees computes the total monthly fees required for the given months,
 // using the given oneCoin value as the currency's unit value.
@@ -2099,6 +2991,25 @@ func (tn *TransactionNonce) UnmarshalJSON(in []byte) error {
 		return errors.New("invalid tx nonce length")
 	}
 	copy(tn[:], out[:])
+	return nil
+}
+
+func areBotNamesAvailable(registry BotRecordReadRegistry, names ...BotName) error {
+	var err error
+	for _, name := range names {
+		_, err = registry.GetRecordForName(name)
+		switch err {
+		case ErrBotNameNotFound, ErrBotNameExpired:
+			continue // name is available, check the others
+		case nil:
+			// when no error is returned a record is returned,
+			// meaning the name is linked to a non-expired 3bot,
+			// and consequently the name is not available
+			return ErrBotNameAlreadyRegistered
+		default:
+			return err // unexpected
+		}
+	}
 	return nil
 }
 

@@ -39,7 +39,7 @@ func (flag *botNameArrayFlag) Set(val string) error {
 		return err
 	}
 	for _, name := range *flag.names {
-		if name.Equal(newName) {
+		if name.Equals(newName) {
 			return errors.New(val + " is already set")
 		}
 	}
@@ -92,7 +92,7 @@ func (flag *networkAddressArrayFlag) Set(val string) error {
 		return err
 	}
 	for _, address := range *flag.addresses {
-		if address.Equal(newAddress) {
+		if address.Equals(newAddress) {
 			return errors.New(val + " is already set")
 		}
 	}

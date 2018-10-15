@@ -74,6 +74,30 @@ The public key is to be used to get to know the unique ID assigned to your regis
 `,
 			Run: rivinecli.Wrap(walletSubCmds.sendBotRegistrationTxCmd),
 		}
+
+		sendBotRecordUpdateTxCmd = &cobra.Command{
+			Use:   "botupdate (id|publickey)",
+			Short: "Create, sign and send a 3bot record update transaction",
+			Long: `Create, sign and send a 3bot record update transaction, updating an existing 3bot.
+The coin inputs are funded and signed using the wallet of this daemon.
+The Public key linked to the 3bot has to be loaded into the wallet in order to be able to sign.
+
+Addresses and names to be removed/added are defined as flags, and at least one
+update is required (defining NrOfMonths to add (and pay) to the 3bot record counts as an update as well).
+
+> NOTE: a name can only be removed if owned (which implies the 3bot has to be active at the point of the update).
+
+Should you want to prepay more than 1 month at once, this is possible and
+the ThreefoldFoundation gives 30% discount for 12+ (bot) months,
+and 50% discount for 24 (bot) months (the maximum).
+
+All fees are automatically added.
+
+If this command returns without errors, the Tx is signed and sent,
+and you'll receive the TxID which will allow you to look it up in an explorer.
+`,
+			Run: rivinecli.Wrap(walletSubCmds.sendBotRecordUpdateTxCmd),
+		}
 	)
 
 	// add commands as wallet sub commands
@@ -83,6 +107,7 @@ The public key is to be used to get to know the unique ID assigned to your regis
 	)
 	client.WalletCmd.RootCmdSend.AddCommand(
 		sendBotRegistrationTxCmd,
+		sendBotRecordUpdateTxCmd,
 	)
 
 	// register flags
@@ -119,6 +144,37 @@ The public key is to be used to get to know the unique ID assigned to your regis
 	sendBotRegistrationTxCmd.Flags().Var(
 		cli.NewEncodingTypeFlag(0, &walletSubCmds.sendBotRegistrationTxCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
+
+	internal.NetworkAddressArrayFlagVar(
+		sendBotRecordUpdateTxCmd.Flags(),
+		&walletSubCmds.sendBotRecordUpdateTxCfg.AddressesToAdd,
+		"add-address",
+		"add one or multiple addresses, each address defined as seperate flag arguments",
+	)
+	internal.NetworkAddressArrayFlagVar(
+		sendBotRecordUpdateTxCmd.Flags(),
+		&walletSubCmds.sendBotRecordUpdateTxCfg.AddressesToRemove,
+		"remove-address",
+		"remove one or multiple addresses, each address defined as seperate flag arguments",
+	)
+	internal.BotNameArrayFlagVar(
+		sendBotRecordUpdateTxCmd.Flags(),
+		&walletSubCmds.sendBotRecordUpdateTxCfg.NamesToAdd,
+		"add-name",
+		"add one or multiple names, each name defined as seperate flag arguments",
+	)
+	internal.BotNameArrayFlagVar(
+		sendBotRecordUpdateTxCmd.Flags(),
+		&walletSubCmds.sendBotRecordUpdateTxCfg.NamesToRemove,
+		"remove-name",
+		"remove one or multiple names owned, each name defined as seperate flag arguments",
+	)
+	sendBotRecordUpdateTxCmd.Flags().Uint8VarP(
+		&walletSubCmds.sendBotRecordUpdateTxCfg.NrOfMonthsToAdd, "add-months", "m", 0,
+		"the amount of months to add and pay, required to be in the inclusive interval [0, 24]")
+	sendBotRecordUpdateTxCmd.Flags().Var(
+		cli.NewEncodingTypeFlag(0, &walletSubCmds.sendBotRecordUpdateTxCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
+		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
 }
 
 type walletSubCmds struct {
@@ -131,6 +187,28 @@ type walletSubCmds struct {
 	}
 
 	sendBotRegistrationTxCfg struct {
+		Addresses    []types.NetworkAddress
+		Names        []types.BotName
+		NrOfMonths   uint8
+		PublicKey    types.PublicKey
+		EncodingType cli.EncodingType
+	}
+
+	sendBotRecordUpdateTxCfg struct {
+		AddressesToAdd    []types.NetworkAddress
+		AddressesToRemove []types.NetworkAddress
+		NamesToAdd        []types.BotName
+		NamesToRemove     []types.BotName
+		NrOfMonthsToAdd   uint8
+		EncodingType      cli.EncodingType
+	}
+
+	createNameTransferTxCfg struct {
+		PublicKey    types.PublicKey
+		EncodingType cli.EncodingType
+	}
+
+	sendNameTransferTxCfg struct {
 		Addresses    []types.NetworkAddress
 		Names        []types.BotName
 		NrOfMonths   uint8
@@ -280,8 +358,103 @@ func (walletSubCmds *walletSubCmds) sendBotRegistrationTxCmd() {
 		"transactionid": txID,
 	})
 	if err != nil {
-		cli.DieWithError("failed to encode resultd", err)
+		cli.DieWithError("failed to encode result", err)
 	}
+}
+
+func (walletSubCmds *walletSubCmds) sendBotRecordUpdateTxCmd(str string) {
+	id, err := walletSubCmds.botIDFromPosArgStr(str)
+	if err != nil {
+		cli.DieWithError("failed to parse/fetch unique ID", err)
+		return
+	}
+
+	// start the record update process
+	walletClient := internal.NewWalletClient(walletSubCmds.cli)
+
+	// create the record update Tx
+	tx := types.BotRecordUpdateTransaction{
+		Identifier: id,
+		Addresses: types.BotRecordAddressUpdate{
+			Add:    walletSubCmds.sendBotRecordUpdateTxCfg.AddressesToAdd,
+			Remove: walletSubCmds.sendBotRecordUpdateTxCfg.AddressesToRemove,
+		},
+		Names: types.BotRecordNameUpdate{
+			Add:    walletSubCmds.sendBotRecordUpdateTxCfg.NamesToAdd,
+			Remove: walletSubCmds.sendBotRecordUpdateTxCfg.NamesToRemove,
+		},
+		NrOfMonths:     walletSubCmds.sendBotRecordUpdateTxCfg.NrOfMonthsToAdd,
+		TransactionFee: walletSubCmds.cli.Config.MinimumTransactionFee,
+	}
+	// compute the additional (bot) fee, such that we can fund it all
+	fee := tx.RequiredBotFee(walletSubCmds.cli.Config.CurrencyUnits.OneCoin)
+	// fund the coin inputs
+	tx.CoinInputs, tx.RefundCoinOutput, err = walletClient.FundCoins(fee.Add(walletSubCmds.cli.Config.MinimumTransactionFee))
+	if err != nil {
+		cli.DieWithError("failed to fund the bot registration Tx", err)
+		return
+	}
+
+	// sign the Tx
+	rtx := tx.Transaction(
+		walletSubCmds.cli.Config.CurrencyUnits.OneCoin,
+		internal.GetFoundationPoolCondition(walletSubCmds.cli.Config.NetworkName))
+	err = walletClient.GreedySignTx(&rtx)
+	if err != nil {
+		cli.DieWithError("failed to sign the bot registration Tx", err)
+		return
+	}
+
+	// submit the Tx
+	txPoolClient := internal.NewTransactionPoolClient(walletSubCmds.cli)
+	txID, err := txPoolClient.AddTransactiom(rtx)
+	if err != nil {
+		b, _ := json.Marshal(rtx)
+		fmt.Fprintln(os.Stderr, "bad tx: "+string(b))
+		cli.DieWithError("failed to submit the bot registration Tx to the Tx Pool", err)
+		return
+	}
+
+	// encode depending on the encoding flag
+	var encode func(interface{}) error
+	switch walletSubCmds.sendBotRegistrationTxCfg.EncodingType {
+	case cli.EncodingTypeHuman:
+		e := json.NewEncoder(os.Stdout)
+		e.SetIndent("", "  ")
+		encode = e.Encode
+	case cli.EncodingTypeJSON:
+		encode = json.NewEncoder(os.Stdout).Encode
+	}
+	err = encode(map[string]interface{}{
+		"transactionid": txID,
+	})
+	if err != nil {
+		cli.DieWithError("failed to encode result", err)
+	}
+}
+
+func (walletSubCmds *walletSubCmds) botIDFromPosArgStr(str string) (types.BotID, error) {
+	if len(str) < 16 {
+		// assume bot ID if the less than 16, seems to short for a public key,
+		// so simply return it (as well as the possible parsing error for assuming wrong)
+		var botID types.BotID
+		err := botID.LoadString(str)
+		return botID, err
+	}
+
+	// assume a public key was meant,
+	// so we need to get the (bot) record in order to know the (unique) ID
+	var pk types.PublicKey
+	err := pk.LoadString(str)
+	if err != nil {
+		return 0, err
+	}
+	txDB := internal.NewTransactionDBConsensusClient(walletSubCmds.cli)
+	record, err := txDB.GetRecordForKey(pk)
+	if err != nil {
+		return 0, err
+	}
+	return record.ID, nil
 }
 
 type (

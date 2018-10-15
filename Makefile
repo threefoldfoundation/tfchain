@@ -2,7 +2,7 @@ all: install
 
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
-testpkgs = ./pkg/types ./pkg/encoding
+testpkgs = ./pkg/types ./pkg/encoding ./pkg/persist
 pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
 
 version = $(shell git describe --abbrev=0)
