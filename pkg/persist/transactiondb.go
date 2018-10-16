@@ -969,7 +969,7 @@ func (txdb *TransactionDB) applyBotNameTransferTx(tx *bolt.Tx, blockTime rivinet
 		return fmt.Errorf("failed to unmarshal found record of sender bot %d: %v", bnttx.Sender.Identifier, err)
 	}
 	// update sender bot (this also ensures the sender bot isn't expired)
-	_, err = bnttx.UpdateSenderBotRecord(blockTime, &record)
+	err = bnttx.UpdateSenderBotRecord(blockTime, &record)
 	if err != nil { // automatically checks also if at least one name is transferred, returning an error if not
 		return fmt.Errorf("failed to update record of sender bot %d: %v", record.ID, err)
 	}
@@ -979,20 +979,32 @@ func (txdb *TransactionDB) applyBotNameTransferTx(tx *bolt.Tx, blockTime rivinet
 		return fmt.Errorf("error while saving the updated record for sender bot %d: %v", record.ID, err)
 	}
 
-	// piggy-back now on a regular update Tx for the receiver's bot update:
-	rrtx := (&types.BotRecordUpdateTransaction{
-		Identifier:       bnttx.Receiver.Identifier,
-		Addresses:        bnttx.Addresses,
-		Names:            bnttx.Names,
-		NrOfMonths:       bnttx.NrOfMonths,
-		TransactionFee:   bnttx.TransactionFee,
-		CoinInputs:       bnttx.CoinInputs,
-		RefundCoinOutput: bnttx.RefundCoinOutput,
-		Signature:        bnttx.Receiver.Signature,
-	}).Transaction(rivinetypes.Currency{}, rivinetypes.UnlockConditionProxy{}) // onecoin and pool condition is not relevant for applyRecordUpdateTx
-	err = txdb.applyRecordUpdateTx(tx, blockTime, &rrtx)
+	// get the receiver bot record
+	b = recordBucket.Get(tfencoding.Marshal(bnttx.Receiver.Identifier))
+	if len(b) == 0 {
+		return errors.New("no bot record found for the specified receiver bot identifier")
+	}
+	err = tfencoding.Unmarshal(b, &record)
 	if err != nil {
-		return fmt.Errorf("failed to apply name transfer update for receiver bot %d: %v", bnttx.Receiver.Identifier, err)
+		return fmt.Errorf("failed to unmarshal found record of receiver bot %d: %v", bnttx.Receiver.Identifier, err)
+	}
+	// update receiver bot (this also ensures the receiver bot isn't expired)
+	err = bnttx.UpdateReceiverBotRecord(blockTime, &record)
+	if err != nil { // automatically checks also if at least one name is transferred, returning an error if not
+		return fmt.Errorf("failed to update record of receiver bot %d: %v", record.ID, err)
+	}
+	// save the record of the receiver bot
+	err = recordBucket.Put(tfencoding.Marshal(record.ID), tfencoding.Marshal(record))
+	if err != nil {
+		return fmt.Errorf("error while saving the updated record for receiver bot %d: %v", record.ID, err)
+	}
+
+	// update mapping for all the transferred names
+	for _, name := range bnttx.Names {
+		err = applyNameToIDMapping(tx, name, record.ID)
+		if err != nil {
+			return fmt.Errorf("failed to update bot record: error while mapping name %v to ID %v: %v", name, record.ID, err)
+		}
 	}
 
 	// update went fine
@@ -1008,19 +1020,39 @@ func (txdb *TransactionDB) revertBotNameTransferTx(tx *bolt.Tx, blockTime rivine
 		return fmt.Errorf("unexpected error while unpacking the bot name transfer tx type: %v", err)
 	}
 
-	// get the sender bot record
-	b := recordBucket.Get(tfencoding.Marshal(bnttx.Sender.Identifier))
+	// get the receiver bot record
+	b := recordBucket.Get(tfencoding.Marshal(bnttx.Receiver.Identifier))
 	if len(b) == 0 {
-		return errors.New("no bot record found for the specified sender bot identifier")
+		return errors.New("no bot record found for the specified receiver bot identifier")
 	}
 	var record types.BotRecord
 	err = tfencoding.Unmarshal(b, &record)
 	if err != nil {
+		return fmt.Errorf("failed to unmarshal found record of receiver bot %d: %v", bnttx.Receiver.Identifier, err)
+	}
+	// revert receiver bot
+	err = bnttx.RevertReceiverBotRecordUpdate(&record)
+	if err != nil {
+		return fmt.Errorf("failed to update record of receiver bot %d: %v", record.ID, err)
+	}
+	// save the record of the receiver bot
+	err = recordBucket.Put(tfencoding.Marshal(record.ID), tfencoding.Marshal(record))
+	if err != nil {
+		return fmt.Errorf("error while saving the reverted (update of the) receiver bot %d: %v", record.ID, err)
+	}
+
+	// get the sender bot record
+	b = recordBucket.Get(tfencoding.Marshal(bnttx.Sender.Identifier))
+	if len(b) == 0 {
+		return errors.New("no bot record found for the specified sender bot identifier")
+	}
+	err = tfencoding.Unmarshal(b, &record)
+	if err != nil {
 		return fmt.Errorf("failed to unmarshal found record of sender bot %d: %v", bnttx.Sender.Identifier, err)
 	}
-	// revert sender bot (this also ensures the sender bot isn't expired)
-	namesToMapForSender, err := bnttx.RevertSenderBotRecordUpdate(blockTime, &record)
-	if err != nil { // automatically checks also if at least one name is transferred, returning an error if not
+	// revert sender bot
+	err = bnttx.RevertSenderBotRecordUpdate(&record)
+	if err != nil {
 		return fmt.Errorf("failed to revert record of sender bot %d: %v", record.ID, err)
 	}
 	// save the record of the sender bot
@@ -1029,28 +1061,11 @@ func (txdb *TransactionDB) revertBotNameTransferTx(tx *bolt.Tx, blockTime rivine
 		return fmt.Errorf("error while saving the reverted record for sender bot %d: %v", record.ID, err)
 	}
 
-	// piggy-back now on a regular update Tx for the receiver's bot update revert:
-	rrtx := (&types.BotRecordUpdateTransaction{
-		Identifier:       bnttx.Receiver.Identifier,
-		Addresses:        bnttx.Addresses,
-		Names:            bnttx.Names,
-		NrOfMonths:       bnttx.NrOfMonths,
-		TransactionFee:   bnttx.TransactionFee,
-		CoinInputs:       bnttx.CoinInputs,
-		RefundCoinOutput: bnttx.RefundCoinOutput,
-		Signature:        bnttx.Receiver.Signature,
-	}).Transaction(rivinetypes.Currency{}, rivinetypes.UnlockConditionProxy{}) // onecoin and pool condition is not relevant for applyRecordUpdateTx
-	err = txdb.revertRecordUpdateTx(tx, blockTime, &rrtx)
-	if err != nil {
-		return fmt.Errorf("failed to revert name transfer update for receiver bot %d: %v", bnttx.Receiver.Identifier, err)
-	}
-
-	// apply all name mappings for sender bot (assumed to be overwritten during the apply phase of this Tx)
-	for _, name := range namesToMapForSender {
-		err = applyNameToIDMapping(tx, name, bnttx.Sender.Identifier)
+	// update mapping for all the transferred names, reverting them back to the sender
+	for _, name := range bnttx.Names {
+		err = applyNameToIDMapping(tx, name, record.ID)
 		if err != nil {
-			return fmt.Errorf("failed to revert bot name transfer: "+
-				"error while mapping name %v to sender bot ID %v: %v", name, bnttx.Receiver.Identifier, err)
+			return fmt.Errorf("failed to update bot record: error while mapping name %v to ID %v: %v", name, record.ID, err)
 		}
 	}
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/threefoldfoundation/tfchain/cmd/tfchainc/internal"
 
@@ -98,12 +99,33 @@ and you'll receive the TxID which will allow you to look it up in an explorer.
 `,
 			Run: rivinecli.Wrap(walletSubCmds.sendBotRecordUpdateTxCmd),
 		}
+
+		createBotNameTransferTxCmd = &cobra.Command{
+			Use:   "botnametransfer (id|publickey) (id|publickey) names...",
+			Args:  cobra.MinimumNArgs(3),
+			Short: "Create and optionally sign a 3bot name transfer transaction",
+			Long: `Create and optionally sign a 3bot name transfer transaction, involving two active 3bots.
+The coin inputs are funded and signed using the wallet of this daemon.
+The Public key linked to the 3bot has to be loaded into the wallet in order to be able to sign.
+
+The first positional argument identifies the sender, nad the second positional argument identifies the receiver.
+All other positional arguments (at least one more is required) define the names to be transfered.
+At least one name has to be transferred.
+
+All fees are automatically added.
+
+If this command returns without errors, the Tx (optionally signed)
+is printed to the STDOUT.
+`,
+			Run: walletSubCmds.createBotNameTransferTxCmd,
+		}
 	)
 
 	// add commands as wallet sub commands
 	client.WalletCmd.RootCmdCreate.AddCommand(
 		createMinterDefinitionTxCmd,
 		createCoinCreationTxCmd,
+		createBotNameTransferTxCmd,
 	)
 	client.WalletCmd.RootCmdSend.AddCommand(
 		sendBotRegistrationTxCmd,
@@ -175,6 +197,13 @@ and you'll receive the TxID which will allow you to look it up in an explorer.
 	sendBotRecordUpdateTxCmd.Flags().Var(
 		cli.NewEncodingTypeFlag(0, &walletSubCmds.sendBotRecordUpdateTxCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
+
+	createBotNameTransferTxCmd.Flags().Var(
+		cli.NewEncodingTypeFlag(0, &walletSubCmds.createBotNameTransferTxCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
+		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
+	createBotNameTransferTxCmd.Flags().BoolVar(
+		&walletSubCmds.createBotNameTransferTxCfg.Sign, "sign", false,
+		"optionally sign the transaction (as sender/receiver) prior to printing it")
 }
 
 type walletSubCmds struct {
@@ -203,17 +232,9 @@ type walletSubCmds struct {
 		EncodingType      cli.EncodingType
 	}
 
-	createNameTransferTxCfg struct {
-		PublicKey    types.PublicKey
+	createBotNameTransferTxCfg struct {
 		EncodingType cli.EncodingType
-	}
-
-	sendNameTransferTxCfg struct {
-		Addresses    []types.NetworkAddress
-		Names        []types.BotName
-		NrOfMonths   uint8
-		PublicKey    types.PublicKey
-		EncodingType cli.EncodingType
+		Sign         bool
 	}
 }
 
@@ -391,7 +412,7 @@ func (walletSubCmds *walletSubCmds) sendBotRecordUpdateTxCmd(str string) {
 	// fund the coin inputs
 	tx.CoinInputs, tx.RefundCoinOutput, err = walletClient.FundCoins(fee.Add(walletSubCmds.cli.Config.MinimumTransactionFee))
 	if err != nil {
-		cli.DieWithError("failed to fund the bot registration Tx", err)
+		cli.DieWithError("failed to fund the bot record update Tx", err)
 		return
 	}
 
@@ -401,7 +422,7 @@ func (walletSubCmds *walletSubCmds) sendBotRecordUpdateTxCmd(str string) {
 		internal.GetFoundationPoolCondition(walletSubCmds.cli.Config.NetworkName))
 	err = walletClient.GreedySignTx(&rtx)
 	if err != nil {
-		cli.DieWithError("failed to sign the bot registration Tx", err)
+		cli.DieWithError("failed to sign the bot record update Tx", err)
 		return
 	}
 
@@ -411,13 +432,13 @@ func (walletSubCmds *walletSubCmds) sendBotRecordUpdateTxCmd(str string) {
 	if err != nil {
 		b, _ := json.Marshal(rtx)
 		fmt.Fprintln(os.Stderr, "bad tx: "+string(b))
-		cli.DieWithError("failed to submit the bot registration Tx to the Tx Pool", err)
+		cli.DieWithError("failed to submit the bot record update Tx to the Tx Pool", err)
 		return
 	}
 
 	// encode depending on the encoding flag
 	var encode func(interface{}) error
-	switch walletSubCmds.sendBotRegistrationTxCfg.EncodingType {
+	switch walletSubCmds.sendBotRecordUpdateTxCfg.EncodingType {
 	case cli.EncodingTypeHuman:
 		e := json.NewEncoder(os.Stdout)
 		e.SetIndent("", "  ")
@@ -428,6 +449,82 @@ func (walletSubCmds *walletSubCmds) sendBotRecordUpdateTxCmd(str string) {
 	err = encode(map[string]interface{}{
 		"transactionid": txID,
 	})
+	if err != nil {
+		cli.DieWithError("failed to encode result", err)
+	}
+}
+
+// create botnametransfer (publickey|id) (publickey|id) names...
+// arguments in order: sender, receiver and a slice of names (at least one name is required),
+// hence this command requires a minimum of 3 arguments
+func (walletSubCmds *walletSubCmds) createBotNameTransferTxCmd(cmd *cobra.Command, args []string) {
+	senderID, err := walletSubCmds.botIDFromPosArgStr(args[0])
+	if err != nil {
+		cli.DieWithError("failed to parse/fetch unique (sender bot) ID", err)
+		return
+	}
+	receiverID, err := walletSubCmds.botIDFromPosArgStr(args[1])
+	if err != nil {
+		cli.DieWithError("failed to parse/fetch unique (receiver bot) ID", err)
+		return
+	}
+
+	// start the record update process
+	walletClient := internal.NewWalletClient(walletSubCmds.cli)
+
+	names := make([]types.BotName, len(args[2:]))
+	for idx, str := range args[2:] {
+		err = names[idx].LoadString(str)
+		if err != nil {
+			cli.DieWithError("failed to parse (pos arg) bot name #"+strconv.Itoa(idx+1), err)
+			return
+		}
+	}
+
+	// create the bot name transfer Tx
+	tx := types.BotNameTransferTransaction{
+		Sender: types.BotIdentifierSignaturePair{
+			Identifier: senderID,
+		},
+		Receiver: types.BotIdentifierSignaturePair{
+			Identifier: receiverID,
+		},
+		Names:          names,
+		TransactionFee: walletSubCmds.cli.Config.MinimumTransactionFee,
+	}
+	// compute the additional (bot) fee, such that we can fund it all
+	fee := tx.RequiredBotFee(walletSubCmds.cli.Config.CurrencyUnits.OneCoin)
+	// fund the coin inputs
+	tx.CoinInputs, tx.RefundCoinOutput, err = walletClient.FundCoins(fee.Add(walletSubCmds.cli.Config.MinimumTransactionFee))
+	if err != nil {
+		cli.DieWithError("failed to fund the bot name transfer Tx", err)
+		return
+	}
+
+	rtx := tx.Transaction(
+		walletSubCmds.cli.Config.CurrencyUnits.OneCoin,
+		internal.GetFoundationPoolCondition(walletSubCmds.cli.Config.NetworkName))
+
+	if walletSubCmds.createBotNameTransferTxCfg.Sign {
+		// optionally sign the Tx
+		err = walletClient.GreedySignTx(&rtx)
+		if err != nil {
+			cli.DieWithError("failed to sign the bot name transfer Tx", err)
+			return
+		}
+	}
+
+	// encode depending on the encoding flag
+	var encode func(interface{}) error
+	switch walletSubCmds.createBotNameTransferTxCfg.EncodingType {
+	case cli.EncodingTypeHuman:
+		e := json.NewEncoder(os.Stdout)
+		e.SetIndent("", "  ")
+		encode = e.Encode
+	case cli.EncodingTypeJSON:
+		encode = json.NewEncoder(os.Stdout).Encode
+	}
+	err = encode(rtx)
 	if err != nil {
 		cli.DieWithError("failed to encode result", err)
 	}

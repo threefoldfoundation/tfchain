@@ -1689,6 +1689,8 @@ func (brutx *BotRecordUpdateTransaction) UnmarshalSia(r io.Reader) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		brutx.RefundCoinOutput = nil
 	}
 	// decode the signature at the end
 	return dec.Decode(&brutx.Signature)
@@ -1708,21 +1710,9 @@ type (
 		// The Receiver has to be different from the Sender.
 		Receiver BotIdentifierSignaturePair `json:"receiver"`
 
-		// Addresses can be used to add and/or remove network addresses
-		// to/from the existing 3bot record. Note that after each Tx,
-		// no more than 10 addresses can be linked to a single 3bot record.
-		Addresses BotRecordAddressUpdate `json:"addresses"`
-
-		// Names can be used to add and/or remove names
-		// to/from the existing 3bot record. Note that after each Tx,
+		// Names to be transferred from sender to receiver. Note that after each Tx,
 		// no more than 5 names can be linked to a single 3bot record.
-		Names BotRecordNameUpdate `json:"names"`
-
-		// NrOfMonths defines the optional amount of months that
-		// is desired to be paid upfront in this update. Note that the amount of
-		// months defined here defines how much additional fees are to be paid.
-		// The NrOfMonths has to be within this inclusive range [0,24].
-		NrOfMonths uint8 `json:"nrofmonths"`
+		Names []BotName `json:"names"`
 
 		// TransactionFee defines the regular Tx fee.
 		TransactionFee types.Currency `json:"txfee"`
@@ -1745,11 +1735,9 @@ type (
 	}
 	// BotNameTransferTransactionExtension defines the BotNameTransferTransaction Extension Data
 	BotNameTransferTransactionExtension struct {
-		Sender        BotIdentifierSignaturePair
-		Receiver      BotIdentifierSignaturePair
-		AddressUpdate BotRecordAddressUpdate
-		NameUpdate    BotRecordNameUpdate
-		NrOfMonths    uint8
+		Sender   BotIdentifierSignaturePair
+		Receiver BotIdentifierSignaturePair
+		Names    []BotName
 	}
 )
 
@@ -1796,9 +1784,7 @@ func BotNameTransferTransactionFromTransactionData(txData types.TransactionData)
 	tx := BotNameTransferTransaction{
 		Sender:         extensionData.Sender,
 		Receiver:       extensionData.Receiver,
-		Addresses:      extensionData.AddressUpdate,
-		Names:          extensionData.NameUpdate,
-		NrOfMonths:     extensionData.NrOfMonths,
+		Names:          extensionData.Names,
 		TransactionFee: txData.MinerFees[0],
 		CoinInputs:     txData.CoinInputs,
 	}
@@ -1823,11 +1809,9 @@ func (bnttx *BotNameTransferTransaction) TransactionData(oneCoin types.Currency,
 		},
 		MinerFees: []types.Currency{bnttx.TransactionFee},
 		Extension: &BotNameTransferTransactionExtension{
-			Sender:        bnttx.Sender,
-			Receiver:      bnttx.Receiver,
-			AddressUpdate: bnttx.Addresses,
-			NameUpdate:    bnttx.Names,
-			NrOfMonths:    bnttx.NrOfMonths,
+			Sender:   bnttx.Sender,
+			Receiver: bnttx.Receiver,
+			Names:    bnttx.Names,
 		},
 	}
 	if bnttx.RefundCoinOutput != nil {
@@ -1850,11 +1834,9 @@ func (bnttx *BotNameTransferTransaction) Transaction(oneCoin types.Currency, reg
 		},
 		MinerFees: []types.Currency{bnttx.TransactionFee},
 		Extension: &BotNameTransferTransactionExtension{
-			Sender:        bnttx.Sender,
-			Receiver:      bnttx.Receiver,
-			AddressUpdate: bnttx.Addresses,
-			NameUpdate:    bnttx.Names,
-			NrOfMonths:    bnttx.NrOfMonths,
+			Sender:   bnttx.Sender,
+			Receiver: bnttx.Receiver,
+			Names:    bnttx.Names,
 		},
 	}
 	if bnttx.RefundCoinOutput != nil {
@@ -1865,22 +1847,8 @@ func (bnttx *BotNameTransferTransaction) Transaction(oneCoin types.Currency, reg
 
 // RequiredBotFee computes the required Bot Fee, that is to be applied as a required
 // additional fee on top of the regular required (minimum) Tx fee.
-func (bnttx *BotNameTransferTransaction) RequiredBotFee(oneCoin types.Currency) (fee types.Currency) {
-	// all additional months have to be paid
-	if bnttx.NrOfMonths > 0 {
-		fee = fee.Add(ComputeMonthlyBotFees(bnttx.NrOfMonths, oneCoin))
-	}
-	// a Tx that modifies the network address info of a 3bot record also has to be paid
-	if len(bnttx.Addresses.Add) > 0 || len(bnttx.Addresses.Remove) > 0 {
-		fee = fee.Add(oneCoin.Mul64(BotFeeForNetworkAddressInfoChangeMultiplier))
-	}
-	// each additional name has to be paid as well
-	// (regardless of the fact that the 3bot has a name or not)
-	if n := len(bnttx.Names.Add); n > 0 {
-		fee = fee.Add(oneCoin.Mul64(BotFeePerAdditionalNameMultiplier * uint64(n)))
-	}
-	// return the total fees
-	return fee
+func (bnttx *BotNameTransferTransaction) RequiredBotFee(oneCoin types.Currency) types.Currency {
+	return oneCoin.Mul64(BotFeePerAdditionalNameMultiplier * uint64(len(bnttx.Names)))
 }
 
 // UpdateReceiverBotRecord updates the given (receiver bot) record, within the context of the given blockTime,
@@ -1889,24 +1857,16 @@ func (bnttx *BotNameTransferTransaction) RequiredBotFee(oneCoin types.Currency) 
 // This method should only be called once for the given (receiver bot) record,
 // as it has no way of checking whether or not it already updated the given record.
 func (bnttx *BotNameTransferTransaction) UpdateReceiverBotRecord(blockTime types.Timestamp, record *BotRecord) error {
-	// piggy-back on an BotRecordUpdateTransaction, as the receiver gets the exact same update,
-	// as would happen if that receiver did a regular BotRecordUpdateTransaction,
-	// the only difference is that with a BotNameTransferTransaction the receiver can use a occupied name,
-	// using the owner's consent, a difference irrelevant for the UpdateBotRecord logic.
-	err := (&BotRecordUpdateTransaction{
-		Identifier:       bnttx.Receiver.Identifier,
-		Addresses:        bnttx.Addresses,
-		Names:            bnttx.Names,
-		NrOfMonths:       bnttx.NrOfMonths,
-		TransactionFee:   bnttx.TransactionFee,
-		CoinInputs:       bnttx.CoinInputs,
-		RefundCoinOutput: bnttx.RefundCoinOutput,
-		Signature:        bnttx.Receiver.Signature,
-	}).UpdateBotRecord(blockTime, record)
+	if record.IsExpired(blockTime) {
+		return errors.New("receiver bot is inactive while a name transfer requires the bot to be active")
+	}
+
+	err := record.AddNames(bnttx.Names...)
 	if err != nil {
-		return fmt.Errorf("BotNameTransferTransaction: %v", err)
+		return fmt.Errorf("error while adding transferred names to receiver bot: %v", err)
 	}
 	return nil
+
 }
 
 // RevertReceiverBotRecordUpdate reverts the given record update, within the context of the given blockTime,
@@ -1919,22 +1879,9 @@ func (bnttx *BotNameTransferTransaction) UpdateReceiverBotRecord(blockTime types
 // and names that were implicitly removed because the bot was inactive, are not reverted by this method,
 // and have to be added manually reverted.
 func (bnttx *BotNameTransferTransaction) RevertReceiverBotRecordUpdate(record *BotRecord) error {
-	// piggy-back on an BotRecordUpdateTransaction, as the receiver gets the exact same revert,
-	// as would happen if that receiver was affected by a regular RevertBotRecordUpdate,
-	// the only difference is that with a BotNameTransferTransaction the receiver can use a occupied name,
-	// using the owner's consent, a difference irrelevant for the RevertBotRecordUpdate logic.
-	err := (&BotRecordUpdateTransaction{
-		Identifier:       bnttx.Receiver.Identifier,
-		Addresses:        bnttx.Addresses,
-		Names:            bnttx.Names,
-		NrOfMonths:       bnttx.NrOfMonths,
-		TransactionFee:   bnttx.TransactionFee,
-		CoinInputs:       bnttx.CoinInputs,
-		RefundCoinOutput: bnttx.RefundCoinOutput,
-		Signature:        bnttx.Receiver.Signature,
-	}).RevertBotRecordUpdate(record)
+	err := record.RemoveNames(bnttx.Names...)
 	if err != nil {
-		return fmt.Errorf("BotNameTransferTransaction: %v", err)
+		return fmt.Errorf("error while reverting added transferred names to receiver bot: %v", err)
 	}
 	return nil
 }
@@ -1944,22 +1891,16 @@ func (bnttx *BotNameTransferTransaction) RevertReceiverBotRecordUpdate(record *B
 //
 // This method should only be called once for the given (sender bot) record,
 // as it has no way of checking whether or not it already updated the given record.
-func (bnttx *BotNameTransferTransaction) UpdateSenderBotRecord(blockTime types.Timestamp, record *BotRecord) ([]BotName, error) {
-	// if the record indicate the bot is expired, we cannot continue
+func (bnttx *BotNameTransferTransaction) UpdateSenderBotRecord(blockTime types.Timestamp, record *BotRecord) error {
 	if record.IsExpired(blockTime) {
-		return nil, fmt.Errorf("sender bot %d is expired: name transfer update cannot continue", record.ID)
+		return errors.New("sender bot is inactive while a name transfer requires the bot to be active")
 	}
 
-	// get the record names to remove
-	namesToRemoveFromSender := record.Names.Intersection(BotNameSortedSet{slice: bnttx.Names.Add})
-	if len(namesToRemoveFromSender) == 0 {
-		// a BotNameTransferTransaction requires at least one of the names to be transfered from the sender bot
-		return nil, fmt.Errorf("sender bot %d owns none of the added names and "+
-			"as such no transfer is taken place: apply a regular update Tx instead", record.ID)
+	err := record.RemoveNames(bnttx.Names...)
+	if err != nil {
+		return fmt.Errorf("error while removing transferred names from sender bot: %v", err)
 	}
-
-	// shouldn't fail, but return the error value anyhow
-	return namesToRemoveFromSender, record.RemoveNames(namesToRemoveFromSender...)
+	return nil
 }
 
 // RevertSenderBotRecordUpdate reverts the given record update, within the context of the given blockTime,
@@ -1967,81 +1908,39 @@ func (bnttx *BotNameTransferTransaction) UpdateSenderBotRecord(blockTime types.T
 //
 // This method should only be called once for the given record,
 // as it has no way of checking whether or not it already reverted the update of the given record.
-func (bnttx *BotNameTransferTransaction) RevertSenderBotRecordUpdate(blockTime types.Timestamp, record *BotRecord) ([]BotName, error) {
-	// if the record indicate the bot is expired, we cannot continue
-	if record.IsExpired(blockTime) {
-		return nil, fmt.Errorf("sender bot %d is expired: name transfer revert cannot continue", record.ID)
+func (bnttx *BotNameTransferTransaction) RevertSenderBotRecordUpdate(record *BotRecord) error {
+	err := record.AddNames(bnttx.Names...)
+	if err != nil {
+		return fmt.Errorf("error while reverting the removed names from receiver bot: %v", err)
 	}
-
-	// get the record names to add back (because of the revert)
-	namesToAddBackToSender := record.Names.Intersection(BotNameSortedSet{slice: bnttx.Names.Add})
-	if len(namesToAddBackToSender) == 0 {
-		// a BotNameTransferTransaction requires at least one of the names to be transfered from the sender bot
-		return nil, fmt.Errorf("sender bot %d owns none of the added names and "+
-			"as such no transfer was taken place: please file a bug report", record.ID)
-	}
-
-	// shouldn't fail, but return the error value anyhow
-	return namesToAddBackToSender, record.AddNames(namesToAddBackToSender...)
+	return nil
 }
 
 // MarshalSia implements SiaMarshaler.MarshalSia
 func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
-	addrAddLen, addrRemoveLen := len(bnttx.Addresses.Add), len(bnttx.Addresses.Remove)
-	nameAddLen, nameRemoveLen := len(bnttx.Names.Add), len(bnttx.Names.Remove)
-
 	// the tfchain binary encoder used for this implementation
 	enc := tfencoding.NewEncoder(w)
 
-	// encode the sender, receiver, nr of months, flags and paired lenghts
-	maf := BotMonthsAndFlagsData{
-		NrOfMonths:   bnttx.NrOfMonths,
-		HasAddresses: addrAddLen > 0 || addrRemoveLen > 0,
-		HasNames:     nameAddLen > 0 || nameRemoveLen > 0,
-		HasRefund:    bnttx.RefundCoinOutput != nil,
+	hasRefund := bnttx.RefundCoinOutput != nil
+	infoValue := uint8(len(bnttx.Names))
+	if hasRefund {
+		infoValue |= 16
 	}
-	err := enc.EncodeAll(bnttx.Sender, bnttx.Receiver, maf)
+	// encode the sender, receiver, and info value (includes addr length and if a refund output is included)
+	err := enc.EncodeAll(
+		bnttx.Sender,
+		bnttx.Receiver,
+		infoValue,
+	)
 	if err != nil {
 		return err
 	}
 
-	// encode addressed added and removed, if defined
-	if maf.HasAddresses {
-		err = enc.Encode(uint8(addrAddLen) | (uint8(addrRemoveLen) << 4))
+	// encode transferred names
+	for _, name := range bnttx.Names {
+		err = enc.Encode(name)
 		if err != nil {
 			return err
-		}
-		for _, addr := range bnttx.Addresses.Add {
-			err = enc.Encode(addr)
-			if err != nil {
-				return err
-			}
-		}
-		for _, addr := range bnttx.Addresses.Remove {
-			err = enc.Encode(addr)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	// encode names added and removed, if defined
-	if maf.HasNames {
-		err = enc.Encode(uint8(nameAddLen) | (uint8(nameRemoveLen) << 4))
-		if err != nil {
-			return err
-		}
-		for _, name := range bnttx.Names.Add {
-			err = enc.Encode(name)
-			if err != nil {
-				return err
-			}
-		}
-		for _, name := range bnttx.Names.Remove {
-			err = enc.Encode(name)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
@@ -2051,7 +1950,7 @@ func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
 		return err
 	}
 	// encode refund coin output, if given
-	if maf.HasRefund {
+	if hasRefund {
 		// deref to ensure we do not also encode one byte
 		// for the pointer indication
 		err = enc.Encode(*bnttx.RefundCoinOutput)
@@ -2067,83 +1966,28 @@ func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
 func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
 	dec := tfencoding.NewDecoder(r)
 
-	// unmarshal sender, receiver, NrOfMonths and flags
-	var maf BotMonthsAndFlagsData
-	err := dec.DecodeAll(&bnttx.Sender, &bnttx.Receiver, &maf)
+	// unmarshal sender, receiver and info value (includes name slice length and whether a refund is included)
+	var infoValue uint8
+	err := dec.DecodeAll(&bnttx.Sender, &bnttx.Receiver, &infoValue)
 	if err != nil {
 		return err
 	}
 
-	// assign number of months
-	bnttx.NrOfMonths = maf.NrOfMonths
-
-	// decode addressed added and removed, if defined
-	if maf.HasAddresses {
-		var pairLength uint8
-		err = dec.Decode(&pairLength)
-		if err != nil {
-			return err
-		}
-		addrAddLen, addrRemoveLen := pairLength&15, pairLength>>4
-		if addrAddLen > 0 {
-			bnttx.Addresses.Add = make([]NetworkAddress, addrAddLen)
-			for i := range bnttx.Addresses.Add {
-				err = dec.Decode(&bnttx.Addresses.Add[i])
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			bnttx.Addresses.Add = nil
-		}
-		if addrRemoveLen > 0 {
-			bnttx.Addresses.Remove = make([]NetworkAddress, addrRemoveLen)
-			for i := range bnttx.Addresses.Remove {
-				err = dec.Decode(&bnttx.Addresses.Remove[i])
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			bnttx.Addresses.Remove = nil
-		}
-	} else {
-		// explicitly set added/removed address to nil
-		bnttx.Addresses.Add, bnttx.Addresses.Remove = nil, nil
+	nameLength := infoValue & 7
+	if nameLength > MaxNamesPerBot {
+		return fmt.Errorf("decoded name length (%d) overflows the maximum names per bot (%d)", nameLength, MaxNamesPerBot)
 	}
+	if nameLength == 0 {
+		return errors.New("decoded name length is 0, while at least one (transferred) name is expected")
+	}
+	hasRefund := (infoValue & 16) != 0
 
-	if maf.HasNames {
-		var pairLength uint8
-		err = dec.Decode(&pairLength)
+	bnttx.Names = make([]BotName, nameLength)
+	for i := range bnttx.Names {
+		err = dec.Decode(&bnttx.Names[i])
 		if err != nil {
 			return err
 		}
-		nameAddLen, nameRemoveLen := pairLength&15, pairLength>>4
-		if nameAddLen > 0 {
-			bnttx.Names.Add = make([]BotName, nameAddLen)
-			for i := range bnttx.Names.Add {
-				err = dec.Decode(&bnttx.Names.Add[i])
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			bnttx.Names.Add = nil
-		}
-		if nameRemoveLen > 0 {
-			bnttx.Names.Remove = make([]BotName, nameRemoveLen)
-			for i := range bnttx.Names.Remove {
-				err = dec.Decode(&bnttx.Names.Remove[i])
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			bnttx.Names.Remove = nil
-		}
-	} else {
-		// explicitly set added/removed address to nil
-		bnttx.Names.Add, bnttx.Names.Remove = nil, nil
 	}
 
 	// encode TxFee and CoinInputs
@@ -2152,12 +1996,14 @@ func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
 		return err
 	}
 	// decode refund coin output, if defined
-	if maf.HasRefund {
+	if hasRefund {
 		bnttx.RefundCoinOutput = new(types.CoinOutput)
 		err = dec.Decode(bnttx.RefundCoinOutput)
 		if err != nil {
 			return err
 		}
+	} else {
+		bnttx.RefundCoinOutput = nil
 	}
 	// nothing more to do
 	return nil
@@ -2741,6 +2587,11 @@ func (bnttc BotNameTransferTransactionController) ValidateTransaction(t types.Tr
 		return types.ErrTooSmallMinerFee
 	}
 
+	// validate the sender/receiver ID is different
+	if bnttx.Sender.Identifier == bnttx.Receiver.Identifier {
+		return errors.New("the identifiers of the sender and receiver bot have to be different")
+	}
+
 	// look up the record of the sender, using the given (sender) ID, to ensure it is registered,
 	// as well as for validation checks that follow
 	recordSender, err := bnttc.Registry.GetRecordForID(bnttx.Sender.Identifier)
@@ -2766,13 +2617,13 @@ func (bnttc BotNameTransferTransactionController) ValidateTransaction(t types.Tr
 		return fmt.Errorf("failed to fulfill bot record name transfer condition of the receiver: %v", err)
 	}
 
-	// at least one name has to be added (the one to be removed from the sender)
-	if len(bnttx.Names.Add) == 0 {
-		return errors.New("a bot name transfer transaction has to add at least one name (transfered from the sender)")
+	// at least one name has to be transferred
+	if len(bnttx.Names) == 0 {
+		return errors.New("a bot name transfer transaction has to transfer at least one name")
 	}
 
 	// try to update the sender bot (if the sender bot is expired, an error is returned as well)
-	namesTransferred, err := bnttx.UpdateSenderBotRecord(ctx.BlockTime, recordSender)
+	err = bnttx.UpdateSenderBotRecord(ctx.BlockTime, recordSender)
 	if err != nil {
 		return fmt.Errorf("sender bot cannot be updated by name transfer: %v", err)
 	}
@@ -2785,12 +2636,8 @@ func (bnttc BotNameTransferTransactionController) ValidateTransaction(t types.Tr
 		return fmt.Errorf("receiver bot cannot be updated by name transfer: %v", err)
 	}
 
-	// Check if all the new names to be added (That are not transfered from the sender) are available
-	newNamesToAdd := (BotNameSortedSet{slice: bnttx.Names.Add}).Difference(BotNameSortedSet{slice: namesTransferred})
-	err = areBotNamesAvailable(bnttc.Registry, newNamesToAdd...)
-	if err != nil {
-		return fmt.Errorf("bot name transfer tx cannot proceed as some non-transfered name to be added is not available: %v", err)
-	}
+	// given all names originate from the sender,
+	// we do not require availability checks of names, as no names will be available at this point
 
 	// name transfer Tx is valid
 	return nil
@@ -2828,9 +2675,7 @@ func (bnttc BotNameTransferTransactionController) InputSigHash(t types.Transacti
 	}
 
 	enc.EncodeAll(
-		bnttx.Addresses,
 		bnttx.Names,
-		bnttx.NrOfMonths,
 	)
 
 	enc.Encode(len(bnttx.CoinInputs))

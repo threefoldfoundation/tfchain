@@ -458,14 +458,11 @@ the Tx (binary) encoding defines the following compressed (1 byte) value:
 The (3bot) Transfer Tx is be used to transfer one or multiple (DNS) names owned by one bot, to another bot. of an existing 3bot. Some specifics for this Tx:
 
 - this Tx involves two different and already registered 3bots;
-- the receiving both can be inactive up to that point, but the sending bot has to be active;
+- both bots have to be active, as an inactive bot cannot own a name;
 - the fees are most likely paid by the receiving bot, but this is not required;
-- NOTE That the fees are similar to a regular Update Tx:
-  - the update fee (`40 TFT`) will have to be paid;
-  - in case the receiving 3bot is inactive, it will also have to pay all fees for the already registered info;
-  - Nr of months can be extended, but note that it will to be paid for all other registered info as well;
-- the (DNS) names transferred (and thus list) have to be owned by an active 3bot up to that point;
-- at least one added (DNS) name is required which is transferred from the sending 3bot
+- NOTE That the fees are similar to a regular Update Tx (except that less can be updated, and thus less will have to be paid);
+- the (DNS) names transferred (and thus list) have to be owned by an active 3bot (the sender) up to that point;
+- at least one added (DNS) name is required;
 - the unique ID of both sender and receiver (3bot) are  to be given, as well the both signatures;
 
 Read up on [the Consensus Rules chapter](#consensus-rules) to learn about the other requirements/rules.
@@ -499,49 +496,9 @@ JSON-Encoded the Tx will look as follows:
             "signature": "signature_receiver"
         },
 
-        // optional added/removed network addresses
-        "addresses": {
-            // addresses added
-            // (cannot be registered yet for this 3bot)
-            "add": [ // optional, max 10
-                // can be a domain name
-                "network.address.a.com",
-                // can be an IPv4 address
-                "83.200.201.201",
-                // can also be an IPv6 address
-                "2001:db8:85a3::8a2e:370:7334"
-            ],
-            // addresses removed
-            // (have to be previously registered for this 3bot)
-            "rem": [ // optional, max 10
-                // can be a domain name
-                "network.address.a.com",
-                // can be an IPv4 address
-                "83.200.201.201",
-                // can also be an IPv6 address
-                "2001:db8:85a3::8a2e:370:7334"
-            ],
+        "names": [
+            "aaaaa.bbbbb",
         ],
-        // required added/removed (DNS) names
-        "names": {
-            // at least one transferred DNS name is required!!!
-            // (DNS) names added
-            // (cannot be registered yet for this 3bot)
-            "add": [ // optional, max 5
-                // a name is either transferred from
-                // the sending 3bot, or not claimed yet
-                "aaaaa.bbbbb",
-            ],
-            // (DNS) names removed
-            // (have to be previously registered for the receiving 3bot)
-            // useful, as to make place for the new DNS
-            "rem": [ // optional max 5
-                "char5.char6",
-            ],
-        },
-
-        // uint8, one of inclusive range: [0,24]
-        "nrofmonths": 1,
 
         // the regular Tx fee has to be paid as well and defined explicitly.
         // Additional fees are assumed to equal to `sum(coinInputs)-txFee-coinOutput`,
@@ -560,37 +517,10 @@ JSON-Encoded the Tx will look as follows:
 
 For the most part the binary encoding of the Update Tx is straightforward, but there are some specificities:
 
-- An address is encoded in a new type, which has a single byte to denote the type.
-  The last 5 bits can be used by the type for any other data it requires (such as the length for the domain hostname).
-  The encoding of those bytes depends upon the type of network address (e.g. IPv4 requires 4 bytes);
 - A name is encoded using a new type, where the string bytes are prefixed with one byte to indicate the length;
-- The added and removed network addresses are encoded directly after one another,
-  with the entire group of bytes a single byte to define the amount of addresses added and removed
-  (the first 4 bits defines amount of addresses added, and the other 4 bits the amount of addresses removed);
-- The added and removed (DNS) names are encoded directly after one another,
-  with the entire group of bytes a single byte to define the amount of names added and removed
-  (the first 4 bits defines amount of names added, and the other 4 bits the amount of names removed);
 
 > NOTE: See [The Compact Binary Properties Chapter](#compact-binary-properties) to see how other (common) properties,
 > are also highly optimized as to keep the binary-encoded Tx as small as possible.
-
-> NOTE: for the address type we have 3 different possibilities. IPv4, IPv6 and domain host names.
-> The first 2 have fixed-size values, and only the latter (domain host names) requires a length.
-> For this one we make use of the remaining 5 bits:
->  * Is the first bit equal to `0`, than the length is defined by the remaining 4 bits;
->  * Otherwise the length is defined the next {1,2,3,4} byte(s) depending if the 2nd, 3rd, 4th or 5th bit is 1;
-
-To keep the Update Tx as compact as possible for small updates
-(including the smallest possible update where only the months of values is updated),
-the Tx (binary) encoding defines the following compressed (1 byte) value:
-
-```
-[ 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 ]
-| NrOfMonths        | V | V | flag to indicate if a refund is given
-|                   | V | ALWAYS 1, as a (DNS) name transfer HAS to include at least one added name
-|                   | flag to indicate if any address is added/removed
-```
-> This byte is encoded instead of an uint8 value (that you might have expected as the type for NrOfMonths).
 
 ## Compact Binary Properties
 
