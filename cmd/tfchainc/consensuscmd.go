@@ -12,6 +12,7 @@ import (
 	rivinecli "github.com/rivine/rivine/pkg/client"
 	rivinetypes "github.com/rivine/rivine/types"
 	"github.com/threefoldfoundation/tfchain/cmd/tfchainc/internal"
+	"github.com/threefoldfoundation/tfchain/pkg/types"
 
 	"github.com/spf13/cobra"
 )
@@ -39,12 +40,20 @@ id, public key or name.
 `,
 			Run: rivinecli.Wrap(consensusSubCmds.getBotRecord),
 		}
+
+		getBotTransactionsCmd = &cobra.Command{
+			Use:   "bottransactions id",
+			Short: "Get the transactions created by the given bot",
+			Long:  `Get the transactions that created the given bot's record and updated it.`,
+			Run:   rivinecli.Wrap(consensusSubCmds.getBotTransactions),
+		}
 	)
 
 	// add commands as wallet sub commands
 	client.ConsensusCmd.AddCommand(
 		getMintConditionCmd,
 		getBotRecordCmd,
+		getBotTransactionsCmd,
 	)
 
 	// register flags
@@ -54,6 +63,9 @@ id, public key or name.
 	getBotRecordCmd.Flags().Var(
 		cli.NewEncodingTypeFlag(0, &consensusSubCmds.getBotRecordCfg.EncodingType, 0), "encoding",
 		cli.EncodingTypeFlagDescription(0))
+	getBotTransactionsCmd.Flags().Var(
+		cli.NewEncodingTypeFlag(0, &consensusSubCmds.getBotTransactionsCfg.EncodingType, 0), "encoding",
+		cli.EncodingTypeFlagDescription(0))
 }
 
 type consensusSubCmds struct {
@@ -62,6 +74,9 @@ type consensusSubCmds struct {
 		EncodingType cli.EncodingType
 	}
 	getBotRecordCfg struct {
+		EncodingType cli.EncodingType
+	}
+	getBotTransactionsCfg struct {
 		EncodingType cli.EncodingType
 	}
 }
@@ -130,7 +145,7 @@ func (consensusSubCmds *consensusSubCmds) getBotRecord(str string) {
 
 	// encode depending on the encoding flag
 	var encode func(interface{}) error
-	switch consensusSubCmds.getMintConditionCfg.EncodingType {
+	switch consensusSubCmds.getBotRecordCfg.EncodingType {
 	case cli.EncodingTypeHuman:
 		e := json.NewEncoder(os.Stdout)
 		e.SetIndent("", "  ")
@@ -147,5 +162,40 @@ func (consensusSubCmds *consensusSubCmds) getBotRecord(str string) {
 	err = encode(record)
 	if err != nil {
 		cli.DieWithError("failed to encode 3bot record", err)
+	}
+}
+
+func (consensusSubCmds *consensusSubCmds) getBotTransactions(str string) {
+	var botID types.BotID
+	err := botID.LoadString(str)
+	if err != nil {
+		cli.DieWithError("failed to parse 3bot ID pos arg", err)
+	}
+
+	txDBReader := internal.NewTransactionDBConsensusClient(consensusSubCmds.cli)
+	ids, err := txDBReader.GetBotTransactionIdentifiers(botID)
+	if err != nil {
+		cli.DieWithError("error while fetching the 3bot transactions", err)
+	}
+
+	// encode depending on the encoding flag
+	var encode func(interface{}) error
+	switch consensusSubCmds.getBotTransactionsCfg.EncodingType {
+	case cli.EncodingTypeHuman:
+		e := json.NewEncoder(os.Stdout)
+		e.SetIndent("", "  ")
+		encode = e.Encode
+	case cli.EncodingTypeJSON:
+		encode = json.NewEncoder(os.Stdout).Encode
+	case cli.EncodingTypeHex:
+		encode = func(v interface{}) error {
+			b := encoding.Marshal(v)
+			fmt.Println(hex.EncodeToString(b))
+			return nil
+		}
+	}
+	err = encode(ids)
+	if err != nil {
+		cli.DieWithError("failed to encode transactions", err)
 	}
 }

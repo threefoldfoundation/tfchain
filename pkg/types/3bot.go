@@ -387,7 +387,7 @@ func (bnss *BotNameSortedSet) RemoveName(name BotName) error {
 		return bnss.slice[i].Compare(name) >= 0
 	})
 	if index >= limit || !bnss.slice[index].Equals(name) {
-		return ErrNetworkAddressNotUnique
+		return ErrBotNameDoesNotExist
 	}
 	copy(bnss.slice[index:], bnss.slice[index+1:])
 	bnss.slice[bnss.slice.Len()-1] = BotName{}

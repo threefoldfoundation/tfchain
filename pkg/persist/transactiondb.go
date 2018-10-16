@@ -1,6 +1,7 @@
 package persist
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -64,10 +65,11 @@ var (
 	bucketMintConditions = []byte("mintconditions")
 
 	// buckets for the 3bot feature
-	bucketBotRecords               = []byte("botrecords")     // ID => name
-	bucketBotKeyToIDMapping        = []byte("botkeys")        // Key => ID
-	bucketBotNameToIDMapping       = []byte("botnames")       // Name => ID
-	bucketBotRecordImplicitUpdates = []byte("botimplupdates") // txID => implicitBotRecordUpdate
+	bucketBotRecords               = []byte("botrecords")      // ID => name
+	bucketBotKeyToIDMapping        = []byte("botkeys")         // Key => ID
+	bucketBotNameToIDMapping       = []byte("botnames")        // Name => ID
+	bucketBotRecordImplicitUpdates = []byte("botimplupdates")  // txID => implicitBotRecordUpdate
+	bucketBotTransactions          = []byte("bottransactions") // ID => []txID
 )
 
 type (
@@ -321,6 +323,17 @@ func (txdb *TransactionDB) GetRecordForName(name types.BotName) (record *types.B
 	return
 }
 
+// GetBotTransactionIdentifiers returns the identifiers of all transactions that created and updated the given bot's record.
+//
+// The transaction identifiers are returned in the (stable) order as defined by the blockchain.
+func (txdb *TransactionDB) GetBotTransactionIdentifiers(id types.BotID) (ids []rivinetypes.TransactionID, err error) {
+	err = txdb.db.View(func(tx *bolt.Tx) (err error) {
+		ids, err = getBotTransactions(tx, id)
+		return
+	})
+	return
+}
+
 // Close the transaction DB,
 // meaning the db will be unsubscribed from the consensus set,
 // as well the threadgroup will be stopped and the internal bolt db will be closed.
@@ -380,6 +393,7 @@ func (txdb *TransactionDB) openDB(filename string, genesisMintCondition rivinety
 				bucketBotKeyToIDMapping,
 				bucketBotNameToIDMapping,
 				bucketBotRecordImplicitUpdates,
+				bucketBotTransactions,
 			}
 			for _, bucket := range buckets {
 				_, err = tx.CreateBucket(bucket)
@@ -476,6 +490,7 @@ func (txdb *TransactionDB) createDB(tx *bolt.Tx, genesisMintCondition rivinetype
 		bucketBotKeyToIDMapping,
 		bucketBotNameToIDMapping,
 		bucketBotRecordImplicitUpdates,
+		bucketBotTransactions,
 	}
 	for _, bucket := range buckets {
 		_, err = tx.CreateBucket(bucket)
@@ -573,17 +588,22 @@ func (txdb *TransactionDB) revertBlocks(tx *bolt.Tx, blocks []rivinetypes.Block)
 	for _, block := range blocks {
 		for i := range block.Transactions {
 			rtx = &block.Transactions[i]
+			if rtx.Version == rivinetypes.TransactionVersionOne {
+				continue // ignore most common Tx
+			}
+			ctx := transactionContext{
+				BlockHeight:  txdb.stats.BlockHeight,
+				BlockTime:    block.Timestamp,
+				TxSequenceID: uint16(i),
+			}
 			// check the version and handle the ones we care about
 			switch rtx.Version {
-			case rivinetypes.TransactionVersionOne:
-				// ignore most common Tx
-				continue
 			case types.TransactionVersionBotRegistration:
-				err = txdb.revertBotRegistrationTx(tx, rtx)
+				err = txdb.revertBotRegistrationTx(tx, ctx, rtx)
 			case types.TransactionVersionBotRecordUpdate:
-				err = txdb.revertRecordUpdateTx(tx, block.Timestamp, rtx)
+				err = txdb.revertRecordUpdateTx(tx, ctx, rtx)
 			case types.TransactionVersionBotNameTransfer:
-				err = txdb.revertBotNameTransferTx(tx, block.Timestamp, rtx)
+				err = txdb.revertBotNameTransferTx(tx, ctx, rtx)
 			case types.TransactionVersionMinterDefinition:
 				err = txdb.revertMintConditionTx(tx, rtx)
 			}
@@ -622,17 +642,22 @@ func (txdb *TransactionDB) applyBlocks(tx *bolt.Tx, blocks []rivinetypes.Block) 
 
 		for i := range block.Transactions {
 			rtx = &block.Transactions[i]
+			if rtx.Version == rivinetypes.TransactionVersionOne {
+				continue // ignore most common Tx
+			}
+			ctx := transactionContext{
+				BlockHeight:  txdb.stats.BlockHeight,
+				BlockTime:    block.Timestamp,
+				TxSequenceID: uint16(i),
+			}
 			// check the version and handle the ones we care about
 			switch rtx.Version {
-			case rivinetypes.TransactionVersionOne:
-				// ignore most common Tx
-				continue
 			case types.TransactionVersionBotRegistration:
-				err = txdb.applyBotRegistrationTx(tx, block.Timestamp, rtx)
+				err = txdb.applyBotRegistrationTx(tx, ctx, rtx)
 			case types.TransactionVersionBotRecordUpdate:
-				err = txdb.applyRecordUpdateTx(tx, block.Timestamp, rtx)
+				err = txdb.applyRecordUpdateTx(tx, ctx, rtx)
 			case types.TransactionVersionBotNameTransfer:
-				err = txdb.applyBotNameTransferTx(tx, block.Timestamp, rtx)
+				err = txdb.applyBotNameTransferTx(tx, ctx, rtx)
 			case types.TransactionVersionMinterDefinition:
 				err = txdb.applyMintConditionTx(tx, rtx)
 			}
@@ -678,7 +703,17 @@ func (txdb *TransactionDB) revertMintConditionTx(tx *bolt.Tx, rtx *rivinetypes.T
 	return nil
 }
 
-func (txdb *TransactionDB) applyBotRegistrationTx(tx *bolt.Tx, blockTime rivinetypes.Timestamp, rtx *rivinetypes.Transaction) error {
+type transactionContext struct {
+	BlockHeight  rivinetypes.BlockHeight
+	BlockTime    rivinetypes.Timestamp
+	TxSequenceID uint16
+}
+
+func (tctx transactionContext) TransactionShortID() sortableTransactionShortID {
+	return newSortableTransactionShortID(tctx.BlockHeight, tctx.TxSequenceID)
+}
+
+func (txdb *TransactionDB) applyBotRegistrationTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
 	recordBucket := tx.Bucket(bucketBotRecords)
 	if recordBucket == nil {
 		return errors.New("corrupt transaction DB: bot record bucket does not exist")
@@ -700,7 +735,7 @@ func (txdb *TransactionDB) applyBotRegistrationTx(tx *bolt.Tx, blockTime rivinet
 	record := types.BotRecord{
 		ID:         id,
 		PublicKey:  brtx.Identification.PublicKey,
-		Expiration: types.SiaTimestampAsCompactTimestamp(blockTime) + types.CompactTimestamp(brtx.NrOfMonths)*types.BotMonth,
+		Expiration: types.SiaTimestampAsCompactTimestamp(ctx.BlockTime) + types.CompactTimestamp(brtx.NrOfMonths)*types.BotMonth,
 	}
 	err = record.AddNetworkAddresses(brtx.Addresses...)
 	if err != nil {
@@ -728,11 +763,16 @@ func (txdb *TransactionDB) applyBotRegistrationTx(tx *bolt.Tx, blockTime rivinet
 			return fmt.Errorf("error while storing name %s to bot id %d mapping: %v", name.String(), id, err)
 		}
 	}
+	// apply the transactionID to the list of transactionIDs for the given bot
+	err = applyBotTransaction(tx, id, ctx.TransactionShortID(), rtx.ID())
+	if err != nil {
+		return fmt.Errorf("error while applying transaction for bot %d: %v", id, err)
+	}
 	// all information is applied
 	return nil
 }
 
-func (txdb *TransactionDB) revertBotRegistrationTx(tx *bolt.Tx, rtx *rivinetypes.Transaction) error {
+func (txdb *TransactionDB) revertBotRegistrationTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
 	recordBucket := tx.Bucket(bucketBotRecords)
 	if recordBucket == nil {
 		return errors.New("corrupt transaction DB: bot record bucket does not exist")
@@ -767,11 +807,16 @@ func (txdb *TransactionDB) revertBotRegistrationTx(tx *bolt.Tx, rtx *rivinetypes
 	if err != nil {
 		return fmt.Errorf("error while deleting pubKey %s to bot id %d mapping: %v", brtx.Identification.PublicKey, id, err)
 	}
+	// revert the transactionID from the list of transactionIDs for the given bot
+	err = revertBotTransaction(tx, id, ctx.TransactionShortID())
+	if err != nil {
+		return fmt.Errorf("error while reverting transaction for bot %d: %v", id, err)
+	}
 	// all information is reverted
 	return nil
 }
 
-func (txdb *TransactionDB) applyRecordUpdateTx(tx *bolt.Tx, blockTime rivinetypes.Timestamp, rtx *rivinetypes.Transaction) error {
+func (txdb *TransactionDB) applyRecordUpdateTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
 	recordBucket := tx.Bucket(bucketBotRecords)
 	if recordBucket == nil {
 		return errors.New("corrupt transaction DB: bot record bucket does not exist")
@@ -796,7 +841,7 @@ func (txdb *TransactionDB) applyRecordUpdateTx(tx *bolt.Tx, blockTime rivinetype
 	// if the bot is still active we expect that the Tx defines the names to remove
 	// otherwise we require that all names should be removed
 	var namesInRecordRemovedImplicitly []types.BotName
-	if record.IsExpired(blockTime) {
+	if record.IsExpired(ctx.BlockTime) {
 		namesInRecordRemovedImplicitly = record.Names.Difference(types.BotNameSortedSet{}) // A \ {} = A
 		// store the implicit update that will happen due to the invalid period prior to this Tx,
 		// this will help is in reverting the record back to its original state,
@@ -811,7 +856,7 @@ func (txdb *TransactionDB) applyRecordUpdateTx(tx *bolt.Tx, blockTime rivinetype
 	}
 
 	// update it (will also reset names of an inactive bot)
-	err = brutx.UpdateBotRecord(blockTime, &record)
+	err = brutx.UpdateBotRecord(ctx.BlockTime, &record)
 	if err != nil {
 		return fmt.Errorf("failed to update bot record: %v", err)
 	}
@@ -849,11 +894,17 @@ func (txdb *TransactionDB) applyRecordUpdateTx(tx *bolt.Tx, blockTime rivinetype
 		}
 	}
 
+	// apply the transactionID to the list of transactionIDs for the given bot
+	err = applyBotTransaction(tx, record.ID, ctx.TransactionShortID(), rtx.ID())
+	if err != nil {
+		return fmt.Errorf("error while applying transaction for bot %d: %v", record.ID, err)
+	}
+
 	// all information is applied
 	return nil
 }
 
-func (txdb *TransactionDB) revertRecordUpdateTx(tx *bolt.Tx, blockTime rivinetypes.Timestamp, rtx *rivinetypes.Transaction) error {
+func (txdb *TransactionDB) revertRecordUpdateTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
 	recordBucket := tx.Bucket(bucketBotRecords)
 	if recordBucket == nil {
 		return errors.New("corrupt transaction DB: bot record bucket does not exist")
@@ -882,7 +933,7 @@ func (txdb *TransactionDB) revertRecordUpdateTx(tx *bolt.Tx, blockTime rivinetyp
 
 	// now check if we're expired, if so,
 	// we might need to revert an implicit update that happened during the apply phase of this Tx
-	if record.IsExpired(blockTime) {
+	if record.IsExpired(ctx.BlockTime) {
 		txID := rtx.ID()
 
 		// if the record is expired, there is a big chance that
@@ -944,11 +995,17 @@ func (txdb *TransactionDB) revertRecordUpdateTx(tx *bolt.Tx, blockTime rivinetyp
 		}
 	}
 
+	// revert the transactionID from the list of transactionIDs for the given bot
+	err = revertBotTransaction(tx, record.ID, ctx.TransactionShortID())
+	if err != nil {
+		return fmt.Errorf("error while reverting transaction for bot %d: %v", record.ID, err)
+	}
+
 	// all information is applied
 	return nil
 }
 
-func (txdb *TransactionDB) applyBotNameTransferTx(tx *bolt.Tx, blockTime rivinetypes.Timestamp, rtx *rivinetypes.Transaction) error {
+func (txdb *TransactionDB) applyBotNameTransferTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
 	recordBucket := tx.Bucket(bucketBotRecords)
 	if recordBucket == nil {
 		return errors.New("corrupt transaction DB: bot record bucket does not exist")
@@ -969,7 +1026,7 @@ func (txdb *TransactionDB) applyBotNameTransferTx(tx *bolt.Tx, blockTime rivinet
 		return fmt.Errorf("failed to unmarshal found record of sender bot %d: %v", bnttx.Sender.Identifier, err)
 	}
 	// update sender bot (this also ensures the sender bot isn't expired)
-	err = bnttx.UpdateSenderBotRecord(blockTime, &record)
+	err = bnttx.UpdateSenderBotRecord(ctx.BlockTime, &record)
 	if err != nil { // automatically checks also if at least one name is transferred, returning an error if not
 		return fmt.Errorf("failed to update record of sender bot %d: %v", record.ID, err)
 	}
@@ -977,6 +1034,12 @@ func (txdb *TransactionDB) applyBotNameTransferTx(tx *bolt.Tx, blockTime rivinet
 	err = recordBucket.Put(tfencoding.Marshal(record.ID), tfencoding.Marshal(record))
 	if err != nil {
 		return fmt.Errorf("error while saving the updated record for sender bot %d: %v", record.ID, err)
+	}
+
+	// apply the transactionID to the list of transactionIDs for the sender bot
+	err = applyBotTransaction(tx, record.ID, ctx.TransactionShortID(), rtx.ID())
+	if err != nil {
+		return fmt.Errorf("error while applying transaction for sender bot %d: %v", record.ID, err)
 	}
 
 	// get the receiver bot record
@@ -989,7 +1052,7 @@ func (txdb *TransactionDB) applyBotNameTransferTx(tx *bolt.Tx, blockTime rivinet
 		return fmt.Errorf("failed to unmarshal found record of receiver bot %d: %v", bnttx.Receiver.Identifier, err)
 	}
 	// update receiver bot (this also ensures the receiver bot isn't expired)
-	err = bnttx.UpdateReceiverBotRecord(blockTime, &record)
+	err = bnttx.UpdateReceiverBotRecord(ctx.BlockTime, &record)
 	if err != nil { // automatically checks also if at least one name is transferred, returning an error if not
 		return fmt.Errorf("failed to update record of receiver bot %d: %v", record.ID, err)
 	}
@@ -1007,10 +1070,16 @@ func (txdb *TransactionDB) applyBotNameTransferTx(tx *bolt.Tx, blockTime rivinet
 		}
 	}
 
+	// apply the transactionID to the list of transactionIDs for the receiver bot
+	err = applyBotTransaction(tx, record.ID, ctx.TransactionShortID(), rtx.ID())
+	if err != nil {
+		return fmt.Errorf("error while applying transaction for receiver bot %d: %v", record.ID, err)
+	}
+
 	// update went fine
 	return nil
 }
-func (txdb *TransactionDB) revertBotNameTransferTx(tx *bolt.Tx, blockTime rivinetypes.Timestamp, rtx *rivinetypes.Transaction) error {
+func (txdb *TransactionDB) revertBotNameTransferTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
 	recordBucket := tx.Bucket(bucketBotRecords)
 	if recordBucket == nil {
 		return errors.New("corrupt transaction DB: bot record bucket does not exist")
@@ -1041,6 +1110,12 @@ func (txdb *TransactionDB) revertBotNameTransferTx(tx *bolt.Tx, blockTime rivine
 		return fmt.Errorf("error while saving the reverted (update of the) receiver bot %d: %v", record.ID, err)
 	}
 
+	// revert the transactionID from the list of transactionIDs for the receiver bot
+	err = revertBotTransaction(tx, record.ID, ctx.TransactionShortID())
+	if err != nil {
+		return fmt.Errorf("error while reverting transaction for receiver bot %d: %v", record.ID, err)
+	}
+
 	// get the sender bot record
 	b = recordBucket.Get(tfencoding.Marshal(bnttx.Sender.Identifier))
 	if len(b) == 0 {
@@ -1067,6 +1142,12 @@ func (txdb *TransactionDB) revertBotNameTransferTx(tx *bolt.Tx, blockTime rivine
 		if err != nil {
 			return fmt.Errorf("failed to update bot record: error while mapping name %v to ID %v: %v", name, record.ID, err)
 		}
+	}
+
+	// revert the transactionID from the list of transactionIDs for the sender bot
+	err = revertBotTransaction(tx, record.ID, ctx.TransactionShortID())
+	if err != nil {
+		return fmt.Errorf("error while reverting transaction for sender bot %d: %v", record.ID, err)
 	}
 
 	// revert went fine
@@ -1134,6 +1215,86 @@ func applyNameToIDMappingIfAvailable(tx *bolt.Tx, name types.BotName, id types.B
 		return nil // already taken
 	}
 	return mappingBucket.Put(tfencoding.Marshal(name), tfencoding.Marshal(id))
+}
+
+// sortableTransactionShortID wraps around the rivinetypes.TransactionShortID,
+// as to ensure it is encoded in a way that allows boltdb use it for natural ordering.
+type sortableTransactionShortID rivinetypes.TransactionShortID
+
+func newSortableTransactionShortID(height rivinetypes.BlockHeight, txSequenceID uint16) sortableTransactionShortID {
+	return sortableTransactionShortID(rivinetypes.NewTransactionShortID(height, txSequenceID))
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia
+func (sid sortableTransactionShortID) MarshalSia(w io.Writer) error {
+	var b [8]byte
+	binary.BigEndian.PutUint64(b[:], uint64(sid))
+	n, err := w.Write(b[:])
+	if err != nil {
+		return err
+	}
+	if n != 8 {
+		return io.ErrShortWrite
+	}
+	return nil
+}
+
+// UnmarshalSia implements SiaMarshaler.UnmarshalSia
+func (sid *sortableTransactionShortID) UnmarshalSia(r io.Reader) error {
+	var b [8]byte
+	n, err := r.Read(b[:])
+	if err != nil {
+		return err
+	}
+	if n != 8 {
+		return io.ErrUnexpectedEOF
+	}
+	*sid = sortableTransactionShortID(binary.BigEndian.Uint64(b[:]))
+	return nil
+}
+
+func applyBotTransaction(tx *bolt.Tx, id types.BotID, shortTxID sortableTransactionShortID, txID rivinetypes.TransactionID) error {
+	txBucket := tx.Bucket(bucketBotTransactions)
+	if txBucket == nil {
+		return errors.New("corrupt transaction DB: implicit bot transactions bucket does not exist")
+	}
+	botBucket, err := txBucket.CreateBucketIfNotExists(tfencoding.Marshal(id))
+	if err != nil {
+		return fmt.Errorf("corrupt transaction DB: failed to create/get bot %d inner bucket: %v", id, err)
+	}
+	return botBucket.Put(tfencoding.Marshal(shortTxID), tfencoding.Marshal(txID))
+}
+func revertBotTransaction(tx *bolt.Tx, id types.BotID, shortTxID sortableTransactionShortID) error {
+	txBucket := tx.Bucket(bucketBotTransactions)
+	if txBucket == nil {
+		return errors.New("corrupt transaction DB: implicit bot transactions bucket does not exist")
+	}
+	botBucket := txBucket.Bucket(tfencoding.Marshal(id))
+	if botBucket != nil {
+		return fmt.Errorf("corrupt transaction DB: bot %d inner bucket does not exist", id)
+	}
+	return botBucket.Delete(tfencoding.Marshal(shortTxID))
+}
+func getBotTransactions(tx *bolt.Tx, id types.BotID) ([]rivinetypes.TransactionID, error) {
+	txBucket := tx.Bucket(bucketBotTransactions)
+	if txBucket == nil {
+		return nil, errors.New("corrupt transaction DB: implicit bot transactions bucket does not exist")
+	}
+	botBucket := txBucket.Bucket(tfencoding.Marshal(id))
+	if botBucket == nil {
+		return nil, nil // no transactions is acceptable
+	}
+	var txIDs []rivinetypes.TransactionID
+	err := botBucket.ForEach(func(_, v []byte) (err error) {
+		var txID rivinetypes.TransactionID
+		err = tfencoding.Unmarshal(v, &txID)
+		txIDs = append(txIDs, txID)
+		return
+	})
+	if err != nil {
+		return nil, fmt.Errorf("corrupt transaction DB: error while parsing stored txID for bot %d: %v", id, err)
+	}
+	return txIDs, nil
 }
 
 func applyImplicitBotRecordUpdate(tx *bolt.Tx, txID rivinetypes.TransactionID, update implicitBotRecordUpdate) error {

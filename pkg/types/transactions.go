@@ -2018,6 +2018,11 @@ type (
 		GetRecordForKey(key PublicKey) (*BotRecord, error)
 		// GetRecordForName returns the record mapped to the given Name.
 		GetRecordForName(name BotName) (*BotRecord, error)
+		// GetBotTransactionIdentifiers returns the identifiers of all transactions
+		// that created and updated the given bot's record.
+		//
+		// The transaction identifiers are returned in the (stable) order as defined by the blockchain.
+		GetBotTransactionIdentifiers(id BotID) ([]types.TransactionID, error)
 	}
 )
 

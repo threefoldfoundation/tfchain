@@ -25,6 +25,12 @@ type (
 	TransactionDBGetBotRecord struct {
 		Record tftypes.BotRecord `json:"record"`
 	}
+
+	// TransactionDBGetBotTransactions contains the requested identifiers
+	// of transactions for a specific bot.
+	TransactionDBGetBotTransactions struct {
+		Identifiers []types.TransactionID `json:"ids"`
+	}
 )
 
 // RegisterTransactionDBHTTPHandlers registers the handlers for all TransactionDB HTTP endpoints.
@@ -45,6 +51,8 @@ func RegisterTransactionDBHTTPHandlers(router api.Router, txdb *persist.Transact
 	router.GET("/explorer/3bot/:id", NewTransactionDBGetRecordForIDHandler(txdb))
 	router.GET("/consensus/whois/3bot/:name", NewTransactionDBGetRecordForNameHandler(txdb))
 	router.GET("/explorer/whois/3bot/:name", NewTransactionDBGetRecordForNameHandler(txdb))
+	router.GET("/consensus/3bot/:id/transactions", NewTransactionDBGetBotTransactionsHandler(txdb))
+	router.GET("/explorer/3bot/:id/transactions", NewTransactionDBGetBotTransactionsHandler(txdb))
 }
 
 // NewTransactionDBGetActiveMintConditionHandler creates a handler to handle the API calls to /transactiondb/mintcondition.
@@ -89,8 +97,8 @@ func NewTransactionDBGetRecordForIDHandler(txdb *persist.TransactionDB) httprout
 			record *tftypes.BotRecord
 		)
 		idStr := ps.ByName("id")
-
-		id, err := strconv.ParseUint(idStr, 10, 32)
+		var id tftypes.BotID
+		err = id.LoadString(idStr)
 		if err == nil {
 			// interpret it as a BotID
 			record, err = txdb.GetRecordForID(tftypes.BotID(id))
@@ -100,7 +108,7 @@ func NewTransactionDBGetRecordForIDHandler(txdb *persist.TransactionDB) httprout
 			err = pubKey.LoadString(idStr)
 			if err != nil {
 				api.WriteError(w, api.Error{Message: fmt.Errorf("id has to be a valid PublicKey or BotID: %v", err).Error()},
-					http.StatusInternalServerError)
+					http.StatusBadRequest)
 				return
 			}
 			record, err = txdb.GetRecordForKey(pubKey)
@@ -132,6 +140,29 @@ func NewTransactionDBGetRecordForNameHandler(txdb *persist.TransactionDB) httpro
 		}
 		api.WriteJSON(w, TransactionDBGetBotRecord{
 			Record: *record,
+		})
+	}
+}
+
+// NewTransactionDBGetBotTransactionsHandler creates a handler to handle the API calls to /transactiondb/3bot/:id/transactions.
+func NewTransactionDBGetBotTransactionsHandler(txdb *persist.TransactionDB) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		idStr := ps.ByName("id")
+		var id tftypes.BotID
+		err := id.LoadString(idStr)
+		if err != nil {
+			api.WriteError(w, api.Error{Message: fmt.Errorf("id has to be a valid BotID: %v", err).Error()},
+				http.StatusBadRequest)
+			return
+		}
+		ids, err := txdb.GetBotTransactionIdentifiers(id)
+		if err != nil {
+			api.WriteError(w, api.Error{Message: fmt.Errorf("failed to get transactions for BotID: %v", err).Error()},
+				http.StatusInternalServerError)
+			return
+		}
+		api.WriteJSON(w, TransactionDBGetBotTransactions{
+			Identifiers: ids,
 		})
 	}
 }

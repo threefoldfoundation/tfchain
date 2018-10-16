@@ -105,6 +105,16 @@ func (cli *TransactionDBClient) GetRecordForName(name types.BotName) (*types.Bot
 	return &result.Record, nil
 }
 
+// GetBotTransactionIdentifiers implements types.BotRecordReadRegistry.GetBotTransactionIdentifiers
+func (cli *TransactionDBClient) GetBotTransactionIdentifiers(id types.BotID) ([]rivinetypes.TransactionID, error) {
+	var result api.TransactionDBGetBotTransactions
+	err := cli.client.GetAPI(fmt.Sprintf("%s/3bot/%s/transactions", cli.rootEndpoint, id.String()), &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bot transactions for ID %s from daemon: %v", id.String(), err)
+	}
+	return result.Identifiers, nil
+}
+
 // GetRecordForString gets a bot record for either a ID, (public) key or name,
 // as long as it is referenced to a registered Bot.
 func (cli *TransactionDBClient) GetRecordForString(str string) (*types.BotRecord, error) {

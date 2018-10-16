@@ -241,7 +241,7 @@ func (nass *NetworkAddressSortedSet) RemoveAddress(address NetworkAddress) error
 		return nass.slice[i].Compare(address) >= 0
 	})
 	if index >= limit || !nass.slice[index].Equals(address) {
-		return ErrNetworkAddressNotUnique
+		return ErrNetworkAddressDoesNotExist
 	}
 	copy(nass.slice[index:], nass.slice[index+1:])
 	nass.slice[nass.slice.Len()-1] = NetworkAddress{}
