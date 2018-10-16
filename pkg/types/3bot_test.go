@@ -477,7 +477,7 @@ func mustNewBotName(t *testing.T, str string) BotName {
 	t.Helper()
 	name, err := NewBotName(str)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal(err, str)
 	}
 	return name
 }

@@ -292,7 +292,7 @@ func mustNewNetworkAddress(t *testing.T, str string) NetworkAddress {
 	t.Helper()
 	addr, err := NewNetworkAddress(str)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal(err, str)
 	}
 	return addr
 }
