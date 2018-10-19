@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	rawVersion = "v1.1.0"
+	rawVersion = "v1.1.1-rc2"
 	// Version of the tfchain binaries.
 	//
 	// Value is defined by a private build flag,
@@ -68,7 +68,7 @@ func GetStandardnetGenesisMintCondition() types.UnlockConditionProxy {
 
 // GetStandardnetGenesis explicitly sets all the required constants for the genesis block of the standard (prod) net
 func GetStandardnetGenesis() types.ChainConstants {
-	cfg := types.DefaultChainConstants()
+	cfg := types.StandardnetChainConstants()
 
 	// use the threefold currency units
 	cfg.CurrencyUnits = GetCurrencyUnits()
@@ -199,7 +199,7 @@ func GetTestnetGenesisMintCondition() types.UnlockConditionProxy {
 
 // GetTestnetGenesis explicitly sets all the required constants for the genesis block of the testnet
 func GetTestnetGenesis() types.ChainConstants {
-	cfg := types.DefaultChainConstants()
+	cfg := types.TestnetChainConstants()
 
 	// use the threefold currency units
 	cfg.CurrencyUnits = GetCurrencyUnits()
@@ -270,7 +270,7 @@ func GetDevnetGenesisMintCondition() types.UnlockConditionProxy {
 
 // GetDevnetGenesis explicitly sets all the required constants for the genesis block of the devnet
 func GetDevnetGenesis() types.ChainConstants {
-	cfg := types.DefaultChainConstants()
+	cfg := types.DevnetChainConstants()
 
 	// use the threefold currency units
 	cfg.CurrencyUnits = GetCurrencyUnits()

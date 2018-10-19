@@ -2037,7 +2037,7 @@ function appendNavigationMenuCoinOutput(explorerHash, hash) {
 					var outputSpan = document.createElement('span');
 					var navContainer = document.getElementById('nav-container');
 					outputSpan.id = 'nav-links-output';
-					navContainer.appendChild(outputspan);
+					navContainer.appendChild(outputSpan);
 					navigation.appendChild(navContainer);
 					linkHash(outputSpan, explorerHash.transactions[i].coinoutputids[j], 'Coin Output');
 					return;
