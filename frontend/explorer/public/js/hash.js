@@ -686,7 +686,7 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 	}
 	if (explorerTransaction.rawtransaction.data.addresses.remove != null
 		&& explorerTransaction.rawtransaction.data.addresses.remove.length > 0) {
-		appendStat(botRegTable, 'Addresses Removed', explorerTransaction.rawtransaction.data.addresses.add.join(', '));
+		appendStat(botRegTable, 'Addresses Removed', explorerTransaction.rawtransaction.data.addresses.remove.join(', '));
 	}
 	if (explorerTransaction.rawtransaction.data.names.add != null
 		&& explorerTransaction.rawtransaction.data.names.add.length > 0) {
