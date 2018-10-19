@@ -91,7 +91,7 @@
     "sync",
     "types"
   ]
-  revision = "1399182e155485a0b26a87b7c86298d1d49cc2bb"
+  revision = "a39c7d5031a6237aa63a18e89f8dd18ba9c9177f"
 
 [[projects]]
   name = "github.com/rivine/smux"
