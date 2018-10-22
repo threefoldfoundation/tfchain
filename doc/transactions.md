@@ -1,16 +1,16 @@
 # Transactions
 
 The main purpose of a transaction is to transfer coins and/or block stakes between addresses.
-For each coin/ that is spend (registered as coin output), including a transaction fee,
+For each coin that is spend (registered as coin output), including a transaction fee,
 there must be one or multiple (coin) inputs backing it up. Meaning the sum of coin inputs,
 must equal the sum of miner fees plus coin outputs. Coin inputs must be previously-registered outputs,
 which haven't been used as input yet. The same rule applies to block stakes, another kind of asset,
-except that miner fees are to be paid in coins not in block stakes.
+except that miner fees are to be still paid in coins not in block stakes.
 
 > [Minter Definition Transactions](#minter-definition-transactions) and [Coin Creation Transactions](#coin-creation-transactions) are exceptions to the rule, a transaction of this type define coin outputs and/or minder fees with no coin inputs defined. Meaning these coins are created with no backing of previous outputs.
 
 As each output is backed by one or multiple inputs, it is not uncommon to have a too big
-amount of input registered. If so, it is is required register the extra
+amount of input registered. If so, it is is required to register the extra
 amount as another output, be at addressed to your own wallet.
 This works very similar to the change money you get in a supermarket by paying too much.
 
