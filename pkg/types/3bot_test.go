@@ -226,13 +226,6 @@ func TestMinimalHexEncodedBinaryBotRecord(t *testing.T) {
 	}
 }
 
-// TODO:
-// TestAddNames
-// TestRemoveNames
-// TestAddNetworkAddresses
-// TestRemoveNetworkAddresses
-// TestExtendExpirationDate
-
 func TestBotNameSortedSet(t *testing.T) {
 	var bnss BotNameSortedSet
 	if s := bnss.Len(); s != 0 {
@@ -469,6 +462,24 @@ func TestBotNameSliceSort(t *testing.T) {
 		str := name.String()
 		if expectedStrings[idx] != str {
 			t.Error(idx, "unexpected stringified name", expectedStrings[idx], "!=", str)
+		}
+	}
+}
+
+func TestBotNameEquals(t *testing.T) {
+	testCases := []struct {
+		A, B BotName
+	}{
+		{mustNewBotName(t, "aaaaa"), mustNewBotName(t, "aaaaa")},
+		{mustNewBotName(t, "aaaaa.bbbbb"), mustNewBotName(t, "aaaaa.bbbbb")},
+		{mustNewBotName(t, "aaaaa.Bbbbb"), mustNewBotName(t, "aaaaa.bbbbb")},
+		{mustNewBotName(t, "aaaaa.bbbbb"), mustNewBotName(t, "aaaaa.bbBbb")},
+		{mustNewBotName(t, "aAaAa.BbBbB"), mustNewBotName(t, "AaAaA.bBbBb")},
+	}
+	for _, testCase := range testCases {
+		isEqual := testCase.A.Equals(testCase.B)
+		if !isEqual {
+			t.Error(testCase.A, "!=", testCase.B)
 		}
 	}
 }

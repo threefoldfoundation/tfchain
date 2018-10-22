@@ -295,7 +295,7 @@ func NewBotName(name string) (BotName, error) {
 	if !rexBotName.MatchString(name) {
 		return BotName{}, ErrInvalidBotName
 	}
-	return BotName{name: []byte(name)}, nil
+	return BotName{name: bytes.ToLower([]byte(name))}, nil
 }
 
 // MarshalSia implements SiaMarshaler.MarshalSia
@@ -305,7 +305,12 @@ func (bn BotName) MarshalSia(w io.Writer) error {
 
 // UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
 func (bn *BotName) UnmarshalSia(r io.Reader) error {
-	return encoding.NewDecoder(r).Decode(&bn.name)
+	err := encoding.NewDecoder(r).Decode(&bn.name)
+	if err != nil {
+		return err
+	}
+	bn.name = bytes.ToLower(bn.name)
+	return nil
 }
 
 // String returns this BotName in a (human-readable) string format.
@@ -333,12 +338,12 @@ func (bn *BotName) UnmarshalJSON(b []byte) error {
 	return bn.LoadString(str)
 }
 
-// Equals returns true if this BotName and the given BotName are equal.
+// Equals returns true if this BotName and the given BotName are equal (case insensitive).
 func (bn BotName) Equals(obn BotName) bool {
-	return bytes.Compare(bn.name, obn.name) == 0
+	return bn.Compare(obn) == 0
 }
 
-// Compare returns an integer comparing two bot names lexicographically.
+// Compare returns an integer comparing two bot names lexicographically (case insensitive).
 // The result will be 0 if a==b, -1 if a < b, and +1 if a > b.
 func (bn BotName) Compare(obn BotName) int {
 	return bytes.Compare(bn.name, obn.name)
