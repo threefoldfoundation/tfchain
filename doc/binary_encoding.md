@@ -76,7 +76,7 @@ Good enough for many years to come.
 
 #### Public Key
 
-PublicKey was already supported in Rivine, but there a 16-byte (char-array) constant is used as specifier, identifying the algorithm. In tfchain a 1-byte specifier is used instead, allowing up to 255 algorithms to be used, which is a lot more than the currently only supported algorithm.
+PublicKey was already supported in Rivine, but there a 16-byte (character array) constant is used as specifier, identifying the algorithm. In tfchain a 1-byte specifier is used instead, allowing up to 255 algorithms to be used, which is a lot more than the currently only supported algorithm.
 
 #### Network Address
 
