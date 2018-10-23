@@ -240,8 +240,313 @@ blake2b_256_hash(BinaryEncoding(
 )) : 32 bytes fixed-size crypto hash
 ```
 
+### 3Bot Transactions
+
+The composition, encoding and signing of the three different 3Bot transactions are fully explained in the following subchapters.
+
+Please note that you might want to read a high level technical overview, found at [3bot.md](3bot.md), prior to reading this chapter. Further you might also want to make sure that you're familiar with the tfchain binary encoding, as the 3Bot transactions are the first transaction versions where this encoding library is used. You can find more information about the tfchain binary encoding at [binary_encoding.md](binary_encoding.md).
+
+#### 3Bot Registration Transaction
+
+The 3Bot Registration Transaction is used to register a new 3Bot. It has to be new, meaning that the public key cannot be linked yet to an existing 3Bot. Within the consensus engine and explorers, 3Bots are represented by 3Bot records. One such record will be created as the result of this transaction. Other 3Bot transaction types will modify this created record, rather than creating a new one. As part of the registration process, the 3Bot is also assigned a unique 32-bit identifier, which is to be used to identify the 3Bot.
+
+##### JSON Encoding a 3Bot Registration Transaction
+
+```javascript
+{
+	// 0x90,
+	// the version of a 3Bot Registration Transaction
+	"version": 144,
+	// the 3Bot Registration Transaction data
+	"data": {
+		// optional network addresses that can be used to reach the 3Bot on its Public API,
+		// maximum 10 addresses are allowed, and no fees are paid for it
+		// during registration.
+		"addresses": ["91.198.174.192", "example.org"],
+		// optional names that can be used to reach the 3Bot on its Public API, using these
+		// aliases rather than directly using the 3Bot addresses, up to 5 names are
+		// allowed, and the first one is free-of-charge during registration.
+		// Note that even though both addresses and names are optional,
+		// at least one name or one address is required, so one of twoproperty is optional,
+		// not both.
+		"names": ["chatbot.example"],
+		// The number of months that are prepaid in advance,
+		// at least one is required, 12 gives a 30% discount,
+		// 24 is the limit and gives a 50% discount.
+		"nrofmonths": 1,
+		// Required transaction fee, has to be equal to or greater than 0.1 TFT
+		"txfee": "1000000000",
+		// Coin Inputs used to fund the Tx and 3Bot fees
+		"coininputs": [{
+			"parentid": "6baaa92439370a5110fdc244286a49b40b282b2af5af81e7a8e31c3658f16c04",
+			"fulfillment": {
+				"type": 1,
+				"data": {
+					"publickey": "ed25519:a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d",
+					"signature": "b7da6d67e98c15ff83709419269a6b2f7b041c7f3605e927113d53fd1f6fafec4db2a991df7e7b3824d8fa806d2809d59d9d6560e5121b048910c40a5ed40f0d"
+				}
+			}
+		}],
+		// Optional (single) Refund Coin Output, can be used in case the coin input,
+		// defines more input coins than required for the 3Bot and Tx fees.
+		"refundcoinoutput": {
+			"value": "99999798000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "0173f82c3ee74286c33fee8d883a7e9e759c6230b9e4e956ef233d7202bde69da45054270eef99"
+				}
+			}
+		},
+		// Identification of the 3Bot, containing its public key and
+		// signature (of this Tx). The Public key is only given during registration,
+		// afterwards it has to be looked up using its unique identifier.
+		"identification": {
+			"publickey": "ed25519:4e42a2fcfc0963d6fa7bb718fd088d9b6544331e8562d2743e730cdfbedeb55a",
+			"signature": "a5ec12a859e56e8ddad951007591ad989dafc90d9aaabe8c879de42d4ff6edcd40213a002da251444b6fb6a29d78e4bc6bcfc844052969da7d0a67d91fa9c001"
+		}
+	}
+}
+```
+
+###### Binary Encoding a 3Bot Registration Transaction
+
+The binary encoding of a 3Bot Registration Transaction uses the tfchain encoding package. In order to understand the binary encoding of such a transaction, please see [the tfchain encoding documentation][tfchain-encoding] in order to understand how a 3Bot Registration Transaction is binary encoded.
+
+The same transaction that was shown as an example of a JSON-encoded 3Bot Registration Transaction, can be represented in a hexadecimal string —when binary encoded— as:
+
+```raw
+90e112115bc6aec02c6578616d706c652e6f72671e63686174626f742e6578616d706c6504000000000000003b9aca00026baaa92439370a5110fdc244286a49b40b282b2af5af81e7a8e31c3658f16c04018000000000000000656432353531390000000000000000002000000000000000a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d4000000000000000b7da6d67e98c15ff83709419269a6b2f7b041c7f3605e927113d53fd1f6fafec4db2a991df7e7b3824d8fa806d2809d59d9d6560e5121b048910c40a5ed40f0d08000000000000000163454955669c000121000000000000000173f82c3ee74286c33fee8d883a7e9e759c6230b9e4e956ef233d7202bde69da4004e42a2fcfc0963d6fa7bb718fd088d9b6544331e8562d2743e730cdfbedeb55aa5ec12a859e56e8ddad951007591ad989dafc90d9aaabe8c879de42d4ff6edcd40213a002da251444b6fb6a29d78e4bc6bcfc844052969da7d0a67d91fa9c001
+```
+
+###### Signing a 3Bot Registration Transaction
+
+It is assumed that the reader of this chapter has already
+read [Rivine's Introduction to Signing Transactions][rivine-signing-into] and all its referenced content.
+
+> Note though that for the signing of 3Bot transactions the [tfchain encoding library][tfchain-encoding] is used.
+
+In order to sign a 3Bot transaction, you first need to compute the hash,
+which is used as message, which we'll than to create a signature using the Ed25519 algorithm.
+
+Computing that hash can be represented by following pseudo code:
+
+```plain
+blake2b_256_hash(TFChainBinaryEncoding(
+  - transactionVersion: 1 byte, hardcoded to `0x90` (144 in decimal)
+  - specifier: 16 bytes, hardcoded to "bot register tx\0"
+  - TFChainBinaryEncoding(addresses, names, nrOfMonths)
+  - length(coinInputs): int (8 bytes, little endian)
+  - for each coin input:
+    - parentID
+  - TFChainBinaryEncoding(txFee, ptr(refundCoinOutput), publicKey)
+)) : 32 bytes fixed-size crypto hash
+```
+
+#### 3Bot Record Update Transaction
+
+The 3Bot Record Update Transaction is used to update an existing 3Bot,
+meaning it has to be created in an existing block on the chain, using a 3Bot Registration Transaction.
+The 3Bot can be inactive at the point of update, as long as it is made active again at that point by
+paying for at least one month.
+
+##### JSON Encoding a 3Bot Record Update Transaction
+
+```javascript
+{
+	// 0x91,
+	// the 3Bot Record Update Transaction Version
+	"version": 145,
+	// the 3Bot Record Update Transaction data
+	"data": {
+		// unique identifier of the 3Bot, assdigned during registration
+		"id": 2,
+		// optional, network addresses to add/remove:
+		// - only network addresses currently existing in the 3Bot record can be removed;
+		// - after applying the removed and added network addresses, the record
+		//   is allowed a maximum of 10 addresses;
+		// - 20 TFT is to be paid to modify the network addresses of an existing 3Bot.
+		"addresses": {
+			"add": ["example.com"],
+			"remove": ["example.org"]
+		},
+		// optional, 3Bot names to add/remove:
+		// - only 3Bot names currently linked to the 3Bot record can be removed;
+		// - after applying the removed and added 3Bot names, the record
+		//   is allowed a maximum of 5 names;
+		// - 50 TFT is to be paid per added bot name,
+		//   removing bot names requires no additional fee.
+		"names": {
+			"add": ["voicebot.example", "voicebot.example.myorg"],
+			"remove": ["chatbot.example"]
+		},
+		// number of months to be added:
+		//  - if the 3Bot was inactive this field is required, the 3Bot expiration date will
+		//    be reset starting from this transaction's block time and adding the number of months to it;
+		//  - if the 3Bot was (still) active this field is optional, and the number of months
+		//    will be added to the current expiration time;
+		"nrofmonths": 0,
+		// Required transaction fee, has to be equal to or greater than 0.1 TFT
+		"txfee": "1000000000",
+		// Coin Inputs used to fund the Tx and 3Bot fees
+		"coininputs": [{
+			"parentid": "716f00dcaa5604f665aafad40d7704dba416de060174b0d3dc847bf61936f14f",
+			"fulfillment": {
+				"type": 1,
+				"data": {
+					"publickey": "ed25519:7469d51063cdb690cc8025db7d28faadc71ff69f7c372779bf3a1e801a923e02",
+					"signature": "33d02ebecc5e54de79d474473228511522219b922006ab68fc4732881dbd219938e402558e1eb4c981f27df17c28728c21c8bf3027341b7602421e715968bc00"
+				}
+			}
+		}],
+		// Optional (single) Refund Coin Output, can be used in case the coin input,
+		// defines more input coins than required for the 3Bot and Tx fees.
+		"refundcoinoutput": {
+			"value": "99999677000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "01af49ca1223d84089b60b40d6ae171dc951e331938fd75fd39e0167a989f3a83b0781f2372113"
+				}
+			}
+		},
+		// Signature of this 3Bot Record Update Transaction, signed by the 3Bot,
+		// can be validated by looking up the 3Bot's public key (using its ID).
+		"signature": "4239cbe196f188f051d01cbe490bb52c8667cda56b1882f4de5aed364b28fb4e375d1c237108d80f215ed96276d15ef38a992d1d1c0c019da951e680bfc79c05"
+	}
+}
+```
+
+###### Binary Encoding a 3Bot Record Update Transaction
+
+The binary encoding of a 3Bot Record Update Transaction uses the tfchain encoding package. In order to understand the binary encoding of such a transaction, please see [the tfchain encoding documentation][tfchain-encoding] in order to understand how a 3Bot Record Update Transaction is binary encoded.
+
+The same transaction that was shown as an example of a JSON-encoded 3Bot Record Update Transaction, can be represented in a hexadecimal string —when binary encoded— as:
+
+```raw
+9102000000e0112c6578616d706c652e636f6d2c6578616d706c652e6f72671220766f696365626f742e6578616d706c652c766f696365626f742e6578616d706c652e6d796f72671e63686174626f742e6578616d706c6504000000000000003b9aca0002716f00dcaa5604f665aafad40d7704dba416de060174b0d3dc847bf61936f14f0180000000000000006564323535313900000000000000000020000000000000007469d51063cdb690cc8025db7d28faadc71ff69f7c372779bf3a1e801a923e02400000000000000033d02ebecc5e54de79d474473228511522219b922006ab68fc4732881dbd219938e402558e1eb4c981f27df17c28728c21c8bf3027341b7602421e715968bc0008000000000000000163452d293d220001210000000000000001af49ca1223d84089b60b40d6ae171dc951e331938fd75fd39e0167a989f3a83b804239cbe196f188f051d01cbe490bb52c8667cda56b1882f4de5aed364b28fb4e375d1c237108d80f215ed96276d15ef38a992d1d1c0c019da951e680bfc79c05
+```
+
+###### Signing a 3Bot Record Update Transaction
+
+It is assumed that the reader of this chapter has already
+read [Rivine's Introduction to Signing Transactions][rivine-signing-into] and all its referenced content.
+
+> Note though that for the signing of 3Bot transactions the [tfchain encoding library][tfchain-encoding] is used.
+
+In order to sign a 3Bot transaction, you first need to compute the hash,
+which is used as message, which we'll than to create a signature using the Ed25519 algorithm.
+
+Computing that hash can be represented by following pseudo code:
+
+```plain
+blake2b_256_hash(TFChainBinaryEncoding(
+  - transactionVersion: 1 byte, hardcoded to `0x90` (144 in decimal)
+  - specifier: 16 bytes, hardcoded to "bot recupdate tx"
+  - identifier of the 3Bot (uint32)
+  - TFChainBinaryEncoding(addresses_add, addresses_remove, names_add, names_remove, nrOfMonths)
+  - length(coinInputs): int (8 bytes, little endian)
+  - for each coin input:
+    - parentID
+  - TFChainBinaryEncoding(txFee, ptr(refundCoinOutput))
+)) : 32 bytes fixed-size crypto hash
+```
+
+#### 3Bot Name Transfer Transaction
+
+The 3Bot Name Transfer Transaction is used to transfer one or multiple 3Bot names from
+one existing active 3Bot to another existing active 3Bot.
+
+##### JSON Encoding a 3Bot Name Transfer Transaction
+
+```javascript
+{
+	// 0x92,
+	// the version of a 3Bot Name Transfer Transaction
+	"version": 146,
+	// the Name Transfer Transaction Data
+	"data": {
+		// unique identifier and signature of the sending 3Bot,
+		// meaning the 3Bot transferring names it owned to the receiver 3Bot.
+		"sender": {
+			"id": 2,
+			"signature": "86755218edff668c46f5c7a0bb3788a35e6d0b7de317aa3cb2a02d29762133302bcec739c9a20c8e39ba2dc950f7e604ccfb801124f4954785a2444c9ba78109"
+		},
+		// unique identifier and signature of the receiver 3Bot,
+		// meaning the 3Bot receiving names from the sender 3Bot.
+		"receiver": {
+			"id": 1,
+			"signature": "15feaecd462b9223db1703f0e650146981a96b4972901bf3a8ca4480224ceac173418b7724155f0f91e0a30af28ef75afa829ab028c1c0b8360ba42bfffa9404"
+		},
+		// names to be transferred from the sender to the receiver 3Bot.
+		"names": ["voicebot.example", "voicebot.example.myorg"],
+		// Required transaction fee, has to be equal to or greater than 0.1 TFT
+		"txfee": "1000000000",
+		// Coin Inputs used to fund the Tx and 3Bot fees
+		"coininputs": [{
+			"parentid": "07d4c70711d634c6922c16b994168bac11b359e0c61c231209132ad4dfa8c1b2",
+			"fulfillment": {
+				"type": 1,
+				"data": {
+					"publickey": "ed25519:300d034c02cfcc58ddf2b3059547ef91184f49f4a84bc3ec0123051bacfb987e",
+					"signature": "5556ad839ebde45fe09b2bfabdff661b5e4841b7d3668def2bd7a6eca0a621519dcaf456368a96e0bb89de179d57c90745c7d5e4dac86a52766f49deb2e65208"
+				}
+			}
+		}],
+		// Optional (single) Refund Coin Output, can be used in case the coin input,
+		// defines more input coins than required for the 3Bot and Tx fees.
+		"refundcoinoutput": {
+			"value": "99999576000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "011c17aaf2d54f63644f9ce91c06ff984182483d1b943e96b5e77cc36fdb887c846b60460bceb0"
+				}
+			}
+		}
+	}
+}
+```
+
+###### Binary Encoding a 3Bot Name Transfer Transaction
+
+The binary encoding of a 3Bot Name Transfer Transaction uses the tfchain encoding package. In order to understand the binary encoding of such a transaction, please see [the tfchain encoding documentation][tfchain-encoding] in order to understand how a 3Bot Name Transfer Transaction is binary encoded.
+
+The same transaction that was shown as an example of a JSON-encoded 3Bot Name Transfer Transaction, can be represented in a hexadecimal string —when binary encoded— as:
+
+```raw
+92020000008086755218edff668c46f5c7a0bb3788a35e6d0b7de317aa3cb2a02d29762133302bcec739c9a20c8e39ba2dc950f7e604ccfb801124f4954785a2444c9ba78109010000008015feaecd462b9223db1703f0e650146981a96b4972901bf3a8ca4480224ceac173418b7724155f0f91e0a30af28ef75afa829ab028c1c0b8360ba42bfffa94041220766f696365626f742e6578616d706c652c766f696365626f742e6578616d706c652e6d796f726704000000000000003b9aca000207d4c70711d634c6922c16b994168bac11b359e0c61c231209132ad4dfa8c1b2018000000000000000656432353531390000000000000000002000000000000000300d034c02cfcc58ddf2b3059547ef91184f49f4a84bc3ec0123051bacfb987e40000000000000005556ad839ebde45fe09b2bfabdff661b5e4841b7d3668def2bd7a6eca0a621519dcaf456368a96e0bb89de179d57c90745c7d5e4dac86a52766f49deb2e65208080000000000000001634515a52b7000012100000000000000011c17aaf2d54f63644f9ce91c06ff984182483d1b943e96b5e77cc36fdb887c84
+```
+
+###### Signing a 3Bot Record Update Transaction
+
+It is assumed that the reader of this chapter has already
+read [Rivine's Introduction to Signing Transactions][rivine-signing-into] and all its referenced content.
+
+> Note though that for the signing of 3Bot transactions the [tfchain encoding library][tfchain-encoding] is used.
+
+In order to sign a 3Bot transaction, you first need to compute the hash,
+which is used as message, which we'll than to create a signature using the Ed25519 algorithm.
+
+Computing that hash can be represented by following pseudo code:
+
+```plain
+blake2b_256_hash(TFChainBinaryEncoding(
+  - transactionVersion: 1 byte, hardcoded to `0x90` (144 in decimal)
+  - specifier: 16 bytes, hardcoded to "bot nametrans tx"
+  - identifier of the sender 3Bot (uint32)
+  - identifier of the receiver 3Bot (uint32)
+  - TFChainBinaryEncoding(names)
+  - length(coinInputs): int (8 bytes, little endian)
+  - for each coin input:
+    - parentID
+  - TFChainBinaryEncoding(txFee, ptr(refundCoinOutput))
+)) : 32 bytes fixed-size crypto hash
+```
+
 [rivine]: https://github.com/rivine/rivine
 [rivine-encoding]: https://github.com/rivine/rivine/blob/master/doc/Encoding.md
+[tfchain-encoding]: binary_encoding.md
 [rivine-txs]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md
 [rivine-tx-v1]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-v1-transactions
 [rivine-condition-uh]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-an-unlockhashcondition

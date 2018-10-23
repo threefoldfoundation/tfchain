@@ -826,9 +826,9 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 	appendStat(botRegTable, 'Signature of receiving 3Bot', explorerTransaction.rawtransaction.data.receiver.signature);
 	if (explorerTransaction.rawtransaction.data.names != null
 		&& explorerTransaction.rawtransaction.data.names.length > 0) {
+		var namesDom = appendStat(botRegTable, 'Names Transferred', '');
 		for (var i = 0; i < explorerTransaction.rawtransaction.data.names.length; i++) {
 			var name = explorerTransaction.rawtransaction.data.names[i];
-			var namesDom = appendStat(botRegTable, 'Names Transferred', '');
 			linkBotName(namesDom[2], name);
 			if (i < explorerTransaction.rawtransaction.data.names.length-1) {
 				namesDom[2].appendChild(document.createTextNode(', '));
