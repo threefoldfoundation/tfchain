@@ -607,11 +607,12 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 	// add the bot fee to the Tx stats
 
 	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
+		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
 		appendStatTableTitle(infoBody, 'Refund Coin Output');
-		botFeeValue -= explorerTransaction.rawtransaction.data.refundcoinoutput.value;
-		explorerTransaction.rawtransaction.data.coinoutputs = [explorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
+		botFeeValue -= outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value;
+		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
 		var f;
-		switch (explorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
+		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
 			// handle nil transactions
 			case undefined:
 			case 0:
@@ -632,7 +633,7 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 		}
 		if (f != null) {
 			var outputTable = createStatsTable();
-			f(ctx, outputTable, explorerTransaction, 0, 'coins');
+			f(ctx, outputTable, outputExplorerTransaction, 0, 'coins');
 			infoBody.appendChild(outputTable);
 		}
 	}
@@ -745,11 +746,12 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 	// add the bot fee to the Tx stats
 
 	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
+		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
 		appendStatTableTitle(infoBody, 'Refund Coin Output');
-		botFeeValue -= explorerTransaction.rawtransaction.data.refundcoinoutput.value;
-		explorerTransaction.rawtransaction.data.coinoutputs = [explorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
+		botFeeValue -= outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value;
+		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
 		var f;
-		switch (explorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
+		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
 			// handle nil transactions
 			case undefined:
 			case 0:
@@ -770,7 +772,7 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 		}
 		if (f != null) {
 			var outputTable = createStatsTable();
-			f(ctx, outputTable, explorerTransaction, 0, 'coins');
+			f(ctx, outputTable, outputExplorerTransaction, 0, 'coins');
 			infoBody.appendChild(outputTable);
 		}
 	}
@@ -864,11 +866,12 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 	// add the bot fee to the Tx stats
 
 	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
+		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
 		appendStatTableTitle(infoBody, 'Refund Coin Output');
-		botFeeValue -= explorerTransaction.rawtransaction.data.refundcoinoutput.value;
-		explorerTransaction.rawtransaction.data.coinoutputs = [explorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
+		botFeeValue -= outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value;
+		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
 		var f;
-		switch (explorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
+		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
 			// handle nil transactions
 			case undefined:
 			case 0:
@@ -889,7 +892,7 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 		}
 		if (f != null) {
 			var outputTable = createStatsTable();
-			f(ctx, outputTable, explorerTransaction, 0, 'coins');
+			f(ctx, outputTable, outputExplorerTransaction, 0, 'coins');
 			infoBody.appendChild(outputTable);
 		}
 	}
