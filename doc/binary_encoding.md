@@ -45,11 +45,11 @@ Arrays and structs are simply the concatenation of their encoded elements (no le
 
 All struct fields must be exported. The ordering of struct fields is determined by their type definition.
 
-Finally, if a type implements the SiaMarshaler interface, its MarshalSia method will be used to encode the type. Similarly, if a type implements the SiaUnmarshal interface, its UnmarshalSia method will be used to decode the type. Note that unless a type implements both interfaces, it must conform to the spec above. Otherwise, it may encode and decode itself however desired. This may be an attractive option where speed is critical, since it allows for more compact representations, and bypasses the use of reflection.
+Finally, if a type implements the `SiaMarshaler` interface, its `MarshalSia` method will be used to encode the type. Similarly, if a type implements the `SiaUnmarshal` interface, its `UnmarshalSia` method will be used to decode the type. Note that unless a type implements both interfaces, it must conform to the spec above. Otherwise, it may encode and decode itself however desired. This may be an attractive option where speed is critical, since it allows for more compact representations, and bypasses the use of reflection.
 
 ## 3Bot Encoding
 
-3Bot transactions and records are mostly following standard encoding, but do have special encoding rules for specifc types and grouped properties. In this chapter we'll describe the types and tricks used to achieve an even compactor format, possible because of the limits put on its properties.
+3Bot transactions and records are mostly following standard encoding, but do have special encoding rules for specific types and grouped properties. In this chapter we'll describe the types and tricks used to achieve an even compactor format, possible because of the limits put on its properties.
 
 #### Tricks
 
@@ -63,7 +63,7 @@ The first common trick used in 3Bot transactions is to store two slices together
 
 One integral value that is, by definition, really small in 3Bot transactions is the "number of months". It can have a maximum of 24, meaning it fits in 5 bits (< 32), giving a waste of 3 bits.
 
-These 3 bits are used in 3Bot transactions as flags, 1 bit per flag. The flag can indicate if certain properties are avaialble, such that it can save a byte for 0-length variable-length types (`0x00`) or a byte that would normally be used to indicate a nil-pointer (`0x00`).
+These 3 bits are used in 3Bot transactions as flags, 1 bit per flag. The flag can indicate if certain properties are available, such that it can save a byte for 0-length variable-length types (`0x00`) or a byte that would normally be used to indicate a nil-pointer (`0x00`).
 
 ### Types
 
@@ -89,4 +89,4 @@ Network addresses are encoded using their raw byte representation with a 1 byte 
 | 2 | IPv6 | 16 |
 | 3 | undefined |
 
-Hostnames are enoded as raw UTF-8 encoded byte slices.
+Hostnames are encoded as raw UTF-8 encoded byte slices.
