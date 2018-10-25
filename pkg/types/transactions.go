@@ -948,10 +948,10 @@ type (
 		// Addresses contains the optional network addresses used to reach the 3bot.
 		// Normally at least one is given, none are required however.
 		// All addresses (max 10) can be of any of the following types: IPv4, IPv6, hostname
-		Addresses []NetworkAddress `json:"addresses"`
+		Addresses []NetworkAddress `json:"addresses,omitempty"`
 		// Names contains the optional names (max 5) that can be used to reach the bot,
 		// using a name, instead of one of its network addresses, comparable to how DNS works.
-		Names []BotName `json:"names"`
+		Names []BotName `json:"names,omitempty"`
 
 		// NrOfMonths defines the amount of months that
 		// is desired to be paid upfront. Note that the amount of
@@ -968,7 +968,7 @@ type (
 		CoinInputs []types.CoinInput `json:"coininputs"`
 		// RefundCoinOutput is an optional coin output that can be used
 		// to refund coins paid as inputs for the required fees.
-		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput"`
+		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput,omitempty"`
 
 		// Identification is used to identify the 3bot and verify its identity.
 		// The identification is only given at registration, for all other
@@ -1236,12 +1236,12 @@ type (
 		// Addresses can be used to add and/or remove network addresses
 		// to/from the existing 3bot record. Note that after each Tx,
 		// no more than 10 addresses can be linked to a single 3bot record.
-		Addresses BotRecordAddressUpdate `json:"addresses"`
+		Addresses BotRecordAddressUpdate `json:"addresses,omitempty"`
 
 		// Names can be used to add and/or remove names
 		// to/from the existing 3bot record. Note that after each Tx,
 		// no more than 5 names can be linked to a single 3bot record.
-		Names BotRecordNameUpdate `json:"names"`
+		Names BotRecordNameUpdate `json:"names,omitempty"`
 
 		// NrOfMonths defines the optional amount of months that
 		// is desired to be paid upfront in this update. Note that the amount of
@@ -1260,7 +1260,7 @@ type (
 		CoinInputs []types.CoinInput `json:"coininputs"`
 		// RefundCoinOutput is an optional coin output that can be used
 		// to refund coins paid as inputs for the required fees.
-		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput"`
+		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput,omitempty"`
 
 		// Signature is used to proof the ownership of the 3bot record to be updated,
 		// and is verified using the public key defined in the 3bot linked
@@ -1270,14 +1270,14 @@ type (
 	// BotRecordAddressUpdate contains all information required for an update
 	// to the addresses of a bot's record.
 	BotRecordAddressUpdate struct {
-		Add    []NetworkAddress `json:"add"`
-		Remove []NetworkAddress `json:"remove"`
+		Add    []NetworkAddress `json:"add,omitempty"`
+		Remove []NetworkAddress `json:"remove,omitempty"`
 	}
 	// BotRecordNameUpdate contains all information required for an update
 	// to the names of a bot's record.
 	BotRecordNameUpdate struct {
-		Add    []BotName `json:"add"`
-		Remove []BotName `json:"remove"`
+		Add    []BotName `json:"add,omitempty"`
+		Remove []BotName `json:"remove,omitempty"`
 	}
 	// BotRecordUpdateTransactionExtension defines the BotRecordUpdateTransaction Extension Data
 	BotRecordUpdateTransactionExtension struct {
@@ -1725,7 +1725,7 @@ type (
 		CoinInputs []types.CoinInput `json:"coininputs"`
 		// RefundCoinOutput is an optional coin output that can be used
 		// to refund coins paid as inputs for the required fees.
-		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput"`
+		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput,omitempty"`
 	}
 	// BotIdentifierSignaturePair pairs a bot identifier and a signature assumed
 	// to be created by the bot linked to that ID.

@@ -97,8 +97,8 @@ type (
 	// but it can be modified by the 3bot using one of the available Transaction types.
 	BotRecord struct {
 		ID         BotID                   `json:"id"`
-		Addresses  NetworkAddressSortedSet `json:"addresses"`
-		Names      BotNameSortedSet        `json:"names"`
+		Addresses  NetworkAddressSortedSet `json:"addresses,omitempty"`
+		Names      BotNameSortedSet        `json:"names,omitempty"`
 		PublicKey  PublicKey               `json:"publickey"`
 		Expiration CompactTimestamp        `json:"expiration"`
 	}
