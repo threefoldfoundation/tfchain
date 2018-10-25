@@ -781,12 +781,9 @@ func (txdb *TransactionDB) revertBotRegistrationTx(tx *bolt.Tx, ctx transactionC
 	if err != nil {
 		return fmt.Errorf("unexpected error while unpacking the bot registration tx type: %v", err)
 	}
-	// get the ID for the given public key
-	id, err := getBotIDForPublicKey(tx, brtx.Identification.PublicKey)
-	if err != nil {
-		return fmt.Errorf("error while fetching ID mapped to public key %v: %v",
-			brtx.Identification.PublicKey, err)
-	}
+	// the ID should be equal to the current bucket sequence, given it was incremented by the registration process
+	rbSequence := recordBucket.Sequence()
+	id := types.BotID(rbSequence)
 	// delete the record
 	err = recordBucket.Delete(tfencoding.Marshal(id))
 	if err != nil {
@@ -811,6 +808,11 @@ func (txdb *TransactionDB) revertBotRegistrationTx(tx *bolt.Tx, ctx transactionC
 	err = revertBotTransaction(tx, id, ctx.TransactionShortID())
 	if err != nil {
 		return fmt.Errorf("error while reverting transaction for bot %d: %v", id, err)
+	}
+	// decrease the sequence counter of the bucket
+	err = recordBucket.SetSequence(rbSequence - 1)
+	if err != nil {
+		return fmt.Errorf("error while decrementing the sequence counter of bot record bucket: %v", err)
 	}
 	// all information is reverted
 	return nil
