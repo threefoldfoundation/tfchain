@@ -95,10 +95,10 @@ func TestValidateUniquenessOfBotNames_Error(t *testing.T) {
 }
 
 const (
-	exampleBotTransactionPublicKey            = `ed25519:7bcf68f4b120aee2ad4ed4b4f69f0239137aa8c6b9c8ef2f6b4abd6b1a56f48c`
-	exampleBotTransactionSignature            = `8ef94865b9e29ef0bf36221cd180d8f3783a65b65ecbeec6e79d162f7ec946ead3cce54adc9bfd47003ff30029407611ba3e8c3ebd468d1737d235204d6f7f07`
-	exampleUnsignedBotTransactionInJSONFormat = `{"version":144,"data":{"addresses":null,"names":["thisis.bot02"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"29ccd3551afce39581d826f8614df1f54b8796137e115b613de6376b6cdb3bff","fulfillment":{"type":1,"data":{"publickey":"` +
-		exampleBotTransactionPublicKey + `","signature":""}}}],"refundcoinoutput":{"value":"399000000000","condition":{"type":1,"data":{"unlockhash":"01117e4beb05cd067a72ec474256f455545f5fe4fdd188b46228636982bd9935cc44f923c39928"}}},"identification":{"publickey":"ed25519:8ebcb01222f7c72d78f4a282fdc1ca1ec66be354690ec6f5dc308904164b8495","signature":"9c09865af6cdf55d97aea015810fe90deaaaadc31b0c988e8b21102bfd94661d540e7133af9989e55f3f1908bd6a0ab051bfef83e9f7fb7cbe7eeaef5d0dd50f"}}}`
+	exampleBotTransactionPublicKey            = `ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614`
+	exampleBotTransactionSignature            = `12bb912737dbd572a5c6695537cbf9d72654264b8b98d2929f5b829abbc682749a3a93c83c545315f5c15ee895e136abc023bb58f691010899b7a1d9d222340f`
+	exampleUnsignedBotTransactionInJSONFormat = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"78168863933e533c4686ad9749933a02db79c2dd49fc44e46984990e59df704c48e61b8ba845eb781367a55ea49d14ca51d4994315e451fd90f9a3760513bd0b"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"` +
+		exampleBotTransactionPublicKey + `","signature":""}}}`
 )
 
 func TestValidateBotSignature_Correct(t *testing.T) {

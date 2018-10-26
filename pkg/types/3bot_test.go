@@ -193,7 +193,7 @@ func TestExampleBotRecordBinarySia(t *testing.T) {
 const minimalHexEncodedBinaryBotRecord = `00000000` + // first bot, index 0
 	`01` + // 1 => 0 names and 1 addr
 	`117F000001` + // IPv4 => 127.0.0.1
-	`004683705f729a65e9e133e1719d05ad8ac45a14e44fcf6c85de19e5ac7fcd2e9d` + // ed25519 pub key
+	`014683705f729a65e9e133e1719d05ad8ac45a14e44fcf6c85de19e5ac7fcd2e9d` + // ed25519 pub key
 	`7AF905` // some data
 
 func TestMinimalHexEncodedBinaryBotRecord(t *testing.T) {

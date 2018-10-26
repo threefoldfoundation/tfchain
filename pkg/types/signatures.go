@@ -16,9 +16,11 @@ import (
 type SignatureAlgoType uint8
 
 const (
+	// SignatureAlgoNil identifies a nil SignatureAlgoType value.
+	SignatureAlgoNil SignatureAlgoType = iota
 	// SignatureAlgoEd25519 identifies the Ed25519 signature Algorithm,
 	// the default (and only) algorithm supported by this chain.
-	SignatureAlgoEd25519 SignatureAlgoType = iota
+	SignatureAlgoEd25519
 )
 
 func (sat SignatureAlgoType) String() string {
@@ -35,6 +37,8 @@ func (sat *SignatureAlgoType) LoadString(str string) error {
 	switch str {
 	case types.SignatureEd25519.String():
 		*sat = SignatureAlgoEd25519
+	case "":
+		*sat = SignatureAlgoNil
 	default:
 		return fmt.Errorf("unknown SignatureAlgoType string: %s", str)
 	}
@@ -61,8 +65,8 @@ type PublicKey struct {
 // MarshalSia implements SiaMarshaler.MarshalSia
 func (pk PublicKey) MarshalSia(w io.Writer) error {
 	err := encoding.NewEncoder(w).Encode(pk.Algorithm)
-	if err != nil {
-		return err
+	if err != nil || pk.Algorithm == SignatureAlgoNil {
+		return err // nil if pk.Algorithm == SignatureAlgoNil
 	}
 	l, err := w.Write([]byte(pk.Key))
 	if err != nil {
@@ -86,6 +90,8 @@ func (pk *PublicKey) UnmarshalSia(r io.Reader) error {
 	switch pk.Algorithm {
 	case SignatureAlgoEd25519:
 		pk.Key = make(types.ByteSlice, crypto.PublicKeySize)
+	case SignatureAlgoNil:
+		pk.Key = nil
 	default:
 		return fmt.Errorf("unknown SignatureAlgoType %d", pk.Algorithm)
 	}
