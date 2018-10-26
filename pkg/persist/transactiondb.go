@@ -542,7 +542,7 @@ func (txdb *TransactionDB) processConsensusChange(css modules.ConsensusChange) {
 	}
 	defer txdb.tg.Done()
 
-	txdb.db.Update(func(tx *bolt.Tx) (err error) {
+	err := txdb.db.Update(func(tx *bolt.Tx) (err error) {
 		// update reverted transactions in a block-defined order
 		err = txdb.revertBlocks(tx, css.RevertedBlocks)
 		if err != nil {
@@ -568,6 +568,9 @@ func (txdb *TransactionDB) processConsensusChange(css modules.ConsensusChange) {
 
 		return nil // all good
 	})
+	if err != nil {
+		build.Critical("transactionDB update failed:", err)
+	}
 }
 
 // revert all the given blocks using the given writable bolt Transaction,
