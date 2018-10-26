@@ -12,6 +12,7 @@ import (
 )
 
 var exampleNetworkAddresses = []string{
+	"0.0.0.1",
 	"127.0.0.1",
 	"network.address.com",
 	"83.200.201.201",
@@ -23,6 +24,21 @@ func TestNewNetworkAddress(t *testing.T) {
 		_, err := NewNetworkAddress(example)
 		if err != nil {
 			t.Error(idx, example, err)
+		}
+	}
+}
+
+var exampleInvalidNetworkAddresses = []string{
+	"localhost",
+	"foo",
+	"",
+}
+
+func TestInvalidNetworkAddress(t *testing.T) {
+	for idx, example := range exampleInvalidNetworkAddresses {
+		ip, err := NewNetworkAddress(example)
+		if err == nil {
+			t.Error(idx, "parsed correctly, while an error was expected", ip, example)
 		}
 	}
 }

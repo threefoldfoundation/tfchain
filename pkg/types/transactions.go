@@ -2181,13 +2181,13 @@ func (brtc BotRegistrationTransactionController) ValidateTransaction(t types.Tra
 	// validate that all network addresses are unique
 	err = validateUniquenessOfNetworkAddresses(brtx.Addresses)
 	if err != nil {
-		return fmt.Errorf("invalid bot registration Tx: %v", err)
+		return fmt.Errorf("invalid bot registration Tx: validateUniquenessOfNetworkAddresses: %v", err)
 	}
 
 	// validate that all names are unique
 	err = validateUniquenessOfBotNames(brtx.Names)
 	if err != nil {
-		return fmt.Errorf("invalid bot registration Tx: %v", err)
+		return fmt.Errorf("invalid bot registration Tx: validateUniquenessOfBotNames: %v", err)
 	}
 
 	// validate that the names are not registered yet
@@ -2379,7 +2379,7 @@ func (brutc BotUpdateRecordTransactionController) ValidateTransaction(t types.Tr
 	// look up the record, using the given ID, to ensure it is registered
 	record, err := brutc.Registry.GetRecordForID(brutx.Identifier)
 	if err != nil {
-		return fmt.Errorf("bot cannot be updated: %v", err)
+		return fmt.Errorf("bot cannot be updated: GetRecordForID(%v): %v", brutx.Identifier, err)
 	}
 
 	// validate the signature of the to-be-updated bot
@@ -2398,13 +2398,13 @@ func (brutc BotUpdateRecordTransactionController) ValidateTransaction(t types.Tr
 	// ensure all to-be-added names are available
 	err = areBotNamesAvailable(brutc.Registry, brutx.Names.Add...)
 	if err != nil {
-		return fmt.Errorf("bot cannot be updated: %v", err)
+		return fmt.Errorf("bot cannot be updated: areBotNamesAvailable: %v", err)
 	}
 
 	// try to update the record, to spot any errors should that happen for real
 	err = brutx.UpdateBotRecord(ctx.BlockTime, record)
 	if err != nil {
-		return fmt.Errorf("bot cannot be updated: %v", err)
+		return fmt.Errorf("bot cannot be updated: UpdateBotRecord: %v", err)
 	}
 
 	// update Tx is valid
@@ -2630,7 +2630,7 @@ func (bnttc BotNameTransferTransactionController) ValidateTransaction(t types.Tr
 	// try to update the sender bot (if the sender bot is expired, an error is returned as well)
 	err = bnttx.UpdateSenderBotRecord(ctx.BlockTime, recordSender)
 	if err != nil {
-		return fmt.Errorf("sender bot cannot be updated by name transfer: %v", err)
+		return fmt.Errorf("sender bot (%v) cannot be updated by name transfer: %v", bnttx.Sender.Identifier, err)
 	}
 
 	// try to update the receiver bot
@@ -2638,7 +2638,7 @@ func (bnttc BotNameTransferTransactionController) ValidateTransaction(t types.Tr
 	// as we already checked that it owns the address, the only update to that bot)
 	err = bnttx.UpdateReceiverBotRecord(ctx.BlockTime, recordReceiver)
 	if err != nil {
-		return fmt.Errorf("receiver bot cannot be updated by name transfer: %v", err)
+		return fmt.Errorf("receiver bot (%v) cannot be updated by name transfer: %v", bnttx.Receiver.Identifier, err)
 	}
 
 	// given all names originate from the sender,

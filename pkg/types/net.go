@@ -79,7 +79,7 @@ func NewNetworkAddress(addr string) (NetworkAddress, error) {
 		}, nil
 	}
 	na := NetworkAddress{addr: []byte(net.ParseIP(addr))}
-	if bytes.Equal(na.addr[:v4InV6PrefixLen], v4InV6Prefix) {
+	if len(na.addr) > v4InV6PrefixLen && bytes.Equal(na.addr[:v4InV6PrefixLen], v4InV6Prefix) {
 		na.addr = na.addr[v4InV6PrefixLen:]
 	}
 	switch len(na.addr) {
