@@ -39,8 +39,7 @@ func (cts CompactTimestamp) MarshalSia(w io.Writer) error {
 	if cts < CompactTimestampNullpoint {
 		return encoding.MarshalUint24(w, 0)
 	}
-	return encoding.MarshalUint24(w,
-		uint32((cts-CompactTimestampNullpoint)/CompactTimestampAccuracyInSeconds))
+	return encoding.MarshalUint24(w, cts.UInt32())
 }
 
 // UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
@@ -49,7 +48,7 @@ func (cts *CompactTimestamp) UnmarshalSia(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	*cts = (CompactTimestamp(x) * CompactTimestampAccuracyInSeconds) + CompactTimestampNullpoint
+	cts.SetUInt32(x)
 	return nil
 }
 
@@ -69,4 +68,14 @@ func (cts *CompactTimestamp) UnmarshalJSON(b []byte) error {
 // the type wrapped by a Sia/Rivine timestamp.
 func (cts CompactTimestamp) SiaTimestamp() types.Timestamp {
 	return types.Timestamp(cts)
+}
+
+// UInt32 returns this CompactTimestamp as an uint32 number.
+func (cts CompactTimestamp) UInt32() uint32 {
+	return uint32((cts - CompactTimestampNullpoint) / CompactTimestampAccuracyInSeconds)
+}
+
+// SetUInt32 sets an uint32 version of this CompactTimestamp as the internal value of this compact time stmap.
+func (cts *CompactTimestamp) SetUInt32(x uint32) {
+	*cts = (CompactTimestamp(x) * CompactTimestampAccuracyInSeconds) + CompactTimestampNullpoint
 }
