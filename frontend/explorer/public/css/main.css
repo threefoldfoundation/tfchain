@@ -259,13 +259,22 @@ span.search-form-td {
 form#search-hash-container {
 	margin-top: 3rem;
 }
+form#search-3bot-container {
+	margin-top: 1rem;
+}
 
 input#search-hash-field {
 	width: 830px;
 }
+input#search-3bot-field {
+	width: 700px;
+}
 
 button#search-hash-button {
 	width: 15%;
+}
+button#search-3bot-button {
+	width: 185px;
 }
 
 p#ffa-wallet-link {

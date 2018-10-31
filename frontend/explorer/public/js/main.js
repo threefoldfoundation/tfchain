@@ -45,6 +45,40 @@ function linkHash(domParent, hash, label) {
 	domParent.appendChild(a);
 }
 
+// linkBotName takes a bot name and returns a link that has the bot name as text and
+// leads to the bots page.
+function linkBotName(domParent, name, label) {
+	var a = document.createElement('a');
+	var str = name;
+	if (label) {
+		str = label + ' ' + str;
+	}
+	var text = document.createTextNode(str);
+	a.appendChild(text);
+	a.href = '3bot.html?name='+name;
+	domParent.appendChild(a);
+}
+
+// linkBotID takes a bot ID and returns a link that has the bot ID as text and
+// leads to the bots page.
+function linkBotID(domParent, id, label) {
+	var a = document.createElement('a');
+	var str = id;
+	if (label) {
+		str = label + ' ' + str;
+	}
+	var text = document.createTextNode(str);
+	a.appendChild(text);
+	a.href = '3bot.html?id='+id;
+	domParent.appendChild(a);
+}
+
+// linkBotKey takes a bot Key and returns a link that has the bot (public) key as text and
+// leads to the bots page.
+function linkBotKey(domParent, key, label) {
+	return linkBotID(domParent, key, label);
+}
+
 // linkHeight takes a height and returns a link that has the height as text
 // (with commas) and leads to the block page for the block at the input height.
 function linkHeight(domParent, height, label) {
@@ -287,6 +321,7 @@ function appendBlockTransactions(element, explorerBlock) {
 		var table = createStatsTable();
 		var doms = appendStat(table, 'ID', '');
 		linkHash(doms[2], explorerBlock.transactions[i].id);
+		appendStat(table, 'Type', txVersionName(explorerBlock.rawblock.transactions[i].version));
 		if (explorerBlock.rawblock.transactions[i].data.coininputs != null
 			&& explorerBlock.rawblock.transactions[i].data.coininputs.length > 0) {
 			appendStat(table, 'Coin Input Count', explorerBlock.rawblock.transactions[i].data.coininputs.length);
@@ -308,6 +343,29 @@ function appendBlockTransactions(element, explorerBlock) {
 			appendStat(table, 'Arbitrary Data Byte Count', explorerBlock.rawblock.transactions[i].data.arbitrarydata.length);
 		}
 		element.appendChild(table);
+	}
+}
+
+function txVersionName(version) {
+	switch(version) {
+		case 0:
+		case 1:
+			return "Regular Transaction";
+
+		case 129:
+			return "Minter Definition";
+		case 130:
+			return "Coin Creation";
+
+		case 144:
+			return "3Bot Registration";
+		case 145:
+			return "3Bot Record Update";
+		case 146:
+			return "3Bot Name Transfer";
+
+		default:
+			return "Unknown";
 	}
 }
 
@@ -374,6 +432,39 @@ function getBlockchainConstants() {
 		return {};
 	}
 	return JSON.parse(request.responseText);
+}
+
+// utility functions to get bot records based on partial info about that bot
+function getBotByID(id) {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer/3bot/' + id, false);
+	request.send();
+	if (request.status != 200) {
+		return null;
+	}
+	return JSON.parse(request.responseText).record;
+}
+function getBotByKey(key) {
+	return getBotByID(key);
+}
+function getBotByName(name) {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer/whois/3bot/' + name, false);
+	request.send();
+	if (request.status != 200) {
+		return null;
+	}
+	return JSON.parse(request.responseText).record;
+}
+
+function getBotTransactions(id) {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer/3bot/' + id + '/transactions', false);
+	request.send();
+	if (request.status != 200) {
+		return [];
+	}
+	return JSON.parse(request.responseText).ids;
 }
 
 //Changes the document title according to the network the page is running on

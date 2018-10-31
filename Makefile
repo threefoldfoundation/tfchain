@@ -2,7 +2,7 @@ all: install
 
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
-testpkgs = ./pkg/types
+testpkgs = ./pkg/types ./pkg/encoding ./pkg/persist
 pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
 
 version = $(shell git describe --abbrev=0)
@@ -40,11 +40,12 @@ test:
 	go test -race -v -tags='debug testing' -timeout=60s $(testpkgs)
 
 test-coverage:
-	go test -race -v -tags='debug testing' -timeout=60s \
-		-coverpkg=all -coverprofile=coverage.out -covermode=atomic $(testpkgs)
+	gocoverutil -coverprofile cover.out test \
+		-short -race -v -tags='debug testing' -timeout=60s -covermode=atomic \
+		$(testpkgs)
 
 test-coverage-web: test-coverage
-	go tool cover -html=coverage.out
+	go tool cover -html=cover.out
 
 # xc builds and packages release binaries
 # for all windows, linux and mac, 64-bit only,

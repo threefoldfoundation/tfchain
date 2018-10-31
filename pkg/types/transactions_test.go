@@ -15,6 +15,7 @@ import (
 	"github.com/rivine/rivine/encoding"
 	"github.com/rivine/rivine/types"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
+	tfencoding "github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 
 var (
@@ -73,7 +74,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForStandardNetwork(nil) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForStandardNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "standard", validationConstants)
 	constants = config.GetTestnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -81,7 +82,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForTestNetwork(nil) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForTestNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "test", validationConstants)
 	constants = config.GetDevnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -89,7 +90,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForDevNetwork(nil) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForDevNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "dev", validationConstants)
 }
 
@@ -2236,4 +2237,159 @@ func (mem *inMemoryMintConditionGetter) revertMintCondition(height types.BlockHe
 			return
 		}
 	}
+}
+
+func TestBotTransactionVersionConstants(t *testing.T) {
+	if TransactionVersionBotRegistration != 0x90 {
+		t.Errorf("unexpected bot registration Tx version: %x", TransactionVersionBotRegistration)
+	}
+	if TransactionVersionBotRecordUpdate != 0x91 {
+		t.Errorf("unexpected bot record update Tx version: %x", TransactionVersionBotRecordUpdate)
+	}
+	if TransactionVersionBotNameTransfer != 0x92 {
+		t.Errorf("unexpected bot name transfer Tx version: %x", TransactionVersionBotNameTransfer)
+	}
+}
+
+func TestBotMonthsAndFlagsData(t *testing.T) {
+	testCases := []struct {
+		Input    uint8
+		Expected BotMonthsAndFlagsData
+	}{
+		{0, BotMonthsAndFlagsData{}},
+		{4 | 32, BotMonthsAndFlagsData{NrOfMonths: 4, HasAddresses: true}},
+		{1 | 64, BotMonthsAndFlagsData{NrOfMonths: 1, HasNames: true}},
+		{29 | 128, BotMonthsAndFlagsData{NrOfMonths: 29, HasRefund: true}},
+		{2 | 32 | 128, BotMonthsAndFlagsData{NrOfMonths: 2, HasAddresses: true, HasRefund: true}},
+		{3 | 32 | 64, BotMonthsAndFlagsData{NrOfMonths: 3, HasAddresses: true, HasNames: true}},
+		{5 | 64 | 128, BotMonthsAndFlagsData{NrOfMonths: 5, HasNames: true, HasRefund: true}},
+		{31 | 32 | 64 | 128, BotMonthsAndFlagsData{NrOfMonths: 31, HasAddresses: true, HasNames: true, HasRefund: true}},
+	}
+	for idx, testCase := range testCases {
+		var result BotMonthsAndFlagsData
+		err := tfencoding.Unmarshal(tfencoding.Marshal(testCase.Input), &result)
+		if err != nil {
+			t.Error(idx, "error(Unmarshal:BotMonthsAndFlagData)", err)
+			continue
+		}
+		if result != testCase.Expected {
+			t.Error(idx, "unexpected result", result, "!=", testCase.Expected)
+			continue
+		}
+		var number uint8
+		err = tfencoding.Unmarshal(tfencoding.Marshal(result), &number)
+		if err != nil {
+			t.Error(idx, "error(Unmarshal:uint8)", err)
+			continue
+		}
+		if number != testCase.Input {
+			t.Error(idx, "unexpected number result", number, "!=", testCase.Input)
+		}
+	}
+}
+
+func TestComputeMonthlyBotFees(t *testing.T) {
+	oneCoin := types.NewCurrency64(10)
+	testCases := []struct {
+		NrOfMonths  uint8
+		ExpectedFee types.Currency
+	}{
+		{0, types.Currency{}},
+		{1, types.NewCurrency64(100)},
+		{2, types.NewCurrency64(200)},
+		{8, types.NewCurrency64(800)},
+		{11, types.NewCurrency64(1100)},
+		{12, types.NewCurrency64(840)},
+		{16, types.NewCurrency64(1120)},
+		{23, types.NewCurrency64(1610)},
+		{24, types.NewCurrency64(1200)},
+		{31, types.NewCurrency64(1550)},
+		{32, types.NewCurrency64(1600)},
+		{math.MaxUint8, types.NewCurrency64(12750)},
+	}
+	for idx, testCase := range testCases {
+		fee := ComputeMonthlyBotFees(testCase.NrOfMonths, oneCoin)
+		if !fee.Equals(testCase.ExpectedFee) {
+			t.Error(idx, testCase.NrOfMonths, "unexpected result", fee, "!=", testCase.ExpectedFee)
+		}
+	}
+}
+
+func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              nil,
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
+
+	const input = `{"version":144,"data":{"addresses":null,"names":["crazybot.foobar"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"6678e3a75da2026da76753a60ac44f7e7737784015676b37cc2cdcf670dce2e5","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"cd07fbfd78be0edd1c9ca46bc18f91cde1ed05848083828c5d3848cd9671054527b630af72f7d95c0ddcd3a0f0c940eb8cfe4b085cb00efc8338b28f39155809"}}}],"refundcoinoutput":{"value":"99979897000000000","condition":{"type":1,"data":{"unlockhash":"017fda17489854109399aa8c1bfa6bdef40f93606744d95cc5055270d78b465e6acd263c96ab2b"}}},"identification":{"publickey":"ed25519:adc4090edbe28e3628f08a85d20b5055ea301cdb080d3b65a337a326e2e3556d","signature":"5211f813fb4e34ae348e2e746846bc72255512dc246ccafbb3bd3b916aac738bfe2737308d87cced4f9476be8715983cc6000e37f8e82e7b83f120776a358105"}}}`
+	var tx types.Transaction
+	err := json.Unmarshal([]byte(input), &tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := tx.ID()
+	b := tfencoding.Marshal(tx)
+
+	// go to 3bot Tx and back
+	botRegistrationTx, err := BotRegistrationTransactionFromTransaction(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oTx := botRegistrationTx.Transaction(config.GetCurrencyUnits().OneCoin, types.UnlockConditionProxy{})
+	oID := oTx.ID()
+	oB := tfencoding.Marshal(oTx)
+	if id != oID {
+		t.Fatal(id, "!=", oID)
+	}
+	if !bytes.Equal(b, oB) {
+		t.Fatal(hex.EncodeToString(b), "!=", hex.EncodeToString(oB))
+	}
+}
+
+func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              nil,
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
+
+	const (
+		hexBlock       = `890c03073ba01fd531859075f98e2e08e27518eb33dd7428a4e81e13d5b75c163fc7d25b000000000200000000000000000000000000000000000000000000000200000000000000050000000000000002540be400015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e67915804000000000000003b9aca00015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580200000000000000010d010000000000000000000000000000000000000000000001000000000000005e9c485e44f1fe202a43261ea0e62f6b6a1497380db1f93c7e4a9ad95e63dc58018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778040000000000000003882c10527126106261bf905278f85ead81bf5e367db00f4ee0a4384a09a47be6f90a0369523ac2d51f6238b7c6a118b594e08846522f89e45774a2703dafe02010000000000000002000000000000000bb8012100000000000000015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580000000000000000000000000000000090e112115bc6aec02c6578616d706c652e6f72671e63686174626f742e6578616d706c6504000000000000003b9aca0002a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780400000000000000078168863933e533c4686ad9749933a02db79c2dd49fc44e46984990e59df704c48e61b8ba845eb781367a55ea49d14ca51d4994315e451fd90f9a3760513bd0b080000000000000001634560d9784e0001210000000000000001b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960100bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c67780661412bb912737dbd572a5c6695537cbf9d72654264b8b98d2929f5b829abbc682749a3a93c83c545315f5c15ee895e136abc023bb58f691010899b7a1d9d222340f`
+		expectedJSONTx = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"78168863933e533c4686ad9749933a02db79c2dd49fc44e46984990e59df704c48e61b8ba845eb781367a55ea49d14ca51d4994315e451fd90f9a3760513bd0b"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614","signature":"12bb912737dbd572a5c6695537cbf9d72654264b8b98d2929f5b829abbc682749a3a93c83c545315f5c15ee895e136abc023bb58f691010899b7a1d9d222340f"}}}`
+	)
+
+	b, err := hex.DecodeString(hexBlock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var block types.Block
+	err = encoding.Unmarshal(b, &block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx := block.Transactions[1]
+	b, err = json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jsonTx := string(b)
+	if expectedJSONTx != jsonTx {
+		t.Fatal(expectedJSONTx, "!=", jsonTx)
+	}
+}
+
+func TestBotRegistrationFees(t *testing.T) {
+	// TODO:
+	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
+}
+
+func TestBotUpdateFees(t *testing.T) {
+	// TODO:
+	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
+	//  - test (*BotNameTransferTransaction)::RequiredBotFee
 }

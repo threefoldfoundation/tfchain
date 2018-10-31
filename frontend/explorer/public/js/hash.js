@@ -16,6 +16,15 @@ function appendTransactionStatistics(infoBody, explorerTransaction, confirmed) {
 		case 129:
 			appendV129Transaction(infoBody, explorerTransaction, confirmed);
 			break;
+		case 144:
+			appendV144Transaction(infoBody, explorerTransaction, confirmed);
+			break;
+		case 145:
+			appendV145Transaction(infoBody, explorerTransaction, confirmed);
+			break;
+		case 146:
+			appendV146Transaction(infoBody, explorerTransaction, confirmed);
+			break;
 		default:
 			appendUnknownTransaction(infoBody, explorerTransaction, confirmed)
 	}
@@ -513,6 +522,398 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 			infoBody.appendChild(table);
 		}
 	}
+}
+
+// 3bot registration Tx
+function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
+	var ctx = getBlockchainContext();
+
+	var statsTable = createStatsTable();
+	appendStatHeader(statsTable, '3Bot Registration Transaction Statistics');
+	if (confirmed) {
+		var doms = appendStat(statsTable, 'Block Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+		doms = appendStat(statsTable, 'Block ID', '');
+		linkHash(doms[2], explorerTransaction.parent);
+		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
+	} else {
+		doms = appendStat(statsTable, 'Block Height', 'unconfirmed');
+	}
+	doms = appendStat(statsTable, 'ID', '');
+	linkHash(doms[2], explorerTransaction.id);
+	infoBody.appendChild(statsTable);// Add tables for each type of transaction element.
+
+	appendStatTableTitle(infoBody, '3Bot Registration');
+	var botRegTable = createStatsTable();
+	infoBody.appendChild(botRegTable);
+	if (confirmed) {
+		var record = getBotByKey(explorerTransaction.rawtransaction.data.identification.publickey);
+		if (record != null) {
+			var idDoms = appendStat(botRegTable, '3Bot ID', '');
+			linkBotID(idDoms[2], record['id']);
+		} else {
+			appendStat(botRegTable, '3Bot ID', '???');
+		}
+	} else {
+		appendStat(botRegTable, '3Bot ID', 'unassigned');
+	}
+	if (explorerTransaction.rawtransaction.data.addresses != null
+		&& explorerTransaction.rawtransaction.data.addresses.length > 0) {
+		appendStat(botRegTable, 'Addresses', explorerTransaction.rawtransaction.data.addresses.join(', '));
+	}
+	if (explorerTransaction.rawtransaction.data.names != null
+		&& explorerTransaction.rawtransaction.data.names.length > 0) {
+		var namesDom = appendStat(botRegTable, 'Names', '');
+		for (var i = 0; i < explorerTransaction.rawtransaction.data.names.length; i++) {
+			var name = explorerTransaction.rawtransaction.data.names[i];
+			linkBotName(namesDom[2], name);
+			if (i < explorerTransaction.rawtransaction.data.names.length-1) {
+				namesDom[2].appendChild(document.createTextNode(', '));
+			}
+		}
+	}
+	appendStat(botRegTable, 'Months Prepaid', explorerTransaction.rawtransaction.data.nrofmonths);
+	var botPKDoms = appendStat(botRegTable, 'Publickey', '');
+	linkBotKey(botPKDoms[2], explorerTransaction.rawtransaction.data.identification.publickey);
+	appendStat(botRegTable, 'Signature', explorerTransaction.rawtransaction.data.identification.signature);
+
+	var botFeeValue = 0;
+	if (explorerTransaction.rawtransaction.data.coininputs != null
+		&& explorerTransaction.rawtransaction.data.coininputs.length > 0) {
+		appendStatTableTitle(infoBody, 'Coin Inputs');
+		for (var i = 0; i < explorerTransaction.rawtransaction.data.coininputs.length; i++) {
+			var f;
+			switch (explorerTransaction.rawtransaction.data.coininputs[i].fulfillment.type) {
+				case 0:
+					break;
+				case 1:
+					f = addV1T1Input;
+					break;
+				case 2:
+					f = addV1T2Input;
+					break;
+				case 3:
+					f = addV1T3Input;
+					break;
+				default:
+					continue;
+			}
+			var inputoutputspecifier = getInputOutputSpecifier('coins');
+			botFeeValue += explorerTransaction[inputoutputspecifier][i].value;
+			f(infoBody, explorerTransaction, i, 'coins');
+		}
+	}
+
+	// add the bot fee to the Tx stats
+
+	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
+		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
+		appendStatTableTitle(infoBody, 'Refund Coin Output');
+		botFeeValue -= outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value;
+		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
+		var f;
+		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
+			// handle nil transactions
+			case undefined:
+			case 0:
+				f = addV1NilOutput;
+				break;
+			case 1:
+				f = addV1T1Output;
+				break;
+			case 2:
+				f = addV1T2Output;
+				break;
+			case 3:
+				f = addV1T3Output;
+				break;
+			case 4:
+				f = addV1T4Output;
+				break;
+		}
+		if (f != null) {
+			var outputTable = createStatsTable();
+			f(ctx, outputTable, outputExplorerTransaction, 0, 'coins');
+			infoBody.appendChild(outputTable);
+		}
+	}
+
+	var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+	if (payouts != null) {
+		// In a loop, add a new table for each miner payout.
+		appendStatTableTitle(infoBody, 'Transaction Fee Payout');
+		for (var i = 0; i < payouts.length; i++) {
+			var table = createStatsTable();
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], payouts[i].id);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], payouts[i].unlockhash);
+			botFeeValue -= payouts[i].paidvalue;
+			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
+			infoBody.appendChild(table);
+		}
+	}
+
+	appendStat(statsTable, 'Paid 3Bot Fee', readableCoins(botFeeValue));
+}
+
+// 3bot record update Tx
+function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
+	var ctx = getBlockchainContext();
+
+	var statsTable = createStatsTable();
+	appendStatHeader(statsTable, '3Bot Record Update Transaction Statistics');
+	if (confirmed) {
+		var doms = appendStat(statsTable, 'Block Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+		doms = appendStat(statsTable, 'Block ID', '');
+		linkHash(doms[2], explorerTransaction.parent);
+		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
+	} else {
+		doms = appendStat(statsTable, 'Block Height', 'unconfirmed');
+	}
+	doms = appendStat(statsTable, 'ID', '');
+	linkHash(doms[2], explorerTransaction.id);
+	infoBody.appendChild(statsTable);// Add tables for each type of transaction element.
+
+	appendStatTableTitle(infoBody, '3Bot Record Update');
+	var botRegTable = createStatsTable();
+	infoBody.appendChild(botRegTable);
+	var idDoms = appendStat(botRegTable, '3Bot ID', '');
+	linkBotID(idDoms[2], explorerTransaction.rawtransaction.data.id);
+	if (explorerTransaction.rawtransaction.data.addresses.add != null
+		&& explorerTransaction.rawtransaction.data.addresses.add.length > 0) {
+		appendStat(botRegTable, 'Addresses Added', explorerTransaction.rawtransaction.data.addresses.add.join(', '));
+	}
+	if (explorerTransaction.rawtransaction.data.addresses.remove != null
+		&& explorerTransaction.rawtransaction.data.addresses.remove.length > 0) {
+		appendStat(botRegTable, 'Addresses Removed', explorerTransaction.rawtransaction.data.addresses.remove.join(', '));
+	}
+	if (explorerTransaction.rawtransaction.data.names.add != null
+		&& explorerTransaction.rawtransaction.data.names.add.length > 0) {
+		var namesDom = appendStat(botRegTable, 'Names Added', '');
+		for (var i = 0; i < explorerTransaction.rawtransaction.data.names.add.length; i++) {
+			var name = explorerTransaction.rawtransaction.data.names.add[i];
+			linkBotName(namesDom[2], name);
+			if (i < explorerTransaction.rawtransaction.data.names.add.length-1) {
+				namesDom[2].appendChild(document.createTextNode(', '));
+			}
+		}
+	}
+	if (explorerTransaction.rawtransaction.data.names.remove != null
+		&& explorerTransaction.rawtransaction.data.names.remove.length > 0) {
+		var namesDom = appendStat(botRegTable, 'Names Removed', '');
+		for (var i = 0; i < explorerTransaction.rawtransaction.data.names.remove.length; i++) {
+			var name = explorerTransaction.rawtransaction.data.names.remove[i];
+			linkBotName(namesDom[2], name);
+			if (i < explorerTransaction.rawtransaction.data.names.remove.length-1) {
+				namesDom[2].appendChild(document.createTextNode(', '));
+			}
+		}
+	}
+	if (explorerTransaction.rawtransaction.data.nrofmonths != null && explorerTransaction.rawtransaction.data.nrofmonths > 0) {
+		appendStat(botRegTable, 'Months Paid', explorerTransaction.rawtransaction.data.nrofmonths);
+	}
+	appendStat(botRegTable, 'Signature', explorerTransaction.rawtransaction.data.signature);
+
+	var botFeeValue = 0;
+	if (explorerTransaction.rawtransaction.data.coininputs != null
+		&& explorerTransaction.rawtransaction.data.coininputs.length > 0) {
+		appendStatTableTitle(infoBody, 'Coin Inputs');
+		for (var i = 0; i < explorerTransaction.rawtransaction.data.coininputs.length; i++) {
+			var f;
+			switch (explorerTransaction.rawtransaction.data.coininputs[i].fulfillment.type) {
+				case 0:
+					break;
+				case 1:
+					f = addV1T1Input;
+					break;
+				case 2:
+					f = addV1T2Input;
+					break;
+				case 3:
+					f = addV1T3Input;
+					break;
+				default:
+					continue;
+			}
+			var inputoutputspecifier = getInputOutputSpecifier('coins');
+			botFeeValue += explorerTransaction[inputoutputspecifier][i].value;
+			f(infoBody, explorerTransaction, i, 'coins');
+		}
+	}
+
+	// add the bot fee to the Tx stats
+
+	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
+		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
+		appendStatTableTitle(infoBody, 'Refund Coin Output');
+		botFeeValue -= outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value;
+		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
+		var f;
+		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
+			// handle nil transactions
+			case undefined:
+			case 0:
+				f = addV1NilOutput;
+				break;
+			case 1:
+				f = addV1T1Output;
+				break;
+			case 2:
+				f = addV1T2Output;
+				break;
+			case 3:
+				f = addV1T3Output;
+				break;
+			case 4:
+				f = addV1T4Output;
+				break;
+		}
+		if (f != null) {
+			var outputTable = createStatsTable();
+			f(ctx, outputTable, outputExplorerTransaction, 0, 'coins');
+			infoBody.appendChild(outputTable);
+		}
+	}
+
+	var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+	if (payouts != null) {
+		// In a loop, add a new table for each miner payout.
+		appendStatTableTitle(infoBody, 'Transaction Fee Payout');
+		for (var i = 0; i < payouts.length; i++) {
+			var table = createStatsTable();
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], payouts[i].id);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], payouts[i].unlockhash);
+			botFeeValue -= payouts[i].paidvalue;
+			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
+			infoBody.appendChild(table);
+		}
+	}
+
+	appendStat(statsTable, 'Paid 3Bot Fee', readableCoins(botFeeValue));
+}
+
+// 3bot name transfer Tx
+function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
+	var ctx = getBlockchainContext();
+
+	var statsTable = createStatsTable();
+	appendStatHeader(statsTable, '3Bot Name Transfer Transaction Statistics');
+	if (confirmed) {
+		var doms = appendStat(statsTable, 'Block Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+		doms = appendStat(statsTable, 'Block ID', '');
+		linkHash(doms[2], explorerTransaction.parent);
+		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
+	} else {
+		doms = appendStat(statsTable, 'Block Height', 'unconfirmed');
+	}
+	doms = appendStat(statsTable, 'ID', '');
+	linkHash(doms[2], explorerTransaction.id);
+	infoBody.appendChild(statsTable);// Add tables for each type of transaction element.
+
+	appendStatTableTitle(infoBody, '3Bot Name Transfer');
+	var botRegTable = createStatsTable();
+	infoBody.appendChild(botRegTable);
+	var idDoms = appendStat(botRegTable, 'ID of sending 3Bot', '');
+	linkBotID(idDoms[2], explorerTransaction.rawtransaction.data.sender.id);
+	appendStat(botRegTable, 'Signature of sending 3Bot', explorerTransaction.rawtransaction.data.sender.signature);
+	var idDoms = appendStat(botRegTable, 'ID of receiving 3Bot', '');
+	linkBotID(idDoms[2], explorerTransaction.rawtransaction.data.receiver.id);
+	appendStat(botRegTable, 'Signature of receiving 3Bot', explorerTransaction.rawtransaction.data.receiver.signature);
+	if (explorerTransaction.rawtransaction.data.names != null
+		&& explorerTransaction.rawtransaction.data.names.length > 0) {
+		var namesDom = appendStat(botRegTable, 'Names Transferred', '');
+		for (var i = 0; i < explorerTransaction.rawtransaction.data.names.length; i++) {
+			var name = explorerTransaction.rawtransaction.data.names[i];
+			linkBotName(namesDom[2], name);
+			if (i < explorerTransaction.rawtransaction.data.names.length-1) {
+				namesDom[2].appendChild(document.createTextNode(', '));
+			}
+		}
+	}
+
+	var botFeeValue = 0;
+	if (explorerTransaction.rawtransaction.data.coininputs != null
+		&& explorerTransaction.rawtransaction.data.coininputs.length > 0) {
+		appendStatTableTitle(infoBody, 'Coin Inputs');
+		for (var i = 0; i < explorerTransaction.rawtransaction.data.coininputs.length; i++) {
+			var f;
+			switch (explorerTransaction.rawtransaction.data.coininputs[i].fulfillment.type) {
+				case 0:
+					break;
+				case 1:
+					f = addV1T1Input;
+					break;
+				case 2:
+					f = addV1T2Input;
+					break;
+				case 3:
+					f = addV1T3Input;
+					break;
+				default:
+					continue;
+			}
+			var inputoutputspecifier = getInputOutputSpecifier('coins');
+			botFeeValue += explorerTransaction[inputoutputspecifier][i].value;
+			f(infoBody, explorerTransaction, i, 'coins');
+		}
+	}
+
+	// add the bot fee to the Tx stats
+
+	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
+		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
+		appendStatTableTitle(infoBody, 'Refund Coin Output');
+		botFeeValue -= outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value;
+		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
+		var f;
+		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
+			// handle nil transactions
+			case undefined:
+			case 0:
+				f = addV1NilOutput;
+				break;
+			case 1:
+				f = addV1T1Output;
+				break;
+			case 2:
+				f = addV1T2Output;
+				break;
+			case 3:
+				f = addV1T3Output;
+				break;
+			case 4:
+				f = addV1T4Output;
+				break;
+		}
+		if (f != null) {
+			var outputTable = createStatsTable();
+			f(ctx, outputTable, outputExplorerTransaction, 0, 'coins');
+			infoBody.appendChild(outputTable);
+		}
+	}
+
+	var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+	if (payouts != null) {
+		// In a loop, add a new table for each miner payout.
+		appendStatTableTitle(infoBody, 'Transaction Fee Payout');
+		for (var i = 0; i < payouts.length; i++) {
+			var table = createStatsTable();
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], payouts[i].id);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], payouts[i].unlockhash);
+			botFeeValue -= payouts[i].paidvalue;
+			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
+			infoBody.appendChild(table);
+		}
+	}
+
+	appendStat(statsTable, 'Paid 3Bot Fee', readableCoins(botFeeValue));
 }
 
 // *************
@@ -1587,6 +1988,30 @@ function getMinerFeesAsFeePayouts(txID, blockID) {
 			});
 		}
 		return feePayouts;
+	}
+	return null;
+}
+function getTransactionFeesAsFeePayouts(txID, blockID) {
+	var explorerBlock = fetchHashInfo(blockID).block;
+	if (explorerBlock.rawblock.minerpayouts == null || explorerBlock.rawblock.minerpayouts.length < 2) {
+		return null;
+	}
+	if (explorerBlock.transactions == null) {
+		return null;
+	}
+	var feePayout = explorerBlock.rawblock.minerpayouts[1];
+	var feePayoutID = explorerBlock.minerpayoutids[1];
+	for (var i = 0; i < explorerBlock.transactions.length; i++) {
+		var tx = explorerBlock.transactions[i];
+		if (tx.id !== txID || tx.rawtransaction.data.txfee == null) {
+			continue;
+		}
+		return [{
+			id: feePayoutID,
+			unlockhash: feePayout.unlockhash,
+			value: feePayout.value,
+			paidvalue: tx.rawtransaction.data.txfee,
+		}];
 	}
 	return null;
 }

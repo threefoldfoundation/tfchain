@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/threefoldfoundation/tfchain/cmd/tfchainc/internal"
+
 	"github.com/rivine/rivine/pkg/cli"
 	"github.com/rivine/rivine/pkg/daemon"
 
@@ -21,9 +23,8 @@ func main() {
 		panic(err)
 	}
 
-	mintConditionGetter := &cliMintConditionGetter{
-		client: cliClient,
-	}
+	// used for the tfchain-specific controllers
+	txDBReader := internal.NewTransactionDBConsensusClient(cliClient)
 
 	// register tfchain-specific commands
 	createConsensusSubCmds(cliClient)
@@ -42,9 +43,11 @@ func main() {
 
 		switch cfg.NetworkName {
 		case config.NetworkNameStandard:
+			networkConfig := config.GetStandardDaemonNetworkConfig()
+
 			// Register the transaction controllers for all transaction versions
 			// supported on the standard network
-			types.RegisterTransactionTypesForStandardNetwork(mintConditionGetter)
+			types.RegisterTransactionTypesForStandardNetwork(txDBReader, cfg.CurrencyUnits.OneCoin, networkConfig)
 			// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 			// until the blockchain reached a height of 42000 blocks.
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
@@ -55,9 +58,11 @@ func main() {
 			cfg.GenesisBlockTimestamp = 1524168391 // timestamp of (standard) block #1
 
 		case config.NetworkNameTest:
+			networkConfig := config.GetTestnetDaemonNetworkConfig()
+
 			// Register the transaction controllers for all transaction versions
 			// supported on the test network
-			types.RegisterTransactionTypesForTestNetwork(mintConditionGetter)
+			types.RegisterTransactionTypesForTestNetwork(txDBReader, cfg.CurrencyUnits.OneCoin, networkConfig)
 			// Use our custom MultiSignatureCondition, just for testing purposes
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
@@ -65,9 +70,11 @@ func main() {
 			cfg.GenesisBlockTimestamp = 1522792547 // timestamp of (testnet) block #1
 
 		case config.NetworkNameDev:
+			networkConfig := config.GetDevnetDaemonNetworkConfig()
+
 			// Register the transaction controllers for all transaction versions
 			// supported on the dev network
-			types.RegisterTransactionTypesForDevNetwork(mintConditionGetter)
+			types.RegisterTransactionTypesForDevNetwork(txDBReader, cfg.CurrencyUnits.OneCoin, networkConfig)
 			// Use our custom MultiSignatureCondition, just for testing purposes
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 

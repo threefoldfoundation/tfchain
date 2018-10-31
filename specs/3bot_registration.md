@@ -27,7 +27,7 @@ of names as well as any manual updates applied to 3bot records over time.
 Explorers will keep a single record per 3bot —created for a new registration (Tx)
 and kept up to date with every update Tx that applies an update to it— containing the following info:
 
-- **Unique ID**: a unique incremental/sequential (4-byte integral) identifier, assigned to every registered 3bot. The order of the ID is based on the total 3bot Transaction Count. Meaning that if the `unique ID` counter is at 10, and a block is registered containing 3 transactions of which the first and third are 3bot registration Tx's, the one of the first Tx will be assigned unique ID `10`, while the latter Tx will be assigned `11`. If a few blocks later there is another 3bot registration Tx it will be assigned `12` and so on...;
+- **Unique ID**: a unique incremental/sequential (4-byte integral) identifier, assigned to every registered 3bot. The first valid BotID is `1`, not `0`. The order of the ID is based on the total 3bot Transaction Count. Meaning that if the `unique ID` counter is at 10, and a block is registered containing 3 transactions of which the first and third are 3bot registration Tx's, the one of the first Tx will be assigned unique ID `10`, while the latter Tx will be assigned `11`. If a few blocks later there is another 3bot registration Tx it will be assigned `12` and so on...;
 - **List of Names**: inspired by DNS names, it are one or multiple optional names that can be assigned to a 3bot, such that you can reach a 3bot using one of its names, rather than having to directly use its IP address or hostname. The [tfchain][tfchain] registry defines no link between **the list of names** and **the list of addresses**, this is a detail that has to be worked out by the services (such as 3bot DNS services) that consume this data;
 - **List of Network Addresses**: IPv4/6 addresses or (domain) hostnames that can be used to reach a 3bot on. It is optional and can be left empty (if and only if there is at least one name registered) as to be able to register a bot simply to reserve one or multiple names for it already, without the 3bot actually being active yet);
 - **Public Key**: The unique Public Key (the [ed25519][ed25519] algorithm is the only supported one for the initial deployment of this feature) that is used by the 3bot to proof that it owns the rights for this 3bot, as to be able to make any future updates as well as the initial registration;
@@ -45,112 +45,65 @@ Extra information, which is not strictly required in order to consume the data, 
 
 ## Fees
 
-Registering a new 3bot as well updating an existing 3bot (record) requires
-additional fees on top of the regular Tx fee (which is currently defined at the minimum of `0.1 TFT`).
+Registering a new 3bot as well as other actions require additional fees,
+That go on top of the regular required (minimum) Tx fee.
 
-Here are the base values used for the computation of the total additional fees:
+Here are these fees, as suggested in
+[the functional spec](https://github.com/rivine/home/blob/master/specs/3bot_registration.md):
 
-- each (DNS) name costs `10 TFT` (with a maximum of 5 names and thus a maximum of `50 TFT`);
-- the first 3 network addresses requires no additional fees;
-- every extra network address costs `5 TFT` (a maximum amount of 10 network addresses, and thus a maximum of `35 TFT`);
-- deleting data never requires additional fees;
-- registration costs are `80 TFT`;
-- per month is a `10 TFT` additional fee required for operational costs;
-- modification of a properties costs `40 TFT` (with number of months being an exception);
+- registration of a new 3bot (static price): `100 TFT`;
+- monthly fee per 3bot (static price): `10 TFT`:
+  - first month is for free at registration time;
+- deletion and transfer of a name: _free_;
+- per name: `50 TFT`:
+  - at registration time the fee is to be paid only for each additional name,
+    while the first one is for free;
+  - when modifying a 3bot record the fee is applied to each added name;
+- network address info change (static price): `20 TFT`;
 
-In terms of a 3bot record:
+The monthly fee is a static value, and ensures the 3bot remains active.
+An inactive bot will still exist in the registry, but will no longer be supported
+by any ThreeFold Foundation service that runs on top of such registry.
 
-- a month is 30 days;
-- years do not exist in 3bot terminology, giving us `360` days for `12` months (**not** `365`);
+Registering a 3bot also requires a minimum of one month
+(which is already paid for in the registration costs of `100 TFT`),
+as a consequence it is not possible to register an inactive 3bot.
+In other words, a 3bot can only become inactive by not paying the
+required monthly fee of `10 TFT` before its expiration timestamp has been reached
+at least one block less than the highest block.
 
-Depending upon the number of months, an automatic discount is applied,
-decreasing the amount of additional fees required:
+A 3bot can register one name and up to 10 network addresses free of charge.
+At any given block height, a 3bot is only allowed up to 5 names and 10 network addresses.
 
-- 15% discount is applied if at least 3 months, but less than 12 months is paid at once;
-- 30% discount is applied if at least 12 months, but less than 24 months is paid at once;
-- 50% discount is applied if at least 24 months is paid at once;
+Additionally, [the functional spec](https://github.com/rivine/home/blob/master/specs/3bot_registration.md) suggests discounts on the monthly fees if paying sufficiently months at once:
 
-These discounts are given for 2 reasons:
+- `30%` discount if paying `[12,23]` months<sup>(1)</sup>;
+- `50%` discount if paying `24+` months<sup>(1)</sup>;
 
-- to reward the 3bot's tokens paid up front;
-- to reward the 3bot of saving us precious bytes on the blockchain, given that the 3bot won't have to extend the Expiration time (using the Nr of months) as fast;
+> (1) one month is defined as `30 * 24 * 60 * 60 = 2592000` seconds.
 
-All this gives us the following formula to compute the total amount of required additional fees for a registration Tx Fee:
-
-> F<sub>additional</sub> = `80 TFT` +
->   (
->       (C<sub>names</sub> * `10 TFT`) +
->       ((C<sub>addresses</sub> < 3 ? 0 : C<sub>addresses</sub>-3) * `5 TFT`) +
->       `10` TFT
->   ) * T<sub>months</sub> * R<sub>discount</sub>
->
-> where:
->  - `R` is one of {`1.0`, `0.85`, `0.7`, `0.5`} (see discounts)
-
-For update Tx's the formula gets a bit more hairy:
-
-> F<sub>additional</sub> = `X TFT` +
->   ((
->       (C<sub>new names</sub> * `10 TFT`) +
->       ((C<sub>new addresses</sub> < 3 ? 0 : C<sub>new addresses</sub>-3) * `5 TFT`) +
->       `10` TFT
->   ) * T<sub>months</sub> * R<sub>discount(T)</sub>) +
->   ((
->       (C<sub>remaining names</sub> * `10 TFT`) +
->       ((C<sub>remaining addresses</sub> < 3 ? 0 : C<sub>remaining addresses</sub>-3) * `5 TFT`) +
->       `10 TFT`
->   ) * N<sub>months</sub> * R<sub>discount(N)</sub>)
->
-> where:
->  - `X` equals:
->    - `0` if only Nr of months is defined
->    - `40` if any other property are (also) defined
->  - `R` is one of {`1.0`, `0.85`, `0.7`, `0.5`} (see discounts)
->  - T<sub>months</sub> equals the the total amount of months (remaining months the both is active + the given Nr of months)
->  - N<sub>months</sub> equals the the given Nr of months
->  - remaining meaning the names/addresses that were not removed and not added,
->    but already registered in a previous registration/update Tx
->  - no refunds are given, meaning that if you remove an address and/or name
->    which was already paid for (T<sub>months</sub> - N<sub>months</sub>) amount of months, those months are lost
->    - ⚠ Note that removing a (DNS) name makes it immediately available for any 3bot to claim it
-
-### Examples
-
-#### a minimal bot
+### Example: a minimal bot
 
 In order to minimize the costs for a 3bot one can therefore choose
-to register only the required data would give us:
+to register only what is included in the required frees and use what is free:
 
-- no (DNS) names;
-- 1 to 3 network addresses;
-
-Which would give us the following example additional fee table for the registration for the 3bot:
-
-|number of months|additional fees in TFT|total discount in TFT|discount per month in TFT|
-|-|-|-|-|
-|1|`90`|`0`|`0`|
-|3|`110`|`0`|`0`|
-|12|`164`|`36`|`3`|
-|24|`200`|`120`|`5`|
-
-#### a typical bot
-
-A more typical bot would have:
-
-- (at least) one DNS name;
-- 2 to 3 network addresses;
+- 0 or 1 (DNS) name(s);
+- 0 to 10 network addresses;
 
 Which would give us the following example additional fee table for the registration for the 3bot:
 
 |number of months|additional fees in TFT|total discount in TFT|discount per month in TFT|
 |-|-|-|-|
 |1|`100`|`0`|`0`|
-|3|`140`|`0`|`0`|
-|12|`248`|`72`|`6`|
-|24|`320`|`240`|`10`|
+|3|`100`|`0`|`0`|
+|12|`174`|`36`|`3`|
+|24|`210`|`120`|`5`|
 
-> ⚠ It is no coincidence that the registration of a "typical" 3bot
-> for 1 month costs exactly `100 TFT`. 
+As you can see, the difference between 12 months and 24 months is pretty small,
+making it pretty attractive to sign up immediately for a 2 year period.
+While saving you a lot of coins, it doesn't lock you to a specific (set of) name(s),
+as this information (as well as the network addresses used) can still be changed,
+without affecting the activity period of the 3bot (or its (to be) paid fees).
 
 ## Consensus Rules
 
@@ -161,16 +114,15 @@ Here is the complete list of rules applied on all
 3bot Registration/Update Tx's:
 
 - The total sum of Miner Fees has to equal at least the minimum Tx fee (`0.1 TFT`);
-- The additional fees have to at equal at least the amount of additional fees computed as described in [the fees chapter](#fees), anything extra is considered a donation towards the Threefold Foundation (fair CLI tools would warn the user for this though);
+- The additional fees have to be exactly the amount of additional fees computed as described in [the fees chapter](#fees), for simplicity and fairness there can be no extra fees given;
 - All fees (meaning the combination of miner and additional fees) should be funded with given coin inputs;
 - Each coin input has to be valid according to the standard rules;
 - The refund coin output is optional and can be defined only to allow change given back to a wallet of choice);
-- No extra coin inputs can be defined than needed (meaning that if you need to pay 100 TFT, and have already 2 coin inputs of `30 TFT` and `70 TFT`, than a third coin input would not be allowed, as it would result in a pure coin transfer, which is not allowed as part of a 3bot Tx);
 - At any _resulting_ point no more than 5 (DNS) names can be registered for a single 3bot (_resulting_ meaning that if you update a 3bot that already has 4 DNS names you can add 2 DNS names ONLY if you also remove 1 in that same update Tx);
 - At any _resulting_ point no more than 10 network addresses can be registered for a single 3bot (_resulting_ meaning that if you update a 3bot that already has 9 DNS names you can add 2 DNS names ONLY if you also remove 1 in that same update Tx);
 - All DNS names have to be valid (more about this later);
 - All network addresses have to be valid, a network address can be: IPv4, IPv6 or a (domain) hostname);
-- At any resulting point the number of months has to be in the inclusive range of `[1, 24]` (meaning after the combination of the remaining months plus the newly added number of months);
+- At any resulting point the number of months has to be in the inclusive range of `[0, 24]`;
 - The signature has to be valid:
   - meaning the input data is as expected, and completely based on the given Tx data;
   - the signature is signed using the private key paired with the known/given public key (only at registration the public key has to be given);
@@ -258,6 +210,33 @@ If found, an object in the structure of the following example is returned:
         // in the order that it happened.
         "a6aca83fe8f51e939db0431e78f59686b5bd9d1b744308fe958fb9a9f7c17b9c",
     ]
+}
+```
+
+#### `GET /explorer/whois/3bot/:name`
+
+`:name` is a 3bot (DNS) name.
+
+If found (and thus registered), the record of the 3bot is returned who owns that name:
+
+```javascript
+{
+    // unique ID (4 byte unsigned integer)
+    "id": 42,
+    // list of registered (DNS) names,
+    // each name is a string.
+    // The returned record will contain at least one name (the name searched for).
+    "names": [],
+    // list of registered network addresses,
+    // each address is a string
+    "addresses": [],
+    // string encoded public key, defined in the registration Tx
+    "publickey": "ed25519:28c1edd4c35f662cccfa7fc02194959d75855c02d342c1131b110c9e96764d9b",
+    // Unix Epoch Time in seconds,
+    // of when the 3bot is to expire,
+    // meaning the 3bot (DNS) names will no longer
+    // be pointing to the network addresses of this 3bot
+    "expiration": 943916400,
 }
 ```
 
@@ -479,14 +458,11 @@ the Tx (binary) encoding defines the following compressed (1 byte) value:
 The (3bot) Transfer Tx is be used to transfer one or multiple (DNS) names owned by one bot, to another bot. of an existing 3bot. Some specifics for this Tx:
 
 - this Tx involves two different and already registered 3bots;
-- the receiving both can be inactive up to that point, but the sending bot has to be active;
+- both bots have to be active, as an inactive bot cannot own a name;
 - the fees are most likely paid by the receiving bot, but this is not required;
-- NOTE That the fees are similar to a regular Update Tx:
-  - the update fee (`40 TFT`) will have to be paid;
-  - in case the receiving 3bot is inactive, it will also have to pay all fees for the already registered info;
-  - Nr of months can be extended, but note that it will to be paid for all other registered info as well;
-- the (DNS) names transferred (and thus list) have to be owned by an active 3bot up to that point;
-- at least one added (DNS) name is required which is transferred from the sending 3bot
+- NOTE That the fees are similar to a regular Update Tx (except that less can be updated, and thus less will have to be paid);
+- the (DNS) names transferred (and thus list) have to be owned by an active 3bot (the sender) up to that point;
+- at least one added (DNS) name is required;
 - the unique ID of both sender and receiver (3bot) are  to be given, as well the both signatures;
 
 Read up on [the Consensus Rules chapter](#consensus-rules) to learn about the other requirements/rules.
@@ -520,49 +496,9 @@ JSON-Encoded the Tx will look as follows:
             "signature": "signature_receiver"
         },
 
-        // optional added/removed network addresses
-        "addresses": {
-            // addresses added
-            // (cannot be registered yet for this 3bot)
-            "add": [ // optional, max 10
-                // can be a domain name
-                "network.address.a.com",
-                // can be an IPv4 address
-                "83.200.201.201",
-                // can also be an IPv6 address
-                "2001:db8:85a3::8a2e:370:7334"
-            ],
-            // addresses removed
-            // (have to be previously registered for this 3bot)
-            "rem": [ // optional, max 10
-                // can be a domain name
-                "network.address.a.com",
-                // can be an IPv4 address
-                "83.200.201.201",
-                // can also be an IPv6 address
-                "2001:db8:85a3::8a2e:370:7334"
-            ],
+        "names": [
+            "aaaaa.bbbbb",
         ],
-        // required added/removed (DNS) names
-        "names": {
-            // at least one transferred DNS name is required!!!
-            // (DNS) names added
-            // (cannot be registered yet for this 3bot)
-            "add": [ // optional, max 5
-                // a name is either transferred from
-                // the sending 3bot, or not claimed yet
-                "aaaaa.bbbbb",
-            ],
-            // (DNS) names removed
-            // (have to be previously registered for the receiving 3bot)
-            // useful, as to make place for the new DNS
-            "rem": [ // optional max 5
-                "char5.char6",
-            ],
-        },
-
-        // uint8, one of inclusive range: [0,24]
-        "nrofmonths": 1,
 
         // the regular Tx fee has to be paid as well and defined explicitly.
         // Additional fees are assumed to equal to `sum(coinInputs)-txFee-coinOutput`,
@@ -581,37 +517,10 @@ JSON-Encoded the Tx will look as follows:
 
 For the most part the binary encoding of the Update Tx is straightforward, but there are some specificities:
 
-- An address is encoded in a new type, which has a single byte to denote the type.
-  The last 5 bits can be used by the type for any other data it requires (such as the length for the domain hostname).
-  The encoding of those bytes depends upon the type of network address (e.g. IPv4 requires 4 bytes);
 - A name is encoded using a new type, where the string bytes are prefixed with one byte to indicate the length;
-- The added and removed network addresses are encoded directly after one another,
-  with the entire group of bytes a single byte to define the amount of addresses added and removed
-  (the first 4 bits defines amount of addresses added, and the other 4 bits the amount of addresses removed);
-- The added and removed (DNS) names are encoded directly after one another,
-  with the entire group of bytes a single byte to define the amount of names added and removed
-  (the first 4 bits defines amount of names added, and the other 4 bits the amount of names removed);
 
 > NOTE: See [The Compact Binary Properties Chapter](#compact-binary-properties) to see how other (common) properties,
 > are also highly optimized as to keep the binary-encoded Tx as small as possible.
-
-> NOTE: for the address type we have 3 different possibilities. IPv4, IPv6 and domain host names.
-> The first 2 have fixed-size values, and only the latter (domain host names) requires a length.
-> For this one we make use of the remaining 5 bits:
->  * Is the first bit equal to `0`, than the length is defined by the remaining 4 bits;
->  * Otherwise the length is defined the next {1,2,3,4} byte(s) depending if the 2nd, 3rd, 4th or 5th bit is 1;
-
-To keep the Update Tx as compact as possible for small updates
-(including the smallest possible update where only the months of values is updated),
-the Tx (binary) encoding defines the following compressed (1 byte) value:
-
-```
-[ 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 ]
-| NrOfMonths        | V | V | flag to indicate if a refund is given
-|                   | V | ALWAYS 1, as a (DNS) name transfer HAS to include at least one added name
-|                   | flag to indicate if any address is added/removed
-```
-> This byte is encoded instead of an uint8 value (that you might have expected as the type for NrOfMonths).
 
 ## Compact Binary Properties
 
