@@ -1048,6 +1048,76 @@ function addV3Fulfillment(table, fulfillment) {
 // * V1 Outputs *
 // **************
 
+function getOutputFromExplorerTransaction(transaction, outputspecifier, index) {
+	if (outputspecifier == 'coinoutputs') {
+		return getCoinOutputFromExplorerTransaction(transaction, index)
+	}
+	if (transaction.rawtransaction.data[outputspecifier] != null && index < transaction.rawtransaction.data[outputspecifier].length) {
+		return transaction.rawtransaction.data[outputspecifier][index];
+	}
+	return {};
+}
+
+function getCoinOutputFromExplorerTransaction(transaction, index) {
+	var txversion = transaction.rawtransaction.version;
+	if (txversion == 144 || txversion == 145 || txversion == 146) {
+		if (index == 1) {
+			return transaction.rawtransaction.data.refundcoinoutput;
+		}
+		if (index == 0) {
+			return createBotFeePayoutOutput(transaction);
+		}
+		return {};
+	}
+	if (transaction.rawtransaction.data.coinoutputs != null && index < transaction.rawtransaction.data.coinoutputs.length) {
+		return transaction.rawtransaction.data.coinoutputs[index];
+	}
+	return {};
+}
+
+function getBotFeePayoutConditionForNetwork(networkName) {
+	if (networkName == "testnet") {
+		return {
+			"type": 4,
+			"data": {
+				"unlockhashes": [
+					"016148ac9b17828e0933796eaca94418a376f2aa3fefa15685cea5fa462093f0150e09067f7512",
+					"01d553fab496f3fd6092e25ce60e6f72e24b57950bffc0d372d659e38e5a95e89fb117b4eb3481",
+					"013a787bf6248c518aee3a040a14b0dd3a029bc8e9b19a1823faf5bcdde397f4201ad01aace4c9"
+				],
+				"minimumsignaturecount": 1
+			}
+		};
+	}
+	if (networkName == "devnet") {
+		return {
+			"type": 1,
+			"data": {
+				"unlockhash": "015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f",
+			}
+		};
+	}
+	// assume standard
+	return {
+		"type": 1,
+		"data": {
+			"unlockhash": "017267221ef1947bb18506e390f1f9446b995acfb6d08d8e39508bb974d9830b8cb8fdca788e34",
+		}
+	};
+}
+
+function createBotFeePayoutOutput(transaction) {
+	var constants = getBlockchainConstants();
+	var condition = getBotFeePayoutConditionForNetwork(constants.chaininfo.NetworkName);
+	var output = {
+		// TODO: would be cool if the explorer tx could return coin input values already,
+		// such that we could just do a sum-diff, otherwise this is going to get pretty messy
+		"value": "0",
+		"condition": condition,
+	};
+	return output;
+}
+
 function addUnknownCondition(_ctx, table, conditiondata, unlockhash) {
 	appendStat(table, 'Unknown UnlockCondition Type', conditiondata.type);
 	for (var key in conditiondata.data) {
@@ -1064,13 +1134,14 @@ function addV1NilOutput(_ctx, table, explorerTransaction, i, type) {
 	
 	var locked = addVNilCondition(_ctx, table);
 
-	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
+	var output = getOutputFromExplorerTransaction(explorerTransaction, outputspecifier, i);
+	var amount = output.value
 	if (type === 'coins') {
 		amount = readableCoins(amount);
 	}
 	appendStat(table, 'Value', amount);
 	return {
-		value: explorerTransaction.rawtransaction.data[outputspecifier][i].value,
+		value: output.value,
 		locked: locked,
 	};
 }
@@ -1088,15 +1159,16 @@ function addV1T1Output(_ctx, table, explorerTransaction, i, type) {
 	var doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
-	var locked = addV1Condition(_ctx, table, explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data);
+	var output = getOutputFromExplorerTransaction(explorerTransaction, outputspecifier, i);
+	var locked = addV1Condition(_ctx, table, output.condition.data);
 
-	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
+	var amount = output.value
 	if (type === 'coins') {
 		amount = readableCoins(amount);
 	}
 	appendStat(table, 'Value', amount);
 	return {
-		value: explorerTransaction.rawtransaction.data[outputspecifier][i].value,
+		value: output.value,
 		locked: locked,
 	};
 }
@@ -1115,17 +1187,18 @@ function addV1T2Output(_ctx, table, explorerTransaction, i, type) {
 	var doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
-	var conditiondata = explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data;
+	var output = getOutputFromExplorerTransaction(explorerTransaction, outputspecifier, i);
+	var conditiondata = output.condition.data;
 	var unlockhash = explorerTransaction[outputunlockhashesspecifier][i];
 	var locked = addV2Condition(_ctx, table, conditiondata, unlockhash);
 
-	var amount = explorerTransaction.rawtransaction.data[outputspecifier][i].value
+	var amount = output.value
 	if (type === 'coins') {
 		amount = readableCoins(amount);
 	}
 	appendStat(table, 'Value', amount);
 	return {
-		value: explorerTransaction.rawtransaction.data[outputspecifier][i].value,
+		value: output.value,
 		locked: locked,
 	};
 }
@@ -1159,11 +1232,11 @@ function addV1T3Output(ctx, table, explorerTransaction, i, type) {
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
 	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
-	var conditiondata = explorerTransaction.rawtransaction.data[outputspecifier][i].condition.data;
+	var output = getOutputFromExplorerTransaction(explorerTransaction, outputspecifier, i);
+	var conditiondata = output.condition.data;
 	var unlockhash = explorerTransaction[outputunlockhashesspecifier][i];
 	var locked = addV3Condition(ctx, table, conditiondata, unlockhash);
 
-	var output = explorerTransaction.rawtransaction.data[outputspecifier][i];
 	var amount = output.value;
 	if (type === 'coins') {
 		amount = readableCoins(amount);
@@ -1221,7 +1294,7 @@ function addV1T4Output(_ctx, table, explorerTransaction, i, type) {
 	var doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
-	var output = explorerTransaction.rawtransaction.data[outputspecifier][i];
+	var output = getOutputFromExplorerTransaction(explorerTransaction, outputspecifier, i);
 
 	var conditiondata = output.condition.data;
 	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
@@ -1338,7 +1411,8 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addr
 		if (explorerHash.transactions[i].coinoutputids != null && explorerHash.transactions[i].coinoutputids.length != 0) {
 			// Scan for a relevant siacoin output.
 			for (var j = 0; j < explorerHash.transactions[i].coinoutputids.length; j++) {
-				if (explorerHash.transactions[i].rawtransaction.version === 0) {
+				var txversion = explorerHash.transactions[i].rawtransaction.version;
+				if (txversion === 0) {
 					if (explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].unlockhash == hash) {
 						found = true;
 						var table = createStatsTable();
@@ -1370,7 +1444,11 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addr
 						doms = appendStat(table, 'Transaction ID', '');
 						linkHash(doms[2], explorerHash.transactions[i].id);
 						var f;
-						switch (explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.type) {
+						var coinoutput = getCoinOutputFromExplorerTransaction(explorerHash.transactions[i], j);
+						if (coinoutput == null) {
+							continue;
+						}
+						switch (coinoutput.condition.type) {
 							case undefined:
 							case 0:
 								f = addV1NilOutput;
@@ -1794,7 +1872,11 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 						doms = appendStat(table, 'Transaction ID', '');
 						linkHash(doms[2], explorerHash.transactions[i].id);
 						var f;
-						switch (explorerHash.transactions[i].rawtransaction.data.coinoutputs[j].condition.type) {
+						var coinoutput = getCoinOutputFromExplorerTransaction(explorerHash.transactions[i], j);
+						if (coinoutput == null) {
+							continue;
+						}
+						switch (coinoutput.condition.type) {
 							case undefined:
 							case 0:
 								f = addV1NilOutput;
