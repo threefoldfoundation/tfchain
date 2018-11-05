@@ -271,6 +271,7 @@ func TestEncodeDecodeSliceLength(t *testing.T) {
 		{(1 << 25), 4},
 		{(1 << 27), 4},
 		{(1 << 28) - 1, 4},
+		{(1 << 29) - 1, 4},
 	}
 	for idx, testCase := range testCases {
 		buffer := bytes.NewBuffer(nil)

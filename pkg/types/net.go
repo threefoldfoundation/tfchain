@@ -42,7 +42,7 @@ var (
 	ErrNilHostname = errors.New("nil hostname")
 	// ErrHostnameTooLong is the error returned in case a new network address is attempted to be
 	// created with a too long string.
-	ErrHostnameTooLong = errors.New("the length of a hostname can maximum be 127 bytes long")
+	ErrHostnameTooLong = errors.New("the length of a hostname can maximum be 63 bytes long")
 	// ErrInvalidNetworkAddress is the error returned in case a to-be-created (or decoded)
 	// network address is invalid (meaning it is no valid hostname or IPv4/IPv6 address).
 	ErrInvalidNetworkAddress = errors.New("invalid network address")
