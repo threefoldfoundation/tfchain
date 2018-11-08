@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	rivinetypes "github.com/rivine/rivine/types"
+	rivinetypes "github.com/threefoldtech/rivine/types"
 
 	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 	"github.com/threefoldfoundation/tfchain/pkg/types"

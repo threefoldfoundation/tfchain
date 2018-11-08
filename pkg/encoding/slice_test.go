@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/rivine/rivine/crypto"
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/crypto"
+	"github.com/threefoldtech/rivine/types"
 )
 
 func TestMarshalUnmarshalTinySlices(t *testing.T) {

@@ -14,7 +14,7 @@ in the remote daemon(s) used.
 
 This document extends where the Rivine light wallet documentation finishes off,
 as to fill in the gaps for the tfchain-specific needs/features.
-Please read the Rivine documentation at <https://github.com/rivine/rivine/blob/master/doc/transactions/light_wallet.md
+Please read the Rivine documentation at <https://github.com/threefoldtech/rivine/blob/master/doc/transactions/light_wallet.md
 first if you haven't already.
 
 ## 3Bot
@@ -26,7 +26,7 @@ POST <daemon_addr>/transactionpool/transactions
 ```
 
 This is already documented in the Rivine documentation at
-<https://github.com/rivine/rivine/blob/master/doc/transactions/light_wallet.md#creating-transactions>.
+<https://github.com/threefoldtech/rivine/blob/master/doc/transactions/light_wallet.md#creating-transactions>.
 
 ### Getting a 3Bot record
 

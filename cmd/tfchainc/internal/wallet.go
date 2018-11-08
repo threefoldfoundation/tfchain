@@ -7,8 +7,8 @@ import (
 	"github.com/threefoldfoundation/tfchain/pkg/api"
 	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 
-	"github.com/rivine/rivine/pkg/client"
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/pkg/client"
+	"github.com/threefoldtech/rivine/types"
 )
 
 // WalletClient is used to easily interact with the wallet through the HTTP REST API.

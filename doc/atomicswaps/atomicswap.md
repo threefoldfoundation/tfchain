@@ -44,4 +44,4 @@ Ethereum walkthroughs:
 
 ## References
 
-Threefold atomic swaps are default [Rivine](github.com/rivine/rivine) atomic swaps.
+Threefold atomic swaps are default [Rivine](github.com/threefoldtech/rivine) atomic swaps.

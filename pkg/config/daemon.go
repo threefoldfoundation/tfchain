@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/types"
 )
 
 // DaemonNetworkConfig defines network-specific tfchain constants.

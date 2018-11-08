@@ -6,7 +6,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/rivine/rivine/encoding"
+	"github.com/threefoldtech/rivine/encoding"
 )
 
 // Marshal returns the encoding of v. For encoding details, see the package
@@ -36,7 +36,7 @@ func MarshalAll(vs ...interface{}) []byte {
 // Encoder writes objects to an output stream.
 //
 // A modified and improved Rivine (Sia) Encoder,
-// found in the <github.com/rivine/rivine/encoding> package.
+// found in the <github.com/threefoldtech/rivine/encoding> package.
 type Encoder struct {
 	w io.Writer
 }

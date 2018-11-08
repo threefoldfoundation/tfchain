@@ -3,9 +3,9 @@ package internal
 import (
 	"encoding/json"
 
-	rivineapi "github.com/rivine/rivine/pkg/api"
-	"github.com/rivine/rivine/pkg/client"
-	"github.com/rivine/rivine/types"
+	rivineapi "github.com/threefoldtech/rivine/pkg/api"
+	"github.com/threefoldtech/rivine/pkg/client"
+	"github.com/threefoldtech/rivine/types"
 )
 
 // TransactionPoolClient is used to easily interact

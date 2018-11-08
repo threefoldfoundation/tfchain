@@ -3,7 +3,7 @@ package internal
 import (
 	"encoding/binary"
 
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/types"
 )
 
 // EncodeBlockheight encodes the given blockheight as a sortable key

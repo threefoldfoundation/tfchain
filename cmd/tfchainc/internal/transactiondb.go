@@ -8,8 +8,8 @@ import (
 	"github.com/threefoldfoundation/tfchain/pkg/api"
 	"github.com/threefoldfoundation/tfchain/pkg/types"
 
-	"github.com/rivine/rivine/pkg/client"
-	rivinetypes "github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/pkg/client"
+	rivinetypes "github.com/threefoldtech/rivine/types"
 )
 
 // TransactionDBClient is used to be able to get the active mint condition,
