@@ -403,18 +403,22 @@ function appendRawBlock(element, explorerBlock) {
 	element.appendChild(container);
 }
 
-function appendNavigationMenuBlock(explorerBlock) {
+function appendNavigationMenuBlock(explorerBlock, confirmed) {
 	var navigation = document.getElementById('nav-links');
 	var blockSpan = document.createElement('span');
 	var navContainer = document.getElementById('nav-container');
 	blockSpan.id = 'nav-links-block';
 	navContainer.appendChild(blockSpan);
 	navigation.appendChild(navContainer);
-	linkHeight(blockSpan, explorerBlock.height, 'Block');
+	if (confirmed) {
+		linkHeight(blockSpan, explorerBlock.height, 'Block');
+	} else {
+		blockSpan.appendChild(document.createTextNode('Transaction Pool'));
+	}
 }
 
-function appendExplorerBlock(element, explorerBlock) {
-	appendNavigationMenuBlock(explorerBlock);
+function appendExplorerBlock(element, explorerBlock, confirmed) {
+	appendNavigationMenuBlock(explorerBlock, confirmed);
 	appendNavigationElements(element, explorerBlock);
 	appendBlockStatistics(element, explorerBlock);
 	appendBlockMinerPayouts(element, explorerBlock);

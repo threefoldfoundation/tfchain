@@ -10,8 +10,8 @@ function fillBlock(height) {
 		appendHeading(infoBody, 'Block Not Found');
 		appendHeading(infoBody, 'Height: ' + height);
 	} else {
-		var explorerBlock = JSON.parse(request.responseText).block;
-		appendExplorerBlock(infoBody, explorerBlock);
+		var explorerHash = JSON.parse(request.responseText);
+		appendExplorerBlock(infoBody, explorerHash.block, explorerHash.unconfirmed!==true);
 	}
 }
 

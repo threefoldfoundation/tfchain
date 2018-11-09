@@ -1935,9 +1935,9 @@ function populateHashPage(hash, explorerHash) {
 	if (hashType === "blockid") {
 		appendHeading(infoBody, 'Hash Type: Block ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
-		appendExplorerBlock(infoBody, explorerHash.block);
+		appendExplorerBlock(infoBody, explorerHash.block, explorerHash.unconfirmed!==true);
 	} else if (hashType === "transactionid") {
-		appendNavigationMenuTransaction(explorerHash.transaction);
+		appendNavigationMenuTransaction(explorerHash.transaction, explorerHash.unconfirmed!==true);
 		appendHeading(infoBody, 'Hash Type: Transaction ID');
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
@@ -2017,8 +2017,8 @@ function getTransactionFeesAsFeePayouts(txID, blockID) {
 }
 
 // appendNavigationMenuTranscaction adds the transaction link to the top navigation menu
-function appendNavigationMenuTransaction(explorerTransaction) {
-	appendNavigationMenuBlock(explorerTransaction);
+function appendNavigationMenuTransaction(explorerTransaction, confirmed) {
+	appendNavigationMenuBlock(explorerTransaction, confirmed);
 	var navigation = document.getElementById('nav-links');
 	var transactionSpan = document.createElement('span');
 	var navContainer = document.getElementById('nav-container');
@@ -2055,7 +2055,7 @@ function appendNavigationMenuCoinOutput(explorerHash, hash) {
 	for (var i = 0; i < explorerHash.blocks.length; i++) {
 		for (var j = 0; j < explorerHash.blocks[i].minerpayoutids.length; j++) {
 			if (explorerHash.blocks[i].minerpayoutids[j] == hash) {
-				appendNavigationMenuBlock(explorerHash.blocks[i]);
+				appendNavigationMenuBlock(explorerHash.blocks[i], explorerHash.unconfirmed!==true);
 				var navigation = document.getElementById('nav-links');
 				var outputSpan = document.createElement('span');
 				var navContainer = document.getElementById('nav-container');
