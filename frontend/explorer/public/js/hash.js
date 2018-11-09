@@ -599,7 +599,7 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 					continue;
 			}
 			var inputoutputspecifier = getInputOutputSpecifier('coins');
-			botFeeValue += explorerTransaction[inputoutputspecifier][i].value;
+			botFeeValue += parseInt(explorerTransaction[inputoutputspecifier][i].value);
 			f(infoBody, explorerTransaction, i, 'coins');
 		}
 	}
@@ -609,7 +609,7 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
 		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
 		appendStatTableTitle(infoBody, 'Refund Coin Output');
-		botFeeValue -= outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value;
+		botFeeValue -= parseInt(outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value);
 		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
 		var f;
 		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
@@ -648,7 +648,7 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 			linkHash(doms[2], payouts[i].id);
 			doms = appendStat(table, 'Payout Address', '');
 			linkHash(doms[2], payouts[i].unlockhash);
-			botFeeValue -= payouts[i].paidvalue;
+			botFeeValue -= parseInt(payouts[i].paidvalue);
 			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
 			infoBody.appendChild(table);
 		}
@@ -738,7 +738,7 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 					continue;
 			}
 			var inputoutputspecifier = getInputOutputSpecifier('coins');
-			botFeeValue += explorerTransaction[inputoutputspecifier][i].value;
+			botFeeValue += parseInt(explorerTransaction[inputoutputspecifier][i].value);
 			f(infoBody, explorerTransaction, i, 'coins');
 		}
 	}
@@ -748,7 +748,7 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
 		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
 		appendStatTableTitle(infoBody, 'Refund Coin Output');
-		botFeeValue -= outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value;
+		botFeeValue -= parseInt(outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value);
 		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
 		var f;
 		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
@@ -787,7 +787,7 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 			linkHash(doms[2], payouts[i].id);
 			doms = appendStat(table, 'Payout Address', '');
 			linkHash(doms[2], payouts[i].unlockhash);
-			botFeeValue -= payouts[i].paidvalue;
+			botFeeValue -= parseInt(payouts[i].paidvalue);
 			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
 			infoBody.appendChild(table);
 		}
@@ -858,7 +858,7 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 					continue;
 			}
 			var inputoutputspecifier = getInputOutputSpecifier('coins');
-			botFeeValue += explorerTransaction[inputoutputspecifier][i].value;
+			botFeeValue += parseInt(explorerTransaction[inputoutputspecifier][i].value);
 			f(infoBody, explorerTransaction, i, 'coins');
 		}
 	}
@@ -868,7 +868,7 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
 		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
 		appendStatTableTitle(infoBody, 'Refund Coin Output');
-		botFeeValue -= outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value;
+		botFeeValue -= parseInt(outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value);
 		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
 		var f;
 		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
@@ -907,7 +907,7 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 			linkHash(doms[2], payouts[i].id);
 			doms = appendStat(table, 'Payout Address', '');
 			linkHash(doms[2], payouts[i].unlockhash);
-			botFeeValue -= payouts[i].paidvalue;
+			botFeeValue -= parseInt(payouts[i].paidvalue);
 			appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
 			infoBody.appendChild(table);
 		}
