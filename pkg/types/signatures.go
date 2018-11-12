@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/rivine/rivine/crypto"
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/crypto"
+	"github.com/threefoldtech/rivine/types"
 	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 

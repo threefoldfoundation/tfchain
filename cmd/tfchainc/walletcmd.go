@@ -11,9 +11,9 @@ import (
 
 	"github.com/threefoldfoundation/tfchain/pkg/types"
 
-	"github.com/rivine/rivine/pkg/cli"
-	rivinecli "github.com/rivine/rivine/pkg/client"
-	rivinetypes "github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/pkg/cli"
+	rivinecli "github.com/threefoldtech/rivine/pkg/client"
+	rivinetypes "github.com/threefoldtech/rivine/types"
 
 	"github.com/spf13/cobra"
 )

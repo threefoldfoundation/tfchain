@@ -6,9 +6,9 @@ import (
 	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/rivine/rivine/modules"
-	"github.com/rivine/rivine/pkg/api"
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/modules"
+	"github.com/threefoldtech/rivine/pkg/api"
+	"github.com/threefoldtech/rivine/types"
 )
 
 type (

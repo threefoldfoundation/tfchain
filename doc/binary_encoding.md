@@ -4,7 +4,7 @@ Threefold Chain (tfchain) uses for most use cases the Rivine Encoding Library.
 For the 3Bot transactions (and storage of 3Bot records) we use however an encoding library specific
 to tfchain, to binary encode. That is what this document about.
 You can read more about the Rivine encoding, also used as inspiration for the tfchain encoding library,
-at <https://github.com/rivine/rivine/blob/master/doc/Encoding.md>
+at <https://github.com/threefoldtech/rivine/blob/master/doc/Encoding.md>
 
 The main goal of the tfchain encoding library is to achieve the smallest byte footprint for encoded content.
 

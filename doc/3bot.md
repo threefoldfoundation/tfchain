@@ -40,7 +40,7 @@ Note that a single 3Bot will get a unique ID assigned only once, at the point of
 
 > For now a 3Bot can only get to know its unique ID once its registration Tx is accepted by the consensus as part of a created block. Once that is the case, an up-to-date explorer node will be able to return the 3Bot's record (including its unique ID) given the correct (string/text encoded) public key. See [the Rest API](#rest-api) chapter for more information.
 >
-> In the future we can probably handle this more elegantly using the [Rivine][rivine]-developed Electrum module. This way the 3Bot doesn't have to poll an explorer node until it knows its unique ID, until than however there is no other option. See the [Rivine][rivine] issue at <https://github.com/rivine/rivine/issues/408> for more information about the upcoming Electrum module.
+> In the future we can probably handle this more elegantly using the [Rivine][rivine]-developed Electrum module. This way the 3Bot doesn't have to poll an explorer node until it knows its unique ID, until than however there is no other option. See the [Rivine][rivine] issue at <https://github.com/threefoldtech/rivine/issues/408> for more information about the upcoming Electrum module.
 
 Extra information, which is not strictly required in order to consume the data, that could be stored by an explorer for a given 3Bot record:
 
@@ -228,5 +228,5 @@ Information about the binary encoding of public keys, within the context of the 
 can be found at [binary_encoding.md#Public-Key](binary_encoding.md#Public-Key).
 
 [tfchain]: http://github.com/threefoldfoundation/
-[rivine]: http://github.com/rivine/rivine
+[rivine]: http://github.com/threefoldtech/rivine
 [ed25519]: https://en.wikipedia.org/wiki/EdDSA

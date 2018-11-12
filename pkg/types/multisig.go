@@ -3,7 +3,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/types"
 )
 
 // RegisterBlockHeightLimitedMultiSignatureCondition registers the multisig condition,

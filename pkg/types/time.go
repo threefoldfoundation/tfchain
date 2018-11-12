@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/types"
 	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 

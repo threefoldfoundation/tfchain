@@ -7,7 +7,7 @@ import (
 
 	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/types"
 )
 
 func TestSignatureAlgoTypeSiaMarshaling(t *testing.T) {

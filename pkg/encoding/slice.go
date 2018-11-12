@@ -8,7 +8,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/rivine/rivine/encoding"
+	"github.com/threefoldtech/rivine/encoding"
 )
 
 // MarshalTinySlice allows the marshaling of tiny slices,

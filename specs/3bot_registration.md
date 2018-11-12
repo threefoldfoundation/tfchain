@@ -37,7 +37,7 @@ Note that a single 3bot will get a unique ID assigned only once, at the point of
 
 > For now a 3bot can only get to know its unique ID once its registration Tx is accepted by the consensus as part of a created block. Once that is the case, an up-to-date explorer node will be able to return the 3bot's record (including its unique ID) given the correct (string/text encoded) public key. See [the Rest API](#rest-api) chapter for more information.
 >
-> In the future we can probably handle this more elegantly using the [Rivine][rivine]-developed Electrum module. This way the 3bot doesn't have to poll an explorer node until it knows its unique ID, until than however there is no other option. See the [Rivine][rivine] issue at <https://github.com/rivine/rivine/issues/408> for more information about the upcoming Electrum module.
+> In the future we can probably handle this more elegantly using the [Rivine][rivine]-developed Electrum module. This way the 3bot doesn't have to poll an explorer node until it knows its unique ID, until than however there is no other option. See the [Rivine][rivine] issue at <https://github.com/threefoldtech/rivine/issues/408> for more information about the upcoming Electrum module.
 
 Extra information, which is not strictly required in order to consume the data, that could be stored by an explorer for a given 3bot record:
 
@@ -613,5 +613,5 @@ For Coin inputs that means optimizing the Fulfillments, as the ParentID is an ar
 For Coin outputs that means optimizing the encoding of the Currency and the Conditions.
 
 [tfchain]: http://github.com/threefoldfoundation/
-[rivine]: http://github.com/rivine/rivine
+[rivine]: http://github.com/threefoldtech/rivine
 [ed25519]: https://en.wikipedia.org/wiki/EdDSA

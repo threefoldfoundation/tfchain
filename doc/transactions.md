@@ -28,7 +28,7 @@ for the creation of new (regular) transactions by the official tfchain reference
 
 In this document we will only describe the Transaction Types specific to tfchain.
 
-Please read [the Rivine Transaction docs][rivine-txs] for more information about [0x00](https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-v0-transactions) and [0x01](https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-v1-transactions) transactions. These are regular transaction versions which are supported and used within tfchain as well, but are implemented in [Rivine][rivine]. In the Rivine documentation you'll also be able to find more information about [the double spending rule][rivine-double-spending] and [signing of transactions][rivine-sign-tx].
+Please read [the Rivine Transaction docs][rivine-txs] for more information about [0x00](https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-v0-transactions) and [0x01](https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-v1-transactions) transactions. These are regular transaction versions which are supported and used within tfchain as well, but are implemented in [Rivine][rivine]. In the Rivine documentation you'll also be able to find more information about [the double spending rule][rivine-double-spending] and [signing of transactions][rivine-sign-tx].
 
 ### Minter Definition Transactions
 
@@ -103,7 +103,7 @@ See the [Rivine documentation about JSON-encoding of v1 Transactions][rivine-tx-
 
 #### Binary Encoding a Minter Definition Transaction
 
-The binary encoding of a Minter Definition Transaction uses the Rivine encoding package. In order to understand the binary encoding of such a transaction, please see [the Rivine encoding documentation][rivine-encoding] and [Rivine binary encoding of a v1 transaction](https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#binary-encoding-of-v1-transactions) in order to understand how a Minter Definition Transaction is binary encoded. That documentation also contains [an in-detail documented example of a binary encoding v1 transaction](https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#example-of-a-binary-encoded-v1-transaction).
+The binary encoding of a Minter Definition Transaction uses the Rivine encoding package. In order to understand the binary encoding of such a transaction, please see [the Rivine encoding documentation][rivine-encoding] and [Rivine binary encoding of a v1 transaction](https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#binary-encoding-of-v1-transactions) in order to understand how a Minter Definition Transaction is binary encoded. That documentation also contains [an in-detail documented example of a binary encoding v1 transaction](https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#example-of-a-binary-encoded-v1-transaction).
 
 The same transaction that was shown as an example of a JSON-encoded Minter Definition Transaction, can be represented in a hexadecimal string —when binary encoded— as:
 
@@ -206,7 +206,7 @@ See the [Rivine documentation about JSON-encoding of v1 Transactions][rivine-tx-
 
 #### Binary Encoding a Coin Creation Transaction
 
-The binary encoding of a Coin Creation Transaction uses the Rivine encoding package. In order to understand the binary encoding of such a transaction, please see [the Rivine encoding documentation][rivine-encoding] and [Rivine binary encoding of a v1 transaction](https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#binary-encoding-of-v1-transactions) in order to understand how a Coin Creation Transaction is binary encoded. That documentation also contains [an in-detail documented example of a binary encoding v1 transaction](https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#example-of-a-binary-encoded-v1-transaction).
+The binary encoding of a Coin Creation Transaction uses the Rivine encoding package. In order to understand the binary encoding of such a transaction, please see [the Rivine encoding documentation][rivine-encoding] and [Rivine binary encoding of a v1 transaction](https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#binary-encoding-of-v1-transactions) in order to understand how a Coin Creation Transaction is binary encoded. That documentation also contains [an in-detail documented example of a binary encoding v1 transaction](https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#example-of-a-binary-encoded-v1-transaction).
 
 The same transaction that was shown as an example of a JSON-encoded Coin Creation Transaction, can be represented in a hexadecimal string —when binary encoded— as:
 
@@ -544,14 +544,14 @@ blake2b_256_hash(TFChainBinaryEncoding(
 )) : 32 bytes fixed-size crypto hash
 ```
 
-[rivine]: https://github.com/rivine/rivine
-[rivine-encoding]: https://github.com/rivine/rivine/blob/master/doc/Encoding.md
+[rivine]: https://github.com/threefoldtech/rivine
+[rivine-encoding]: https://github.com/threefoldtech/rivine/blob/master/doc/Encoding.md
 [tfchain-encoding]: binary_encoding.md
-[rivine-txs]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md
-[rivine-tx-v1]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-v1-transactions
-[rivine-condition-uh]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-an-unlockhashcondition
-[rivine-condition-tl]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-a-timelockcondition
-[rivine-condition-multisig]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-a-multisignaturecondition
-[rivine-double-spending]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#double-spend-rules
-[rivine-sign-tx]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#signing-a-v1-transaction
-[rivine-signing-into]: https://github.com/rivine/rivine/blob/master/doc/transactions/transaction.md#introduction-to-signing-transactions
+[rivine-txs]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md
+[rivine-tx-v1]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-v1-transactions
+[rivine-condition-uh]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-an-unlockhashcondition
+[rivine-condition-tl]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-a-timelockcondition
+[rivine-condition-multisig]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-a-multisignaturecondition
+[rivine-double-spending]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#double-spend-rules
+[rivine-sign-tx]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#signing-a-v1-transaction
+[rivine-signing-into]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#introduction-to-signing-transactions

@@ -6,7 +6,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/rivine/rivine/encoding"
+	"github.com/threefoldtech/rivine/encoding"
 )
 
 // Unmarshal decodes the encoded value b and stores it in v, which must be a

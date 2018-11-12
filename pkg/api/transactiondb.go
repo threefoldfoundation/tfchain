@@ -8,8 +8,8 @@ import (
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 
-	"github.com/rivine/rivine/pkg/api"
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/pkg/api"
+	"github.com/threefoldtech/rivine/types"
 
 	"github.com/julienschmidt/httprouter"
 )

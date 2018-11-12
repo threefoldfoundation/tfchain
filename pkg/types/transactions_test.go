@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rivine/rivine/crypto"
-	"github.com/rivine/rivine/encoding"
-	"github.com/rivine/rivine/types"
+	"github.com/threefoldtech/rivine/crypto"
+	"github.com/threefoldtech/rivine/encoding"
+	"github.com/threefoldtech/rivine/types"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	tfencoding "github.com/threefoldfoundation/tfchain/pkg/encoding"
 )

@@ -6,4 +6,4 @@ Currently these block stakes are no further distributed beyond this initial dist
 
 A block stake (BS) is an alternative token, which is finite, and is used to create blocks. Therefore it can be said that each blockcreator has at least one block stake. The more (active/matured) block stakes a block creator has the more chance they have to create the next block.
 
-You can read more about block stakes in [the rivine documentation](https://github.com/rivine/rivine/tree/master/doc) at https://github.com/rivine/rivine/blob/master/doc/ProofOfBlockStake.md, which focuses on block stakes eas well as on the Proof Of Block Stake (POBS) algorithm.
+You can read more about block stakes in [the rivine documentation](https://github.com/threefoldtech/rivine/tree/master/doc) at https://github.com/threefoldtech/rivine/blob/master/doc/ProofOfBlockStake.md, which focuses on block stakes eas well as on the Proof Of Block Stake (POBS) algorithm.
