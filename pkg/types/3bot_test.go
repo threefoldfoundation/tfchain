@@ -9,7 +9,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/threefoldfoundation/tfchain/pkg/encoding"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
 )
 
 func TestBotIDLoadEmptyString(t *testing.T) {
@@ -96,14 +96,14 @@ func TestBotNameBinaryMarshalUnmarshal(t *testing.T) {
 		}
 
 		// start binary marshal
-		b := encoding.Marshal(bn)
+		b := rivbin.Marshal(bn)
 		if len(b) == 0 {
-			t.Error(idx, "encoding.Marshal=><nil>", example)
+			t.Error(idx, "rivbin.Marshal=><nil>", example)
 			continue
 		}
-		err = encoding.Unmarshal(b, &bn)
+		err = rivbin.Unmarshal(b, &bn)
 		if err != nil {
-			t.Error(idx, "encoding.Unmarshal", example, err)
+			t.Error(idx, "rivbin.Unmarshal", example, err)
 			continue
 		}
 		// end binary marshal
@@ -163,13 +163,13 @@ func TestExampleBotRecordBinarySia(t *testing.T) {
 	}
 
 	// sia marshal start
-	b := encoding.Marshal(record)
+	b := rivbin.Marshal(record)
 	if len(b) == 0 {
-		t.Fatal("encoding.Marshal: <nil>")
+		t.Fatal("rivbin.Marshal: <nil>")
 	}
-	err = encoding.Unmarshal(b, &record)
+	err = rivbin.Unmarshal(b, &record)
 	if err != nil {
-		t.Fatal("encoding.Unmarshal", err)
+		t.Fatal("rivbin.Unmarshal", err)
 	}
 	// sia marshal end
 
@@ -202,7 +202,7 @@ func TestMinimalHexEncodedBinaryBotRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 	var record BotRecord
-	err = encoding.Unmarshal(b, &record)
+	err = rivbin.Unmarshal(b, &record)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -344,7 +344,7 @@ func TestBotNameSortedSetSiaMarshaling(t *testing.T) {
 		t.Fatal(err)
 	}
 	var bnss BotNameSortedSet
-	err = encoding.Unmarshal(b, &bnss)
+	err = rivbin.Unmarshal(b, &bnss)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -361,7 +361,7 @@ func TestBotNameSortedSetSiaMarshaling(t *testing.T) {
 		}
 	}
 	const expectedHex = `060a61616161611661616161612e61616161611e7468726565666f6c642e746f6b656e`
-	b = encoding.Marshal(bnss)
+	b = rivbin.Marshal(bnss)
 	result := hex.EncodeToString(b)
 	if expectedHex != result {
 		t.Fatal(expectedHex, "!=", result)

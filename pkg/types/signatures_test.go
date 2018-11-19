@@ -5,25 +5,24 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/threefoldfoundation/tfchain/pkg/encoding"
-
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
 	"github.com/threefoldtech/rivine/types"
 )
 
 func TestSignatureAlgoTypeSiaMarshaling(t *testing.T) {
 	for sat := SignatureAlgoType(0); sat < 255; sat++ {
-		b := encoding.Marshal(sat)
+		b := rivbin.Marshal(sat)
 		if len(b) == 0 {
-			t.Error(sat, "encoding.Marshal", "<nil>")
+			t.Error(sat, "rivbin.Marshal", "<nil>")
 			continue
 		}
 		if len(b) != 1 {
 			t.Error(sat, len(b), "!= 1")
 		}
 		var result SignatureAlgoType
-		err := encoding.Unmarshal(b, &result)
+		err := rivbin.Unmarshal(b, &result)
 		if err != nil {
-			t.Error(sat, "encoding.Unmarshal", err)
+			t.Error(sat, "rivbin.Unmarshal", err)
 			continue
 		}
 		if result != sat {
@@ -128,13 +127,13 @@ func TestPublicKeySiaBinaryMarshaling(t *testing.T) {
 		}
 
 		// start binary marshal
-		b := encoding.Marshal(pk)
+		b := rivbin.Marshal(pk)
 		if len(b) == 0 {
-			t.Error(idx, "encoding.Marshal", "<nil>")
+			t.Error(idx, "rivbin.Marshal", "<nil>")
 		}
-		err = encoding.Unmarshal(b, &pk)
+		err = rivbin.Unmarshal(b, &pk)
 		if err != nil {
-			t.Error(idx, "encoding.Unmarshal", err)
+			t.Error(idx, "rivbin.Unmarshal", err)
 		}
 		// end binary marshal
 
@@ -157,11 +156,11 @@ func TestPublicKeySiaJSONMarshaling(t *testing.T) {
 		// start JSON marshal
 		b, err := json.Marshal(pk)
 		if err != nil || len(b) == 0 {
-			t.Error(idx, "encoding.Marshal", err)
+			t.Error(idx, "rivbin.Marshal", err)
 		}
 		err = json.Unmarshal(b, &pk)
 		if err != nil {
-			t.Error(idx, "encoding.Unmarshal", err)
+			t.Error(idx, "rivbin.Unmarshal", err)
 		}
 		// end JSON marshal
 
@@ -179,7 +178,7 @@ func TestPublicKeyEd25519BinaryEncodedByteLength(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	b := encoding.Marshal(pk)
+	b := rivbin.Marshal(pk)
 	if len(b) != 33 {
 		t.Error(len(b), "!=", 33, hex.EncodeToString(b))
 	}

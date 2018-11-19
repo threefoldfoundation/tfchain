@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/threefoldtech/rivine/crypto"
-	"github.com/threefoldtech/rivine/encoding"
-	"github.com/threefoldtech/rivine/types"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
-	tfencoding "github.com/threefoldfoundation/tfchain/pkg/encoding"
+	"github.com/threefoldtech/rivine/crypto"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
+	"github.com/threefoldtech/rivine/types"
 )
 
 var (
@@ -252,12 +252,12 @@ func TestCoinCreationTransactionAsTransactionToAndFromJSON(t *testing.T) {
 // cctx -> Binary -> cctx
 func TestCoinCreationTransactionToAndFromBinary(t *testing.T) {
 	for i, testCase := range testCoinCreationTransactions {
-		b := encoding.Marshal(testCase)
+		b := siabin.Marshal(testCase)
 		if len(b) == 0 {
 			t.Error(i, "Binary-marshal output is empty")
 		}
 		var cctx CoinCreationTransaction
-		err := encoding.Unmarshal(b, &cctx)
+		err := siabin.Unmarshal(b, &cctx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
 			continue
@@ -276,12 +276,12 @@ func TestCoinCreationTransactionAsTransactionToAndFromBinary(t *testing.T) {
 	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
 
 	for i, testCase := range testCoinCreationTransactions {
-		b := encoding.Marshal(testCase.Transaction())
+		b := siabin.Marshal(testCase.Transaction())
 		if len(b) == 0 {
 			t.Error(i, "Binary-marshal output is empty")
 		}
 		var tx types.Transaction
-		err := encoding.Unmarshal(b, &tx)
+		err := siabin.Unmarshal(b, &tx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
 			continue
@@ -378,12 +378,12 @@ func TestMinterDefinitionTransactionAsTransactionToAndFromJSON(t *testing.T) {
 // mdtx -> Binary -> mdtx
 func TestMinterDefinitionTransactionToAndFromBinary(t *testing.T) {
 	for i, testCase := range testMinterDefinitionTransactions {
-		b := encoding.Marshal(testCase)
+		b := siabin.Marshal(testCase)
 		if len(b) == 0 {
 			t.Error(i, "Binary-marshal output is empty")
 		}
 		var mdtx MinterDefinitionTransaction
-		err := encoding.Unmarshal(b, &mdtx)
+		err := siabin.Unmarshal(b, &mdtx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
 			continue
@@ -402,12 +402,12 @@ func TestMinterDefinitionTransactionAsTransactionToAndFromBinary(t *testing.T) {
 	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
 
 	for i, testCase := range testMinterDefinitionTransactions {
-		b := encoding.Marshal(testCase.Transaction())
+		b := siabin.Marshal(testCase.Transaction())
 		if len(b) == 0 {
 			t.Error(i, "Binary-marshal output is empty")
 		}
 		var tx types.Transaction
-		err := encoding.Unmarshal(b, &tx)
+		err := siabin.Unmarshal(b, &tx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
 			continue
@@ -2267,7 +2267,7 @@ func TestBotMonthsAndFlagsData(t *testing.T) {
 	}
 	for idx, testCase := range testCases {
 		var result BotMonthsAndFlagsData
-		err := tfencoding.Unmarshal(tfencoding.Marshal(testCase.Input), &result)
+		err := rivbin.Unmarshal(rivbin.Marshal(testCase.Input), &result)
 		if err != nil {
 			t.Error(idx, "error(Unmarshal:BotMonthsAndFlagData)", err)
 			continue
@@ -2277,7 +2277,7 @@ func TestBotMonthsAndFlagsData(t *testing.T) {
 			continue
 		}
 		var number uint8
-		err = tfencoding.Unmarshal(tfencoding.Marshal(result), &number)
+		err = rivbin.Unmarshal(rivbin.Marshal(result), &number)
 		if err != nil {
 			t.Error(idx, "error(Unmarshal:uint8)", err)
 			continue
@@ -2331,7 +2331,7 @@ func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := tx.ID()
-	b := tfencoding.Marshal(tx)
+	b := rivbin.Marshal(tx)
 
 	// go to 3bot Tx and back
 	botRegistrationTx, err := BotRegistrationTransactionFromTransaction(tx)
@@ -2340,7 +2340,7 @@ func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 	}
 	oTx := botRegistrationTx.Transaction(config.GetCurrencyUnits().OneCoin, types.UnlockConditionProxy{})
 	oID := oTx.ID()
-	oB := tfencoding.Marshal(oTx)
+	oB := rivbin.Marshal(oTx)
 	if id != oID {
 		t.Fatal(id, "!=", oID)
 	}
@@ -2359,8 +2359,8 @@ func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
 	const (
-		hexBlock       = `890c03073ba01fd531859075f98e2e08e27518eb33dd7428a4e81e13d5b75c163fc7d25b000000000200000000000000000000000000000000000000000000000200000000000000050000000000000002540be400015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e67915804000000000000003b9aca00015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580200000000000000010d010000000000000000000000000000000000000000000001000000000000005e9c485e44f1fe202a43261ea0e62f6b6a1497380db1f93c7e4a9ad95e63dc58018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778040000000000000003882c10527126106261bf905278f85ead81bf5e367db00f4ee0a4384a09a47be6f90a0369523ac2d51f6238b7c6a118b594e08846522f89e45774a2703dafe02010000000000000002000000000000000bb8012100000000000000015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580000000000000000000000000000000090e112115bc6aec02c6578616d706c652e6f72671e63686174626f742e6578616d706c6504000000000000003b9aca0002a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780400000000000000078168863933e533c4686ad9749933a02db79c2dd49fc44e46984990e59df704c48e61b8ba845eb781367a55ea49d14ca51d4994315e451fd90f9a3760513bd0b080000000000000001634560d9784e0001210000000000000001b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960100bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c67780661412bb912737dbd572a5c6695537cbf9d72654264b8b98d2929f5b829abbc682749a3a93c83c545315f5c15ee895e136abc023bb58f691010899b7a1d9d222340f`
-		expectedJSONTx = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"78168863933e533c4686ad9749933a02db79c2dd49fc44e46984990e59df704c48e61b8ba845eb781367a55ea49d14ca51d4994315e451fd90f9a3760513bd0b"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614","signature":"12bb912737dbd572a5c6695537cbf9d72654264b8b98d2929f5b829abbc682749a3a93c83c545315f5c15ee895e136abc023bb58f691010899b7a1d9d222340f"}}}`
+		hexBlock       = `122d42828f107921c33e626102c1e3053c70420e76f409162cccf92fd366e7ccca2af35b000000000200000000000000000000000000000000000000000000000200000000000000050000000000000002540be400015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e67915804000000000000003b9aca00015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580200000000000000010d010000000000000000000000000000000000000000000001000000000000005e9c485e44f1fe202a43261ea0e62f6b6a1497380db1f93c7e4a9ad95e63dc58018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778040000000000000003882c10527126106261bf905278f85ead81bf5e367db00f4ee0a4384a09a47be6f90a0369523ac2d51f6238b7c6a118b594e08846522f89e45774a2703dafe02010000000000000002000000000000000bb8012100000000000000015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580000000000000000000000000000000090e1112c6578616d706c652e6f7267207468726565626f742e6578616d706c65083b9aca0002a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee56301e46564323535313900000000000000000040d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d77808053558681b38ce7f8324fc69b6dca44ea00f7e6fa25e52dfd652771b376db13ea3a1e33c0b305ab7baaf3a6d33959d7c81df503e07b1973ca6c9ecb486a491c021001634560d9784e00014201b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960100bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614dda1413b86ef8ea2581c20d551e166beb41b8b93814097b5d003cb78f04f55fd740fb265253da354c779b94b6da3d8f19d9fd23cbcae06ce897aecbf96ffa707`
+		expectedJSONTx = `{"version":144,"data":{"addresses":["example.org"],"names":["threebot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"53558681b38ce7f8324fc69b6dca44ea00f7e6fa25e52dfd652771b376db13ea3a1e33c0b305ab7baaf3a6d33959d7c81df503e07b1973ca6c9ecb486a491c02"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614","signature":"dda1413b86ef8ea2581c20d551e166beb41b8b93814097b5d003cb78f04f55fd740fb265253da354c779b94b6da3d8f19d9fd23cbcae06ce897aecbf96ffa707"}}}`
 	)
 
 	b, err := hex.DecodeString(hexBlock)
@@ -2368,7 +2368,7 @@ func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
 		t.Fatal(err)
 	}
 	var block types.Block
-	err = encoding.Unmarshal(b, &block)
+	err = siabin.Unmarshal(b, &block)
 	if err != nil {
 		t.Fatal(err)
 	}

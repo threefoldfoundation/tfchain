@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
 	"github.com/threefoldtech/rivine/types"
-	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 
 // CompactTimestamp binary marshals the regular Unix Epoch (seconds) Timestamp,
@@ -34,17 +34,29 @@ func NowAsCompactTimestamp() CompactTimestamp {
 	return CompactTimestamp(time.Now().Unix())
 }
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// Alias of MarshalRivine for backwards-compatibility.
 func (cts CompactTimestamp) MarshalSia(w io.Writer) error {
-	if cts < CompactTimestampNullpoint {
-		return encoding.MarshalUint24(w, 0)
-	}
-	return encoding.MarshalUint24(w, cts.UInt32())
+	return cts.MarshalRivine(w)
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// Alias of UnmarshalRivine for backwards-compatibility.
 func (cts *CompactTimestamp) UnmarshalSia(r io.Reader) error {
-	x, err := encoding.UnmarshalUint24(r)
+	return cts.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (cts CompactTimestamp) MarshalRivine(w io.Writer) error {
+	if cts < CompactTimestampNullpoint {
+		return rivbin.MarshalUint24(w, 0)
+	}
+	return rivbin.MarshalUint24(w, cts.UInt32())
+}
+
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (cts *CompactTimestamp) UnmarshalRivine(r io.Reader) error {
+	x, err := rivbin.UnmarshalUint24(r)
 	if err != nil {
 		return err
 	}

@@ -7,8 +7,8 @@ import (
 	"math"
 	"testing"
 
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
 	"github.com/threefoldtech/rivine/types"
-	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 
 func TestCompactTimestampLimits(t *testing.T) {
@@ -37,13 +37,13 @@ func TestCompactTimestampLimits(t *testing.T) {
 		}
 
 		// Test BinaryEncoding Limits
-		err := encoding.Unmarshal(encoding.Marshal(testCase), &cts)
+		err := rivbin.Unmarshal(rivbin.Marshal(testCase), &cts)
 		if err != nil {
 			t.Error(idx+1, "unmarshal error", testCase, "message:", err)
 			continue
 		}
 		if cts != expected {
-			t.Error(idx+1, "encoding.Unmarshal(encoding.Marshal())", "unexpected unmarshal result:", cts, "!=", expected)
+			t.Error(idx+1, "rivbin.Unmarshal(rivbin.Marshal())", "unexpected unmarshal result:", cts, "!=", expected)
 		}
 
 		// Test JSONEncoding Limits
@@ -61,7 +61,7 @@ func TestCompactTimestampLimits(t *testing.T) {
 	}
 }
 
-func TestCompactTimestampBinaryEncodingUnmarshalMarshalExample(t *testing.T) {
+func TestCompactTimestampBinarySiaEncodingUnmarshalMarshalExample(t *testing.T) {
 	const hexStr = `7af905`
 	b, err := hex.DecodeString(hexStr)
 	if err != nil {
@@ -74,6 +74,28 @@ func TestCompactTimestampBinaryEncodingUnmarshalMarshalExample(t *testing.T) {
 	}
 	buffer := bytes.NewBuffer(nil)
 	err = cs.MarshalSia(buffer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	str := hex.EncodeToString(buffer.Bytes())
+	if str != hexStr {
+		t.Fatal("unexpected hex result", str)
+	}
+}
+
+func TestCompactTimestampBinaryRivineEncodingUnmarshalMarshalExample(t *testing.T) {
+	const hexStr = `7af905`
+	b, err := hex.DecodeString(hexStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cs CompactTimestamp
+	err = cs.UnmarshalRivine(bytes.NewReader(b))
+	if err != nil {
+		t.Fatal(err)
+	}
+	buffer := bytes.NewBuffer(nil)
+	err = cs.MarshalRivine(buffer)
 	if err != nil {
 		t.Fatal(err)
 	}

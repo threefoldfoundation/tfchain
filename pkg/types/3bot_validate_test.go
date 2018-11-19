@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/threefoldtech/rivine/types"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
+	"github.com/threefoldtech/rivine/types"
 )
 
 func TestValidateUniquenessOfNetworkAddresses_Correct(t *testing.T) {
@@ -95,10 +95,11 @@ func TestValidateUniquenessOfBotNames_Error(t *testing.T) {
 }
 
 const (
-	exampleBotTransactionPublicKey            = `ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614`
-	exampleBotTransactionSignature            = `12bb912737dbd572a5c6695537cbf9d72654264b8b98d2929f5b829abbc682749a3a93c83c545315f5c15ee895e136abc023bb58f691010899b7a1d9d222340f`
-	exampleUnsignedBotTransactionInJSONFormat = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"78168863933e533c4686ad9749933a02db79c2dd49fc44e46984990e59df704c48e61b8ba845eb781367a55ea49d14ca51d4994315e451fd90f9a3760513bd0b"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"` +
-		exampleBotTransactionPublicKey + `","signature":""}}}`
+	exampleBotTransactionPublicKey            = `ed25519:880ee50bd7efa4c8b2b5949688a09818a652727fd3c0cb406013be442df68b34`
+	exampleBotTransactionSignature            = `625c2db62790a2be025ba72356bb5f0539ada3d2feb923eaeda4aa798845dd71c08f0e669479087b3c59f828e3abe38f75690c443188f4cadcdad0b539e5dc0e`
+	exampleUnsignedBotTransactionInJSONFormat = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"e6239feadc465055e17ab9a3111836e82ad35e7bb1559da3317e6f2cc624582c","fulfillment":{"type":1,"data":{"publickey":"ed25519:a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d","signature":"d4e5d23929151fe511be963dde8b221f314a4decb9dc8ddcd34a0bc969a5d129dc32127d753054b80837192eead9a353bce4841de3d911e1de3d05ba8ae30102"}}}],"refundcoinoutput":{"value":"99999798000000000","condition":{"type":1,"data":{"unlockhash":"01972837ee396f22f96846a0c700f9cf7c8fa83ab4110da91a1c7d02f94f28ff03e45f1470df82"}}},"identification":{"publickey":"` +
+		exampleBotTransactionPublicKey + `","signature":"` +
+		exampleBotTransactionSignature + `"}}}`
 )
 
 func TestValidateBotSignature_Correct(t *testing.T) {

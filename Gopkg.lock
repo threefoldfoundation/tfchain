@@ -115,12 +115,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:155f3f77465a7001afdeafe394403647479e6c2f9a9fd4aad02819c4c165434e"
+  digest = "1:2a09af880e102eb977ce5901a37bdf29f0b1b6963d568a6f03411137eade1b1f"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
     "crypto",
-    "encoding",
     "modules",
     "modules/blockcreator",
     "modules/consensus",
@@ -133,11 +132,13 @@
     "pkg/cli",
     "pkg/client",
     "pkg/daemon",
+    "pkg/encoding/rivbin",
+    "pkg/encoding/siabin",
     "sync",
     "types",
   ]
   pruneopts = "UT"
-  revision = "6c34561722b08335a980143aa56d8e1fff4265a4"
+  revision = "a9d1594f741d1c703b0d122c8ab860903e0ebdc6"
 
 [[projects]]
   branch = "master"
@@ -224,7 +225,6 @@
     "github.com/spf13/pflag",
     "github.com/threefoldtech/rivine/build",
     "github.com/threefoldtech/rivine/crypto",
-    "github.com/threefoldtech/rivine/encoding",
     "github.com/threefoldtech/rivine/modules",
     "github.com/threefoldtech/rivine/modules/blockcreator",
     "github.com/threefoldtech/rivine/modules/consensus",
@@ -237,6 +237,7 @@
     "github.com/threefoldtech/rivine/pkg/cli",
     "github.com/threefoldtech/rivine/pkg/client",
     "github.com/threefoldtech/rivine/pkg/daemon",
+    "github.com/threefoldtech/rivine/pkg/encoding/siabin",
     "github.com/threefoldtech/rivine/sync",
     "github.com/threefoldtech/rivine/types",
   ]

@@ -10,7 +10,8 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/threefoldfoundation/tfchain/pkg/encoding"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 )
 
 const (
@@ -94,9 +95,21 @@ func NewNetworkAddress(addr string) (NetworkAddress, error) {
 }
 
 // MarshalSia marshals this NetworkAddress in a compact binary format.
+// Alias of MarshalRivine, for backwards-compatibility
 func (na NetworkAddress) MarshalSia(w io.Writer) error {
+	return na.MarshalRivine(w)
+}
+
+// UnmarshalSia unmarshals this NetworkAddress from a semi-compact binary format.
+// Alias of UnmarshalRivine, for backwards-compatibility
+func (na *NetworkAddress) UnmarshalSia(r io.Reader) error {
+	return na.UnmarshalRivine(r)
+}
+
+// MarshalRivine marshals this NetworkAddress in a compact binary format.
+func (na NetworkAddress) MarshalRivine(w io.Writer) error {
 	length := len(na.addr)
-	err := encoding.MarshalUint8(w, uint8(na.t)|uint8(length)<<2)
+	err := rivbin.MarshalUint8(w, uint8(na.t)|uint8(length)<<2)
 	if err != nil {
 		return err
 	}
@@ -110,9 +123,9 @@ func (na NetworkAddress) MarshalSia(w io.Writer) error {
 	return nil
 }
 
-// UnmarshalSia unmarshals this NetworkAddress from a compact binary format.
-func (na *NetworkAddress) UnmarshalSia(r io.Reader) error {
-	lengthAndType, err := encoding.UnmarshalUint8(r)
+// UnmarshalRivine unmarshals this NetworkAddress from a compact binary format.
+func (na *NetworkAddress) UnmarshalRivine(r io.Reader) error {
+	lengthAndType, err := rivbin.UnmarshalUint8(r)
 	if err != nil {
 		return err
 	}
@@ -274,16 +287,16 @@ func (nass *NetworkAddressSortedSet) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalSia implements rivine/encoding.SiaMarshaler.MarshalSia
+// MarshalSia implements siabin.SiaMarshaler.MarshalSia
 func (nass NetworkAddressSortedSet) MarshalSia(w io.Writer) error {
-	return encoding.NewEncoder(w).Encode(nass.slice)
+	return siabin.NewEncoder(w).Encode(nass.slice)
 }
 
-// UnmarshalSia implements rivine/encoding.SiaUnmarshaler.UnmarshalSia
+// UnmarshalSia implements siabin.SiaUnmarshaler.UnmarshalSia
 func (nass *NetworkAddressSortedSet) UnmarshalSia(r io.Reader) error {
 	// decode the slice
 	var slice networkAddressSlice
-	err := encoding.NewDecoder(r).Decode(&slice)
+	err := siabin.NewDecoder(r).Decode(&slice)
 	if err != nil {
 		return err
 	}
@@ -299,13 +312,38 @@ func (nass *NetworkAddressSortedSet) UnmarshalSia(r io.Reader) error {
 	return nil
 }
 
-// BinaryEncode can be used instead of MarshalSia, should one want to
+// MarshalRivine implements rivbin.RivineMarshaler.MarshalRivine
+func (nass NetworkAddressSortedSet) MarshalRivine(w io.Writer) error {
+	return rivbin.NewEncoder(w).Encode(nass.slice)
+}
+
+// UnmarshalRivine implements rivbin.RivineUnmarshaler.UnmarshalRivine
+func (nass *NetworkAddressSortedSet) UnmarshalRivine(r io.Reader) error {
+	// decode the slice
+	var slice networkAddressSlice
+	err := rivbin.NewDecoder(r).Decode(&slice)
+	if err != nil {
+		return err
+	}
+	// allocate suffecient memory (and erase) our internal slice
+	nass.slice = make(networkAddressSlice, 0, len(slice))
+	// add the elements on by one, guaranteeing the addresses are in order and unique
+	for _, addr := range slice {
+		err = nass.AddAddress(addr)
+		if err != nil {
+			return fmt.Errorf("error while unmarshaling addr %v: %v", addr, err)
+		}
+	}
+	return nil
+}
+
+// BinaryEncode can be used instead of MarshalRivine, should one want to
 // encode the length prefix in a way other than the standard tfchain-slice approach.
 // The encoding of the length has to happen prior to calling this method.
 func (nass NetworkAddressSortedSet) BinaryEncode(w io.Writer) (int, error) {
 	var (
 		err     error
-		encoder = encoding.NewEncoder(w)
+		encoder = rivbin.NewEncoder(w)
 	)
 	for _, addr := range nass.slice {
 		err = encoder.Encode(addr)
@@ -316,13 +354,13 @@ func (nass NetworkAddressSortedSet) BinaryEncode(w io.Writer) (int, error) {
 	return nass.slice.Len(), nil
 }
 
-// BinaryDecode can be used instead of UnmarshalSia, should one need to
+// BinaryDecode can be used instead of UnmarshalRivine, should one need to
 // decode the length prefix in a way other than the standard tfchain-slice approach.
 // The decoding of the length has to happen prior to calling this method.
 func (nass *NetworkAddressSortedSet) BinaryDecode(r io.Reader, length int) error {
 	var (
 		err     error
-		decoder = encoding.NewDecoder(r)
+		decoder = rivbin.NewDecoder(r)
 	)
 	// allocate suffecient memory (and erase) our internal slice
 	nass.slice = make(networkAddressSlice, 0, length)

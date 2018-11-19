@@ -7,12 +7,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/threefoldtech/rivine/encoding"
-	"github.com/threefoldtech/rivine/pkg/cli"
-	rivinecli "github.com/threefoldtech/rivine/pkg/client"
-	rivinetypes "github.com/threefoldtech/rivine/types"
 	"github.com/threefoldfoundation/tfchain/cmd/tfchainc/internal"
 	"github.com/threefoldfoundation/tfchain/pkg/types"
+	"github.com/threefoldtech/rivine/pkg/cli"
+	rivinecli "github.com/threefoldtech/rivine/pkg/client"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
+	rivinetypes "github.com/threefoldtech/rivine/types"
 
 	"github.com/spf13/cobra"
 )
@@ -125,7 +125,7 @@ func (consensusSubCmds *consensusSubCmds) getMintCondition(cmd *cobra.Command, a
 		encode = json.NewEncoder(os.Stdout).Encode
 	case cli.EncodingTypeHex:
 		encode = func(v interface{}) error {
-			b := encoding.Marshal(v)
+			b := siabin.Marshal(v)
 			fmt.Println(hex.EncodeToString(b))
 			return nil
 		}
@@ -154,7 +154,7 @@ func (consensusSubCmds *consensusSubCmds) getBotRecord(str string) {
 		encode = json.NewEncoder(os.Stdout).Encode
 	case cli.EncodingTypeHex:
 		encode = func(v interface{}) error {
-			b := encoding.Marshal(v)
+			b := siabin.Marshal(v)
 			fmt.Println(hex.EncodeToString(b))
 			return nil
 		}
@@ -189,7 +189,7 @@ func (consensusSubCmds *consensusSubCmds) getBotTransactions(str string) {
 		encode = json.NewEncoder(os.Stdout).Encode
 	case cli.EncodingTypeHex:
 		encode = func(v interface{}) error {
-			b := encoding.Marshal(v)
+			b := siabin.Marshal(v)
 			fmt.Println(hex.EncodeToString(b))
 			return nil
 		}
