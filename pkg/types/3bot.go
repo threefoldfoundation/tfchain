@@ -11,8 +11,9 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	"github.com/threefoldtech/rivine/types"
-	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 
 const (
@@ -104,9 +105,21 @@ type (
 	}
 )
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
 func (record BotRecord) MarshalSia(w io.Writer) error {
-	enc := encoding.NewEncoder(w)
+	return record.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (record *BotRecord) UnmarshalSia(r io.Reader) error {
+	return record.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (record BotRecord) MarshalRivine(w io.Writer) error {
+	enc := rivbin.NewEncoder(w)
 
 	// encode the ID and merged addr+name length
 	err := enc.EncodeAll(
@@ -130,14 +143,14 @@ func (record BotRecord) MarshalSia(w io.Writer) error {
 	// encode the public key and the expiration date
 	err = enc.EncodeAll(record.PublicKey, record.Expiration)
 	if err != nil {
-		return fmt.Errorf("BotRecord: MarshalSia: publicKey+expiration: %v", err)
+		return fmt.Errorf("BotRecord: MarshalRivine: publicKey+expiration: %v", err)
 	}
 	return nil
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
-func (record *BotRecord) UnmarshalSia(r io.Reader) error {
-	decoder := encoding.NewDecoder(r)
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (record *BotRecord) UnmarshalRivine(r io.Reader) error {
+	decoder := rivbin.NewDecoder(r)
 	// decode the ID and merged addr+name len
 	var pairLength uint8
 	err := decoder.DecodeAll(&record.ID, &pairLength)
@@ -300,12 +313,27 @@ func NewBotName(name string) (BotName, error) {
 
 // MarshalSia implements SiaMarshaler.MarshalSia
 func (bn BotName) MarshalSia(w io.Writer) error {
-	return encoding.NewEncoder(w).Encode(bn.name)
+	return siabin.NewEncoder(w).Encode(bn.name)
 }
 
 // UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
 func (bn *BotName) UnmarshalSia(r io.Reader) error {
-	err := encoding.NewDecoder(r).Decode(&bn.name)
+	err := siabin.NewDecoder(r).Decode(&bn.name)
+	if err != nil {
+		return err
+	}
+	bn.name = bytes.ToLower(bn.name)
+	return nil
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (bn BotName) MarshalRivine(w io.Writer) error {
+	return rivbin.NewEncoder(w).Encode(bn.name)
+}
+
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (bn *BotName) UnmarshalRivine(r io.Reader) error {
+	err := rivbin.NewDecoder(r).Decode(&bn.name)
 	if err != nil {
 		return err
 	}
@@ -425,16 +453,16 @@ func (bnss *BotNameSortedSet) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MarshalSia implements rivine/encoding.SiaMarshaler.MarshalSia
+// MarshalSia implements siabin.SiaMarshaler.MarshalSia
 func (bnss BotNameSortedSet) MarshalSia(w io.Writer) error {
-	return encoding.NewEncoder(w).Encode(bnss.slice)
+	return siabin.NewEncoder(w).Encode(bnss.slice)
 }
 
-// UnmarshalSia implements rivine/encoding.SiaUnmarshaler.UnmarshalSia
+// UnmarshalSia implements siabin.SiaUnmarshaler.UnmarshalSia
 func (bnss *BotNameSortedSet) UnmarshalSia(r io.Reader) error {
 	// decode the slice
 	var slice botNameSlice
-	err := encoding.NewDecoder(r).Decode(&slice)
+	err := siabin.NewDecoder(r).Decode(&slice)
 	if err != nil {
 		return err
 	}
@@ -450,13 +478,38 @@ func (bnss *BotNameSortedSet) UnmarshalSia(r io.Reader) error {
 	return nil
 }
 
-// BinaryEncode can be used instead of MarshalSia, should one want to
+// MarshalRivine implements rivbin.RivineMarshaler.MarshalRivine
+func (bnss BotNameSortedSet) MarshalRivine(w io.Writer) error {
+	return rivbin.NewEncoder(w).Encode(bnss.slice)
+}
+
+// UnmarshalRivine implements rivbin.RivineUnmarshaler.UnmarshalRivine
+func (bnss *BotNameSortedSet) UnmarshalRivine(r io.Reader) error {
+	// decode the slice
+	var slice botNameSlice
+	err := rivbin.NewDecoder(r).Decode(&slice)
+	if err != nil {
+		return err
+	}
+	// allocate suffecient memory (and erase) our internal slice
+	bnss.slice = make(botNameSlice, 0, len(slice))
+	// add the elements on by one, guaranteeing the names are in order and unique
+	for _, addr := range slice {
+		err = bnss.AddName(addr)
+		if err != nil {
+			return fmt.Errorf("error while unmarshaling name %v: %v", addr, err)
+		}
+	}
+	return nil
+}
+
+// BinaryEncode can be used instead of MarshalRivine, should one want to
 // encode the length prefix in a way other than the standard tfchain-slice approach.
 // The encoding of the length has to happen prior to calling this method.
 func (bnss BotNameSortedSet) BinaryEncode(w io.Writer) (int, error) {
 	var (
 		err     error
-		encoder = encoding.NewEncoder(w)
+		encoder = rivbin.NewEncoder(w)
 	)
 	for _, addr := range bnss.slice {
 		err = encoder.Encode(addr)
@@ -467,13 +520,13 @@ func (bnss BotNameSortedSet) BinaryEncode(w io.Writer) (int, error) {
 	return bnss.slice.Len(), nil
 }
 
-// BinaryDecode can be used instead of UnmarshalSia, should one need to
+// BinaryDecode can be used instead of UnmarshalRivine, should one need to
 // decode the length prefix in a way other than the standard tfchain-slice approach.
 // The decoding of the length has to happen prior to calling this method.
 func (bnss *BotNameSortedSet) BinaryDecode(r io.Reader, length int) error {
 	var (
 		err     error
-		decoder = encoding.NewDecoder(r)
+		decoder = rivbin.NewDecoder(r)
 	)
 	// allocate suffecient memory (and erase) our internal slice
 	bnss.slice = make(botNameSlice, 0, length)

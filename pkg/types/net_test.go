@@ -8,7 +8,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/threefoldfoundation/tfchain/pkg/encoding"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
 )
 
 var exampleNetworkAddresses = []string{
@@ -68,14 +68,14 @@ func TestNetworkAddressBinaryMarshalUnmarshal(t *testing.T) {
 		}
 
 		// start binary marshal
-		b := encoding.Marshal(na)
+		b := rivbin.Marshal(na)
 		if len(b) == 0 {
-			t.Error(idx, "encoding.Marshal=><nil>", example)
+			t.Error(idx, "rivbin.Marshal=><nil>", example)
 			continue
 		}
-		err = encoding.Unmarshal(b, &na)
+		err = rivbin.Unmarshal(b, &na)
 		if err != nil {
-			t.Error(idx, "encoding.Unmarshal", example, err)
+			t.Error(idx, "rivbin.Unmarshal", example, err)
 			continue
 		}
 		// end binary marshal
@@ -205,7 +205,7 @@ func TestNetworkAddressSortedSetSiaMarshaling(t *testing.T) {
 		t.Fatal(err)
 	}
 	var nass NetworkAddressSortedSet
-	err = encoding.Unmarshal(b, &nass)
+	err = rivbin.Unmarshal(b, &nass)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +222,7 @@ func TestNetworkAddressSortedSetSiaMarshaling(t *testing.T) {
 		}
 	}
 	const expectedHex = `064c6e6574776f726b2e616464726573732e636f6d117f0000014220010db885a3000000008a2e03707334`
-	b = encoding.Marshal(nass)
+	b = rivbin.Marshal(nass)
 	result := hex.EncodeToString(b)
 	if expectedHex != result {
 		t.Fatal(expectedHex, "!=", result)

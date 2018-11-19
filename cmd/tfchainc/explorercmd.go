@@ -7,11 +7,11 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/threefoldtech/rivine/encoding"
+	"github.com/threefoldfoundation/tfchain/cmd/tfchainc/internal"
 	"github.com/threefoldtech/rivine/pkg/cli"
 	rivinecli "github.com/threefoldtech/rivine/pkg/client"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	rivinetypes "github.com/threefoldtech/rivine/types"
-	"github.com/threefoldfoundation/tfchain/cmd/tfchainc/internal"
 
 	"github.com/spf13/cobra"
 )
@@ -110,7 +110,7 @@ func (explorerSubCmds *explorerSubCmds) getMintCondition(cmd *cobra.Command, arg
 		encode = json.NewEncoder(os.Stdout).Encode
 	case cli.EncodingTypeHex:
 		encode = func(v interface{}) error {
-			b := encoding.Marshal(v)
+			b := siabin.Marshal(v)
 			fmt.Println(hex.EncodeToString(b))
 			return nil
 		}
@@ -130,7 +130,7 @@ func (explorerSubCmds *explorerSubCmds) getBotRecord(str string) {
 
 	// encode depending on the encoding flag
 	var encode func(interface{}) error
-	switch explorerSubCmds.getMintConditionCfg.EncodingType {
+	switch explorerSubCmds.getBotRecordCfg.EncodingType {
 	case cli.EncodingTypeHuman:
 		e := json.NewEncoder(os.Stdout)
 		e.SetIndent("", "  ")
@@ -139,7 +139,7 @@ func (explorerSubCmds *explorerSubCmds) getBotRecord(str string) {
 		encode = json.NewEncoder(os.Stdout).Encode
 	case cli.EncodingTypeHex:
 		encode = func(v interface{}) error {
-			b := encoding.Marshal(v)
+			b := siabin.Marshal(v)
 			fmt.Println(hex.EncodeToString(b))
 			return nil
 		}

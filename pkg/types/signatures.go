@@ -8,8 +8,9 @@ import (
 	"strings"
 
 	"github.com/threefoldtech/rivine/crypto"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	"github.com/threefoldtech/rivine/types"
-	"github.com/threefoldfoundation/tfchain/pkg/encoding"
 )
 
 // SignatureAlgoType identifies a signature algorithm as a single byte.
@@ -64,7 +65,7 @@ type PublicKey struct {
 
 // MarshalSia implements SiaMarshaler.MarshalSia
 func (pk PublicKey) MarshalSia(w io.Writer) error {
-	err := encoding.NewEncoder(w).Encode(pk.Algorithm)
+	err := siabin.NewEncoder(w).Encode(pk.Algorithm)
 	if err != nil || pk.Algorithm == SignatureAlgoNil {
 		return err // nil if pk.Algorithm == SignatureAlgoNil
 	}
@@ -82,7 +83,45 @@ func (pk PublicKey) MarshalSia(w io.Writer) error {
 func (pk *PublicKey) UnmarshalSia(r io.Reader) error {
 	// decode the algorithm type, required to know
 	// what length of byte slice to expect
-	err := encoding.NewDecoder(r).Decode(&pk.Algorithm)
+	err := siabin.NewDecoder(r).Decode(&pk.Algorithm)
+	if err != nil {
+		return err
+	}
+	// create the expected sized byte slice, depending on the algorithm type
+	switch pk.Algorithm {
+	case SignatureAlgoEd25519:
+		pk.Key = make(types.ByteSlice, crypto.PublicKeySize)
+	case SignatureAlgoNil:
+		pk.Key = nil
+	default:
+		return fmt.Errorf("unknown SignatureAlgoType %d", pk.Algorithm)
+	}
+	// read byte slice
+	_, err = io.ReadFull(r, pk.Key[:])
+	return err
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (pk PublicKey) MarshalRivine(w io.Writer) error {
+	err := rivbin.NewEncoder(w).Encode(pk.Algorithm)
+	if err != nil || pk.Algorithm == SignatureAlgoNil {
+		return err // nil if pk.Algorithm == SignatureAlgoNil
+	}
+	l, err := w.Write([]byte(pk.Key))
+	if err != nil {
+		return err
+	}
+	if l != len(pk.Key) {
+		return io.ErrShortWrite
+	}
+	return nil
+}
+
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (pk *PublicKey) UnmarshalRivine(r io.Reader) error {
+	// decode the algorithm type, required to know
+	// what length of byte slice to expect
+	err := rivbin.NewDecoder(r).Decode(&pk.Algorithm)
 	if err != nil {
 		return err
 	}
@@ -172,6 +211,42 @@ func (pksp *PublicKeySignaturePair) UnmarshalSia(r io.Reader) error {
 	// decode the public key first, which includes the algorithm type, required to know
 	// what length of byte slice to expect for the signature
 	err := pksp.PublicKey.UnmarshalSia(r)
+	if err != nil {
+		return err
+	}
+	// create the expected sized byte slice, depending on the algorithm type
+	switch pksp.PublicKey.Algorithm {
+	case SignatureAlgoEd25519:
+		pksp.Signature = make(types.ByteSlice, crypto.SignatureSize)
+	default:
+		return fmt.Errorf("unknown SignatureAlgoType %d", pksp.PublicKey.Algorithm)
+	}
+	// read byte slice
+	_, err = io.ReadFull(r, pksp.Signature[:])
+	return err
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (pksp PublicKeySignaturePair) MarshalRivine(w io.Writer) error {
+	err := pksp.PublicKey.MarshalRivine(w)
+	if err != nil {
+		return err
+	}
+	l, err := w.Write([]byte(pksp.Signature))
+	if err != nil {
+		return err
+	}
+	if l != len(pksp.Signature) {
+		return io.ErrShortWrite
+	}
+	return nil
+}
+
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (pksp *PublicKeySignaturePair) UnmarshalRivine(r io.Reader) error {
+	// decode the public key first, which includes the algorithm type, required to know
+	// what length of byte slice to expect for the signature
+	err := pksp.PublicKey.UnmarshalRivine(r)
 	if err != nil {
 		return err
 	}

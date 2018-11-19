@@ -9,11 +9,11 @@ import (
 	"math/big"
 
 	"github.com/threefoldfoundation/tfchain/pkg/config"
-	tfencoding "github.com/threefoldfoundation/tfchain/pkg/encoding"
 
 	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/crypto"
-	"github.com/threefoldtech/rivine/encoding"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	"github.com/threefoldtech/rivine/types"
 )
 
@@ -326,13 +326,13 @@ func (cctc CoinCreationTransactionController) EncodeTransactionData(w io.Writer,
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a CoinCreationTx: %v", err)
 	}
-	return encoding.NewEncoder(w).Encode(cctx)
+	return siabin.NewEncoder(w).Encode(cctx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (cctc CoinCreationTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var cctx CoinCreationTransaction
-	err := encoding.NewDecoder(r).Decode(&cctx)
+	err := siabin.NewDecoder(r).Decode(&cctx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a CoinCreationTx: %v", err)
@@ -461,7 +461,7 @@ func (cctc CoinCreationTransactionController) InputSigHash(t types.Transaction, 
 	}
 
 	h := crypto.NewHash()
-	enc := encoding.NewEncoder(h)
+	enc := siabin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -490,7 +490,7 @@ func (cctc CoinCreationTransactionController) EncodeTransactionIDInput(w io.Writ
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a CoinCreationTx: %v", err)
 	}
-	return encoding.NewEncoder(w).EncodeAll(SpecifierCoinCreationTransaction, cctx)
+	return siabin.NewEncoder(w).EncodeAll(SpecifierCoinCreationTransaction, cctx)
 }
 
 // MinterDefinitionTransactionController
@@ -501,13 +501,13 @@ func (mdtc MinterDefinitionTransactionController) EncodeTransactionData(w io.Wri
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a MinterDefinitionTx: %v", err)
 	}
-	return encoding.NewEncoder(w).Encode(mdtx)
+	return siabin.NewEncoder(w).Encode(mdtx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (mdtc MinterDefinitionTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var mdtx MinterDefinitionTransaction
-	err := encoding.NewDecoder(r).Decode(&mdtx)
+	err := siabin.NewDecoder(r).Decode(&mdtx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a MinterDefinitionTx: %v", err)
@@ -675,7 +675,7 @@ func (mdtc MinterDefinitionTransactionController) InputSigHash(t types.Transacti
 	}
 
 	h := crypto.NewHash()
-	enc := encoding.NewEncoder(h)
+	enc := siabin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -704,7 +704,7 @@ func (mdtc MinterDefinitionTransactionController) EncodeTransactionIDInput(w io.
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a MinterDefinitionTx: %v", err)
 	}
-	return encoding.NewEncoder(w).EncodeAll(SpecifierMintDefinitionTransaction, mdtx)
+	return siabin.NewEncoder(w).EncodeAll(SpecifierMintDefinitionTransaction, mdtx)
 }
 
 type (
@@ -1107,10 +1107,22 @@ func (brtx *BotRegistrationTransaction) RequiredBotFee(oneCoin types.Currency) t
 	return fee
 }
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
 func (brtx BotRegistrationTransaction) MarshalSia(w io.Writer) error {
+	return brtx.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (brtx *BotRegistrationTransaction) UnmarshalSia(r io.Reader) error {
+	return brtx.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (brtx BotRegistrationTransaction) MarshalRivine(w io.Writer) error {
 	// the tfchain binary encoder used for this implementation
-	enc := tfencoding.NewEncoder(w)
+	enc := rivbin.NewEncoder(w)
 
 	// encode the nr of months, flags and paired lenghts
 	addrLen := len(brtx.Addresses)
@@ -1157,9 +1169,9 @@ func (brtx BotRegistrationTransaction) MarshalSia(w io.Writer) error {
 	return enc.Encode(brtx.Identification)
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
-func (brtx *BotRegistrationTransaction) UnmarshalSia(r io.Reader) error {
-	dec := tfencoding.NewDecoder(r)
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (brtx *BotRegistrationTransaction) UnmarshalRivine(r io.Reader) error {
+	dec := rivbin.NewDecoder(r)
 
 	var maf BotMonthsAndFlagsData
 	err := dec.Decode(&maf)
@@ -1515,14 +1527,26 @@ func (brutx *BotRecordUpdateTransaction) RevertBotRecordUpdate(record *BotRecord
 	return nil
 }
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
 func (brutx BotRecordUpdateTransaction) MarshalSia(w io.Writer) error {
+	return brutx.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (brutx *BotRecordUpdateTransaction) UnmarshalSia(r io.Reader) error {
+	return brutx.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (brutx BotRecordUpdateTransaction) MarshalRivine(w io.Writer) error {
 	// collect length of all the name/addr slices
 	addrAddLen, addrRemoveLen := len(brutx.Addresses.Add), len(brutx.Addresses.Remove)
 	nameAddLen, nameRemoveLen := len(brutx.Names.Add), len(brutx.Names.Remove)
 
 	// the tfchain binary encoder used for this implementation
-	enc := tfencoding.NewEncoder(w)
+	enc := rivbin.NewEncoder(w)
 
 	// encode the identifier, nr of months, flags and paired lenghts
 	maf := BotMonthsAndFlagsData{
@@ -1594,9 +1618,9 @@ func (brutx BotRecordUpdateTransaction) MarshalSia(w io.Writer) error {
 	return enc.Encode(brutx.Signature)
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
-func (brutx *BotRecordUpdateTransaction) UnmarshalSia(r io.Reader) error {
-	dec := tfencoding.NewDecoder(r)
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (brutx *BotRecordUpdateTransaction) UnmarshalRivine(r io.Reader) error {
+	dec := rivbin.NewDecoder(r)
 
 	// unmarshal identifier, NrOfMonths and flags
 	var maf BotMonthsAndFlagsData
@@ -1916,10 +1940,22 @@ func (bnttx *BotNameTransferTransaction) RevertSenderBotRecordUpdate(record *Bot
 	return nil
 }
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
 func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
+	return bnttx.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
+	return bnttx.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (bnttx BotNameTransferTransaction) MarshalRivine(w io.Writer) error {
 	// the tfchain binary encoder used for this implementation
-	enc := tfencoding.NewEncoder(w)
+	enc := rivbin.NewEncoder(w)
 
 	hasRefund := bnttx.RefundCoinOutput != nil
 	infoValue := uint8(len(bnttx.Names))
@@ -1962,9 +1998,9 @@ func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
 	return nil
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
-func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
-	dec := tfencoding.NewDecoder(r)
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (bnttx *BotNameTransferTransaction) UnmarshalRivine(r io.Reader) error {
+	dec := rivbin.NewDecoder(r)
 
 	// unmarshal sender, receiver and info value (includes name slice length and whether a refund is included)
 	var infoValue uint8
@@ -2063,13 +2099,13 @@ func (brtc BotRegistrationTransactionController) EncodeTransactionData(w io.Writ
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotRegistrationTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).Encode(brtx)
+	return rivbin.NewEncoder(w).Encode(brtx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (brtc BotRegistrationTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var brtx BotRegistrationTransaction
-	err := tfencoding.NewDecoder(r).Decode(&brtx)
+	err := rivbin.NewDecoder(r).Decode(&brtx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a BotRegistrationTx: %v", err)
@@ -2228,7 +2264,7 @@ func (brtc BotRegistrationTransactionController) InputSigHash(t types.Transactio
 	}
 
 	h := crypto.NewHash()
-	enc := tfencoding.NewEncoder(h)
+	enc := rivbin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -2267,7 +2303,7 @@ func (brtc BotRegistrationTransactionController) EncodeTransactionIDInput(w io.W
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotRegistrationTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).EncodeAll(SpecifierBotRegistrationTransaction, brtx)
+	return rivbin.NewEncoder(w).EncodeAll(SpecifierBotRegistrationTransaction, brtx)
 }
 
 type (
@@ -2297,13 +2333,13 @@ func (brutc BotUpdateRecordTransactionController) EncodeTransactionData(w io.Wri
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotUpdateRecordTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).Encode(burtx)
+	return rivbin.NewEncoder(w).Encode(burtx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (brutc BotUpdateRecordTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var burtx BotRecordUpdateTransaction
-	err := tfencoding.NewDecoder(r).Decode(&burtx)
+	err := rivbin.NewDecoder(r).Decode(&burtx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a BotUpdateRecordTx: %v", err)
@@ -2429,7 +2465,7 @@ func (brutc BotUpdateRecordTransactionController) InputSigHash(t types.Transacti
 	}
 
 	h := crypto.NewHash()
-	enc := tfencoding.NewEncoder(h)
+	enc := rivbin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -2468,7 +2504,7 @@ func (brutc BotUpdateRecordTransactionController) EncodeTransactionIDInput(w io.
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotRecordUpdateTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).EncodeAll(SpecifierBotRecordUpdateTransaction, brutx)
+	return rivbin.NewEncoder(w).EncodeAll(SpecifierBotRecordUpdateTransaction, brutx)
 }
 
 type (
@@ -2499,13 +2535,13 @@ func (bnttc BotNameTransferTransactionController) EncodeTransactionData(w io.Wri
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotNameTransferTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).Encode(bnttx)
+	return rivbin.NewEncoder(w).Encode(bnttx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (bnttc BotNameTransferTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var bnttx BotNameTransferTransaction
-	err := tfencoding.NewDecoder(r).Decode(&bnttx)
+	err := rivbin.NewDecoder(r).Decode(&bnttx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a BotNameTransferTx: %v", err)
@@ -2666,7 +2702,7 @@ func (bnttc BotNameTransferTransactionController) InputSigHash(t types.Transacti
 	}
 
 	h := crypto.NewHash()
-	enc := tfencoding.NewEncoder(h)
+	enc := rivbin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -2704,7 +2740,7 @@ func (bnttc BotNameTransferTransactionController) EncodeTransactionIDInput(w io.
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotNameTransferTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).EncodeAll(SpecifierBotNameTransferTransaction, bnttx)
+	return rivbin.NewEncoder(w).EncodeAll(SpecifierBotNameTransferTransaction, bnttx)
 }
 
 func getConditionAndFulfillmentForBotID(registry BotRecordReadRegistry, id BotID) (types.UnlockConditionProxy, types.UnlockFulfillmentProxy, error) {
@@ -2779,8 +2815,20 @@ type BotMonthsAndFlagsData struct {
 	HasRefund    bool
 }
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
 func (maf BotMonthsAndFlagsData) MarshalSia(w io.Writer) error {
+	return maf.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (maf *BotMonthsAndFlagsData) UnmarshalSia(r io.Reader) error {
+	return maf.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (maf BotMonthsAndFlagsData) MarshalRivine(w io.Writer) error {
 	x := uint8(maf.NrOfMonths)
 	if maf.HasAddresses {
 		x |= 32
@@ -2791,12 +2839,12 @@ func (maf BotMonthsAndFlagsData) MarshalSia(w io.Writer) error {
 	if maf.HasRefund {
 		x |= 128
 	}
-	return tfencoding.MarshalUint8(w, x)
+	return rivbin.MarshalUint8(w, x)
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
-func (maf *BotMonthsAndFlagsData) UnmarshalSia(r io.Reader) error {
-	x, err := tfencoding.UnmarshalUint8(r)
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (maf *BotMonthsAndFlagsData) UnmarshalRivine(r io.Reader) error {
+	x, err := rivbin.UnmarshalUint8(r)
 	if err != nil {
 		return err
 	}

@@ -1,12 +1,17 @@
-package encoding
+package rivbin
 
 import (
 	"bytes"
 	"errors"
 	"io"
 	"reflect"
+)
 
-	"github.com/threefoldtech/rivine/encoding"
+type (
+	// A RivineUnmarshaler can read and decode itself from a stream.
+	RivineUnmarshaler interface {
+		UnmarshalRivine(io.Reader) error
+	}
 )
 
 // Unmarshal decodes the encoded value b and stores it in v, which must be a
@@ -65,10 +70,11 @@ func (d *Decoder) DecodeAll(vs ...interface{}) error {
 // val. The decoding rules are the inverse of those specified in the package
 // docstring.
 func (d *Decoder) decode(val reflect.Value) error {
-	// check for UnmarshalSia interface first
+	// check for RivineUnmarshaler interface first
 	if val.CanAddr() && val.Addr().CanInterface() {
-		if u, ok := val.Addr().Interface().(encoding.SiaUnmarshaler); ok {
-			err := u.UnmarshalSia(d.r)
+		ival := val.Addr().Interface()
+		if u, ok := ival.(RivineUnmarshaler); ok {
+			err := u.UnmarshalRivine(d.r)
 			return err
 		}
 	}
