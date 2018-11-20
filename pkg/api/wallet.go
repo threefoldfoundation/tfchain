@@ -3,8 +3,6 @@ package api
 import (
 	"net/http"
 
-	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
-
 	"github.com/julienschmidt/httprouter"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/pkg/api"
@@ -22,7 +20,7 @@ type (
 	// WalletPublicKeyGET contains a public key returned by a GET call to
 	// /wallet/publickey.
 	WalletPublicKeyGET struct {
-		PublicKey tftypes.PublicKey `json:"publickey"`
+		PublicKey types.PublicKey `json:"publickey"`
 	}
 )
 
@@ -98,14 +96,9 @@ func NewWalletGetPublicKeyHandler(wallet modules.Wallet) httprouter.Handle {
 			api.WriteError(w, api.Error{Message: "error after call to /wallet/publickey: " + err.Error()}, walletErrorToHTTPStatus(err))
 			return
 		}
-		spk, _, err := wallet.GetKey(unlockHash)
+		pk, _, err := wallet.GetKey(unlockHash)
 		if err != nil {
 			api.WriteError(w, api.Error{Message: "failed to fetch newly created public key: " + err.Error()}, http.StatusInternalServerError)
-			return
-		}
-		pk, err := tftypes.FromSiaPublicKey(spk)
-		if err != nil {
-			api.WriteError(w, api.Error{Message: "failed to interpret newly created public key: " + err.Error()}, http.StatusInternalServerError)
 			return
 		}
 		api.WriteJSON(w, WalletPublicKeyGET{PublicKey: pk})

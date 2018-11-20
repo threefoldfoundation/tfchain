@@ -115,7 +115,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2a09af880e102eb977ce5901a37bdf29f0b1b6963d568a6f03411137eade1b1f"
+  digest = "1:ff9637be084b5ee5c568fff466af843fcddfcf1f66c168a80e5652a102dfc519"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -138,7 +138,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "a9d1594f741d1c703b0d122c8ab860903e0ebdc6"
+  revision = "64d8767b61df6ecd5e79ea997a21860fde5febbc"
 
 [[projects]]
   branch = "master"
@@ -237,6 +237,7 @@
     "github.com/threefoldtech/rivine/pkg/cli",
     "github.com/threefoldtech/rivine/pkg/client",
     "github.com/threefoldtech/rivine/pkg/daemon",
+    "github.com/threefoldtech/rivine/pkg/encoding/rivbin",
     "github.com/threefoldtech/rivine/pkg/encoding/siabin",
     "github.com/threefoldtech/rivine/sync",
     "github.com/threefoldtech/rivine/types",

@@ -502,15 +502,15 @@ func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -616,15 +616,15 @@ func TestJSONUnmarshalSpecMinterDefinitionTransactionExample(t *testing.T) {
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -694,8 +694,8 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 	{
 		Nonce: RandomTransactionNonce(),
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 			},
 			Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
@@ -718,15 +718,15 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -806,8 +806,8 @@ var testMinterDefinitionTransactions = []MinterDefinitionTransaction{
 	{
 		Nonce: RandomTransactionNonce(),
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 			},
 			Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
@@ -827,15 +827,15 @@ var testMinterDefinitionTransactions = []MinterDefinitionTransaction{
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -1090,8 +1090,8 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 	// sign multisig condition, should fail as we didn't sign enough
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1105,8 +1105,8 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 	// sign multisig condition, should succeed
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1131,8 +1131,8 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 	// sign multisig condition, should succeed
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1283,15 +1283,15 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -1308,8 +1308,8 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 	tx.Extension = &MinterDefinitionTransactionExtension{
 		Nonce: origMDExtension.Nonce,
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d"),
 			},
 			Signature: hbs("3e2ed4e893f66ffd57e26afe83d570ca4b8ba873f8236a60c018cde4852de1027256d088b2253ec061ae973f961f26cde8fa42f5d3c0ce1316560ceb25786f03"),
@@ -1605,8 +1605,8 @@ func TestSignCoinCreationTransactionExtension(t *testing.T) {
 	// sign multisig condition, should fail as we didn't sign enough
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1620,8 +1620,8 @@ func TestSignCoinCreationTransactionExtension(t *testing.T) {
 	// sign multisig condition, should succeed
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1768,15 +1768,15 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -1792,8 +1792,8 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 	tx.Extension = &CoinCreationTransactionExtension{
 		Nonce: origCCExtension.Nonce,
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d"),
 			},
 			Signature: hbs("3e2ed4e893f66ffd57e26afe83d570ca4b8ba873f8236a60c018cde4852de1027256d088b2253ec061ae973f961f26cde8fa42f5d3c0ce1316560ceb25786f03"),
@@ -1807,8 +1807,8 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 	tx.Extension = &CoinCreationTransactionExtension{
 		Nonce: origCCExtension.Nonce,
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			Signature: nil,
@@ -2359,8 +2359,8 @@ func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
 	const (
-		hexBlock       = `122d42828f107921c33e626102c1e3053c70420e76f409162cccf92fd366e7ccca2af35b000000000200000000000000000000000000000000000000000000000200000000000000050000000000000002540be400015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e67915804000000000000003b9aca00015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580200000000000000010d010000000000000000000000000000000000000000000001000000000000005e9c485e44f1fe202a43261ea0e62f6b6a1497380db1f93c7e4a9ad95e63dc58018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778040000000000000003882c10527126106261bf905278f85ead81bf5e367db00f4ee0a4384a09a47be6f90a0369523ac2d51f6238b7c6a118b594e08846522f89e45774a2703dafe02010000000000000002000000000000000bb8012100000000000000015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580000000000000000000000000000000090e1112c6578616d706c652e6f7267207468726565626f742e6578616d706c65083b9aca0002a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee56301e46564323535313900000000000000000040d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d77808053558681b38ce7f8324fc69b6dca44ea00f7e6fa25e52dfd652771b376db13ea3a1e33c0b305ab7baaf3a6d33959d7c81df503e07b1973ca6c9ecb486a491c021001634560d9784e00014201b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960100bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614dda1413b86ef8ea2581c20d551e166beb41b8b93814097b5d003cb78f04f55fd740fb265253da354c779b94b6da3d8f19d9fd23cbcae06ce897aecbf96ffa707`
-		expectedJSONTx = `{"version":144,"data":{"addresses":["example.org"],"names":["threebot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"53558681b38ce7f8324fc69b6dca44ea00f7e6fa25e52dfd652771b376db13ea3a1e33c0b305ab7baaf3a6d33959d7c81df503e07b1973ca6c9ecb486a491c02"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614","signature":"dda1413b86ef8ea2581c20d551e166beb41b8b93814097b5d003cb78f04f55fd740fb265253da354c779b94b6da3d8f19d9fd23cbcae06ce897aecbf96ffa707"}}}`
+		hexBlock       = `0d3a8d36b50c3325044b5d994e52f00ce86b43ff84bdc0e7a1347c9b7621624ccf5af45b000000000100000000000000000000000000000000000000000000000200000000000000050000000000000002540be400015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e67915804000000000000003b9aca00015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580200000000000000010d010000000000000000000000000000000000000000000001000000000000001d7f4ac218a2f360dd802843a0003443f77d151ba9329fdecbd8da37519b3419018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d77804000000000000000b82990bcbdd96acb14a877f8b0364abbd8ceab232ce9caa3f8f3a15f7277978484a390d928cce671e9829d780715a6aaf8c686cc7074f7d558b03a4a73f96b07010000000000000002000000000000000bb8012100000000000000015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580000000000000000000000000000000090e112115bc6aec02c6578616d706c652e6f72671e63686174626f742e6578616d706c65083b9aca0002a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee56301c401d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778080909a7df820ec3cee1c99bd2c297b938f830da891439ef7d78452e29efb0c7e593683274c356f72d3b627c2954a24b2bc2276fed47b24cd62816c540c88f13d051001634560d9784e00014201b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960100bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c67780661498e71668dfe7726a357039d7c0e871b6c0ca8fa49dc1fcdccb5f23f5f0a5cab95cfcfd72a9fd2c5045ba899ecb0207ff01125a0151f3e35e3c6e13a7538b340a`
+		expectedJSONTx = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"909a7df820ec3cee1c99bd2c297b938f830da891439ef7d78452e29efb0c7e593683274c356f72d3b627c2954a24b2bc2276fed47b24cd62816c540c88f13d05"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614","signature":"98e71668dfe7726a357039d7c0e871b6c0ca8fa49dc1fcdccb5f23f5f0a5cab95cfcfd72a9fd2c5045ba899ecb0207ff01125a0151f3e35e3c6e13a7538b340a"}}}`
 	)
 
 	b, err := hex.DecodeString(hexBlock)

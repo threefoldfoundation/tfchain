@@ -262,7 +262,7 @@ func getRecordForID(tx *bolt.Tx, id types.BotID) (*types.BotRecord, error) {
 }
 
 // GetRecordForKey returns the record mapped to the given Key.
-func (txdb *TransactionDB) GetRecordForKey(key types.PublicKey) (record *types.BotRecord, err error) {
+func (txdb *TransactionDB) GetRecordForKey(key rivinetypes.PublicKey) (record *types.BotRecord, err error) {
 	err = txdb.db.View(func(tx *bolt.Tx) error {
 		id, err := getBotIDForPublicKey(tx, key)
 		if err != nil {
@@ -275,7 +275,7 @@ func (txdb *TransactionDB) GetRecordForKey(key types.PublicKey) (record *types.B
 	return
 }
 
-func getBotIDForPublicKey(tx *bolt.Tx, key types.PublicKey) (types.BotID, error) {
+func getBotIDForPublicKey(tx *bolt.Tx, key rivinetypes.PublicKey) (types.BotID, error) {
 	keyBucket := tx.Bucket(bucketBotKeyToIDMapping)
 	if keyBucket == nil {
 		return 0, errors.New("corrupt transaction DB: bot key bucket does not exist")
@@ -1160,14 +1160,14 @@ func (txdb *TransactionDB) revertBotNameTransferTx(tx *bolt.Tx, ctx transactionC
 }
 
 // apply/revert the Key->ID mapping for a 3bot
-func applyKeyToIDMapping(tx *bolt.Tx, key types.PublicKey, id types.BotID) error {
+func applyKeyToIDMapping(tx *bolt.Tx, key rivinetypes.PublicKey, id types.BotID) error {
 	mappingBucket := tx.Bucket(bucketBotKeyToIDMapping)
 	if mappingBucket == nil {
 		return errors.New("corrupt transaction DB: bot key bucket does not exist")
 	}
 	return mappingBucket.Put(rivbin.Marshal(key), rivbin.Marshal(id))
 }
-func revertKeyToIDMapping(tx *bolt.Tx, key types.PublicKey) error {
+func revertKeyToIDMapping(tx *bolt.Tx, key rivinetypes.PublicKey) error {
 	mappingBucket := tx.Bucket(bucketBotKeyToIDMapping)
 	if mappingBucket == nil {
 		return errors.New("corrupt transaction DB: bot key bucket does not exist")

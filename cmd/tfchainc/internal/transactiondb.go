@@ -86,7 +86,7 @@ func (cli *TransactionDBClient) GetRecordForID(id types.BotID) (*types.BotRecord
 }
 
 // GetRecordForKey implements types.BotRecordReadRegistry.GetRecordForKey
-func (cli *TransactionDBClient) GetRecordForKey(key types.PublicKey) (*types.BotRecord, error) {
+func (cli *TransactionDBClient) GetRecordForKey(key rivinetypes.PublicKey) (*types.BotRecord, error) {
 	var result api.TransactionDBGetBotRecord
 	err := cli.client.GetAPI(fmt.Sprintf("%s/3bot/%s", cli.rootEndpoint, key.String()), &result)
 	if err != nil {
@@ -132,7 +132,7 @@ func (cli *TransactionDBClient) GetRecordForString(str string) (*types.BotRecord
 	}
 
 	// should be a public key, last choice
-	var publicKey types.PublicKey
+	var publicKey rivinetypes.PublicKey
 	err = publicKey.LoadString(str)
 	if err != nil {
 		return nil, errors.New("argument should be a valid BotID, BotName or PublicKey")

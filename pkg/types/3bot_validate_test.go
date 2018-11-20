@@ -117,7 +117,7 @@ func TestValidateBotSignature_Correct(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var publicKey PublicKey
+	var publicKey types.PublicKey
 	err = publicKey.LoadString(exampleBotTransactionPublicKey)
 	if err != nil {
 		t.Fatal(err)
@@ -155,7 +155,7 @@ func TestValidateBotSignature_Error(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var publicKey PublicKey
+	var publicKey types.PublicKey
 	err = publicKey.LoadString(exampleBotTransactionPublicKey)
 	if err != nil {
 		t.Fatal(err)
@@ -200,7 +200,7 @@ func TestValidateBotSignature_InvalidPublicKey(t *testing.T) {
 	}
 
 	// use invalid public key
-	publicKey := PublicKey{
+	publicKey := types.PublicKey{
 		Algorithm: 42,
 	}
 	publicKey.Key, _ = hex.DecodeString(`69f0239137aa8c6b9c8ef269f0239137aa8c6b9c8ef269f0239137aa8c6b9c8e`)

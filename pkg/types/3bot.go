@@ -100,7 +100,7 @@ type (
 		ID         BotID                   `json:"id"`
 		Addresses  NetworkAddressSortedSet `json:"addresses,omitempty"`
 		Names      BotNameSortedSet        `json:"names,omitempty"`
-		PublicKey  PublicKey               `json:"publickey"`
+		PublicKey  types.PublicKey         `json:"publickey"`
 		Expiration CompactTimestamp        `json:"expiration"`
 	}
 )

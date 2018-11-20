@@ -2051,7 +2051,7 @@ type (
 		// GetRecordForID returns the record mapped to the given BotID.
 		GetRecordForID(id BotID) (*BotRecord, error)
 		// GetRecordForKey returns the record mapped to the given Key.
-		GetRecordForKey(key PublicKey) (*BotRecord, error)
+		GetRecordForKey(key types.PublicKey) (*BotRecord, error)
 		// GetRecordForName returns the record mapped to the given Name.
 		GetRecordForName(name BotName) (*BotRecord, error)
 		// GetBotTransactionIdentifiers returns the identifiers of all transactions
@@ -2751,15 +2751,11 @@ func getConditionAndFulfillmentForBotID(registry BotRecordReadRegistry, id BotID
 	return getConditionAndFulfillmentForBotPublicKey(record.PublicKey)
 }
 
-func getConditionAndFulfillmentForBotPublicKey(pk PublicKey) (types.UnlockConditionProxy, types.UnlockFulfillmentProxy, error) {
+func getConditionAndFulfillmentForBotPublicKey(pk types.PublicKey) (types.UnlockConditionProxy, types.UnlockFulfillmentProxy, error) {
 	// create a publicKeyUnlockHashCondition
-	spk, err := pk.SiaPublicKey()
-	if err != nil {
-		return types.UnlockConditionProxy{}, types.UnlockFulfillmentProxy{}, fmt.Errorf("invalid public public key: %v", err)
-	}
-	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(spk)))
+	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(pk)))
 	// and a matching single-signature fulfillment
-	fulfillment := types.NewFulfillment(types.NewSingleSignatureFulfillment(spk))
+	fulfillment := types.NewFulfillment(types.NewSingleSignatureFulfillment(pk))
 
 	// return the condition and fulfillment
 	return condition, fulfillment, nil

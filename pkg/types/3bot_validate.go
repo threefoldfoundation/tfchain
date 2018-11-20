@@ -1,7 +1,6 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/threefoldtech/rivine/types"
@@ -39,15 +38,11 @@ func validateUniquenessOfBotNames(names []BotName) error {
 	return nil
 }
 
-func validateBotSignature(t types.Transaction, publicKey PublicKey, signature types.ByteSlice, ctx types.ValidationContext) error {
-	spk, err := publicKey.SiaPublicKey()
-	if err != nil {
-		return errors.New("invalid public key in extension data for a Bot Tx")
-	}
-	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(spk)))
+func validateBotSignature(t types.Transaction, publicKey types.PublicKey, signature types.ByteSlice, ctx types.ValidationContext) error {
+	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(publicKey)))
 	// and a matching single-signature fulfillment
 	fulfillment := types.NewFulfillment(&types.SingleSignatureFulfillment{
-		PublicKey: spk,
+		PublicKey: publicKey,
 		Signature: signature,
 	})
 	// validate the signature is correct

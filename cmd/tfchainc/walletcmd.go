@@ -219,7 +219,7 @@ type walletSubCmds struct {
 		Addresses    []types.NetworkAddress
 		Names        []types.BotName
 		NrOfMonths   uint8
-		PublicKey    types.PublicKey
+		PublicKey    rivinetypes.PublicKey
 		EncodingType cli.EncodingType
 	}
 
@@ -541,7 +541,7 @@ func (walletSubCmds *walletSubCmds) botIDFromPosArgStr(str string) (types.BotID,
 
 	// assume a public key was meant,
 	// so we need to get the (bot) record in order to know the (unique) ID
-	var pk types.PublicKey
+	var pk rivinetypes.PublicKey
 	err := pk.LoadString(str)
 	if err != nil {
 		return 0, err
