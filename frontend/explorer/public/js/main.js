@@ -352,9 +352,9 @@ function txVersionName(version) {
 		case 1:
 			return "Regular Transaction";
 
-		case 129:
+		case 128:
 			return "Minter Definition";
-		case 130:
+		case 129:
 			return "Coin Creation";
 
 		case 144:
