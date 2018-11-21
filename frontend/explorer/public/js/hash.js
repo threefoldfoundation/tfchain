@@ -248,7 +248,7 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 		}
 	}
 	var coinoutputs = getCoinOutputsFromExplorerTransaction(explorerTransaction);
-	if (ecoinoutputs != null && coinoutputs.length > 0) {
+	if (coinoutputs != null && coinoutputs.length > 0) {
 		appendStatTableTitle(infoBody, 'Coin Outputs');
 		for (var i = 0; i < coinoutputs.length; i++) {
 			var f;
@@ -2068,10 +2068,10 @@ function populateHashPage(hash, explorerHash) {
 }
 
 function getCoinOutputsFromExplorerTransaction(txn) {
-	var version = txn.rawtransaction.version;
-	if (version == 0 || version == 1) {
-		return txn.rawtransaction.data.coinoutputs || [];
+	if (txn.rawtransaction.data && txn.rawtransaction.data.coinoutputs) {
+		return txn.rawtransaction.data.coinoutputs;
 	}
+	var version = txn.rawtransaction.version;
 	if (version == 144 || version == 145 || version == 146) {
 		outputs = [{
 			'value': computeRequiredBotFeesFromRawTransaction(txn.rawtransaction),
