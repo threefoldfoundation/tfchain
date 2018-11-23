@@ -114,8 +114,8 @@
   version = "v1.0.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:251c2be9b5596718b00ac4d2aa9d629926d6154f9546b350ce55ca1cb4a03c55"
+  branch = "feat-arbitrary-data-type"
+  digest = "1:70f4ae14888007be927cb7a2c3e1ec9b349a2847d22a6ab33faf4563471d9a9c"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -138,7 +138,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "e07a9b906f90e9a904905ffa71b48f862aab26ba"
+  revision = "59751b316b907662917463be969e26de22a2c816"
 
 [[projects]]
   branch = "master"

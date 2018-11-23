@@ -551,7 +551,7 @@ func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 			types.NewCurrency64(3000000),
 			types.NewCurrency64(1230000000),
 		},
-		ArbitraryData: []byte("data"),
+		ArbitraryData: types.ArbitraryData{Data: []byte("data")},
 	})
 }
 
@@ -648,7 +648,7 @@ func TestJSONUnmarshalSpecMinterDefinitionTransactionExample(t *testing.T) {
 			types.NewCurrency64(3000000),
 			types.NewCurrency64(1230000000),
 		},
-		ArbitraryData: []byte("data"),
+		ArbitraryData: types.ArbitraryData{Data: []byte("data")},
 	})
 }
 
@@ -683,9 +683,12 @@ func testCompareTwoCoinCreationTransactions(t *testing.T, i int, a, b CoinCreati
 		}
 	}
 	// compare arbitrary data
-	if bytes.Compare(a.ArbitraryData, b.ArbitraryData) != 0 {
+	if bytes.Compare(a.ArbitraryData.Data, b.ArbitraryData.Data) != 0 {
 		t.Error(i, "arbitrary not equal",
-			string(a.ArbitraryData), "!=", string(b.ArbitraryData))
+			string(a.ArbitraryData.Data), "!=", string(b.ArbitraryData.Data))
+	}
+	if a.ArbitraryData.Type != b.ArbitraryData.Type {
+		t.Error(i, "arbitrary data type not equal", a.ArbitraryData.Type, "!=", b.ArbitraryData.Type)
 	}
 }
 
@@ -770,7 +773,7 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 		// smallest tx fee
 		MinerFees: []types.Currency{config.GetTestnetGenesis().MinimumTransactionFee},
 		// with a message
-		ArbitraryData: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
+		ArbitraryData: types.ArbitraryData{Data: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70")},
 	},
 }
 
@@ -795,9 +798,12 @@ func testCompareTwoMinterDefinitionTransactions(t *testing.T, i int, a, b Minter
 		}
 	}
 	// compare arbitrary data
-	if bytes.Compare(a.ArbitraryData, b.ArbitraryData) != 0 {
+	if bytes.Compare(a.ArbitraryData.Data, b.ArbitraryData.Data) != 0 {
 		t.Error(i, "arbitrary not equal",
-			string(a.ArbitraryData), "!=", string(b.ArbitraryData))
+			string(a.ArbitraryData.Data), "!=", string(b.ArbitraryData.Data))
+	}
+	if a.ArbitraryData.Type != b.ArbitraryData.Type {
+		t.Error(i, "arbitrary data type not equal", a.ArbitraryData.Type, "!=", b.ArbitraryData.Type)
 	}
 }
 
@@ -859,7 +865,7 @@ var testMinterDefinitionTransactions = []MinterDefinitionTransaction{
 		// smallest tx fee
 		MinerFees: []types.Currency{config.GetTestnetGenesis().MinimumTransactionFee},
 		// with a message
-		ArbitraryData: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
+		ArbitraryData: types.ArbitraryData{Data: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70")},
 	},
 }
 
@@ -1210,7 +1216,7 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 
 	// make the arbitrary data too big, should fail
 	origArbitraryData := tx.ArbitraryData
-	tx.ArbitraryData = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
+	tx.ArbitraryData.Data = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
 	resignTx("changed arbitrary data")
 	// should fail now
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
@@ -1725,7 +1731,7 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 
 	// make the arbitrary data too big, should fail
 	origArbitraryData := tx.ArbitraryData
-	tx.ArbitraryData = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
+	tx.ArbitraryData.Data = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
 	resignTx("changed arbitrary data")
 	// should fail now
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
