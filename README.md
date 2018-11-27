@@ -109,7 +109,7 @@ A public testnet is also provided in the tfchaind binary. It can be connected to
 This way you can connect to a real network, which behaves almost like the real network. It should be noted that this network
 is used to test new features and bug fixes before moving them to the production network. It can also be reset by the developers at any time.
 
-You can request `300 TFT` to play with on tfchain wallet, by pasting your wallet address at <http://faucet.testnet.threefoldtoken.com> and requesting the 300 TFT. You'll receive your
+You can request `300 TFT` to play with on tfchain wallet, by pasting your wallet address at <https://faucet.testnet.threefoldtoken.com> and requesting the 300 TFT. You'll receive your
 _testnet_ tokens as soon as the next block is created and added to the _testnet_ chain.
 
 The testnet has the following properties:
