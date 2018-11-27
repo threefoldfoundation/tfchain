@@ -2,6 +2,7 @@ all: install
 
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
+faucetpkgs = ./frontend/tftfaucet
 testpkgs = ./pkg/types ./pkg/encoding ./pkg/persist
 pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
 
@@ -113,6 +114,16 @@ release-explorer: get_hub_jwt explorer
 	# And also link in a latest
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/caddy-explorer-$(dockerVersion).flist/link/caddy-explorer.flist"
 
+faucet: release-dir
+	GOOS=linux go build -o ./release/faucet $(faucetpkgs)
+
+release-faucet: faucet get_hub_jwt
+	tar -C ./release -cvzf release/faucet.tar.gz faucet
+	# Upload to hub
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@./release/faucet.tar.gz "https://hub.grid.tf/api/flist/me/upload"
+	# Merge with caddy
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-official-apps/caddy.flist\", \"tfchain/faucet.flist\"]" "https://hub.grid.tf/api/flist/me/merge/caddy-faucet.flist"
+
 release-explorer-edge: get_hub_jwt explorer-edge
 	# Upload explorer
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@./release/explorer-$(dockerVersionEdge).tar.gz "https://hub.grid.tf/api/flist/me/upload"
@@ -131,4 +142,4 @@ check-%:
 ineffassign:
 	ineffassign $(pkgs)
 
-.PHONY: all install xc release-images get_hub_jwt check-% ineffassign explorer release-explorer
+.PHONY: all install xc release-images get_hub_jwt check-% ineffassign explorer release-explorer faucet
