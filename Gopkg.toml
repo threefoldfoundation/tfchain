@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/threefoldtech/rivine"
-  branch = "feat-arbitrary-data-type"
+  branch = "master"
 
 [prune]
   go-tests = true
