@@ -175,7 +175,7 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 			if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 0 || !explorerTransaction.rawtransaction.data.arbitrarydatatype) {
 				title = 'Binary Data';
 			} else if (explorerTransaction.rawtransaction.data.arbitrarydatatype >= 128) {
-				title = 'Aplication-specific Data';
+				title = 'Application-specific Data';
 			} else {
 				title = 'Invalid Data';
 			}
@@ -343,7 +343,7 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 			if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 0 || !explorerTransaction.rawtransaction.data.arbitrarydatatype) {
 				title = 'Binary Data';
 			} else if (explorerTransaction.rawtransaction.data.arbitrarydatatype >= 128) {
-				title = 'Aplication-specific Data';
+				title = 'Application-specific Data';
 			} else {
 				title = 'Invalid Data';
 			}
@@ -445,7 +445,7 @@ function appendV128Transaction(infoBody, explorerTransaction, confirmed) {
 			if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 0 || !explorerTransaction.rawtransaction.data.arbitrarydatatype) {
 				title = 'Binary Data';
 			} else if (explorerTransaction.rawtransaction.data.arbitrarydatatype >= 128) {
-				title = 'Aplication-specific Data';
+				title = 'Application-specific Data';
 			} else {
 				title = 'Invalid Data';
 			}
@@ -554,7 +554,7 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 			if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 0 || !explorerTransaction.rawtransaction.data.arbitrarydatatype) {
 				title = 'Binary Data';
 			} else if (explorerTransaction.rawtransaction.data.arbitrarydatatype >= 128) {
-				title = 'Aplication-specific Data';
+				title = 'Application-specific Data';
 			} else {
 				title = 'Invalid Data';
 			}
