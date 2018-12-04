@@ -148,6 +148,7 @@ carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur pr
 Should you want to do this with the provided `tfchainc` wallet you would have to do following steps:
 
 ```
+$ tfchainc wallet recover
 $ tfchainc wallet unlock    # give passphrase
 $ tfchainc wallet load seed # give passphrase and above mnemonic
 $ fchainc wallet addresses # reload all our default addresses again
@@ -164,6 +165,25 @@ BlockStakes:         3000 BS
 Should you use another wallet/client, the steps might be different,
 which is fine as long as you use the menmonic given above as seed,
 as the genesis block stakes and coins are attached to that one.
+
+### Having multiple wallets
+You will need more tfchaind to support the new tfchainc on the same machine
+
+- To have multiple wallets on the same system you need to run the tfchaind in different dirs or specify persistent-dir flag, and they should run on different ports
+- Need to use tfchainc gateway connect to the tfchaind rpc address
+
+#### Running daemons
+
+First one using the default parameters (in directory `/tmp/net1`)
+`/tmp/net1 ~> tfchaind --no-bootstrap --network devnet`
+
+Second daemon using different ports (in directory `/tmp/net2`)
+`/tmp/net2 ~> tfchaind --no-bootstrap --network devnet --api-addr "localhost:23120" --rpc-addr "localhost:23113"`
+
+#### Establish gateway between both daemons 
+using `gateway connect` we link both daemons together for consensus (on the `rpc-addr`) 
+`~> tfchainc -a "localhost:23120" gateway connect localhost:23110`
+
 
 ## technical information
 
