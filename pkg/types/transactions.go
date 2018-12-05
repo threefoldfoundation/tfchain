@@ -266,10 +266,10 @@ var (
 
 	// ensure at compile time that LegacyTransactionController
 	// implements the desired interfaces
-	_ types.TransactionController = LegacyTransactionController{}
-	_ types.TransactionValidator  = LegacyTransactionController{}
-	_ types.InputSigHasher        = LegacyTransactionController{}
-	_ types.TransactionIDEncoder  = LegacyTransactionController{}
+	_ types.TransactionController      = LegacyTransactionController{}
+	_ types.TransactionValidator       = LegacyTransactionController{}
+	_ types.TransactionSignatureHasher = LegacyTransactionController{}
+	_ types.TransactionIDEncoder       = LegacyTransactionController{}
 
 	// ensure at compile time that CoinCreationTransactionController
 	// implements the desired interfaces
@@ -278,7 +278,7 @@ var (
 	_ types.TransactionValidator       = CoinCreationTransactionController{}
 	_ types.CoinOutputValidator        = CoinCreationTransactionController{}
 	_ types.BlockStakeOutputValidator  = CoinCreationTransactionController{}
-	_ types.InputSigHasher             = CoinCreationTransactionController{}
+	_ types.TransactionSignatureHasher = CoinCreationTransactionController{}
 	_ types.TransactionIDEncoder       = CoinCreationTransactionController{}
 
 	// ensure at compile time that MinterDefinitionTransactionController
@@ -288,7 +288,7 @@ var (
 	_ types.TransactionValidator       = MinterDefinitionTransactionController{}
 	_ types.CoinOutputValidator        = MinterDefinitionTransactionController{}
 	_ types.BlockStakeOutputValidator  = MinterDefinitionTransactionController{}
-	_ types.InputSigHasher             = MinterDefinitionTransactionController{}
+	_ types.TransactionSignatureHasher = MinterDefinitionTransactionController{}
 	_ types.TransactionIDEncoder       = MinterDefinitionTransactionController{}
 )
 
@@ -363,7 +363,7 @@ func (cctc CoinCreationTransactionController) JSONDecodeTransactionData(data []b
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (cctc CoinCreationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (cctc CoinCreationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid CoinCreationTransactionExtension,
 	// which contains the nonce and the mintFulfillment that can be used to fulfill the globally defined mint condition
 	ccTxExtension, ok := extension.(*CoinCreationTransactionExtension)
@@ -407,7 +407,6 @@ func (cctc CoinCreationTransactionController) ValidateTransaction(t types.Transa
 
 	// check if MintFulfillment fulfills the Globally defined MintCondition for the context-defined block height
 	err = mintCondition.Fulfill(cctx.MintFulfillment, types.FulfillContext{
-		InputIndex:  0, // InputIndex is ignored for coin creation signature
 		BlockHeight: ctx.BlockHeight,
 		BlockTime:   ctx.BlockTime,
 		Transaction: t,
@@ -457,8 +456,8 @@ func (cctc CoinCreationTransactionController) ValidateBlockStakeOutputs(t types.
 	return nil // always valid, no block stake inputs/outputs exist within a coin creation transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (cctc CoinCreationTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (cctc CoinCreationTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	cctx, err := CoinCreationTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a coin creation tx: %v", err)
@@ -542,7 +541,7 @@ func (mdtc MinterDefinitionTransactionController) JSONDecodeTransactionData(data
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (mdtc MinterDefinitionTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (mdtc MinterDefinitionTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid MinterDefinitionTransactionExtension,
 	// which contains the nonce and the mintFulfillment that can be used to fulfill the globally defined mint condition
 	mdTxExtension, ok := extension.(*MinterDefinitionTransactionExtension)
@@ -600,7 +599,6 @@ func (mdtc MinterDefinitionTransactionController) ValidateTransaction(t types.Tr
 
 	// check if MintFulfillment fulfills the Globally defined MintCondition for the context-defined block height
 	err = mintCondition.Fulfill(mdtx.MintFulfillment, types.FulfillContext{
-		InputIndex:  0, // InputIndex is ignored for coin creation signature
 		BlockHeight: ctx.BlockHeight,
 		BlockTime:   ctx.BlockTime,
 		Transaction: t,
@@ -675,8 +673,8 @@ func (mdtc MinterDefinitionTransactionController) ValidateBlockStakeOutputs(t ty
 	return nil // always valid, no block stake inputs/outputs exist within a minter definition transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (mdtc MinterDefinitionTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (mdtc MinterDefinitionTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	mdtx, err := MinterDefinitionTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a MinterDefinitionTx: %v", err)
@@ -2150,6 +2148,12 @@ func (bnttx *BotNameTransferTransaction) UnmarshalRivine(r io.Reader) error {
 	return nil
 }
 
+// Specifiers used to ensure the bot-signatures are unique within each Tx.
+var (
+	BotSignatureSpecifierSender   = [...]byte{'s', 'e', 'n', 'd', 'e', 'r'}
+	BotSignatureSpecifierReceiver = [...]byte{'r', 'e', 'c', 'e', 'i', 'v', 'e', 'r'}
+)
+
 type (
 	// BotRecordReadRegistry defines the public READ API expected from a bot record Read-Only registry.
 	BotRecordReadRegistry interface {
@@ -2194,7 +2198,7 @@ var (
 	_ types.TransactionExtensionSigner = BotRegistrationTransactionController{}
 	_ types.TransactionValidator       = BotRegistrationTransactionController{}
 	_ types.BlockStakeOutputValidator  = BotRegistrationTransactionController{}
-	_ types.InputSigHasher             = BotRegistrationTransactionController{}
+	_ types.TransactionSignatureHasher = BotRegistrationTransactionController{}
 	_ types.TransactionIDEncoder       = BotRegistrationTransactionController{}
 )
 
@@ -2241,7 +2245,7 @@ func (brtc BotRegistrationTransactionController) JSONDecodeTransactionData(data 
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (brtc BotRegistrationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (brtc BotRegistrationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid BotRegistrationTransactionExtension
 	brtxExtension, ok := extension.(*BotRegistrationTransactionExtension)
 	if !ok {
@@ -2255,7 +2259,7 @@ func (brtc BotRegistrationTransactionController) SignExtension(extension interfa
 	}
 
 	// sign the fulfillment
-	err = sign(&fulfillment, condition)
+	err = sign(&fulfillment, condition, BotSignatureSpecifierSender)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign BotRegistrationTx: %v", err)
 	}
@@ -2292,7 +2296,7 @@ func (brtc BotRegistrationTransactionController) ValidateTransaction(t types.Tra
 	}
 
 	// validate the signature of the to-be-registered bot
-	err = validateBotSignature(t, brtx.Identification.PublicKey, brtx.Identification.Signature, ctx)
+	err = validateBotSignature(t, brtx.Identification.PublicKey, brtx.Identification.Signature, ctx, BotSignatureSpecifierSender)
 	if err != nil {
 		return fmt.Errorf("failed to fulfill bot registration condition: %v", err)
 	}
@@ -2361,8 +2365,8 @@ func (brtc BotRegistrationTransactionController) ValidateBlockStakeOutputs(t typ
 	return nil // always valid, no block stake inputs/outputs exist within a bot registration transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (brtc BotRegistrationTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (brtc BotRegistrationTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	brtx, err := BotRegistrationTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a BotRegistrationTx: %v", err)
@@ -2428,7 +2432,7 @@ var (
 	_ types.TransactionExtensionSigner = BotUpdateRecordTransactionController{}
 	_ types.TransactionValidator       = BotUpdateRecordTransactionController{}
 	_ types.BlockStakeOutputValidator  = BotUpdateRecordTransactionController{}
-	_ types.InputSigHasher             = BotUpdateRecordTransactionController{}
+	_ types.TransactionSignatureHasher = BotUpdateRecordTransactionController{}
 	_ types.TransactionIDEncoder       = BotUpdateRecordTransactionController{}
 )
 
@@ -2475,7 +2479,7 @@ func (brutc BotUpdateRecordTransactionController) JSONDecodeTransactionData(data
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (brutc BotUpdateRecordTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (brutc BotUpdateRecordTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid BotRecordUpdateTransactionExtension
 	brutxExtension, ok := extension.(*BotRecordUpdateTransactionExtension)
 	if !ok {
@@ -2489,7 +2493,7 @@ func (brutc BotUpdateRecordTransactionController) SignExtension(extension interf
 	}
 
 	// sign the fulfillment
-	err = sign(&fulfillment, condition)
+	err = sign(&fulfillment, condition, BotSignatureSpecifierSender)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign BotUpdateRecordTx: %v", err)
 	}
@@ -2524,7 +2528,7 @@ func (brutc BotUpdateRecordTransactionController) ValidateTransaction(t types.Tr
 	}
 
 	// validate the signature of the to-be-updated bot
-	err = validateBotSignature(t, record.PublicKey, brutx.Signature, ctx)
+	err = validateBotSignature(t, record.PublicKey, brutx.Signature, ctx, BotSignatureSpecifierSender)
 	if err != nil {
 		return fmt.Errorf("failed to fulfill bot record update condition: %v", err)
 	}
@@ -2562,8 +2566,8 @@ func (brutc BotUpdateRecordTransactionController) ValidateBlockStakeOutputs(t ty
 	return nil // always valid, no block stake inputs/outputs exist within a bot record update transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (brutc BotUpdateRecordTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (brutc BotUpdateRecordTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	brutx, err := BotRecordUpdateTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a BotRecordUpdateTx: %v", err)
@@ -2630,7 +2634,7 @@ var (
 	_ types.TransactionExtensionSigner = BotNameTransferTransactionController{}
 	_ types.TransactionValidator       = BotNameTransferTransactionController{}
 	_ types.BlockStakeOutputValidator  = BotNameTransferTransactionController{}
-	_ types.InputSigHasher             = BotNameTransferTransactionController{}
+	_ types.TransactionSignatureHasher = BotNameTransferTransactionController{}
 	_ types.TransactionIDEncoder       = BotNameTransferTransactionController{}
 )
 
@@ -2677,7 +2681,7 @@ func (bnttc BotNameTransferTransactionController) JSONDecodeTransactionData(data
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (bnttc BotNameTransferTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (bnttc BotNameTransferTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid BotNameTransferTransactionExtension
 	bnttxExtension, ok := extension.(*BotNameTransferTransactionExtension)
 	if !ok {
@@ -2689,7 +2693,7 @@ func (bnttc BotNameTransferTransactionController) SignExtension(extension interf
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare the signing (as the sender) of the BotNameTransferTx: %v", err)
 	}
-	err = sign(&fulfillment, condition)
+	err = sign(&fulfillment, condition, BotSignatureSpecifierSender)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign (as the sender) the BotNameTransferTx: %v", err)
 	}
@@ -2703,7 +2707,7 @@ func (bnttc BotNameTransferTransactionController) SignExtension(extension interf
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare the signing (as the receiver) of the BotNameTransferTx: %v", err)
 	}
-	err = sign(&fulfillment, condition)
+	err = sign(&fulfillment, condition, BotSignatureSpecifierReceiver)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign (as the receiver) the BotNameTransferTx: %v", err)
 	}
@@ -2753,12 +2757,12 @@ func (bnttc BotNameTransferTransactionController) ValidateTransaction(t types.Tr
 	}
 
 	// validate the signature of the sender
-	err = validateBotSignature(t, recordSender.PublicKey, bnttx.Sender.Signature, ctx)
+	err = validateBotSignature(t, recordSender.PublicKey, bnttx.Sender.Signature, ctx, BotSignatureSpecifierSender)
 	if err != nil {
 		return fmt.Errorf("failed to fulfill bot record name transfer condition of the sender: %v", err)
 	}
 	// validate the signature of the receiver
-	err = validateBotSignature(t, recordReceiver.PublicKey, bnttx.Receiver.Signature, ctx)
+	err = validateBotSignature(t, recordReceiver.PublicKey, bnttx.Receiver.Signature, ctx, BotSignatureSpecifierReceiver)
 	if err != nil {
 		return fmt.Errorf("failed to fulfill bot record name transfer condition of the receiver: %v", err)
 	}
@@ -2799,8 +2803,8 @@ func (bnttc BotNameTransferTransactionController) ValidateBlockStakeOutputs(t ty
 	return nil // always valid, no block stake inputs/outputs exist within a bot record update transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (bnttc BotNameTransferTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (bnttc BotNameTransferTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	bnttx, err := BotNameTransferTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a BotNameTransferTx: %v", err)

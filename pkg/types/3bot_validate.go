@@ -38,7 +38,7 @@ func validateUniquenessOfBotNames(names []BotName) error {
 	return nil
 }
 
-func validateBotSignature(t types.Transaction, publicKey types.PublicKey, signature types.ByteSlice, ctx types.ValidationContext) error {
+func validateBotSignature(t types.Transaction, publicKey types.PublicKey, signature types.ByteSlice, ctx types.ValidationContext, extraObjects ...interface{}) error {
 	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(publicKey)))
 	// and a matching single-signature fulfillment
 	fulfillment := types.NewFulfillment(&types.SingleSignatureFulfillment{
@@ -47,9 +47,9 @@ func validateBotSignature(t types.Transaction, publicKey types.PublicKey, signat
 	})
 	// validate the signature is correct
 	return condition.Fulfill(fulfillment, types.FulfillContext{
-		InputIndex:  0, // irrelevant this extension signature
-		BlockHeight: ctx.BlockHeight,
-		BlockTime:   ctx.BlockTime,
-		Transaction: t,
+		ExtraObjects: extraObjects,
+		BlockHeight:  ctx.BlockHeight,
+		BlockTime:    ctx.BlockTime,
+		Transaction:  t,
 	})
 }

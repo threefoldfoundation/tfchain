@@ -1036,11 +1036,11 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 		}
 		for i := 0; i < signCount; i++ {
 			// sign fulfillment, which lives in the tx extension data
-			err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+			err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 				return fulfillment.Sign(types.FulfillmentSignContext{
-					InputIndex:  0, // doesn't matter really for this extension
-					Transaction: tx,
-					Key:         key,
+					ExtraObjects: eo,
+					Transaction:  tx,
+					Key:          key,
 				})
 			})
 			if err != nil {
@@ -1181,11 +1181,11 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 		// redefine fulfillment, as signing an already signed fulfillment is not possible
 		removeTxSignature()
 		// sign fulfillment, which lives in the tx extension data
-		err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+		err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 			return fulfillment.Sign(types.FulfillmentSignContext{
-				InputIndex:  0, // doesn't matter really for this extension
-				Transaction: tx,
-				Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+				ExtraObjects: eo,
+				Transaction:  tx,
+				Key:          hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			})
 		})
 		if err != nil {
@@ -1238,11 +1238,11 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 		MintCondition: origMDExtension.MintCondition,
 	}
 	// sign fulfillment, which lives in the tx extension data
-	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 		return fulfillment.Sign(types.FulfillmentSignContext{
-			InputIndex:  0, // doesn't matter really for this extension
-			Transaction: tx,
-			Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+			ExtraObjects: eo,
+			Transaction:  tx,
+			Key:          hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 		})
 	})
 	if err != nil {
@@ -1561,11 +1561,11 @@ func TestSignCoinCreationTransactionExtension(t *testing.T) {
 		}
 		for i := 0; i < signCount; i++ {
 			// sign fulfillment, which lives in the tx extension data
-			err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+			err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 				return fulfillment.Sign(types.FulfillmentSignContext{
-					InputIndex:  0, // doesn't matter really for this extension
-					Transaction: tx,
-					Key:         key,
+					ExtraObjects: eo,
+					Transaction:  tx,
+					Key:          key,
 				})
 			})
 			if err != nil {
@@ -1669,11 +1669,11 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 		// redefine fulfillment, as signing an already signed fulfillment is not possible
 		removeTxSignature()
 		// sign fulfillment, which lives in the tx extension data
-		err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+		err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 			return fulfillment.Sign(types.FulfillmentSignContext{
-				InputIndex:  0, // doesn't matter really for this extension
-				Transaction: tx,
-				Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+				ExtraObjects: eo,
+				Transaction:  tx,
+				Key:          hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			})
 		})
 		if err != nil {
@@ -1710,11 +1710,11 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 		)),
 	}
 	// sign fulfillment, which lives in the tx extension data
-	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 		return fulfillment.Sign(types.FulfillmentSignContext{
-			InputIndex:  0, // doesn't matter really for this extension
-			Transaction: tx,
-			Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+			ExtraObjects: eo,
+			Transaction:  tx,
+			Key:          hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 		})
 	})
 	if err != nil {
@@ -2389,6 +2389,401 @@ func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
 	}
 }
 
+var cryptoKeyPair = types.KeyPair{
+	PublicKey: types.PublicKey{
+		Algorithm: types.SignatureAlgoEd25519,
+		Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+	},
+	PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+}
+
+func TestBotRegistrationTransactionUniqueSignatures(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              nil,
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(fmt.Sprintf(`{
+	"version": 144,
+	"data": {
+		"names": ["foobar"],
+		"nrofmonths": 1,
+		"txfee": "1000000000",
+		"coininputs": [
+			{
+				"parentid": "a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			},
+			{
+				"parentid": "91431da29b53669cdaecf5e31d9ae4d47fe4ebbd02e12fec185e28b7db6960dd",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			}
+		],
+		"refundcoinoutput": {
+			"value": "99999899000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"
+				}
+			}
+		},
+		"identification": {
+			"publickey": "%[1]s",
+			"signature": ""
+		}
+	}
+}`, cryptoKeyPair.PublicKey.String())))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	signatures := map[string]struct{}{}
+	// sign coin inputs, validate a signature is defined and ensure they are unique
+	for cindex, ci := range tx.CoinInputs {
+		err = ci.Fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: []interface{}{uint64(cindex)},
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+
+		b, err := json.Marshal(ci.Fulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		var rawFulfillment map[string]interface{}
+		err = json.Unmarshal(b, &rawFulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		signature := rawFulfillment["data"].(map[string]interface{})["signature"].(string)
+		if signature == "" {
+			t.Error(cindex, "coin input: signature is empty")
+			continue
+		}
+		if _, ok := signatures[signature]; ok {
+			t.Error(cindex, "coin input: signature exists already:", signature)
+			continue
+		}
+		signatures[signature] = struct{}{}
+	}
+
+	// sign extension (the actual signature)
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, extraObjects ...interface{}) error {
+		if condition.UnlockHash().Cmp(types.NewPubKeyUnlockHash(cryptoKeyPair.PublicKey)) != 0 {
+			b, _ := json.Marshal(condition)
+			t.Fatalf("unexpected extension fulfill condition: %v", string(b))
+		}
+		return fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: extraObjects,
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	signature := tx.Extension.(*BotRegistrationTransactionExtension).Identification.Signature.String()
+	if signature == "" {
+		t.Fatal("extension (Sender): signature is empty")
+	}
+	if _, ok := signatures[signature]; ok {
+		t.Fatal("extension (Sender): signature exists already:", signature)
+	}
+	signatures[signature] = struct{}{}
+}
+
+func TestBotRecordUpdateTransactionUniqueSignatures(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, BotUpdateRecordTransactionController{
+		Registry: &inMemoryBotRegistry{
+			idMapping: map[BotID]BotRecord{
+				1: botRecordFromJSON(t, `{
+	"id": 1,
+	"addresses": ["93.184.216.34"],
+	"names": ["example"],
+	"publickey": "`+cryptoKeyPair.PublicKey.String()+`",
+	"expiration": 1538484360
+}`),
+			},
+		},
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(fmt.Sprintf(`{
+	"version": 145,
+	"data": {
+		"id": 1,
+		"addresses": {
+			"add": ["127.0.0.1", "api.mybot.io", "0:0:0:0:0:ffff:5db8:d822"],
+			"remove": ["93.184.216.34"]
+		},
+		"names": {
+			"add": ["mybot"],
+			"remove": ["example"]
+		},
+		"nrofmonths": 5,
+		"txfee": "1000000000",
+		"coininputs": [
+			{
+				"parentid": "c6b161d192d8095efd4d9946f7d154bf335f51fdfdeca4bb0cb990b25ffd7e95",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			},
+			{
+				"parentid": "91431da29b53669cdaecf5e31d9ae4d47fe4ebbd02e12fec185e28b7db6960dd",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			}
+		],
+		"refundcoinoutput": {
+			"value": "99999778000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "0161fbcf58efaeba8813150e88fc33405b3a77d51277a2cdf3f4d2ab770de287c7af9d456c4e68"
+				}
+			}
+		},
+		"signature": ""
+	}
+}`, cryptoKeyPair.PublicKey.String())))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	signatures := map[string]struct{}{}
+	// sign coin inputs, validate a signature is defined and ensure they are unique
+	for cindex, ci := range tx.CoinInputs {
+		err = ci.Fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: []interface{}{uint64(cindex)},
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+
+		b, err := json.Marshal(ci.Fulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		var rawFulfillment map[string]interface{}
+		err = json.Unmarshal(b, &rawFulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		signature := rawFulfillment["data"].(map[string]interface{})["signature"].(string)
+		if signature == "" {
+			t.Error(cindex, "coin input: signature is empty")
+			continue
+		}
+		if _, ok := signatures[signature]; ok {
+			t.Error(cindex, "coin input: signature exists already:", signature)
+			continue
+		}
+		signatures[signature] = struct{}{}
+	}
+
+	// sign extension (the actual signature)
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, extraObjects ...interface{}) error {
+		if condition.UnlockHash().Cmp(types.NewPubKeyUnlockHash(cryptoKeyPair.PublicKey)) != 0 {
+			b, _ := json.Marshal(condition)
+			t.Fatalf("unexpected extension fulfill condition: %v", string(b))
+		}
+		return fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: extraObjects,
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	signature := tx.Extension.(*BotRecordUpdateTransactionExtension).Signature.String()
+	if signature == "" {
+		t.Fatal("extension (Sender): signature is empty")
+	}
+	if _, ok := signatures[signature]; ok {
+		t.Fatal("extension (Sender): signature exists already:", signature)
+	}
+	signatures[signature] = struct{}{}
+}
+
+func TestBotNameTransferTransactionUniqueSignatures(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, BotNameTransferTransactionController{
+		Registry: &inMemoryBotRegistry{
+			idMapping: map[BotID]BotRecord{
+				1: botRecordFromJSON(t, `{
+	"id": 1,
+	"addresses": ["93.184.216.34"],
+	"names": ["example"],
+	"publickey": "`+cryptoKeyPair.PublicKey.String()+`",
+	"expiration": 1538484360
+}`),
+			},
+		},
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(fmt.Sprintf(`{
+	"version": 146,
+	"data": {
+		"sender": {
+			"id": 1,
+			"signature": ""
+		},
+		"receiver": {
+			"id": 1,
+			"signature": ""
+		},
+		"names": [
+			"mybot"
+		],
+		"txfee": "1000000000",
+		"coininputs": [
+			{
+				"parentid": "c6b161d192d8095efd4d9946f7d154bf335f51fdfdeca4bb0cb990b25ffd7e95",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			},
+			{
+				"parentid": "91431da29b53669cdaecf5e31d9ae4d47fe4ebbd02e12fec185e28b7db6960dd",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			}
+		],
+		"refundcoinoutput": {
+			"value": "99999626000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "01822fd5fefd2748972ea828a5c56044dec9a2b2275229ce5b212f926cd52fba015846451e4e46"
+				}
+			}
+		}
+	}
+}`, cryptoKeyPair.PublicKey.String())))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	signatures := map[string]struct{}{}
+	// sign coin inputs, validate a signature is defined and ensure they are unique
+	for cindex, ci := range tx.CoinInputs {
+		err = ci.Fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: []interface{}{uint64(cindex)},
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+
+		b, err := json.Marshal(ci.Fulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		var rawFulfillment map[string]interface{}
+		err = json.Unmarshal(b, &rawFulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		signature := rawFulfillment["data"].(map[string]interface{})["signature"].(string)
+		if signature == "" {
+			t.Error(cindex, "coin input: signature is empty")
+			continue
+		}
+		if _, ok := signatures[signature]; ok {
+			t.Error(cindex, "coin input: signature exists already:", signature)
+			continue
+		}
+		signatures[signature] = struct{}{}
+	}
+
+	// sign extension (the actual signature)
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, extraObjects ...interface{}) error {
+		if condition.UnlockHash().Cmp(types.NewPubKeyUnlockHash(cryptoKeyPair.PublicKey)) != 0 {
+			b, _ := json.Marshal(condition)
+			t.Fatalf("unexpected extension fulfill condition: %v", string(b))
+		}
+		return fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: extraObjects,
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ext := tx.Extension.(*BotNameTransferTransactionExtension)
+	extSignatures := []string{ext.Sender.Signature.String(), ext.Receiver.Signature.String()}
+	for index, signature := range extSignatures {
+		if signature == "" {
+			t.Fatalf("extension (%d): signature is empty", index)
+		}
+		if _, ok := signatures[signature]; ok {
+			t.Fatalf("extension (%d): signature exists already: %v", index, signature)
+		}
+		signatures[signature] = struct{}{}
+	}
+}
+
 func TestBotRegistrationFees(t *testing.T) {
 	// TODO:
 	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
@@ -2398,4 +2793,40 @@ func TestBotUpdateFees(t *testing.T) {
 	// TODO:
 	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
 	//  - test (*BotNameTransferTransaction)::RequiredBotFee
+}
+
+type inMemoryBotRegistry struct {
+	idMapping map[BotID]BotRecord
+}
+
+func botRecordFromJSON(t *testing.T, str string) BotRecord {
+	var record BotRecord
+	err := json.Unmarshal([]byte(str), &record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return record
+}
+
+func (reg *inMemoryBotRegistry) GetRecordForID(id BotID) (*BotRecord, error) {
+	if len(reg.idMapping) == 0 {
+		return nil, errors.New("no records available")
+	}
+	record, ok := reg.idMapping[id]
+	if !ok {
+		return nil, fmt.Errorf("no record available for id %v", id)
+	}
+	return &record, nil
+}
+
+func (reg *inMemoryBotRegistry) GetRecordForKey(key types.PublicKey) (*BotRecord, error) {
+	panic("NOT IMPLEMENTED")
+}
+
+func (reg *inMemoryBotRegistry) GetRecordForName(name BotName) (*BotRecord, error) {
+	panic("NOT IMPLEMENTED")
+}
+
+func (reg *inMemoryBotRegistry) GetBotTransactionIdentifiers(id BotID) ([]types.TransactionID, error) {
+	panic("NOT IMPLEMENTED")
 }
