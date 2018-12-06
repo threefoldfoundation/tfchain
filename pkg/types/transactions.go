@@ -2,6 +2,7 @@ package types
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -47,6 +48,12 @@ const (
 	TransactionVersionBotNameTransfer
 )
 
+const (
+	// TransactionVersionERC20Conversion defines the Transaction version
+	// for an ERC20ConvertTransaction, used to convert TFT into ERC20 funds.
+	TransactionVersionERC20Conversion types.TransactionVersion = iota + 208
+)
+
 // These Specifiers are used internally when calculating a Transaction's ID.
 // See Rivine's Specifier for more details.
 var (
@@ -55,6 +62,7 @@ var (
 	SpecifierBotRegistrationTransaction = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'g', 'i', 's', 't', 'e', 'r', ' ', 't', 'x'}
 	SpecifierBotRecordUpdateTransaction = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'c', 'u', 'p', 'd', 'a', 't', 'e', ' ', 't', 'x'}
 	SpecifierBotNameTransferTransaction = types.Specifier{'b', 'o', 't', ' ', 'n', 'a', 'm', 'e', 't', 'r', 'a', 'n', 's', ' ', 't', 'x'}
+	SpecifierERC20ConvertTransaction    = types.Specifier{'e', 'r', 'c', '2', '0', ' ', 'c', 'o', 'n', 'v', 'e', 'r', 't', ' ', 't', 'x'}
 )
 
 // Bot validation errors
@@ -113,6 +121,8 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.
 		RegistryPoolCondition: cfg.FoundationPoolCondition,
 		OneCoin:               oneCoin,
 	})
+
+	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 }
 
 // RegisterTransactionTypesForTestNetwork registers he transaction controllers
@@ -158,6 +168,8 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Curr
 		RegistryPoolCondition: cfg.FoundationPoolCondition,
 		OneCoin:               oneCoin,
 	})
+
+	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 }
 
 // RegisterTransactionTypesForDevNetwork registers he transaction controllers
@@ -197,6 +209,8 @@ func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Curre
 		RegistryPoolCondition: cfg.FoundationPoolCondition,
 		OneCoin:               oneCoin,
 	})
+
+	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 }
 
 type (
@@ -2958,6 +2972,433 @@ func (maf *BotMonthsAndFlagsData) UnmarshalRivine(r io.Reader) error {
 	maf.HasNames = ((x & 64) != 0)
 	maf.HasRefund = ((x & 128) != 0)
 	return nil
+}
+
+var (
+	// ERC20ConversionMinimumValue defines the minimum value of TFT
+	// you can convert to ERC20 funds using the ERC20ConvertTransaction
+	ERC20ConversionMinimumValue = config.GetCurrencyUnits().OneCoin.Mul64(1000)
+)
+
+// ERC20AddressLength defines the length of the fixed-sized ERC20Address type explicitly.
+const ERC20AddressLength = 20
+
+// ERC20Address defines an ERC20 address as a fixed-sized byte array of length 20,
+// and is used in order to be able to convert TFT into tradeable tfchain ERC20 funds.
+type ERC20Address [ERC20AddressLength]byte
+
+// String returns this ERC20Address as a string.
+func (address ERC20Address) String() string {
+	return hex.EncodeToString(address[:])
+}
+
+// LoadString loads this ERC20Address from a hex-encoded string of length 40.
+func (address *ERC20Address) LoadString(str string) error {
+	if len(str) != ERC20AddressLength*2 {
+		return errors.New("passed string cannot be loaded as an ERC20Address: invalid length")
+	}
+	n, err := hex.Decode(address[:], []byte(str))
+	if err != nil {
+		return err
+	}
+	if n != ERC20AddressLength {
+		return io.ErrShortWrite
+	}
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler.MarshalJSON,
+// and returns this ERC20Address as a hex-encoded JSON string.
+func (address ERC20Address) MarshalJSON() ([]byte, error) {
+	return json.Marshal(address.String())
+}
+
+// UnmarshalJSON implements json.Unmarshaler.UnmarshalJSON,
+// and decodes the given byte slice as a hex-encoded JSON string into the
+// 20 bytes that make up this ERC20Address.
+func (address *ERC20Address) UnmarshalJSON(b []byte) error {
+	var str string
+	err := json.Unmarshal(b, &str)
+	if err != nil {
+		return err
+	}
+	return address.LoadString(str)
+}
+
+type (
+	// ERC20ConvertTransaction defines the Transaction (with version 0xD1)
+	// used to convert TFT into ERC20 funds paid to the defined ERC20 address.
+	//
+	// NOTE: is it also required to store some confirmation with the ERC20 Tx ID?
+	//       and if so, would it be as a seperate (linked) Tx, or as some attached info
+	//       added to the parent block (somehow)?
+	ERC20ConvertTransaction struct {
+		// The address to send the TFT-converted tfchain ERC20 funds into.
+		Address ERC20Address `json:"address"`
+
+		// Amount of TFT to be paid towards buying ERC20 funds,
+		// note that the bridge will take part of this amount towards
+		// paying for the transaction costs, prior to sending the ERC20 funds to
+		// the defined target address.
+		Value types.Currency `json:"value"`
+
+		// TransactionFee defines the regular Tx fee.
+		TransactionFee types.Currency `json:"txfee"`
+
+		// CoinInputs are only used for the required fees,
+		// which contains the regular Tx fee as well as the additional fees,
+		// to be paid for the address registration. At least one CoinInput is required.
+		CoinInputs []types.CoinInput `json:"coininputs"`
+		// RefundCoinOutput is an optional coin output that can be used
+		// to refund coins paid as inputs for the required fees.
+		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput,omitempty"`
+	}
+
+	// ERC20ConvertTransactionExtension defines the ERC20ConvertTransaction Extension Data
+	ERC20ConvertTransactionExtension struct {
+		// The address to send the TFT-converted tfchain ERC20 funds into.
+		Address ERC20Address
+		// Amount of TFT to be paid towards buying ERC20 funds.
+		Value types.Currency
+	}
+)
+
+// ERC20ConvertTransactionFromTransaction creates an ERC20ConvertTransaction,
+// using a regular in-memory tfchain transaction.
+//
+// Past the (tx) Version validation it piggy-backs onto the
+// `ERC20ConvertTransactionFromTransactionData` constructor.
+func ERC20ConvertTransactionFromTransaction(tx types.Transaction) (ERC20ConvertTransaction, error) {
+	if tx.Version != TransactionVersionERC20Conversion {
+		return ERC20ConvertTransaction{}, fmt.Errorf(
+			"an ERC20 convert transaction requires tx version %d",
+			TransactionVersionERC20Conversion)
+	}
+	return ERC20ConvertTransactionFromTransactionData(types.TransactionData{
+		CoinInputs:        tx.CoinInputs,
+		CoinOutputs:       tx.CoinOutputs,
+		BlockStakeInputs:  tx.BlockStakeInputs,
+		BlockStakeOutputs: tx.BlockStakeOutputs,
+		MinerFees:         tx.MinerFees,
+		ArbitraryData:     tx.ArbitraryData,
+		Extension:         tx.Extension,
+	})
+}
+
+// ERC20ConvertTransactionFromTransactionData creates an ERC20ConvertTransaction,
+// using the TransactionData from a regular in-memory tfchain transaction.
+func ERC20ConvertTransactionFromTransactionData(txData types.TransactionData) (ERC20ConvertTransaction, error) {
+	// validate the Transaction Data
+
+	// at least one coin input as well as one miner fee is required
+	if len(txData.CoinInputs) == 0 || len(txData.MinerFees) != 1 {
+		return ERC20ConvertTransaction{}, errors.New("at least one coin input and exactly one miner fee is required for an ERC20 Convert Transaction")
+	}
+	// no block stake inputs or block stake outputs are allowed
+	if len(txData.BlockStakeInputs) != 0 || len(txData.BlockStakeOutputs) != 0 {
+		return ERC20ConvertTransaction{}, errors.New("no block stake inputs/outputs are allowed in an ERC20 Convert Transaction")
+	}
+	// no arbitrary data is allowed
+	if len(txData.ArbitraryData.Data) > 0 {
+		return ERC20ConvertTransaction{}, errors.New("no arbitrary data is allowed in an ERC20 Convert Transaction")
+	}
+	// validate that the coin outputs is within the expected range
+	if len(txData.CoinOutputs) > 1 {
+		return ERC20ConvertTransaction{}, errors.New("an ERC20 Convert Transaction can only have one coin output")
+	}
+
+	// (tx) extension (data) is expected to be a pointer to a valid BotNameTransferTransaction,
+	// which contains all the properties unique to a 3bot (name transfer) Tx
+	extensionData, ok := txData.Extension.(*ERC20ConvertTransactionExtension)
+	if !ok {
+		return ERC20ConvertTransaction{}, errors.New("invalid extension data for an ERC20 Convert Transaction")
+	}
+
+	// create the ERC20ConvertTransaction and return it,
+	// further validation will/has-to be done using the Transaction Type, if required
+	tx := ERC20ConvertTransaction{
+		Address:        extensionData.Address,
+		Value:          extensionData.Value,
+		TransactionFee: txData.MinerFees[0],
+		CoinInputs:     txData.CoinInputs,
+	}
+	if len(txData.CoinOutputs) == 1 {
+		// take refund coin output if it exists
+		tx.RefundCoinOutput = &txData.CoinOutputs[0]
+	}
+	return tx, nil
+}
+
+// TransactionData returns this BotNameTransferTransaction
+// as regular tfchain transaction data.
+func (etctx *ERC20ConvertTransaction) TransactionData() types.TransactionData {
+	txData := types.TransactionData{
+		CoinInputs: etctx.CoinInputs,
+		MinerFees:  []types.Currency{etctx.TransactionFee},
+		Extension: &ERC20ConvertTransactionExtension{
+			Address: etctx.Address,
+			Value:   etctx.Value,
+		},
+	}
+	if etctx.RefundCoinOutput != nil {
+		txData.CoinOutputs = append(txData.CoinOutputs, *etctx.RefundCoinOutput)
+	}
+	return txData
+}
+
+// Transaction returns this BotNameTransferTransaction
+// as regular tfchain transaction, using TransactionVersionBotNameTransfer as the type.
+func (etctx *ERC20ConvertTransaction) Transaction() types.Transaction {
+	tx := types.Transaction{
+		Version:    TransactionVersionERC20Conversion,
+		CoinInputs: etctx.CoinInputs,
+		MinerFees:  []types.Currency{etctx.TransactionFee},
+		Extension: &ERC20ConvertTransactionExtension{
+			Address: etctx.Address,
+			Value:   etctx.Value,
+		},
+	}
+	if etctx.RefundCoinOutput != nil {
+		tx.CoinOutputs = append(tx.CoinOutputs, *etctx.RefundCoinOutput)
+	}
+	return tx
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
+func (etctx ERC20ConvertTransaction) MarshalSia(w io.Writer) error {
+	return etctx.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (etctx *ERC20ConvertTransaction) UnmarshalSia(r io.Reader) error {
+	return etctx.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (etctx ERC20ConvertTransaction) MarshalRivine(w io.Writer) error {
+	return rivbin.NewEncoder(w).EncodeAll(
+		etctx.Address,
+		etctx.Value,
+		etctx.TransactionFee,
+		etctx.CoinInputs,
+		etctx.RefundCoinOutput,
+	)
+}
+
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (etctx *ERC20ConvertTransaction) UnmarshalRivine(r io.Reader) error {
+	return rivbin.NewDecoder(r).DecodeAll(
+		&etctx.Address,
+		&etctx.Value,
+		&etctx.TransactionFee,
+		&etctx.CoinInputs,
+		&etctx.RefundCoinOutput,
+	)
+}
+
+type (
+	// ERC20ConvertTransactionController defines a tfchain-specific transaction controller,
+	// for a transaction type reserved at type 0xD0. It allows the conversion of TFT to ERC20-funds.
+	ERC20ConvertTransactionController struct{}
+)
+
+var (
+	// ensure at compile time that BotNameTransferTransactionController
+	// implements the desired interfaces
+	_ types.TransactionController      = ERC20ConvertTransactionController{}
+	_ types.TransactionValidator       = ERC20ConvertTransactionController{}
+	_ types.CoinOutputValidator        = ERC20ConvertTransactionController{}
+	_ types.BlockStakeOutputValidator  = ERC20ConvertTransactionController{}
+	_ types.TransactionSignatureHasher = ERC20ConvertTransactionController{}
+	_ types.TransactionIDEncoder       = ERC20ConvertTransactionController{}
+)
+
+// EncodeTransactionData implements TransactionController.EncodeTransactionData
+func (etctc ERC20ConvertTransactionController) EncodeTransactionData(w io.Writer, txData types.TransactionData) error {
+	etctx, err := ERC20ConvertTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to an ERC20ConvertTx: %v", err)
+	}
+	return rivbin.NewEncoder(w).Encode(etctx)
+}
+
+// DecodeTransactionData implements TransactionController.DecodeTransactionData
+func (etctc ERC20ConvertTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
+	var etctx ERC20ConvertTransaction
+	err := rivbin.NewDecoder(r).Decode(&etctx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to binary-decode tx as an ERC20ConvertTx: %v", err)
+	}
+	// return bot record update tx as regular tfchain tx data
+	return etctx.TransactionData(), nil
+}
+
+// JSONEncodeTransactionData implements TransactionController.JSONEncodeTransactionData
+func (etctc ERC20ConvertTransactionController) JSONEncodeTransactionData(txData types.TransactionData) ([]byte, error) {
+	etctx, err := ERC20ConvertTransactionFromTransactionData(txData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert txData to an ERC20ConvertTx: %v", err)
+	}
+	return json.Marshal(etctx)
+}
+
+// JSONDecodeTransactionData implements TransactionController.JSONDecodeTransactionData
+func (etctc ERC20ConvertTransactionController) JSONDecodeTransactionData(data []byte) (types.TransactionData, error) {
+	var etctx ERC20ConvertTransaction
+	err := json.Unmarshal(data, &etctx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to json-decode tx as an ERC20ConvertTx: %v", err)
+	}
+	// return bot record update tx as regular tfchain tx data
+	return etctx.TransactionData(), nil
+}
+
+// ValidateTransaction implements TransactionValidator.ValidateTransaction
+func (etctc ERC20ConvertTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) error {
+	// check tx fits within a block
+	err := types.TransactionFitsInABlock(t, constants.BlockSizeLimit)
+	if err != nil {
+		return err
+	}
+
+	// get ERC20ConvertTx
+	etctx, err := ERC20ConvertTransactionFromTransaction(t)
+	if err != nil {
+		return fmt.Errorf("failed to use tx as an ERC20 convert tx: %v", err)
+	}
+
+	// ensure the value is a valid minimum
+	if etctx.Value.Cmp(ERC20ConversionMinimumValue) < 0 {
+		return errors.New("ERC20 requires a minimum value of 1000 TFT to be converted")
+	}
+
+	// validate the miner fee
+	if etctx.TransactionFee.Cmp(constants.MinimumMinerFee) < 0 {
+		return types.ErrTooSmallMinerFee
+	}
+
+	// prevent double spending
+	spendCoins := make(map[types.CoinOutputID]struct{})
+	for _, ci := range t.CoinInputs {
+		if _, found := spendCoins[ci.ParentID]; found {
+			return types.ErrDoubleSpend
+		}
+		spendCoins[ci.ParentID] = struct{}{}
+	}
+
+	// check if optional coin output is using standard condition
+	if etctx.RefundCoinOutput != nil {
+		err = etctx.RefundCoinOutput.Condition.IsStandardCondition(ctx)
+		if err != nil {
+			return err
+		}
+		// ensure the value is not 0
+		if etctx.RefundCoinOutput.Value.IsZero() {
+			return types.ErrZeroOutput
+		}
+	}
+	// check if all fulfillments are standard
+	for _, sci := range etctx.CoinInputs {
+		err = sci.Fulfillment.IsStandardFulfillment(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Tx is valid
+	return nil
+}
+
+// ValidateCoinOutputs implements CoinOutputValidator.ValidateCoinOutputs,
+// implemented here, overwriting the default logic, as the Tx value is not registered as a coin output,
+// instead those TFT are "burned"
+func (etctc ERC20ConvertTransactionController) ValidateCoinOutputs(t types.Transaction, ctx types.FundValidationContext, coinInputs map[types.CoinOutputID]types.CoinOutput) error {
+	etctx, err := ERC20ConvertTransactionFromTransaction(t)
+	if err != nil {
+		return fmt.Errorf("failed to convert Tx to an ERC20ConvertTx: %v", err)
+	}
+
+	var inputSum types.Currency
+	for index, sci := range etctx.CoinInputs {
+		sco, ok := coinInputs[sci.ParentID]
+		if !ok {
+			return types.MissingCoinOutputError{ID: sci.ParentID}
+		}
+		// check if the referenced output's condition has been fulfilled
+		err = sco.Condition.Fulfill(sci.Fulfillment, types.FulfillContext{
+			ExtraObjects: []interface{}{uint64(index)},
+			BlockHeight:  ctx.BlockHeight,
+			BlockTime:    ctx.BlockTime,
+			Transaction:  t,
+		})
+		if err != nil {
+			return err
+		}
+		inputSum = inputSum.Add(sco.Value)
+	}
+
+	expectedTotalFee := etctx.TransactionFee.Add(etctx.Value)
+	if etctx.RefundCoinOutput != nil {
+		expectedTotalFee = expectedTotalFee.Add(etctx.RefundCoinOutput.Value)
+	}
+	if !inputSum.Equals(expectedTotalFee) {
+		return types.ErrCoinInputOutputMismatch
+	}
+	return nil
+}
+
+// ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
+func (etctc ERC20ConvertTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
+	return nil // always valid, no block stake inputs/outputs exist within an ERC20 convert tx transaction
+}
+
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (etctc ERC20ConvertTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
+	etctx, err := ERC20ConvertTransactionFromTransaction(t)
+	if err != nil {
+		return crypto.Hash{}, fmt.Errorf("failed to use tx as a ERC20ConvertTx: %v", err)
+	}
+
+	h := crypto.NewHash()
+	enc := rivbin.NewEncoder(h)
+
+	enc.EncodeAll(
+		t.Version,
+		SpecifierERC20ConvertTransaction,
+		etctx.Address,
+		etctx.Value,
+	)
+
+	if len(extraObjects) > 0 {
+		enc.EncodeAll(extraObjects...)
+	}
+
+	enc.Encode(len(etctx.CoinInputs))
+	for _, ci := range etctx.CoinInputs {
+		enc.Encode(ci.ParentID)
+	}
+
+	enc.EncodeAll(
+		etctx.TransactionFee,
+		etctx.RefundCoinOutput,
+	)
+
+	var hash crypto.Hash
+	h.Sum(hash[:0])
+	return hash, nil
+}
+
+// EncodeTransactionIDInput implements TransactionIDEncoder.EncodeTransactionIDInput
+func (etctc ERC20ConvertTransactionController) EncodeTransactionIDInput(w io.Writer, txData types.TransactionData) error {
+	etctx, err := ERC20ConvertTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a ERC20ConvertTx: %v", err)
+	}
+	return rivbin.NewEncoder(w).EncodeAll(SpecifierERC20ConvertTransaction, etctx)
 }
 
 // TransactionNonce is a nonce
