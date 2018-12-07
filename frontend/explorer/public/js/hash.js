@@ -25,6 +25,9 @@ function appendTransactionStatistics(infoBody, explorerTransaction, confirmed) {
 		case 146:
 			appendV146Transaction(infoBody, explorerTransaction, confirmed);
 			break;
+		case 208:
+			appendV208Transaction(infoBody, explorerTransaction, confirmed);
+			break;
 		default:
 			appendUnknownTransaction(infoBody, explorerTransaction, confirmed)
 	}
@@ -977,6 +980,106 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 	}
 
 	appendStat(statsTable, 'Paid 3Bot Fee', readableCoins(botFeeValue));
+}
+
+// ERC20 Convert Tx
+function appendV208Transaction(infoBody, explorerTransaction, confirmed) {
+	var ctx = getBlockchainContext();
+
+	var statsTable = createStatsTable();
+	appendStatHeader(statsTable, 'ERC20 Convert Transaction Statistics');
+	if (confirmed) {
+		var doms = appendStat(statsTable, 'Block Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+		doms = appendStat(statsTable, 'Block ID', '');
+		linkHash(doms[2], explorerTransaction.parent);
+		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
+	} else {
+		doms = appendStat(statsTable, 'Block Height', 'unconfirmed');
+	}
+	doms = appendStat(statsTable, 'ID', '');
+	linkHash(doms[2], explorerTransaction.id);
+	infoBody.appendChild(statsTable);// Add tables for each type of transaction element.
+
+	appendStatTableTitle(infoBody, 'ERC20 Conversion');
+	var conversionTable = createStatsTable();
+	infoBody.appendChild(conversionTable);
+	appendStat(conversionTable, 'ERC20 address', explorerTransaction.rawtransaction.data.address);
+	appendStat(conversionTable, 'value', readableCoins(explorerTransaction.rawtransaction.data.value))
+
+	if (explorerTransaction.rawtransaction.data.coininputs != null
+		&& explorerTransaction.rawtransaction.data.coininputs.length > 0) {
+		appendStatTableTitle(infoBody, 'Coin Inputs');
+		for (var i = 0; i < explorerTransaction.rawtransaction.data.coininputs.length; i++) {
+			var f;
+			switch (explorerTransaction.rawtransaction.data.coininputs[i].fulfillment.type) {
+				case 0:
+					break;
+				case 1:
+					f = addV1T1Input;
+					break;
+				case 2:
+					f = addV1T2Input;
+					break;
+				case 3:
+					f = addV1T3Input;
+					break;
+				default:
+					continue;
+			}
+			f(infoBody, explorerTransaction, i, 'coins');
+		}
+	}
+
+	// add the refund Coin Output to the Tx stats, if it exists
+
+	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
+		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
+		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
+		appendStatTableTitle(infoBody, 'Refund Coin Output');
+		var f;
+		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
+			// handle nil transactions
+			case undefined:
+			case 0:
+				f = addV1NilOutput;
+				break;
+			case 1:
+				f = addV1T1Output;
+				break;
+			case 2:
+				f = addV1T2Output;
+				break;
+			case 3:
+				f = addV1T3Output;
+				break;
+			case 4:
+				f = addV1T4Output;
+				break;
+		}
+		if (f != null) {
+			var outputTable = createStatsTable();
+			f(ctx, outputTable, outputExplorerTransaction, 0, 'coins');
+			infoBody.appendChild(outputTable);
+		}
+	}
+
+	if (confirmed) {
+		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+		if (payouts != null) {
+			// In a loop, add a new table for each miner payout.
+			appendStatTableTitle(infoBody, 'Transaction Fee Payout');
+			for (var i = 0; i < payouts.length; i++) {
+				var table = createStatsTable();
+				var doms = appendStat(table, 'ID', '');
+				linkHash(doms[2], payouts[i].id);
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], payouts[i].unlockhash);
+				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
+				infoBody.appendChild(table);
+			}
+		}
+	}
 }
 
 // *************

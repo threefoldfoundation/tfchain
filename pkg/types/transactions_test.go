@@ -2830,3 +2830,81 @@ func (reg *inMemoryBotRegistry) GetRecordForName(name BotName) (*BotRecord, erro
 func (reg *inMemoryBotRegistry) GetBotTransactionIdentifiers(id BotID) ([]types.TransactionID, error) {
 	panic("NOT IMPLEMENTED")
 }
+
+func TestJSONExampleERC20ConvertTransaction(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
+	defer types.RegisterTransactionVersion(TransactionVersionERC20Conversion, nil)
+
+	const jsonEncodedExample = `{
+	"version": 208,
+	"data": {
+		"address": "0123456789012345678901234567890123456789",
+		"value": "200000000000",
+		"txfee": "1000000000",
+		"coininputs": [{
+			"parentid": "9c61ec964105ec48bc95ffc0ac820ada600a2914a8dd4ef511ed7f218a3bf469",
+			"fulfillment": {
+				"type": 1,
+				"data": {
+					"publickey": "ed25519:7469d51063cdb690cc8025db7d28faadc71ff69f7c372779bf3a1e801a923e02",
+					"signature": "a0c683e8728710b4d3cd7eed4e1bd38a4be8145a2cf91b875986870aa98c6265d76cbb637d78500010e3ab1b651e31ab26b05de79938d7d0aee01f8566d08b09"
+				}
+			}
+		}],
+		"refundcoinoutput": {
+			"value": "99999476000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "011c17aaf2d54f63644f9ce91c06ff984182483d1b943e96b5e77cc36fdb887c846b60460bceb0"
+				}
+			}
+		}
+	}
+}`
+
+	var tx types.Transaction
+	err := json.Unmarshal([]byte(jsonEncodedExample), &tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := string(b)
+	buffer := bytes.NewBuffer(nil)
+	err = json.Compact(buffer, []byte(jsonEncodedExample))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedOutput := string(buffer.Bytes())
+	if expectedOutput != output {
+		t.Fatal(expectedOutput, "!=", output)
+	}
+}
+
+func TestBinaryExampleERC20ConvertTransaction(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
+	defer types.RegisterTransactionVersion(TransactionVersionERC20Conversion, nil)
+
+	const hexEncodedExample = `d001234567890123456789012345678901234567890a2e90edd000083b9aca00029c61ec964105ec48bc95ffc0ac820ada600a2914a8dd4ef511ed7f218a3bf46901c4017469d51063cdb690cc8025db7d28faadc71ff69f7c372779bf3a1e801a923e0280a0c683e8728710b4d3cd7eed4e1bd38a4be8145a2cf91b875986870aa98c6265d76cbb637d78500010e3ab1b651e31ab26b05de79938d7d0aee01f8566d08b090110016344fe5cb488000142011c17aaf2d54f63644f9ce91c06ff984182483d1b943e96b5e77cc36fdb887c84`
+
+	b, err := hex.DecodeString(hexEncodedExample)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tx types.Transaction
+	err = siabin.Unmarshal(b, &tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	b = siabin.Marshal(tx)
+	output := hex.EncodeToString(b)
+	if hexEncodedExample != output {
+		t.Fatal(hexEncodedExample, "!=", output)
+	}
+}
