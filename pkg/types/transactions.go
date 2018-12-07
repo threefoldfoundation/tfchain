@@ -9,11 +9,11 @@ import (
 	"math/big"
 
 	"github.com/threefoldfoundation/tfchain/pkg/config"
-	tfencoding "github.com/threefoldfoundation/tfchain/pkg/encoding"
 
 	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/crypto"
-	"github.com/threefoldtech/rivine/encoding"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	"github.com/threefoldtech/rivine/types"
 )
 
@@ -266,10 +266,10 @@ var (
 
 	// ensure at compile time that LegacyTransactionController
 	// implements the desired interfaces
-	_ types.TransactionController = LegacyTransactionController{}
-	_ types.TransactionValidator  = LegacyTransactionController{}
-	_ types.InputSigHasher        = LegacyTransactionController{}
-	_ types.TransactionIDEncoder  = LegacyTransactionController{}
+	_ types.TransactionController      = LegacyTransactionController{}
+	_ types.TransactionValidator       = LegacyTransactionController{}
+	_ types.TransactionSignatureHasher = LegacyTransactionController{}
+	_ types.TransactionIDEncoder       = LegacyTransactionController{}
 
 	// ensure at compile time that CoinCreationTransactionController
 	// implements the desired interfaces
@@ -278,7 +278,7 @@ var (
 	_ types.TransactionValidator       = CoinCreationTransactionController{}
 	_ types.CoinOutputValidator        = CoinCreationTransactionController{}
 	_ types.BlockStakeOutputValidator  = CoinCreationTransactionController{}
-	_ types.InputSigHasher             = CoinCreationTransactionController{}
+	_ types.TransactionSignatureHasher = CoinCreationTransactionController{}
 	_ types.TransactionIDEncoder       = CoinCreationTransactionController{}
 
 	// ensure at compile time that MinterDefinitionTransactionController
@@ -288,7 +288,7 @@ var (
 	_ types.TransactionValidator       = MinterDefinitionTransactionController{}
 	_ types.CoinOutputValidator        = MinterDefinitionTransactionController{}
 	_ types.BlockStakeOutputValidator  = MinterDefinitionTransactionController{}
-	_ types.InputSigHasher             = MinterDefinitionTransactionController{}
+	_ types.TransactionSignatureHasher = MinterDefinitionTransactionController{}
 	_ types.TransactionIDEncoder       = MinterDefinitionTransactionController{}
 )
 
@@ -326,13 +326,13 @@ func (cctc CoinCreationTransactionController) EncodeTransactionData(w io.Writer,
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a CoinCreationTx: %v", err)
 	}
-	return encoding.NewEncoder(w).Encode(cctx)
+	return siabin.NewEncoder(w).Encode(cctx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (cctc CoinCreationTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var cctx CoinCreationTransaction
-	err := encoding.NewDecoder(r).Decode(&cctx)
+	err := siabin.NewDecoder(r).Decode(&cctx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a CoinCreationTx: %v", err)
@@ -363,7 +363,7 @@ func (cctc CoinCreationTransactionController) JSONDecodeTransactionData(data []b
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (cctc CoinCreationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (cctc CoinCreationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid CoinCreationTransactionExtension,
 	// which contains the nonce and the mintFulfillment that can be used to fulfill the globally defined mint condition
 	ccTxExtension, ok := extension.(*CoinCreationTransactionExtension)
@@ -407,7 +407,6 @@ func (cctc CoinCreationTransactionController) ValidateTransaction(t types.Transa
 
 	// check if MintFulfillment fulfills the Globally defined MintCondition for the context-defined block height
 	err = mintCondition.Fulfill(cctx.MintFulfillment, types.FulfillContext{
-		InputIndex:  0, // InputIndex is ignored for coin creation signature
 		BlockHeight: ctx.BlockHeight,
 		BlockTime:   ctx.BlockTime,
 		Transaction: t,
@@ -421,7 +420,11 @@ func (cctc CoinCreationTransactionController) ValidateTransaction(t types.Transa
 	}
 
 	// validate the rest of the content
-	err = types.ArbitraryDataFits(cctx.ArbitraryData, constants.ArbitraryDataSizeLimit)
+	err = types.ArbitraryDataFits(cctx.ArbitraryData.Data, constants.ArbitraryDataSizeLimit)
+	if err != nil {
+		return
+	}
+	err = cctx.ArbitraryData.Validate()
 	if err != nil {
 		return
 	}
@@ -453,15 +456,15 @@ func (cctc CoinCreationTransactionController) ValidateBlockStakeOutputs(t types.
 	return nil // always valid, no block stake inputs/outputs exist within a coin creation transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (cctc CoinCreationTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (cctc CoinCreationTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	cctx, err := CoinCreationTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a coin creation tx: %v", err)
 	}
 
 	h := crypto.NewHash()
-	enc := encoding.NewEncoder(h)
+	enc := siabin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -490,7 +493,7 @@ func (cctc CoinCreationTransactionController) EncodeTransactionIDInput(w io.Writ
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a CoinCreationTx: %v", err)
 	}
-	return encoding.NewEncoder(w).EncodeAll(SpecifierCoinCreationTransaction, cctx)
+	return siabin.NewEncoder(w).EncodeAll(SpecifierCoinCreationTransaction, cctx)
 }
 
 // MinterDefinitionTransactionController
@@ -501,13 +504,13 @@ func (mdtc MinterDefinitionTransactionController) EncodeTransactionData(w io.Wri
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a MinterDefinitionTx: %v", err)
 	}
-	return encoding.NewEncoder(w).Encode(mdtx)
+	return siabin.NewEncoder(w).Encode(mdtx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (mdtc MinterDefinitionTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var mdtx MinterDefinitionTransaction
-	err := encoding.NewDecoder(r).Decode(&mdtx)
+	err := siabin.NewDecoder(r).Decode(&mdtx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a MinterDefinitionTx: %v", err)
@@ -538,7 +541,7 @@ func (mdtc MinterDefinitionTransactionController) JSONDecodeTransactionData(data
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (mdtc MinterDefinitionTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (mdtc MinterDefinitionTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid MinterDefinitionTransactionExtension,
 	// which contains the nonce and the mintFulfillment that can be used to fulfill the globally defined mint condition
 	mdTxExtension, ok := extension.(*MinterDefinitionTransactionExtension)
@@ -596,7 +599,6 @@ func (mdtc MinterDefinitionTransactionController) ValidateTransaction(t types.Tr
 
 	// check if MintFulfillment fulfills the Globally defined MintCondition for the context-defined block height
 	err = mintCondition.Fulfill(mdtx.MintFulfillment, types.FulfillContext{
-		InputIndex:  0, // InputIndex is ignored for coin creation signature
 		BlockHeight: ctx.BlockHeight,
 		BlockTime:   ctx.BlockTime,
 		Transaction: t,
@@ -610,7 +612,11 @@ func (mdtc MinterDefinitionTransactionController) ValidateTransaction(t types.Tr
 	}
 
 	// validate the rest of the content
-	err = types.ArbitraryDataFits(mdtx.ArbitraryData, constants.ArbitraryDataSizeLimit)
+	err = types.ArbitraryDataFits(mdtx.ArbitraryData.Data, constants.ArbitraryDataSizeLimit)
+	if err != nil {
+		return
+	}
+	err = mdtx.ArbitraryData.Validate()
 	if err != nil {
 		return
 	}
@@ -667,15 +673,15 @@ func (mdtc MinterDefinitionTransactionController) ValidateBlockStakeOutputs(t ty
 	return nil // always valid, no block stake inputs/outputs exist within a minter definition transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (mdtc MinterDefinitionTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (mdtc MinterDefinitionTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	mdtx, err := MinterDefinitionTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a MinterDefinitionTx: %v", err)
 	}
 
 	h := crypto.NewHash()
-	enc := encoding.NewEncoder(h)
+	enc := siabin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -704,7 +710,7 @@ func (mdtc MinterDefinitionTransactionController) EncodeTransactionIDInput(w io.
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a MinterDefinitionTx: %v", err)
 	}
-	return encoding.NewEncoder(w).EncodeAll(SpecifierMintDefinitionTransaction, mdtx)
+	return siabin.NewEncoder(w).EncodeAll(SpecifierMintDefinitionTransaction, mdtx)
 }
 
 type (
@@ -713,20 +719,20 @@ type (
 	// (so without having to spend previously unspend coin outputs, see: coin inputs).
 	CoinCreationTransaction struct {
 		// Nonce used to ensure the uniqueness of a CoinCreationTransaction's ID and signature.
-		Nonce TransactionNonce `json:"nonce"`
+		Nonce TransactionNonce
 		// MintFulfillment defines the fulfillment which is used in order to
 		// fulfill the globally defined MintCondition.
-		MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
+		MintFulfillment types.UnlockFulfillmentProxy
 		// CoinOutputs defines the coin outputs,
 		// which contain the freshly created coins, adding to the total pool of coins
 		// available in the tfchain network.
-		CoinOutputs []types.CoinOutput `json:"coinoutputs"`
+		CoinOutputs []types.CoinOutput
 		// Minerfees, a fee paid for this coin creation transaction.
-		MinerFees []types.Currency `json:"minerfees"`
+		MinerFees []types.Currency
 		// ArbitraryData can be used for any purpose,
 		// but is mostly to be used in order to define the reason/origins
 		// of the coin creation.
-		ArbitraryData []byte `json:"arbitrarydata,omitempty"`
+		ArbitraryData types.ArbitraryData
 	}
 	// CoinCreationTransactionExtension defines the CoinCreationTx Extension Data
 	CoinCreationTransactionExtension struct {
@@ -814,28 +820,75 @@ func (cctx *CoinCreationTransaction) Transaction() types.Transaction {
 	}
 }
 
+type jsonCoinCreationTransaction struct {
+	// Nonce used to ensure the uniqueness of a CoinCreationTransaction's ID and signature.
+	Nonce TransactionNonce `json:"nonce"`
+	// MintFulfillment defines the fulfillment which is used in order to
+	// fulfill the globally defined MintCondition.
+	MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
+	// CoinOutputs defines the coin outputs,
+	// which contain the freshly created coins, adding to the total pool of coins
+	// available in the tfchain network.
+	CoinOutputs []types.CoinOutput `json:"coinoutputs"`
+	// Minerfees, a fee paid for this coin creation transaction.
+	MinerFees []types.Currency `json:"minerfees"`
+	// ArbitraryData can be used for any purpose,
+	// but is mostly to be used in order to define the reason/origins
+	// of the coin creation.
+	ArbitraryData     []byte                  `json:"arbitrarydata,omitempty"`
+	ArbitraryDataType types.ArbitraryDataType `json:"arbitrarydatatype,omitempty"`
+}
+
+// MarshalJSON implements json.Marshaler.MarshalJSON
+func (cctx CoinCreationTransaction) MarshalJSON() ([]byte, error) {
+	return json.Marshal(jsonCoinCreationTransaction{
+		Nonce:             cctx.Nonce,
+		MintFulfillment:   cctx.MintFulfillment,
+		CoinOutputs:       cctx.CoinOutputs,
+		MinerFees:         cctx.MinerFees,
+		ArbitraryData:     cctx.ArbitraryData.Data,
+		ArbitraryDataType: cctx.ArbitraryData.Type,
+	})
+}
+
+// UnmarshalJSON implements json.Unmarshaler.UnmarshalJSON
+func (cctx *CoinCreationTransaction) UnmarshalJSON(b []byte) error {
+	var jcctx jsonCoinCreationTransaction
+	err := json.Unmarshal(b, &jcctx)
+	if err != nil {
+		return err
+	}
+	cctx.Nonce = jcctx.Nonce
+	cctx.MintFulfillment = jcctx.MintFulfillment
+	cctx.CoinOutputs = jcctx.CoinOutputs
+	cctx.MinerFees = jcctx.MinerFees
+	cctx.ArbitraryData.Data = jcctx.ArbitraryData
+	cctx.ArbitraryData.Type = jcctx.ArbitraryDataType
+	return nil
+}
+
 type (
 	// MinterDefinitionTransaction is to be created only by the defined Coin Minters,
 	// as a medium in order to transfer minting powers.
 	MinterDefinitionTransaction struct {
 		// Nonce used to ensure the uniqueness of a MinterDefinitionTransaction's ID and signature.
-		Nonce TransactionNonce `json:"nonce"`
+		Nonce TransactionNonce
 		// MintFulfillment defines the fulfillment which is used in order to
 		// fulfill the globally defined MintCondition.
-		MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
+		MintFulfillment types.UnlockFulfillmentProxy
 		// MintCondition defines a new condition that defines who become(s) the new minter(s),
 		// and thus defines who can create coins as well as update who is/are the current minter(s)
 		//
 		// UnlockHash (unlockhash type 1) and MultiSigConditions are allowed,
 		// as well as TimeLocked conditions which have UnlockHash- and MultiSigConditions as
 		// internal condition.
-		MintCondition types.UnlockConditionProxy `json:"mintcondition"`
+		MintCondition types.UnlockConditionProxy
 		// Minerfees, a fee paid for this minter definition transaction.
-		MinerFees []types.Currency `json:"minerfees"`
+		MinerFees []types.Currency
 		// ArbitraryData can be used for any purpose,
 		// but is mostly to be used in order to define the reason/origins
 		// of the transfer of minting power.
-		ArbitraryData []byte `json:"arbitrarydata,omitempty"`
+		ArbitraryData types.ArbitraryData
 	}
 	// MinterDefinitionTransactionExtension defines the MinterDefinitionTx Extension Data
 	MinterDefinitionTransactionExtension struct {
@@ -924,6 +977,56 @@ func (cctx *MinterDefinitionTransaction) Transaction() types.Transaction {
 			MintCondition:   cctx.MintCondition,
 		},
 	}
+}
+
+type jsonMinterDefinitionTransaction struct {
+	// Nonce used to ensure the uniqueness of a MinterDefinitionTransaction's ID and signature.
+	Nonce TransactionNonce `json:"nonce"`
+	// MintFulfillment defines the fulfillment which is used in order to
+	// fulfill the globally defined MintCondition.
+	MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
+	// MintCondition defines a new condition that defines who become(s) the new minter(s),
+	// and thus defines who can create coins as well as update who is/are the current minter(s)
+	//
+	// UnlockHash (unlockhash type 1) and MultiSigConditions are allowed,
+	// as well as TimeLocked conditions which have UnlockHash- and MultiSigConditions as
+	// internal condition.
+	MintCondition types.UnlockConditionProxy `json:"mintcondition"`
+	// Minerfees, a fee paid for this minter definition transaction.
+	MinerFees []types.Currency `json:"minerfees"`
+	// ArbitraryData can be used for any purpose,
+	// but is mostly to be used in order to define the reason/origins
+	// of the transfer of minting power.
+	ArbitraryData     []byte                  `json:"arbitrarydata,omitempty"`
+	ArbitraryDataType types.ArbitraryDataType `json:"arbitrarydatatype,omitempty"`
+}
+
+// MarshalJSON implements json.Marshaler.MarshalJSON
+func (cctx MinterDefinitionTransaction) MarshalJSON() ([]byte, error) {
+	return json.Marshal(jsonMinterDefinitionTransaction{
+		Nonce:             cctx.Nonce,
+		MintFulfillment:   cctx.MintFulfillment,
+		MintCondition:     cctx.MintCondition,
+		MinerFees:         cctx.MinerFees,
+		ArbitraryData:     cctx.ArbitraryData.Data,
+		ArbitraryDataType: cctx.ArbitraryData.Type,
+	})
+}
+
+// UnmarshalJSON implements json.Unmarshaler.UnmarshalJSON
+func (cctx *MinterDefinitionTransaction) UnmarshalJSON(b []byte) error {
+	var jcctx jsonMinterDefinitionTransaction
+	err := json.Unmarshal(b, &jcctx)
+	if err != nil {
+		return err
+	}
+	cctx.Nonce = jcctx.Nonce
+	cctx.MintFulfillment = jcctx.MintFulfillment
+	cctx.MintCondition = jcctx.MintCondition
+	cctx.MinerFees = jcctx.MinerFees
+	cctx.ArbitraryData.Data = jcctx.ArbitraryData
+	cctx.ArbitraryData.Type = jcctx.ArbitraryDataType
+	return nil
 }
 
 // 3bot Multiplier fees that have to be multiplied with the OneCoin definition,
@@ -1107,10 +1210,22 @@ func (brtx *BotRegistrationTransaction) RequiredBotFee(oneCoin types.Currency) t
 	return fee
 }
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
 func (brtx BotRegistrationTransaction) MarshalSia(w io.Writer) error {
+	return brtx.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (brtx *BotRegistrationTransaction) UnmarshalSia(r io.Reader) error {
+	return brtx.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (brtx BotRegistrationTransaction) MarshalRivine(w io.Writer) error {
 	// the tfchain binary encoder used for this implementation
-	enc := tfencoding.NewEncoder(w)
+	enc := rivbin.NewEncoder(w)
 
 	// encode the nr of months, flags and paired lenghts
 	addrLen := len(brtx.Addresses)
@@ -1157,9 +1272,9 @@ func (brtx BotRegistrationTransaction) MarshalSia(w io.Writer) error {
 	return enc.Encode(brtx.Identification)
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
-func (brtx *BotRegistrationTransaction) UnmarshalSia(r io.Reader) error {
-	dec := tfencoding.NewDecoder(r)
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (brtx *BotRegistrationTransaction) UnmarshalRivine(r io.Reader) error {
+	dec := rivbin.NewDecoder(r)
 
 	var maf BotMonthsAndFlagsData
 	err := dec.Decode(&maf)
@@ -1515,14 +1630,26 @@ func (brutx *BotRecordUpdateTransaction) RevertBotRecordUpdate(record *BotRecord
 	return nil
 }
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
 func (brutx BotRecordUpdateTransaction) MarshalSia(w io.Writer) error {
+	return brutx.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (brutx *BotRecordUpdateTransaction) UnmarshalSia(r io.Reader) error {
+	return brutx.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (brutx BotRecordUpdateTransaction) MarshalRivine(w io.Writer) error {
 	// collect length of all the name/addr slices
 	addrAddLen, addrRemoveLen := len(brutx.Addresses.Add), len(brutx.Addresses.Remove)
 	nameAddLen, nameRemoveLen := len(brutx.Names.Add), len(brutx.Names.Remove)
 
 	// the tfchain binary encoder used for this implementation
-	enc := tfencoding.NewEncoder(w)
+	enc := rivbin.NewEncoder(w)
 
 	// encode the identifier, nr of months, flags and paired lenghts
 	maf := BotMonthsAndFlagsData{
@@ -1594,9 +1721,9 @@ func (brutx BotRecordUpdateTransaction) MarshalSia(w io.Writer) error {
 	return enc.Encode(brutx.Signature)
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
-func (brutx *BotRecordUpdateTransaction) UnmarshalSia(r io.Reader) error {
-	dec := tfencoding.NewDecoder(r)
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (brutx *BotRecordUpdateTransaction) UnmarshalRivine(r io.Reader) error {
+	dec := rivbin.NewDecoder(r)
 
 	// unmarshal identifier, NrOfMonths and flags
 	var maf BotMonthsAndFlagsData
@@ -1916,10 +2043,22 @@ func (bnttx *BotNameTransferTransaction) RevertSenderBotRecordUpdate(record *Bot
 	return nil
 }
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
 func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
+	return bnttx.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
+	return bnttx.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (bnttx BotNameTransferTransaction) MarshalRivine(w io.Writer) error {
 	// the tfchain binary encoder used for this implementation
-	enc := tfencoding.NewEncoder(w)
+	enc := rivbin.NewEncoder(w)
 
 	hasRefund := bnttx.RefundCoinOutput != nil
 	infoValue := uint8(len(bnttx.Names))
@@ -1962,9 +2101,9 @@ func (bnttx BotNameTransferTransaction) MarshalSia(w io.Writer) error {
 	return nil
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
-func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
-	dec := tfencoding.NewDecoder(r)
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (bnttx *BotNameTransferTransaction) UnmarshalRivine(r io.Reader) error {
+	dec := rivbin.NewDecoder(r)
 
 	// unmarshal sender, receiver and info value (includes name slice length and whether a refund is included)
 	var infoValue uint8
@@ -2009,13 +2148,19 @@ func (bnttx *BotNameTransferTransaction) UnmarshalSia(r io.Reader) error {
 	return nil
 }
 
+// Specifiers used to ensure the bot-signatures are unique within each Tx.
+var (
+	BotSignatureSpecifierSender   = [...]byte{'s', 'e', 'n', 'd', 'e', 'r'}
+	BotSignatureSpecifierReceiver = [...]byte{'r', 'e', 'c', 'e', 'i', 'v', 'e', 'r'}
+)
+
 type (
 	// BotRecordReadRegistry defines the public READ API expected from a bot record Read-Only registry.
 	BotRecordReadRegistry interface {
 		// GetRecordForID returns the record mapped to the given BotID.
 		GetRecordForID(id BotID) (*BotRecord, error)
 		// GetRecordForKey returns the record mapped to the given Key.
-		GetRecordForKey(key PublicKey) (*BotRecord, error)
+		GetRecordForKey(key types.PublicKey) (*BotRecord, error)
 		// GetRecordForName returns the record mapped to the given Name.
 		GetRecordForName(name BotName) (*BotRecord, error)
 		// GetBotTransactionIdentifiers returns the identifiers of all transactions
@@ -2053,7 +2198,7 @@ var (
 	_ types.TransactionExtensionSigner = BotRegistrationTransactionController{}
 	_ types.TransactionValidator       = BotRegistrationTransactionController{}
 	_ types.BlockStakeOutputValidator  = BotRegistrationTransactionController{}
-	_ types.InputSigHasher             = BotRegistrationTransactionController{}
+	_ types.TransactionSignatureHasher = BotRegistrationTransactionController{}
 	_ types.TransactionIDEncoder       = BotRegistrationTransactionController{}
 )
 
@@ -2063,13 +2208,13 @@ func (brtc BotRegistrationTransactionController) EncodeTransactionData(w io.Writ
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotRegistrationTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).Encode(brtx)
+	return rivbin.NewEncoder(w).Encode(brtx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (brtc BotRegistrationTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var brtx BotRegistrationTransaction
-	err := tfencoding.NewDecoder(r).Decode(&brtx)
+	err := rivbin.NewDecoder(r).Decode(&brtx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a BotRegistrationTx: %v", err)
@@ -2100,7 +2245,7 @@ func (brtc BotRegistrationTransactionController) JSONDecodeTransactionData(data 
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (brtc BotRegistrationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (brtc BotRegistrationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid BotRegistrationTransactionExtension
 	brtxExtension, ok := extension.(*BotRegistrationTransactionExtension)
 	if !ok {
@@ -2114,7 +2259,7 @@ func (brtc BotRegistrationTransactionController) SignExtension(extension interfa
 	}
 
 	// sign the fulfillment
-	err = sign(&fulfillment, condition)
+	err = sign(&fulfillment, condition, BotSignatureSpecifierSender)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign BotRegistrationTx: %v", err)
 	}
@@ -2151,7 +2296,7 @@ func (brtc BotRegistrationTransactionController) ValidateTransaction(t types.Tra
 	}
 
 	// validate the signature of the to-be-registered bot
-	err = validateBotSignature(t, brtx.Identification.PublicKey, brtx.Identification.Signature, ctx)
+	err = validateBotSignature(t, brtx.Identification.PublicKey, brtx.Identification.Signature, ctx, BotSignatureSpecifierSender)
 	if err != nil {
 		return fmt.Errorf("failed to fulfill bot registration condition: %v", err)
 	}
@@ -2220,15 +2365,15 @@ func (brtc BotRegistrationTransactionController) ValidateBlockStakeOutputs(t typ
 	return nil // always valid, no block stake inputs/outputs exist within a bot registration transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (brtc BotRegistrationTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (brtc BotRegistrationTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	brtx, err := BotRegistrationTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a BotRegistrationTx: %v", err)
 	}
 
 	h := crypto.NewHash()
-	enc := tfencoding.NewEncoder(h)
+	enc := rivbin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -2267,7 +2412,7 @@ func (brtc BotRegistrationTransactionController) EncodeTransactionIDInput(w io.W
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotRegistrationTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).EncodeAll(SpecifierBotRegistrationTransaction, brtx)
+	return rivbin.NewEncoder(w).EncodeAll(SpecifierBotRegistrationTransaction, brtx)
 }
 
 type (
@@ -2287,7 +2432,7 @@ var (
 	_ types.TransactionExtensionSigner = BotUpdateRecordTransactionController{}
 	_ types.TransactionValidator       = BotUpdateRecordTransactionController{}
 	_ types.BlockStakeOutputValidator  = BotUpdateRecordTransactionController{}
-	_ types.InputSigHasher             = BotUpdateRecordTransactionController{}
+	_ types.TransactionSignatureHasher = BotUpdateRecordTransactionController{}
 	_ types.TransactionIDEncoder       = BotUpdateRecordTransactionController{}
 )
 
@@ -2297,13 +2442,13 @@ func (brutc BotUpdateRecordTransactionController) EncodeTransactionData(w io.Wri
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotUpdateRecordTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).Encode(burtx)
+	return rivbin.NewEncoder(w).Encode(burtx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (brutc BotUpdateRecordTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var burtx BotRecordUpdateTransaction
-	err := tfencoding.NewDecoder(r).Decode(&burtx)
+	err := rivbin.NewDecoder(r).Decode(&burtx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a BotUpdateRecordTx: %v", err)
@@ -2334,7 +2479,7 @@ func (brutc BotUpdateRecordTransactionController) JSONDecodeTransactionData(data
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (brutc BotUpdateRecordTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (brutc BotUpdateRecordTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid BotRecordUpdateTransactionExtension
 	brutxExtension, ok := extension.(*BotRecordUpdateTransactionExtension)
 	if !ok {
@@ -2348,7 +2493,7 @@ func (brutc BotUpdateRecordTransactionController) SignExtension(extension interf
 	}
 
 	// sign the fulfillment
-	err = sign(&fulfillment, condition)
+	err = sign(&fulfillment, condition, BotSignatureSpecifierSender)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign BotUpdateRecordTx: %v", err)
 	}
@@ -2383,7 +2528,7 @@ func (brutc BotUpdateRecordTransactionController) ValidateTransaction(t types.Tr
 	}
 
 	// validate the signature of the to-be-updated bot
-	err = validateBotSignature(t, record.PublicKey, brutx.Signature, ctx)
+	err = validateBotSignature(t, record.PublicKey, brutx.Signature, ctx, BotSignatureSpecifierSender)
 	if err != nil {
 		return fmt.Errorf("failed to fulfill bot record update condition: %v", err)
 	}
@@ -2421,15 +2566,15 @@ func (brutc BotUpdateRecordTransactionController) ValidateBlockStakeOutputs(t ty
 	return nil // always valid, no block stake inputs/outputs exist within a bot record update transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (brutc BotUpdateRecordTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (brutc BotUpdateRecordTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	brutx, err := BotRecordUpdateTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a BotRecordUpdateTx: %v", err)
 	}
 
 	h := crypto.NewHash()
-	enc := tfencoding.NewEncoder(h)
+	enc := rivbin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -2468,7 +2613,7 @@ func (brutc BotUpdateRecordTransactionController) EncodeTransactionIDInput(w io.
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotRecordUpdateTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).EncodeAll(SpecifierBotRecordUpdateTransaction, brutx)
+	return rivbin.NewEncoder(w).EncodeAll(SpecifierBotRecordUpdateTransaction, brutx)
 }
 
 type (
@@ -2489,7 +2634,7 @@ var (
 	_ types.TransactionExtensionSigner = BotNameTransferTransactionController{}
 	_ types.TransactionValidator       = BotNameTransferTransactionController{}
 	_ types.BlockStakeOutputValidator  = BotNameTransferTransactionController{}
-	_ types.InputSigHasher             = BotNameTransferTransactionController{}
+	_ types.TransactionSignatureHasher = BotNameTransferTransactionController{}
 	_ types.TransactionIDEncoder       = BotNameTransferTransactionController{}
 )
 
@@ -2499,13 +2644,13 @@ func (bnttc BotNameTransferTransactionController) EncodeTransactionData(w io.Wri
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotNameTransferTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).Encode(bnttx)
+	return rivbin.NewEncoder(w).Encode(bnttx)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (bnttc BotNameTransferTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
 	var bnttx BotNameTransferTransaction
-	err := tfencoding.NewDecoder(r).Decode(&bnttx)
+	err := rivbin.NewDecoder(r).Decode(&bnttx)
 	if err != nil {
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as a BotNameTransferTx: %v", err)
@@ -2536,7 +2681,7 @@ func (bnttc BotNameTransferTransactionController) JSONDecodeTransactionData(data
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
-func (bnttc BotNameTransferTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy) error) (interface{}, error) {
+func (bnttc BotNameTransferTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
 	// (tx) extension (data) is expected to be a pointer to a valid BotNameTransferTransactionExtension
 	bnttxExtension, ok := extension.(*BotNameTransferTransactionExtension)
 	if !ok {
@@ -2548,7 +2693,7 @@ func (bnttc BotNameTransferTransactionController) SignExtension(extension interf
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare the signing (as the sender) of the BotNameTransferTx: %v", err)
 	}
-	err = sign(&fulfillment, condition)
+	err = sign(&fulfillment, condition, BotSignatureSpecifierSender)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign (as the sender) the BotNameTransferTx: %v", err)
 	}
@@ -2562,7 +2707,7 @@ func (bnttc BotNameTransferTransactionController) SignExtension(extension interf
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare the signing (as the receiver) of the BotNameTransferTx: %v", err)
 	}
-	err = sign(&fulfillment, condition)
+	err = sign(&fulfillment, condition, BotSignatureSpecifierReceiver)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign (as the receiver) the BotNameTransferTx: %v", err)
 	}
@@ -2612,12 +2757,12 @@ func (bnttc BotNameTransferTransactionController) ValidateTransaction(t types.Tr
 	}
 
 	// validate the signature of the sender
-	err = validateBotSignature(t, recordSender.PublicKey, bnttx.Sender.Signature, ctx)
+	err = validateBotSignature(t, recordSender.PublicKey, bnttx.Sender.Signature, ctx, BotSignatureSpecifierSender)
 	if err != nil {
 		return fmt.Errorf("failed to fulfill bot record name transfer condition of the sender: %v", err)
 	}
 	// validate the signature of the receiver
-	err = validateBotSignature(t, recordReceiver.PublicKey, bnttx.Receiver.Signature, ctx)
+	err = validateBotSignature(t, recordReceiver.PublicKey, bnttx.Receiver.Signature, ctx, BotSignatureSpecifierReceiver)
 	if err != nil {
 		return fmt.Errorf("failed to fulfill bot record name transfer condition of the receiver: %v", err)
 	}
@@ -2658,15 +2803,15 @@ func (bnttc BotNameTransferTransactionController) ValidateBlockStakeOutputs(t ty
 	return nil // always valid, no block stake inputs/outputs exist within a bot record update transaction
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (bnttc BotNameTransferTransactionController) InputSigHash(t types.Transaction, _ uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (bnttc BotNameTransferTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	bnttx, err := BotNameTransferTransactionFromTransaction(t)
 	if err != nil {
 		return crypto.Hash{}, fmt.Errorf("failed to use tx as a BotNameTransferTx: %v", err)
 	}
 
 	h := crypto.NewHash()
-	enc := tfencoding.NewEncoder(h)
+	enc := rivbin.NewEncoder(h)
 
 	enc.EncodeAll(
 		t.Version,
@@ -2704,7 +2849,7 @@ func (bnttc BotNameTransferTransactionController) EncodeTransactionIDInput(w io.
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a BotNameTransferTx: %v", err)
 	}
-	return tfencoding.NewEncoder(w).EncodeAll(SpecifierBotNameTransferTransaction, bnttx)
+	return rivbin.NewEncoder(w).EncodeAll(SpecifierBotNameTransferTransaction, bnttx)
 }
 
 func getConditionAndFulfillmentForBotID(registry BotRecordReadRegistry, id BotID) (types.UnlockConditionProxy, types.UnlockFulfillmentProxy, error) {
@@ -2715,15 +2860,11 @@ func getConditionAndFulfillmentForBotID(registry BotRecordReadRegistry, id BotID
 	return getConditionAndFulfillmentForBotPublicKey(record.PublicKey)
 }
 
-func getConditionAndFulfillmentForBotPublicKey(pk PublicKey) (types.UnlockConditionProxy, types.UnlockFulfillmentProxy, error) {
+func getConditionAndFulfillmentForBotPublicKey(pk types.PublicKey) (types.UnlockConditionProxy, types.UnlockFulfillmentProxy, error) {
 	// create a publicKeyUnlockHashCondition
-	spk, err := pk.SiaPublicKey()
-	if err != nil {
-		return types.UnlockConditionProxy{}, types.UnlockFulfillmentProxy{}, fmt.Errorf("invalid public public key: %v", err)
-	}
-	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(spk)))
+	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(pk)))
 	// and a matching single-signature fulfillment
-	fulfillment := types.NewFulfillment(types.NewSingleSignatureFulfillment(spk))
+	fulfillment := types.NewFulfillment(types.NewSingleSignatureFulfillment(pk))
 
 	// return the condition and fulfillment
 	return condition, fulfillment, nil
@@ -2739,7 +2880,7 @@ func validateBotInMemoryTransactionDataRequirements(txData types.TransactionData
 		return errors.New("no block stake inputs/outputs are allowed in a Bot Transaction")
 	}
 	// no arbitrary data is allowed
-	if len(txData.ArbitraryData) > 0 {
+	if len(txData.ArbitraryData.Data) > 0 {
 		return errors.New("no arbitrary data is allowed in a Bot Transaction")
 	}
 	// validate that the coin outputs is within the expected range
@@ -2779,8 +2920,20 @@ type BotMonthsAndFlagsData struct {
 	HasRefund    bool
 }
 
-// MarshalSia implements SiaMarshaler.MarshalSia
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
 func (maf BotMonthsAndFlagsData) MarshalSia(w io.Writer) error {
+	return maf.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (maf *BotMonthsAndFlagsData) UnmarshalSia(r io.Reader) error {
+	return maf.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (maf BotMonthsAndFlagsData) MarshalRivine(w io.Writer) error {
 	x := uint8(maf.NrOfMonths)
 	if maf.HasAddresses {
 		x |= 32
@@ -2791,12 +2944,12 @@ func (maf BotMonthsAndFlagsData) MarshalSia(w io.Writer) error {
 	if maf.HasRefund {
 		x |= 128
 	}
-	return tfencoding.MarshalUint8(w, x)
+	return rivbin.MarshalUint8(w, x)
 }
 
-// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia
-func (maf *BotMonthsAndFlagsData) UnmarshalSia(r io.Reader) error {
-	x, err := tfencoding.UnmarshalUint8(r)
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (maf *BotMonthsAndFlagsData) UnmarshalRivine(r io.Reader) error {
+	x, err := rivbin.UnmarshalUint8(r)
 	if err != nil {
 		return err
 	}

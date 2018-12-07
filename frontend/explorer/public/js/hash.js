@@ -81,7 +81,7 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 		appendStat(table, 'Blockstake Output Count', explorerTransaction.rawtransaction.data.blockstakeoutputs.length);
 	}
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Byte Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
+		appendStat(table, 'Arbitrary Data Byte Count', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata).length);
 	}
 	infoBody.appendChild(table);
 
@@ -168,7 +168,19 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 1) {
+			appendStat(table, 'UTF-8 Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		} else {
+			var title;
+			if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 0 || !explorerTransaction.rawtransaction.data.arbitrarydatatype) {
+				title = 'Binary Data';
+			} else if (explorerTransaction.rawtransaction.data.arbitrarydatatype >= 128) {
+				title = 'Application-specific Data';
+			} else {
+				title = 'Invalid Data';
+			}
+			appendStat(table, title, explorerTransaction.rawtransaction.data.arbitrarydata);
+		}
 		infoBody.appendChild(table);
 	}
 	if (confirmed) {
@@ -218,7 +230,7 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 		appendStat(table, 'Blockstake Output Count', explorerTransaction.rawtransaction.data.blockstakeoutputs.length);
 	}
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Byte Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
+		appendStat(table, 'Arbitrary Data Byte Count', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata).length);
 	}
 	infoBody.appendChild(table);
 
@@ -324,7 +336,19 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 1) {
+			appendStat(table, 'UTF-8 Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		} else {
+			var title;
+			if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 0 || !explorerTransaction.rawtransaction.data.arbitrarydatatype) {
+				title = 'Binary Data';
+			} else if (explorerTransaction.rawtransaction.data.arbitrarydatatype >= 128) {
+				title = 'Application-specific Data';
+			} else {
+				title = 'Invalid Data';
+			}
+			appendStat(table, title, explorerTransaction.rawtransaction.data.arbitrarydata);
+		}
 		infoBody.appendChild(table);
 	}
 	if (confirmed) {
@@ -362,7 +386,7 @@ function appendV128Transaction(infoBody, explorerTransaction, confirmed) {
 	doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction.id);
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Byte Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
+		appendStat(table, 'Arbitrary Data Byte Count', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata).length);
 	}
 	infoBody.appendChild(table);
 
@@ -414,7 +438,19 @@ function appendV128Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 1) {
+			appendStat(table, 'UTF-8 Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		} else {
+			var title;
+			if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 0 || !explorerTransaction.rawtransaction.data.arbitrarydatatype) {
+				title = 'Binary Data';
+			} else if (explorerTransaction.rawtransaction.data.arbitrarydatatype >= 128) {
+				title = 'Application-specific Data';
+			} else {
+				title = 'Invalid Data';
+			}
+			appendStat(table, title, explorerTransaction.rawtransaction.data.arbitrarydata);
+		}
 		infoBody.appendChild(table);
 	}
 
@@ -454,7 +490,7 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 	linkHash(doms[2], explorerTransaction.id);
 	appendStat(table, 'Coin Output Count', explorerTransaction.rawtransaction.data.coinoutputs.length);
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Byte Count', explorerTransaction.rawtransaction.data.arbitrarydata.length);
+		appendStat(table, 'Arbitrary Data Byte Count', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata).length);
 	}
 	infoBody.appendChild(table);
 
@@ -511,7 +547,19 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Base64-decoded Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 1) {
+			appendStat(table, 'UTF-8 Data', window.atob(explorerTransaction.rawtransaction.data.arbitrarydata));
+		} else {
+			var title;
+			if (explorerTransaction.rawtransaction.data.arbitrarydatatype == 0 || !explorerTransaction.rawtransaction.data.arbitrarydatatype) {
+				title = 'Binary Data';
+			} else if (explorerTransaction.rawtransaction.data.arbitrarydatatype >= 128) {
+				title = 'Application-specific Data';
+			} else {
+				title = 'Invalid Data';
+			}
+			appendStat(table, title, explorerTransaction.rawtransaction.data.arbitrarydata);
+		}
 		infoBody.appendChild(table);
 	}
 

@@ -1,12 +1,17 @@
-package encoding
+package rivbin
 
 import (
 	"bytes"
 	"fmt"
 	"io"
 	"reflect"
+)
 
-	"github.com/threefoldtech/rivine/encoding"
+type (
+	// A RivineMarshaler can encode and write itself to a stream.
+	RivineMarshaler interface {
+		MarshalRivine(io.Writer) error
+	}
 )
 
 // Marshal returns the encoding of v. For encoding details, see the package
@@ -35,8 +40,8 @@ func MarshalAll(vs ...interface{}) []byte {
 
 // Encoder writes objects to an output stream.
 //
-// A modified and improved Rivine (Sia) Encoder,
-// found in the <github.com/threefoldtech/rivine/encoding> package.
+// A modified and improved Binary Encoder based upon the siabin Encoder,
+// found in the <github.com/threefoldtech/rivine/pkg/encoding/siabin> package.
 type Encoder struct {
 	w io.Writer
 }
@@ -74,10 +79,11 @@ func (e *Encoder) write(p []byte) error {
 // Encode writes the encoding of val to the stream. For encoding details, see
 // the package docstring.
 func (e *Encoder) encode(val reflect.Value) error {
-	// check for MarshalSia interface first
+	// check for RivineMarshaler interface first
 	if val.CanInterface() {
-		if m, ok := val.Interface().(encoding.SiaMarshaler); ok {
-			return m.MarshalSia(e.w)
+		ival := val.Interface()
+		if m, ok := ival.(RivineMarshaler); ok {
+			return m.MarshalRivine(e.w)
 		}
 	}
 

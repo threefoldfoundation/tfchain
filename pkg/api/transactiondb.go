@@ -104,7 +104,7 @@ func NewTransactionDBGetRecordForIDHandler(txdb *persist.TransactionDB) httprout
 			record, err = txdb.GetRecordForID(tftypes.BotID(id))
 		} else {
 			// interpret it as a PublicKey
-			var pubKey tftypes.PublicKey
+			var pubKey types.PublicKey
 			err = pubKey.LoadString(idStr)
 			if err != nil {
 				api.WriteError(w, api.Error{Message: fmt.Errorf("id has to be a valid PublicKey or BotID: %v", err).Error()},

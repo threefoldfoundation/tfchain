@@ -134,12 +134,12 @@ is printed to the STDOUT.
 
 	// register flags
 
-	createMinterDefinitionTxCmd.Flags().StringVar(
-		&walletSubCmds.minterDefinitionTxCfg.Description, "description", "",
+	createMinterDefinitionTxCmd.Flags().Var(
+		&walletSubCmds.minterDefinitionTxCfg.Data, "data",
 		"optionally add a description to describe the reasons of transfer of minting power, added as arbitrary data")
 
-	createCoinCreationTxCmd.Flags().StringVar(
-		&walletSubCmds.coinCreationTxCfg.Description, "description", "",
+	createCoinCreationTxCmd.Flags().Var(
+		&walletSubCmds.coinCreationTxCfg.Data, "data",
 		"optionally add a description to describe the origins of the coin creation, added as arbitrary data")
 
 	internal.NetworkAddressArrayFlagVar(
@@ -209,17 +209,17 @@ is printed to the STDOUT.
 type walletSubCmds struct {
 	cli                   *rivinecli.CommandLineClient
 	minterDefinitionTxCfg struct {
-		Description string
+		Data cli.ArbitraryDataFlag
 	}
 	coinCreationTxCfg struct {
-		Description string
+		Data cli.ArbitraryDataFlag
 	}
 
 	sendBotRegistrationTxCfg struct {
 		Addresses    []types.NetworkAddress
 		Names        []types.BotName
 		NrOfMonths   uint8
-		PublicKey    types.PublicKey
+		PublicKey    rivinetypes.PublicKey
 		EncodingType cli.EncodingType
 	}
 
@@ -258,11 +258,9 @@ func (walletSubCmds *walletSubCmds) createMinterDefinitionTxCmd(cmd *cobra.Comma
 		cli.Die(err)
 	}
 
-	// if a description is given, use it as arbitrary data
-	if n := len(walletSubCmds.minterDefinitionTxCfg.Description); n > 0 {
-		tx.ArbitraryData = make([]byte, n)
-		copy(tx.ArbitraryData[:], walletSubCmds.minterDefinitionTxCfg.Description[:])
-	}
+	// if data is given, use it as arbitrary data
+	tx.ArbitraryData.Data = walletSubCmds.minterDefinitionTxCfg.Data.Data
+	tx.ArbitraryData.Type = walletSubCmds.minterDefinitionTxCfg.Data.DataType
 
 	// encode the transaction as a JSON-encoded string and print it to the STDOUT
 	json.NewEncoder(os.Stdout).Encode(tx.Transaction())
@@ -288,10 +286,8 @@ func (walletSubCmds *walletSubCmds) createCoinCreationTxCmd(cmd *cobra.Command, 
 		Nonce:     types.RandomTransactionNonce(),
 		MinerFees: []rivinetypes.Currency{walletSubCmds.cli.Config.MinimumTransactionFee},
 	}
-	if n := len(walletSubCmds.coinCreationTxCfg.Description); n > 0 {
-		tx.ArbitraryData = make([]byte, n)
-		copy(tx.ArbitraryData[:], walletSubCmds.coinCreationTxCfg.Description[:])
-	}
+	tx.ArbitraryData.Data = walletSubCmds.coinCreationTxCfg.Data.Data
+	tx.ArbitraryData.Type = walletSubCmds.coinCreationTxCfg.Data.DataType
 	for _, pair := range pairs {
 		tx.CoinOutputs = append(tx.CoinOutputs, rivinetypes.CoinOutput{
 			Value:     pair.Value,
@@ -541,7 +537,7 @@ func (walletSubCmds *walletSubCmds) botIDFromPosArgStr(str string) (types.BotID,
 
 	// assume a public key was meant,
 	// so we need to get the (bot) record in order to know the (unique) ID
-	var pk types.PublicKey
+	var pk rivinetypes.PublicKey
 	err := pk.LoadString(str)
 	if err != nil {
 		return 0, err

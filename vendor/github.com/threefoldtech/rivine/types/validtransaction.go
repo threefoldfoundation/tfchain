@@ -8,7 +8,7 @@ package types
 import (
 	"errors"
 
-	"github.com/threefoldtech/rivine/encoding"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 )
 
 // various errors that can be returned as result of a specific transaction validation
@@ -47,7 +47,7 @@ func (err MissingBlockStakeOutputError) Error() string {
 func TransactionFitsInABlock(t Transaction, blockSizeLimit uint64) error {
 	// Check that the transaction will fit inside of a block, leaving 5kb for
 	// overhead.
-	if uint64(len(encoding.Marshal(t))) > blockSizeLimit-5e3 {
+	if uint64(len(siabin.Marshal(t))) > blockSizeLimit-5e3 {
 		return ErrTransactionTooLarge
 	}
 	return nil
@@ -114,7 +114,11 @@ func DefaultTransactionValidation(t Transaction, ctx ValidationContext, constant
 	if err != nil {
 		return
 	}
-	err = ArbitraryDataFits(t.ArbitraryData, constants.ArbitraryDataSizeLimit)
+	err = ArbitraryDataFits(t.ArbitraryData.Data, constants.ArbitraryDataSizeLimit)
+	if err != nil {
+		return
+	}
+	err = t.ArbitraryData.Validate()
 	if err != nil {
 		return
 	}
@@ -167,10 +171,10 @@ func DefaultCoinOutputValidation(t Transaction, ctx FundValidationContext, coinI
 		}
 		// check if the referenced output's condition has been fulfilled
 		err = sco.Condition.Fulfill(sci.Fulfillment, FulfillContext{
-			InputIndex:  uint64(index),
-			BlockHeight: ctx.BlockHeight,
-			BlockTime:   ctx.BlockTime,
-			Transaction: t,
+			ExtraObjects: []interface{}{uint64(index)},
+			BlockHeight:  ctx.BlockHeight,
+			BlockTime:    ctx.BlockTime,
+			Transaction:  t,
 		})
 		if err != nil {
 			return
@@ -194,10 +198,10 @@ func DefaultBlockStakeOutputValidation(t Transaction, ctx FundValidationContext,
 		}
 		// check if the referenced output's condition has been fulfilled
 		err = bso.Condition.Fulfill(bsi.Fulfillment, FulfillContext{
-			InputIndex:  uint64(index),
-			BlockHeight: ctx.BlockHeight,
-			BlockTime:   ctx.BlockTime,
-			Transaction: t,
+			ExtraObjects: []interface{}{uint64(index)},
+			BlockHeight:  ctx.BlockHeight,
+			BlockTime:    ctx.BlockTime,
+			Transaction:  t,
 		})
 		if err != nil {
 			return

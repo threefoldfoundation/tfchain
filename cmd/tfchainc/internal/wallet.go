@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/threefoldfoundation/tfchain/pkg/api"
-	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 
 	"github.com/threefoldtech/rivine/pkg/client"
 	"github.com/threefoldtech/rivine/types"
@@ -28,11 +27,11 @@ func NewWalletClient(cli *client.CommandLineClient) *WalletClient {
 }
 
 // NewPublicKey creates a new public key (from an index and the wallet's primary seed), and returns it.
-func (wallet *WalletClient) NewPublicKey() (tftypes.PublicKey, error) {
+func (wallet *WalletClient) NewPublicKey() (types.PublicKey, error) {
 	var result api.WalletPublicKeyGET
 	err := wallet.client.GetAPI("/wallet/publickey", &result)
 	if err != nil {
-		return tftypes.PublicKey{}, fmt.Errorf("failed to get (new) public key: %v", err)
+		return types.PublicKey{}, fmt.Errorf("failed to get (new) public key: %v", err)
 	}
 	return result.PublicKey, nil
 }

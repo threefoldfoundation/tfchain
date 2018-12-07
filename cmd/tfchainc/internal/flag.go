@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/threefoldfoundation/tfchain/pkg/types"
+	rivinetypes "github.com/threefoldtech/rivine/types"
 )
 
 // BotNameArrayFlagVar defines a BotName Array flag with specified name and usage string.
@@ -116,25 +117,25 @@ func (flag *networkAddressArrayFlag) String() string {
 
 // PublicKeyFlagVar defines a PublicKey flag with specified name and usage string.
 // The arguments pk points to a PublicKey variable in which to store the interpreted values of the flag.
-func PublicKeyFlagVar(f *pflag.FlagSet, pk *types.PublicKey, name string, usage string) {
+func PublicKeyFlagVar(f *pflag.FlagSet, pk *rivinetypes.PublicKey, name string, usage string) {
 	f.Var(&publicKeyFlag{publicKey: pk}, name, usage)
 }
 
 // PublicKeyFlagVarP defines a PublicKey flag with specified name, shorthand and usage string.
 // The arguments pk points to a PublicKey variable in which to store the interpreted values of the flag.
-func PublicKeyFlagVarP(f *pflag.FlagSet, pk *types.PublicKey, name, shorthand string, usage string) {
+func PublicKeyFlagVarP(f *pflag.FlagSet, pk *rivinetypes.PublicKey, name, shorthand string, usage string) {
 	f.VarP(&publicKeyFlag{publicKey: pk}, name, shorthand, usage)
 }
 
 type publicKeyFlag struct {
-	publicKey *types.PublicKey
+	publicKey *rivinetypes.PublicKey
 	changed   bool
 }
 
 // Set implements pflag.Value.Set
 func (flag *publicKeyFlag) Set(val string) error {
 	if !flag.changed {
-		flag.publicKey = new(types.PublicKey)
+		flag.publicKey = new(rivinetypes.PublicKey)
 		flag.changed = true
 	}
 	return flag.publicKey.LoadString(val)

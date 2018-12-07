@@ -3,7 +3,7 @@ all: install
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
 faucetpkgs = ./frontend/tftfaucet
-testpkgs = ./pkg/types ./pkg/encoding ./pkg/persist
+testpkgs = ./pkg/types ./pkg/persist
 pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
 
 version = $(shell git describe --abbrev=0)

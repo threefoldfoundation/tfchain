@@ -13,7 +13,8 @@ import (
 
 	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/crypto"
-	"github.com/threefoldtech/rivine/encoding"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 )
 
 // The interfaces and input parameter structs that make the unlock conditions tick.
@@ -72,10 +73,10 @@ type (
 		// The returned byte slice should be usable in order
 		// to recreate the same unlock condition using the paired
 		// Unmarshal method.
-		Marshal() []byte
+		Marshal(MarshalFunc) []byte
 		// Unmarshal this unlock condition from a binary format,
 		// the whole byte slice is expected to be used.
-		Unmarshal([]byte) error
+		Unmarshal([]byte, UnmarshalFunc) error
 	}
 
 	// UnlockFulfillment defines the fulfillment that fulfills
@@ -119,10 +120,10 @@ type (
 		// The returned byte slice should be usable in order
 		// to recreate the same unlock fulfillment using the paired
 		// Unmarshal method.
-		Marshal() []byte
+		Marshal(MarshalFunc) []byte
 		// Unmarshal this unlock fulfillment from a binary format,
 		// the whole byte slice is expected to be used.
-		Unmarshal([]byte) error
+		Unmarshal([]byte, UnmarshalFunc) error
 	}
 
 	// UnlockHashSliceGetter is an optional interface an UnlockCondition can implement,
@@ -177,9 +178,9 @@ type (
 	// FulfillmentSignContext is given as part of the sign call of an UnlockFullment,
 	// as to provide the necessary context required for signing a fulfillment.
 	FulfillmentSignContext struct {
-		// Index of the input that is to be signed,
-		// whether that input is a coin- or blockStake- input is of no importance.
-		InputIndex uint64
+		// ExtraObjects are objects to be hashed together with the Tx, in order
+		// to get the input hash that will be signed for this fulfillment.
+		ExtraObjects []interface{}
 		// (Parent) transaction the fulfillment belongs to.
 		//
 		// It is expected that all properties of this transactions
@@ -194,9 +195,9 @@ type (
 	// FulfillContext is given as part of the fulfill call of an UnlockCondition,
 	// as to provide the necessary context required for fulfilling a fulfillment.
 	FulfillContext struct {
-		// Index of the input that is to be fulfilled,
-		// whether that input is a coin- or blockStake- input is of no importance.
-		InputIndex uint64
+		// ExtraObjects are objects to be hashed together with the Tx, in order
+		// to get the input hash that will be signed for this fulfillment.
+		ExtraObjects []interface{}
 		// BlockHeight of the currently last registered block.
 		BlockHeight BlockHeight
 		// BlockTime defines the time of the currently last registered block,
@@ -227,6 +228,13 @@ type (
 		// the transaction belonged to.
 		BlockTime Timestamp
 	}
+
+	// MarshalFunc represents the signature of a Marshal function,
+	// as used by MarshalableUnlockConditions and MarshalableUnlockFulfillments.
+	MarshalFunc = func(...interface{}) []byte
+	// UnmarshalFunc represents the signature of an Unmarshal function,
+	// as used by MarshalableUnlockConditions and MarshalableUnlockFulfillments.
+	UnmarshalFunc = func([]byte, ...interface{}) error
 
 	// ConditionType defines the type of a condition.
 	ConditionType byte
@@ -475,8 +483,8 @@ type (
 	// SingleSignatureFulfillment implements the FulfillmentTypeSingleSignature (unlock) FulfillmentType.
 	// See FulfillmentTypeSingleSignature for more information.
 	SingleSignatureFulfillment struct {
-		PublicKey SiaPublicKey `json:"publickey"`
-		Signature ByteSlice    `json:"signature"`
+		PublicKey PublicKey `json:"publickey"`
+		Signature ByteSlice `json:"signature"`
 	}
 
 	// AtomicSwapCondition implements the ConditionTypeSingleSignature (unlock) ConditionType.
@@ -490,7 +498,7 @@ type (
 	// AtomicSwapFulfillment implements the (new) FulfillmentTypeAtomicSwap (unlock) FulfillmentType.
 	// See FulfillmentTypeAtomicSwap for more information.
 	AtomicSwapFulfillment struct {
-		PublicKey SiaPublicKey     `json:"publickey"`
+		PublicKey PublicKey        `json:"publickey"`
 		Signature ByteSlice        `json:"signature"`
 		Secret    AtomicSwapSecret `json:"secret,omitempty"`
 	}
@@ -501,7 +509,7 @@ type (
 		Receiver     UnlockHash             `json:"receiver"`
 		HashedSecret AtomicSwapHashedSecret `json:"hashedsecret"`
 		TimeLock     Timestamp              `json:"timelock"`
-		PublicKey    SiaPublicKey           `json:"publickey"`
+		PublicKey    PublicKey              `json:"publickey"`
 		Signature    ByteSlice              `json:"signature"`
 		Secret       AtomicSwapSecret       `json:"secret,omitempty"`
 	}
@@ -542,13 +550,13 @@ type (
 	// PublicKeySignaturePair is a public key and a signature created from the corresponding
 	// private key
 	PublicKeySignaturePair struct {
-		PublicKey SiaPublicKey `json:"publickey"`
-		Signature ByteSlice    `json:"signature"`
+		PublicKey PublicKey `json:"publickey"`
+		Signature ByteSlice `json:"signature"`
 	}
 
 	// KeyPair is a matching public and private key
 	KeyPair struct {
-		PublicKey  SiaPublicKey
+		PublicKey  PublicKey
 		PrivateKey ByteSlice
 	}
 )
@@ -589,8 +597,8 @@ var (
 func (n *NilCondition) Fulfill(fulfillment UnlockFulfillment, ctx FulfillContext) error {
 	switch tf := fulfillment.(type) {
 	case *SingleSignatureFulfillment:
-		return verifyHashUsingSiaPublicKey(tf.PublicKey,
-			ctx.InputIndex, ctx.Transaction, tf.Signature)
+		return verifyHashUsingPublicKey(tf.PublicKey,
+			ctx.Transaction, tf.Signature, ctx.ExtraObjects)
 	default:
 		return ErrUnexpectedUnlockFulfillment
 	}
@@ -618,9 +626,14 @@ func (n *NilCondition) Equal(c UnlockCondition) bool {
 func (n *NilCondition) Fulfillable(FulfillableContext) bool { return true }
 
 // Marshal implements MarshalableUnlockCondition.Marshal
-func (n *NilCondition) Marshal() []byte { return nil } // nothing to marshal
+func (n *NilCondition) Marshal(MarshalFunc) []byte { return nil } // nothing to marshal
 // Unmarshal implements MarshalableUnlockCondition.Unmarshal
-func (n *NilCondition) Unmarshal(b []byte) error { return nil } // nothing to unmarshal
+func (n *NilCondition) Unmarshal(b []byte, _ UnmarshalFunc) error {
+	if len(b) != 0 {
+		return errors.New("unexpected byte content for NilCondition")
+	}
+	return nil
+} // nothing to unmarshal
 
 // Sign implements UnlockFulfillment.Sign
 func (n *NilFulfillment) Sign(FulfillmentSignContext) error { return ErrNilFulfillmentType }
@@ -643,7 +656,7 @@ func (n *NilFulfillment) IsStandardFulfillment(ValidationContext) error {
 } // never valid
 
 // Marshal implements MarshalableUnlockFulfillment.Marshal
-func (n *NilFulfillment) Marshal() []byte {
+func (n *NilFulfillment) Marshal(MarshalFunc) []byte {
 	if build.DEBUG {
 		panic(ErrNilFulfillmentType)
 	}
@@ -651,7 +664,7 @@ func (n *NilFulfillment) Marshal() []byte {
 }
 
 // Unmarshal implements MarshalableUnlockFulfillment.Unmarshal
-func (n *NilFulfillment) Unmarshal([]byte) error { return ErrNilFulfillmentType } // cannot be unmarshaled
+func (n *NilFulfillment) Unmarshal([]byte, UnmarshalFunc) error { return ErrNilFulfillmentType } // cannot be unmarshaled
 
 // NewUnlockHashCondition creates a new unlock condition,
 // using a (target) unlock hash as the condtion to be fulfilled.
@@ -672,8 +685,7 @@ func (uh *UnlockHashCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 		if euh != uh.TargetUnlockHash {
 			return errors.New("single signature fulfillment provides wrong public key")
 		}
-		return verifyHashUsingSiaPublicKey(tf.PublicKey,
-			ctx.InputIndex, ctx.Transaction, tf.Signature)
+		return verifyHashUsingPublicKey(tf.PublicKey, ctx.Transaction, tf.Signature, ctx.ExtraObjects)
 
 	case *LegacyAtomicSwapFulfillment:
 		// only UnlockTypeAtomicSwap is supported when fulfilling using a LegacyAtomicSwapFulfillment
@@ -683,7 +695,7 @@ func (uh *UnlockHashCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 
 		// ensure the condition equals the ours
 		ourHS := NewUnlockHash(UnlockTypeAtomicSwap,
-			crypto.HashObject(encoding.MarshalAll(
+			crypto.HashObject(siabin.MarshalAll(
 				tf.Sender, tf.Receiver, tf.HashedSecret, tf.TimeLock)))
 		if ourHS.Cmp(uh.TargetUnlockHash) != 0 {
 			return errors.New("produced unlock hash doesn't equal the expected unlock hash")
@@ -700,9 +712,9 @@ func (uh *UnlockHashCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 			}
 
 			// verify signature
-			err := verifyHashUsingSiaPublicKey(
-				tf.PublicKey, ctx.InputIndex, ctx.Transaction, tf.Signature,
-				tf.PublicKey, tf.Secret)
+			err := verifyHashUsingPublicKey(
+				tf.PublicKey, ctx.Transaction, tf.Signature,
+				mergeExtraObjects(ctx.ExtraObjects, tf.PublicKey, tf.Secret))
 			if err != nil {
 				return err
 			}
@@ -724,9 +736,9 @@ func (uh *UnlockHashCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 
 		// after the deadline (timelock),
 		// only the original sender can reclaim the unspend output
-		return verifyHashUsingSiaPublicKey(
-			tf.PublicKey, ctx.InputIndex, ctx.Transaction, tf.Signature,
-			tf.PublicKey)
+		return verifyHashUsingPublicKey(
+			tf.PublicKey, ctx.Transaction, tf.Signature,
+			mergeExtraObjects(ctx.ExtraObjects, tf.PublicKey))
 
 	case *anyAtomicSwapFulfillment:
 		return uh.Fulfill(tf.atomicSwapFulfillment, ctx)
@@ -768,19 +780,19 @@ func (uh *UnlockHashCondition) Equal(c UnlockCondition) bool {
 func (uh *UnlockHashCondition) Fulfillable(FulfillableContext) bool { return true }
 
 // Marshal implements MarshalableUnlockCondition.Marshal
-func (uh *UnlockHashCondition) Marshal() []byte {
-	return encoding.Marshal(uh.TargetUnlockHash)
+func (uh *UnlockHashCondition) Marshal(f MarshalFunc) []byte {
+	return f(uh.TargetUnlockHash)
 }
 
 // Unmarshal implements MarshalableUnlockCondition.Unmarshal
-func (uh *UnlockHashCondition) Unmarshal(b []byte) error {
-	return encoding.Unmarshal(b, &uh.TargetUnlockHash)
+func (uh *UnlockHashCondition) Unmarshal(b []byte, f UnmarshalFunc) error {
+	return f(b, &uh.TargetUnlockHash)
 }
 
 // NewSingleSignatureFulfillment creates an unsigned SingleSignatureFulfillment,
 // using the given Public Key, which is to be matched with the private key given
 // as part of the later sign call to the returned instance.
-func NewSingleSignatureFulfillment(pk SiaPublicKey) *SingleSignatureFulfillment {
+func NewSingleSignatureFulfillment(pk PublicKey) *SingleSignatureFulfillment {
 	return &SingleSignatureFulfillment{PublicKey: pk}
 }
 
@@ -790,8 +802,7 @@ func (ss *SingleSignatureFulfillment) Sign(ctx FulfillmentSignContext) (err erro
 		return ErrFulfillmentDoubleSign
 	}
 
-	ss.Signature, err = signHashUsingSiaPublicKey(
-		ss.PublicKey, ctx.InputIndex, ctx.Transaction, ctx.Key)
+	ss.Signature, err = signHashUsingPublicKey(ss.PublicKey, ctx.Transaction, ctx.Key, ctx.ExtraObjects)
 	return
 }
 
@@ -821,13 +832,13 @@ func (ss *SingleSignatureFulfillment) Equal(f UnlockFulfillment) bool {
 }
 
 // Marshal implements MarshalableUnlockFulfillment.Marshal
-func (ss *SingleSignatureFulfillment) Marshal() []byte {
-	return encoding.MarshalAll(ss.PublicKey, ss.Signature)
+func (ss *SingleSignatureFulfillment) Marshal(f MarshalFunc) []byte {
+	return f(ss.PublicKey, ss.Signature)
 }
 
 // Unmarshal implements MarshalableUnlockFulfillment.Unmarshal
-func (ss *SingleSignatureFulfillment) Unmarshal(b []byte) error {
-	return encoding.UnmarshalAll(b, &ss.PublicKey, &ss.Signature)
+func (ss *SingleSignatureFulfillment) Unmarshal(b []byte, f UnmarshalFunc) error {
+	return f(b, &ss.PublicKey, &ss.Signature)
 }
 
 // Fulfill implements UnlockCondition.Fulfill
@@ -842,7 +853,7 @@ func (as *AtomicSwapCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 
 		// create the unlockHash for the given public Ke
 		unlockHash := NewUnlockHash(UnlockTypePubKey,
-			crypto.HashObject(encoding.Marshal(tf.PublicKey)))
+			crypto.HashObject(siabin.Marshal(tf.PublicKey)))
 
 		// if secret is given, we'll assume that the participator (receiver) wants to claim
 		if tf.Secret != (AtomicSwapSecret{}) {
@@ -858,9 +869,9 @@ func (as *AtomicSwapCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 			}
 
 			// verify signature
-			return verifyHashUsingSiaPublicKey(
-				tf.PublicKey, ctx.InputIndex, ctx.Transaction, tf.Signature,
-				tf.PublicKey, tf.Secret)
+			return verifyHashUsingPublicKey(
+				tf.PublicKey, ctx.Transaction, tf.Signature,
+				mergeExtraObjects(ctx.ExtraObjects, tf.PublicKey, tf.Secret))
 		}
 
 		// if no secret is given, we'll assume that the initiator wants to refund,
@@ -875,9 +886,9 @@ func (as *AtomicSwapCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fulfil
 			return ErrInvalidRedeemer
 		}
 		// verify the signature is indeed done by
-		return verifyHashUsingSiaPublicKey(
-			tf.PublicKey, ctx.InputIndex, ctx.Transaction, tf.Signature,
-			tf.PublicKey)
+		return verifyHashUsingPublicKey(
+			tf.PublicKey, ctx.Transaction, tf.Signature,
+			mergeExtraObjects(ctx.ExtraObjects, tf.PublicKey))
 
 	case *LegacyAtomicSwapFulfillment:
 		// it's perfectly fine to unlock an atomic swap condition
@@ -933,7 +944,8 @@ func (as *AtomicSwapCondition) IsStandardCondition(ValidationContext) error {
 
 // UnlockHash implements UnlockCondition.UnlockHash
 func (as *AtomicSwapCondition) UnlockHash() UnlockHash {
-	return NewUnlockHash(UnlockTypeAtomicSwap, crypto.HashObject(as.Marshal()))
+	return NewUnlockHash(UnlockTypeAtomicSwap, crypto.HashObject(
+		as.Marshal(siabin.MarshalAll)))
 }
 
 // Equal implements UnlockCondition.Equal
@@ -958,13 +970,13 @@ func (as *AtomicSwapCondition) Equal(c UnlockCondition) bool {
 func (as *AtomicSwapCondition) Fulfillable(FulfillableContext) bool { return true }
 
 // Marshal implements MarshalableUnlockCondition.Marshal
-func (as *AtomicSwapCondition) Marshal() []byte {
-	return encoding.MarshalAll(as.Sender, as.Receiver, as.HashedSecret, as.TimeLock)
+func (as *AtomicSwapCondition) Marshal(f MarshalFunc) []byte {
+	return f(as.Sender, as.Receiver, as.HashedSecret, as.TimeLock)
 }
 
 // Unmarshal implements MarshalableUnlockCondition.Unmarshal
-func (as *AtomicSwapCondition) Unmarshal(b []byte) error {
-	return encoding.UnmarshalAll(b, &as.Sender, &as.Receiver, &as.HashedSecret, &as.TimeLock)
+func (as *AtomicSwapCondition) Unmarshal(b []byte, f UnmarshalFunc) error {
+	return f(b, &as.Sender, &as.Receiver, &as.HashedSecret, &as.TimeLock)
 }
 
 // NewAtomicSwapClaimFulfillment creates an unsigned atomic swap fulfillment,
@@ -975,7 +987,7 @@ func (as *AtomicSwapCondition) Unmarshal(b []byte) error {
 //
 // Note that this fulfillment will fail if the current time is
 // equal to or past the timestamp specified as time lock in the parent output.
-func NewAtomicSwapClaimFulfillment(pk SiaPublicKey, secret AtomicSwapSecret) *AtomicSwapFulfillment {
+func NewAtomicSwapClaimFulfillment(pk PublicKey, secret AtomicSwapSecret) *AtomicSwapFulfillment {
 	return &AtomicSwapFulfillment{
 		PublicKey: pk,
 		Secret:    secret,
@@ -990,7 +1002,7 @@ func NewAtomicSwapClaimFulfillment(pk SiaPublicKey, secret AtomicSwapSecret) *At
 //
 // Note that this fulfillment will fail if the current time is
 // prior to the timestamp specified as time lock in the parent output.
-func NewAtomicSwapRefundFulfillment(pk SiaPublicKey) *AtomicSwapFulfillment {
+func NewAtomicSwapRefundFulfillment(pk PublicKey) *AtomicSwapFulfillment {
 	return &AtomicSwapFulfillment{PublicKey: pk}
 }
 
@@ -1003,17 +1015,17 @@ func (as *AtomicSwapFulfillment) Sign(ctx FulfillmentSignContext) error {
 	if as.Secret != (AtomicSwapSecret{}) {
 		// sign as claimer
 		var err error
-		as.Signature, err = signHashUsingSiaPublicKey(
-			as.PublicKey, ctx.InputIndex, ctx.Transaction, ctx.Key,
-			as.PublicKey, as.Secret)
+		as.Signature, err = signHashUsingPublicKey(
+			as.PublicKey, ctx.Transaction, ctx.Key,
+			mergeExtraObjects(ctx.ExtraObjects, as.PublicKey, as.Secret))
 		return err
 	}
 
 	// sign as refunder
 	var err error
-	as.Signature, err = signHashUsingSiaPublicKey(
-		as.PublicKey, ctx.InputIndex, ctx.Transaction, ctx.Key,
-		as.PublicKey)
+	as.Signature, err = signHashUsingPublicKey(
+		as.PublicKey, ctx.Transaction, ctx.Key,
+		mergeExtraObjects(ctx.ExtraObjects, as.PublicKey))
 	return err
 }
 
@@ -1044,13 +1056,13 @@ func (as *AtomicSwapFulfillment) Equal(f UnlockFulfillment) bool {
 }
 
 // Marshal implements MarshalableUnlockFulfillment.Marshal
-func (as *AtomicSwapFulfillment) Marshal() []byte {
-	return encoding.MarshalAll(as.PublicKey, as.Signature, as.Secret)
+func (as *AtomicSwapFulfillment) Marshal(f MarshalFunc) []byte {
+	return f(as.PublicKey, as.Signature, as.Secret)
 }
 
 // Unmarshal implements MarshalableUnlockFulfillment.Unmarshal
-func (as *AtomicSwapFulfillment) Unmarshal(b []byte) error {
-	return encoding.UnmarshalAll(b, &as.PublicKey, &as.Signature, &as.Secret)
+func (as *AtomicSwapFulfillment) Unmarshal(b []byte, f UnmarshalFunc) error {
+	return f(b, &as.PublicKey, &as.Signature, &as.Secret)
 }
 
 // AtomicSwapSecret returns the AtomicSwapSecret defined in this legacy fulfillmen
@@ -1066,17 +1078,17 @@ func (as *LegacyAtomicSwapFulfillment) Sign(ctx FulfillmentSignContext) error {
 	if as.Secret != (AtomicSwapSecret{}) {
 		// sign as claimer
 		var err error
-		as.Signature, err = signHashUsingSiaPublicKey(
-			as.PublicKey, ctx.InputIndex, ctx.Transaction, ctx.Key,
-			as.PublicKey, as.Secret)
+		as.Signature, err = signHashUsingPublicKey(
+			as.PublicKey, ctx.Transaction, ctx.Key,
+			mergeExtraObjects(ctx.ExtraObjects, as.PublicKey, as.Secret))
 		return err
 	}
 
 	// sign as refunder
 	var err error
-	as.Signature, err = signHashUsingSiaPublicKey(
-		as.PublicKey, ctx.InputIndex, ctx.Transaction, ctx.Key,
-		as.PublicKey)
+	as.Signature, err = signHashUsingPublicKey(
+		as.PublicKey, ctx.Transaction, ctx.Key,
+		mergeExtraObjects(ctx.ExtraObjects, as.PublicKey))
 	return err
 }
 
@@ -1130,15 +1142,15 @@ func (as *LegacyAtomicSwapFulfillment) Equal(f UnlockFulfillment) bool {
 }
 
 // Marshal implements MarshalableUnlockFulfillment.Marshal
-func (as *LegacyAtomicSwapFulfillment) Marshal() []byte {
-	return encoding.MarshalAll(
+func (as *LegacyAtomicSwapFulfillment) Marshal(f MarshalFunc) []byte {
+	return f(
 		as.Sender, as.Receiver, as.HashedSecret, as.TimeLock,
 		as.PublicKey, as.Signature, as.Secret)
 }
 
 // Unmarshal implements MarshalableUnlockFulfillment.Unmarshal
-func (as *LegacyAtomicSwapFulfillment) Unmarshal(b []byte) error {
-	return encoding.UnmarshalAll(b,
+func (as *LegacyAtomicSwapFulfillment) Unmarshal(b []byte, f UnmarshalFunc) error {
+	return f(b,
 		&as.Sender, &as.Receiver, &as.HashedSecret, &as.TimeLock,
 		&as.PublicKey, &as.Signature, &as.Secret)
 }
@@ -1253,10 +1265,10 @@ var (
 //
 // No need to support the paired marshal interface,
 // as that is done implicitly using the child fulfillment.
-func (as *anyAtomicSwapFulfillment) Unmarshal(b []byte) error {
+func (as *anyAtomicSwapFulfillment) Unmarshal(b []byte, f UnmarshalFunc) error {
 	asf := new(AtomicSwapFulfillment)
 	// be positive, first try the new format
-	err := encoding.Unmarshal(b, asf)
+	err := f(b, asf)
 	if err == nil {
 		as.atomicSwapFulfillment = asf
 		return nil
@@ -1264,7 +1276,7 @@ func (as *anyAtomicSwapFulfillment) Unmarshal(b []byte) error {
 
 	// didn't work out, let's try the legacy atomic swap fulfillment
 	lasf := new(LegacyAtomicSwapFulfillment)
-	err = encoding.Unmarshal(b, lasf)
+	err = f(b, lasf)
 	as.atomicSwapFulfillment = lasf
 	return err
 }
@@ -1414,14 +1426,14 @@ func (tl *TimeLockCondition) Fulfillable(ctx FulfillableContext) bool {
 }
 
 // Marshal implements MarshalableUnlockCondition.Marshal
-func (tl *TimeLockCondition) Marshal() []byte {
+func (tl *TimeLockCondition) Marshal(f MarshalFunc) []byte {
 	return append(
-		encoding.MarshalAll(tl.LockTime, tl.Condition.ConditionType()),
-		tl.Condition.Marshal()...)
+		f(tl.LockTime, tl.Condition.ConditionType()),
+		tl.Condition.Marshal(f)...)
 }
 
 // Unmarshal implements MarshalableUnlockCondition.Unmarshal
-func (tl *TimeLockCondition) Unmarshal(b []byte) error {
+func (tl *TimeLockCondition) Unmarshal(b []byte, f UnmarshalFunc) error {
 	if len(b) < 9 {
 		// at least 9 bytes are required (lock time (8) + condition type (1)),
 		// as to enforce we can decode the time lock condition's properties,
@@ -1429,20 +1441,24 @@ func (tl *TimeLockCondition) Unmarshal(b []byte) error {
 		return io.ErrUnexpectedEOF
 	}
 	// unmarshal the lock time
-	err := encoding.Unmarshal(b[:8], &tl.LockTime)
+	err := f(b[:8], &tl.LockTime)
 	if err != nil {
 		return err
 	}
 	// interpret the condition type, and continue decoding based on that,
 	// by getting the correct constructor from the registration mapping
-	ct := ConditionType(b[8])
+	var ct ConditionType
+	err = f(b[8:9], &ct)
+	if err != nil {
+		return err
+	}
 	cc, ok := _RegisteredUnlockConditionTypes[ct]
 	if !ok {
 		return ErrUnknownConditionType
 	}
 	// known condition type, create and decode it
 	tl.Condition = cc()
-	return tl.Condition.Unmarshal(b[9:])
+	return tl.Condition.Unmarshal(b[9:], f)
 }
 
 type jsonTimeLockCondition struct {
@@ -1538,8 +1554,9 @@ func (ms *MultiSignatureCondition) Fulfill(fulfillment UnlockFulfillment, ctx Fu
 
 	// Finally verify all the signatures
 	for _, pks := range tf.Pairs {
-		if err := verifyHashUsingSiaPublicKey(
-			pks.PublicKey, ctx.InputIndex, ctx.Transaction, pks.Signature, pks.PublicKey,
+		if err := verifyHashUsingPublicKey(
+			pks.PublicKey, ctx.Transaction, pks.Signature,
+			mergeExtraObjects(ctx.ExtraObjects, pks.PublicKey),
 		); err != nil {
 			return err
 		}
@@ -1594,6 +1611,9 @@ func (ms *MultiSignatureCondition) UnlockHash() UnlockHash {
 	tree.Push(buf.Bytes())
 	buf.Reset()
 	for _, uh := range uhs {
+		// Hardcoded at SiaEncoding,
+		// however as UnlockHash is already marshalled as efficient as it gets,
+		// it really shouldn't matter
 		uh.MarshalSia(e)
 		tree.Push(buf.Bytes())
 		buf.Reset()
@@ -1654,13 +1674,13 @@ func (ms *MultiSignatureCondition) Fulfillable(ctx FulfillableContext) bool {
 }
 
 // Marshal implements MarshalableUnlockCondition.Marshal
-func (ms *MultiSignatureCondition) Marshal() []byte {
-	return encoding.MarshalAll(ms.MinimumSignatureCount, ms.UnlockHashes)
+func (ms *MultiSignatureCondition) Marshal(f MarshalFunc) []byte {
+	return f(ms.MinimumSignatureCount, ms.UnlockHashes)
 }
 
 // Unmarshal implements MarshalableUnlockCondition.Unmarshal
-func (ms *MultiSignatureCondition) Unmarshal(b []byte) error {
-	return encoding.UnmarshalAll(b, &ms.MinimumSignatureCount, &ms.UnlockHashes)
+func (ms *MultiSignatureCondition) Unmarshal(b []byte, f UnmarshalFunc) error {
+	return f(b, &ms.MinimumSignatureCount, &ms.UnlockHashes)
 }
 
 // NewMultiSignatureFulfillment creates a new unsigned multisig fulfillment from
@@ -1728,9 +1748,9 @@ func (ms *MultiSignatureFulfillment) Sign(ctx FulfillmentSignContext) (err error
 		return errors.New("Invalid keypair to sign this input")
 	}
 
-	signature, err := signHashUsingSiaPublicKey(
-		keypair.PublicKey, ctx.InputIndex, ctx.Transaction, keypair.PrivateKey, keypair.PublicKey,
-	)
+	signature, err := signHashUsingPublicKey(
+		keypair.PublicKey, ctx.Transaction, keypair.PrivateKey,
+		mergeExtraObjects(ctx.ExtraObjects, keypair.PublicKey))
 	if err != nil {
 		return
 	}
@@ -1741,16 +1761,16 @@ func (ms *MultiSignatureFulfillment) Sign(ctx FulfillmentSignContext) (err error
 }
 
 // Marshal implements MarshalableUnlockFulfillment.Marshal
-func (ms *MultiSignatureFulfillment) Marshal() []byte {
-	return encoding.Marshal(ms.Pairs)
+func (ms *MultiSignatureFulfillment) Marshal(f MarshalFunc) []byte {
+	return f(ms.Pairs)
 }
 
 // Unmarshal implements MarshalableUnlockFulfillment.Unmarshal
-func (ms *MultiSignatureFulfillment) Unmarshal(b []byte) error {
-	return encoding.Unmarshal(b, &ms.Pairs)
+func (ms *MultiSignatureFulfillment) Unmarshal(b []byte, f UnmarshalFunc) error {
+	return f(b, &ms.Pairs)
 }
 
-// MarshalSia implements encoding.SiaMarshaler.MarshalSia
+// MarshalSia implements siabin.SiaMarshaler.MarshalSia
 //
 // Marshals this ConditionType as a single byte.
 func (ct ConditionType) MarshalSia(w io.Writer) error {
@@ -1758,7 +1778,7 @@ func (ct ConditionType) MarshalSia(w io.Writer) error {
 	return err
 }
 
-// UnmarshalSia implements encoding.SiaUnmarshaler.UnmarshalSia
+// UnmarshalSia implements siabin.SiaUnmarshaler.UnmarshalSia
 //
 // Unmarshals this ConditionType from a single byte.
 func (ct *ConditionType) UnmarshalSia(r io.Reader) error {
@@ -1768,7 +1788,26 @@ func (ct *ConditionType) UnmarshalSia(r io.Reader) error {
 	return err
 }
 
-// MarshalSia implements encoding.Marshaler.MarshalSia
+// MarshalRivine implements rivbin.RivineMarshaler.MarshalRivine
+//
+// Marshals this ConditionType as a single byte.
+func (ct ConditionType) MarshalRivine(w io.Writer) error {
+	return rivbin.MarshalUint8(w, uint8(ct))
+}
+
+// UnmarshalRivine implements rivbin.RivineUnmarshaler.UnmarshalRivine
+//
+// Unmarshals this ConditionType from a single byte.
+func (ct *ConditionType) UnmarshalRivine(r io.Reader) error {
+	x, err := rivbin.UnmarshalUint8(r)
+	if err != nil {
+		return err
+	}
+	*ct = ConditionType(x)
+	return err
+}
+
+// MarshalSia implements siabin.SiaMarshaler.MarshalSia
 //
 // Marshals this FulfillmentType as a single byte.
 func (ft FulfillmentType) MarshalSia(w io.Writer) error {
@@ -1776,13 +1815,32 @@ func (ft FulfillmentType) MarshalSia(w io.Writer) error {
 	return err
 }
 
-// UnmarshalSia implements encoding.Unmarshaler.UnmarshalSia
+// UnmarshalSia implements siabin.SiaUnmarshaler.UnmarshalSia
 //
 // Unmarshals this FulfillmentType from a single byte.
 func (ft *FulfillmentType) UnmarshalSia(r io.Reader) error {
 	var b [1]byte
 	_, err := r.Read(b[:])
 	*ft = FulfillmentType(b[0])
+	return err
+}
+
+// MarshalRivine implements rivbin.RivineMarshaler.MarshalRivine
+//
+// Marshals this FulfillmentType as a single byte.
+func (ft FulfillmentType) MarshalRivine(w io.Writer) error {
+	return rivbin.MarshalUint8(w, uint8(ft))
+}
+
+// UnmarshalRivin implements rivbin.RivineUnmarshaler.UnmarshalRivin
+//
+// Unmarshals this FulfillmentType from a single byte.
+func (ft *FulfillmentType) UnmarshalRivin(r io.Reader) error {
+	x, err := rivbin.UnmarshalUint8(r)
+	if err != nil {
+		return err
+	}
+	*ft = FulfillmentType(x)
 	return err
 }
 
@@ -1916,22 +1974,22 @@ func (fp UnlockFulfillmentProxy) Equal(f UnlockFulfillment) bool {
 	return fulfillment.Equal(f)
 }
 
-// MarshalSia implements encoding.SiaMarshaler.MarshalSia
+// MarshalSia implements siabin.SiaMarshaler.MarshalSia
 //
 // If no child is defined, the nil condition will be marshaled,
 // otherwise the child condition will be marshaled using the
 // MarshalableUnlockCondition.Marshal's method, appending the result
 // after the binary-marshaled version of its type.
 func (up UnlockConditionProxy) MarshalSia(w io.Writer) error {
-	encoder := encoding.NewEncoder(w)
+	encoder := siabin.NewEncoder(w)
 	if up.Condition == nil {
 		return encoder.EncodeAll(ConditionTypeNil, 0) // type + nil-slice
 	}
-	return encoding.NewEncoder(w).EncodeAll(
-		up.Condition.ConditionType(), up.Condition.Marshal())
+	return encoder.EncodeAll(
+		up.Condition.ConditionType(), up.Condition.Marshal(siabin.MarshalAll))
 }
 
-// UnmarshalSia implements encoding.SiaUnmarshaler.UnmarshalSia
+// UnmarshalSia implements siabin.SiaUnmarshaler.UnmarshalSia
 //
 // First the ConditionType is unmarshaled, using that type,
 // the correct UnlockCondition constructor is used to create
@@ -1946,7 +2004,7 @@ func (up *UnlockConditionProxy) UnmarshalSia(r io.Reader) error {
 		t  ConditionType
 		rc []byte
 	)
-	err := encoding.NewDecoder(r).DecodeAll(&t, &rc)
+	err := siabin.NewDecoder(r).DecodeAll(&t, &rc)
 	if err != nil {
 		return err
 	}
@@ -1955,27 +2013,71 @@ func (up *UnlockConditionProxy) UnmarshalSia(r io.Reader) error {
 		return ErrUnknownConditionType
 	}
 	c := cc()
-	err = c.Unmarshal(rc)
+	err = c.Unmarshal(rc, siabin.UnmarshalAll)
 	up.Condition = c
 	return err
 }
 
-// MarshalSia implements encoding.SiaMarshaler.MarshalSia
+// MarshalRivine implements rivbin.RivineMarshaler.MarshalRivine
+//
+// If no child is defined, the nil condition will be marshaled,
+// otherwise the child condition will be marshaled using the
+// MarshalableUnlockCondition.Marshal's method, appending the result
+// after the binary-marshaled version of its type.
+func (up UnlockConditionProxy) MarshalRivine(w io.Writer) error {
+	encoder := rivbin.NewEncoder(w)
+	if up.Condition == nil {
+		return encoder.EncodeAll(ConditionTypeNil, 0) // type + nil-slice
+	}
+	return encoder.EncodeAll(
+		up.Condition.ConditionType(), up.Condition.Marshal(rivbin.MarshalAll))
+}
+
+// UnmarshalRivine implements rivbin.RivineMarshaler.UnmarshalRivine
+//
+// First the ConditionType is unmarshaled, using that type,
+// the correct UnlockCondition constructor is used to create
+// an unlock condition instance, as to be able to (binary) unmarshal
+// the child UnlockCondition.
+//
+// If the decoded type is unknown, the condition will not be attempted to be decoded,
+// and instead the raw bytes will be kept in-memory as to be able to write it directly,
+// when it is required to (binary) marshal this condition once again.
+func (up *UnlockConditionProxy) UnmarshalRivine(r io.Reader) error {
+	var (
+		t  ConditionType
+		rc []byte
+	)
+	err := rivbin.NewDecoder(r).DecodeAll(&t, &rc)
+	if err != nil {
+		return err
+	}
+	cc, ok := _RegisteredUnlockConditionTypes[t]
+	if !ok {
+		return ErrUnknownConditionType
+	}
+	c := cc()
+	err = c.Unmarshal(rc, rivbin.UnmarshalAll)
+	up.Condition = c
+	return err
+}
+
+// MarshalSia implements siabin.SiaMarshaler.MarshalSia
 //
 // If no child is defined, the nil fulfillment will be marshaled,
 // otherwise the child fulfillment will be marshaled using the
 // MarshalableUnlockFulfillment.Marshal's method, appending the result
 // after the binary-marshaled version of its type.
 func (fp UnlockFulfillmentProxy) MarshalSia(w io.Writer) error {
-	encoder := encoding.NewEncoder(w)
+	encoder := siabin.NewEncoder(w)
 	if fp.Fulfillment == nil {
 		return encoder.EncodeAll(FulfillmentTypeNil, 0) // type + nil-slice
 	}
-	return encoding.NewEncoder(w).EncodeAll(
-		fp.Fulfillment.FulfillmentType(), fp.Fulfillment.Marshal())
+	return encoder.EncodeAll(
+		fp.Fulfillment.FulfillmentType(), fp.Fulfillment.Marshal(siabin.MarshalAll))
 }
 
-// UnmarshalSia implements encoding.SiaUnmarshaler.UnmarshalSia
+// UnmarshalSia implements siabin.SiaUnmarshaler.UnmarshalSia
 //
 // First the FulfillmentType is unmarshaled, using that type,
 // the correct UnlockFulfillment constructor is used to create
@@ -1990,7 +2092,7 @@ func (fp *UnlockFulfillmentProxy) UnmarshalSia(r io.Reader) error {
 		t  FulfillmentType
 		rf []byte
 	)
-	err := encoding.NewDecoder(r).DecodeAll(&t, &rf)
+	err := siabin.NewDecoder(r).DecodeAll(&t, &rf)
 	if err != nil {
 		return err
 	}
@@ -1999,17 +2101,65 @@ func (fp *UnlockFulfillmentProxy) UnmarshalSia(r io.Reader) error {
 		return ErrUnknownFulfillmentType
 	}
 	f := fc()
-	err = f.Unmarshal(rf)
+	err = f.Unmarshal(rf, siabin.UnmarshalAll)
+	fp.Fulfillment = f
+	return err
+}
+
+// MarshalRivine implements rivbin.RivineMarshaler.MarshalRivine
+//
+// If no child is defined, the nil fulfillment will be marshaled,
+// otherwise the child fulfillment will be marshaled using the
+// MarshalableUnlockFulfillment.Marshal's method, appending the result
+// after the binary-marshaled version of its type.
+func (fp UnlockFulfillmentProxy) MarshalRivine(w io.Writer) error {
+	encoder := rivbin.NewEncoder(w)
+	if fp.Fulfillment == nil {
+		return encoder.EncodeAll(FulfillmentTypeNil, 0) // type + nil-slice
+	}
+	return encoder.EncodeAll(
+		fp.Fulfillment.FulfillmentType(), fp.Fulfillment.Marshal(rivbin.MarshalAll))
+}
+
+// UnmarshalRivine implements rivbin.RivineUnmarshaler.UnmarshalRivine
+//
+// First the FulfillmentType is unmarshaled, using that type,
+// the correct UnlockFulfillment constructor is used to create
+// an unlock fulfillment instance, as to be able to (binary) unmarshal
+// the child UnlockFulfillment.
+//
+// If the decoded type is unknown, the fulfillment will not be attempted to be decoded,
+// and instead the raw bytes will be kept in-memory as to be able to write it directly,
+// when it is required to (binary) marshal this fulfillment once again.
+func (fp *UnlockFulfillmentProxy) UnmarshalRivine(r io.Reader) error {
+	var (
+		t  FulfillmentType
+		rf []byte
+	)
+	err := rivbin.NewDecoder(r).DecodeAll(&t, &rf)
+	if err != nil {
+		return err
+	}
+	fc, ok := _RegisteredUnlockFulfillmentTypes[t]
+	if !ok {
+		return ErrUnknownFulfillmentType
+	}
+	f := fc()
+	err = f.Unmarshal(rf, rivbin.UnmarshalAll)
 	fp.Fulfillment = f
 	return err
 }
 
 var (
-	_ encoding.SiaMarshaler   = UnlockConditionProxy{}
-	_ encoding.SiaUnmarshaler = (*UnlockConditionProxy)(nil)
+	_ siabin.SiaMarshaler      = UnlockConditionProxy{}
+	_ siabin.SiaUnmarshaler    = (*UnlockConditionProxy)(nil)
+	_ rivbin.RivineMarshaler   = UnlockConditionProxy{}
+	_ rivbin.RivineUnmarshaler = (*UnlockConditionProxy)(nil)
 
-	_ encoding.SiaMarshaler   = UnlockFulfillmentProxy{}
-	_ encoding.SiaUnmarshaler = (*UnlockFulfillmentProxy)(nil)
+	_ siabin.SiaMarshaler      = UnlockFulfillmentProxy{}
+	_ siabin.SiaUnmarshaler    = (*UnlockFulfillmentProxy)(nil)
+	_ rivbin.RivineMarshaler   = UnlockFulfillmentProxy{}
+	_ rivbin.RivineUnmarshaler = (*UnlockFulfillmentProxy)(nil)
 )
 
 type (
@@ -2157,9 +2307,9 @@ var (
 // strictSignatureCheck is used as part of the IsStandardFulfillment
 // check of any Fulfillment which has a signature as part of its body.
 // It ensures that the given public key and signature are a valid pair.
-func strictSignatureCheck(pk SiaPublicKey, signature ByteSlice) error {
+func strictSignatureCheck(pk PublicKey, signature ByteSlice) error {
 	switch pk.Algorithm {
-	case SignatureEd25519:
+	case SignatureAlgoEd25519:
 		if len(pk.Key) != crypto.PublicKeySize {
 			return errors.New("invalid public key size in transaction")
 		}
@@ -2172,14 +2322,25 @@ func strictSignatureCheck(pk SiaPublicKey, signature ByteSlice) error {
 	}
 }
 
-// signHashUsingSiaPublicKey produces a signature,
+func mergeExtraObjects(extraObjects []interface{}, fulfillmentDefinedObjects ...interface{}) []interface{} {
+	objectsOffset := len(extraObjects)
+	if objectsOffset == 0 {
+		return fulfillmentDefinedObjects
+	}
+	objects := make([]interface{}, objectsOffset+len(fulfillmentDefinedObjects))
+	copy(objects[:], extraObjects[:])
+	copy(objects[objectsOffset:], fulfillmentDefinedObjects)
+	return objects
+}
+
+// signHashUsingPublicKey produces a signature,
 // for a given input, which is located within the given (parent) transaction,
 // using the given (optional private) key, and using any extra objects (on top of the normal properties).
 // The public key is to be given, as based on that the function can figure out what algorithm to use,
 // and this also allows the function to know how to interpret the given (private) key.
-func signHashUsingSiaPublicKey(pk SiaPublicKey, inputIndex uint64, tx Transaction, key interface{}, extraObjects ...interface{}) ([]byte, error) {
+func signHashUsingPublicKey(pk PublicKey, tx Transaction, key interface{}, extraObjects []interface{}) ([]byte, error) {
 	switch pk.Algorithm {
-	case SignatureEd25519:
+	case SignatureAlgoEd25519:
 		// decode the ed-secretKey
 		var edSK crypto.SecretKey
 		switch k := key.(type) {
@@ -2201,7 +2362,7 @@ func signHashUsingSiaPublicKey(pk SiaPublicKey, inputIndex uint64, tx Transactio
 		if edSK.IsNil() {
 			return nil, crypto.ErrSecretNilKey
 		}
-		sigHash, err := tx.InputSigHash(inputIndex, extraObjects...)
+		sigHash, err := tx.SignatureHash(extraObjects...)
 		if err != nil {
 			return nil, err
 		}
@@ -2213,18 +2374,18 @@ func signHashUsingSiaPublicKey(pk SiaPublicKey, inputIndex uint64, tx Transactio
 	}
 }
 
-// verifyHashUsingSiaPublicKey verfies the given signature.
+// verifyHashUsingPublicKey verfies the given signature.
 // It does so by:
 //
 // 1. producing the hash used to create the signature,
-//    using the given inputIndex, (parent) transaction and any extra Objects to include
+//    using the given (parent) transaction and any extra Objects to include
 //    together with the normal transaction properties;
 // 2. using the algorithm type of the given public key,
 //    as to figure out what signature algorithm is used,
 //    and thus being able to know how to verify the given signature;
-func verifyHashUsingSiaPublicKey(pk SiaPublicKey, inputIndex uint64, tx Transaction, sig []byte, extraObjects ...interface{}) (err error) {
+func verifyHashUsingPublicKey(pk PublicKey, tx Transaction, sig []byte, extraObjects []interface{}) (err error) {
 	switch pk.Algorithm {
-	case SignatureEd25519:
+	case SignatureAlgoEd25519:
 		// Decode the public key and signature.
 		var (
 			edPK  crypto.PublicKey
@@ -2237,7 +2398,7 @@ func verifyHashUsingSiaPublicKey(pk SiaPublicKey, inputIndex uint64, tx Transact
 		}
 		cryptoSig := crypto.Signature(edSig)
 		var sigHash crypto.Hash
-		sigHash, err = tx.InputSigHash(inputIndex, extraObjects...)
+		sigHash, err = tx.SignatureHash(extraObjects...)
 		if err == nil {
 			err = crypto.VerifyHash(sigHash, edPK, cryptoSig)
 		}
@@ -2256,11 +2417,11 @@ func ComputeLegacyFulfillmentUnlockHash(ff UnlockFulfillment) UnlockHash {
 		return NewPubKeyUnlockHash(tf.PublicKey)
 	case *LegacyAtomicSwapFulfillment:
 		return NewUnlockHash(UnlockTypeAtomicSwap,
-			crypto.HashObject(encoding.MarshalAll(
+			crypto.HashObject(siabin.MarshalAll(
 				tf.Sender, tf.Receiver, tf.HashedSecret, tf.TimeLock)))
 	case *AtomicSwapFulfillment:
 		return NewUnlockHash(UnlockTypeAtomicSwap,
-			crypto.HashObject(encoding.Marshal(tf.PublicKey)))
+			crypto.HashObject(siabin.Marshal(tf.PublicKey)))
 	case *MultiSignatureFulfillment:
 		return UnlockHash{Type: UnlockTypeMultiSig, Hash: crypto.HashObject(tf.Pairs)}
 	case *anyAtomicSwapFulfillment:

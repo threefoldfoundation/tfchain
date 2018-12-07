@@ -273,6 +273,14 @@ func createWalletCmd(cli *CommandLineClient) *WalletCommand {
 		createCoinTxCmd,
 		createBlockStakeTxCmd)
 
+	// define config of commands that have a config
+	sendCoinsCmd.Flags().Var(
+		&walletCmd.sendCoinsCfg.Data,
+		"data", "optional arbitrary data (or description) to attach to transaction")
+	sendBlockStakesCmd.Flags().Var(
+		&walletCmd.sendBlockStakesCfg.Data,
+		"data", "optional arbitrary data (or description) to attach to transaction")
+
 	// return root command
 	return &WalletCommand{
 		Command:       rootCmd,
@@ -295,7 +303,13 @@ type WalletCommand struct {
 }
 
 type walletCmd struct {
-	cli *CommandLineClient
+	cli          *CommandLineClient
+	sendCoinsCfg struct {
+		Data cli.ArbitraryDataFlag
+	}
+	sendBlockStakesCfg struct {
+		Data cli.ArbitraryDataFlag
+	}
 }
 
 // addressCmd fetches a new address from the wallet that will be able to
@@ -458,6 +472,8 @@ func (walletCmd *walletCmd) sendCoinsCmd(cmd *cobra.Command, args []string) {
 
 	body := api.WalletCoinsPOST{
 		CoinOutputs: make([]types.CoinOutput, len(pairs)),
+		Data:        walletCmd.sendCoinsCfg.Data.Data,
+		DataType:    walletCmd.sendCoinsCfg.Data.DataType,
 	}
 	for i, pair := range pairs {
 		body.CoinOutputs[i] = types.CoinOutput{
@@ -493,6 +509,8 @@ func (walletCmd *walletCmd) sendBlockStakesCmd(cmd *cobra.Command, args []string
 
 	body := api.WalletBlockStakesPOST{
 		BlockStakeOutputs: make([]types.BlockStakeOutput, len(pairs)),
+		Data:              walletCmd.sendBlockStakesCfg.Data.Data,
+		DataType:          walletCmd.sendBlockStakesCfg.Data.DataType,
 	}
 	for i, pair := range pairs {
 		body.BlockStakeOutputs[i] = types.BlockStakeOutput{
@@ -573,10 +591,10 @@ func parsePairedOutputs(args []string, parseCurrency parseCurrencyString) (pairs
 
 // registerDataCmd registers data on the blockchain by making a minimal transaction to the designated address
 // and includes the data in the transaction
-func (walletCmd *walletCmd) registerDataCmd(namespace, dest, data string) {
+func (walletCmd *walletCmd) registerDataCmd(namespace, data, dest string) {
 	encodedData := base64.StdEncoding.EncodeToString([]byte(namespace + data))
 	err := walletCmd.cli.Post("/wallet/data",
-		fmt.Sprintf("destination=%s&data=%s", dest, encodedData))
+		fmt.Sprintf("destination=%s&data=%s&datatype=%d", dest, encodedData, types.ArbitraryDataTypeUTF8))
 	if err != nil {
 		cli.DieWithError("Could not register data:", err)
 	}

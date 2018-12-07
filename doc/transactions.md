@@ -545,7 +545,7 @@ blake2b_256_hash(TFChainBinaryEncoding(
 ```
 
 [rivine]: https://github.com/threefoldtech/rivine
-[rivine-encoding]: https://github.com/threefoldtech/rivine/blob/master/doc/Encoding.md
+[rivine-encoding]: https://github.com/threefoldtech/rivine/blob/master/doc/encoding/SiaEncoding.md
 [tfchain-encoding]: binary_encoding.md
 [rivine-txs]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md
 [rivine-tx-v1]: https://github.com/threefoldtech/rivine/blob/master/doc/transactions/transaction.md#json-encoding-of-v1-transactions

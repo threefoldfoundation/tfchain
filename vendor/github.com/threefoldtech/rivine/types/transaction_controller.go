@@ -6,7 +6,8 @@ import (
 	"io"
 
 	"github.com/threefoldtech/rivine/crypto"
-	"github.com/threefoldtech/rivine/encoding"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 )
 
 type (
@@ -45,7 +46,7 @@ type (
 		BlockStakeInputs  []BlockStakeInput  `json:"blockstakeinputs,omitempty"`
 		BlockStakeOutputs []BlockStakeOutput `json:"blockstakeoutputs,omitempty"`
 		MinerFees         []Currency         `json:"minerfees"` // required
-		ArbitraryData     []byte             `json:"arbitrarydata,omitempty"`
+		ArbitraryData     ArbitraryData      `json:"arbitrarydata,omitempty"`
 
 		// Extension is an optional field that can be used,
 		// in order to attach non-standard state to a transaction.
@@ -73,11 +74,11 @@ type (
 		ValidateTransaction(t Transaction, ctx ValidationContext, constants TransactionValidationConstants) error
 	}
 
-	// InputSigHasher defines the interface a transaction controller
-	// can optionally implement, in order to define custom Input signatures,
-	// overwriting the default input sig hash logic.
-	InputSigHasher interface {
-		InputSigHash(t Transaction, inputIndex uint64, extraObjects ...interface{}) (crypto.Hash, error)
+	// TransactionSignatureHasher defines the interface a transaction controller
+	// can optionally implement, in order to define custom Tx signatures,
+	// overwriting the default Tx sig hash logic.
+	TransactionSignatureHasher interface {
+		SignatureHash(t Transaction, extraObjects ...interface{}) (crypto.Hash, error)
 	}
 
 	// TransactionIDEncoder is an optional interface a transaction controller
@@ -122,7 +123,7 @@ type (
 	TransactionExtensionSigner interface {
 		// SignExtension allows the transaction to sign —using the given sign callback—
 		// any fulfillment (giving its condition as reference) that has to be signed.
-		SignExtension(extension interface{}, sign func(*UnlockFulfillmentProxy, UnlockConditionProxy) error) (interface{}, error)
+		SignExtension(extension interface{}, sign func(*UnlockFulfillmentProxy, UnlockConditionProxy, ...interface{}) error) (interface{}, error)
 	}
 )
 
@@ -150,17 +151,76 @@ var (
 	_RegisteredTransactionVersions = map[TransactionVersion]TransactionController{}
 )
 
-// MarshalSia implements encoding.SiaMarshaller.MarshalSia
+// a structure defining the JSON-structure of the TransactionData,
+// defined as to preserve compatibility with the existing JSON-structure,
+// prior to that the ArbitraryData received support for optional typing.
+type jsonTransactionData struct {
+	CoinInputs        []CoinInput        `json:"coininputs"` // required
+	CoinOutputs       []CoinOutput       `json:"coinoutputs,omitempty"`
+	BlockStakeInputs  []BlockStakeInput  `json:"blockstakeinputs,omitempty"`
+	BlockStakeOutputs []BlockStakeOutput `json:"blockstakeoutputs,omitempty"`
+	MinerFees         []Currency         `json:"minerfees"` // required
+	ArbitraryData     []byte             `json:"arbitrarydata,omitempty"`
+	ArbitraryDataType ArbitraryDataType  `json:"arbitrarydatatype,omitempty"`
+}
+
+// MarshalJSON implements json.Marshaler.MarshalJSON
+func (td TransactionData) MarshalJSON() ([]byte, error) {
+	return json.Marshal(jsonTransactionData{
+		CoinInputs:        td.CoinInputs,
+		CoinOutputs:       td.CoinOutputs,
+		BlockStakeInputs:  td.BlockStakeInputs,
+		BlockStakeOutputs: td.BlockStakeOutputs,
+		MinerFees:         td.MinerFees,
+		ArbitraryData:     td.ArbitraryData.Data,
+		ArbitraryDataType: td.ArbitraryData.Type,
+	})
+}
+
+// UnmarshalJSON implements json.Marshaler.UnmarshalJSON
+func (td *TransactionData) UnmarshalJSON(b []byte) error {
+	var jtd jsonTransactionData
+	err := json.Unmarshal(b, &jtd)
+	if err != nil {
+		return err
+	}
+	td.CoinInputs = jtd.CoinInputs
+	td.CoinOutputs = jtd.CoinOutputs
+	td.BlockStakeInputs = jtd.BlockStakeInputs
+	td.BlockStakeOutputs = jtd.BlockStakeOutputs
+	td.MinerFees = jtd.MinerFees
+	td.ArbitraryData.Data = jtd.ArbitraryData
+	td.ArbitraryData.Type = jtd.ArbitraryDataType
+	return nil
+}
+
+// MarshalSia implements siabin.SiaMarshaller.MarshalSia
 func (td TransactionData) MarshalSia(w io.Writer) error {
-	return encoding.NewEncoder(w).EncodeAll(
+	return siabin.NewEncoder(w).EncodeAll(
 		td.CoinInputs, td.CoinOutputs,
 		td.BlockStakeInputs, td.BlockStakeOutputs,
 		td.MinerFees, td.ArbitraryData)
 }
 
-// UnmarshalSia implements encoding.SiaUnmarshaller.UnmarshalSia
+// UnmarshalSia implements siabin.SiaUnmarshaller.UnmarshalSia
 func (td *TransactionData) UnmarshalSia(r io.Reader) error {
-	return encoding.NewDecoder(r).DecodeAll(
+	return siabin.NewDecoder(r).DecodeAll(
+		&td.CoinInputs, &td.CoinOutputs,
+		&td.BlockStakeInputs, &td.BlockStakeOutputs,
+		&td.MinerFees, &td.ArbitraryData)
+}
+
+// MarshalRivine implements rivbin.RivineMarshaler.MarshalRivine
+func (td TransactionData) MarshalRivine(w io.Writer) error {
+	return rivbin.NewEncoder(w).EncodeAll(
+		td.CoinInputs, td.CoinOutputs,
+		td.BlockStakeInputs, td.BlockStakeOutputs,
+		td.MinerFees, td.ArbitraryData)
+}
+
+// UnmarshalRivine implements rivbin.RivineMarshaler.UnmarshalRivine
+func (td *TransactionData) UnmarshalRivine(r io.Reader) error {
+	return rivbin.NewDecoder(r).DecodeAll(
 		&td.CoinInputs, &td.CoinOutputs,
 		&td.BlockStakeInputs, &td.BlockStakeOutputs,
 		&td.MinerFees, &td.ArbitraryData)
@@ -182,21 +242,21 @@ type (
 // EncodeTransactionData implements TransactionController.EncodeTransactionData
 func (dtc DefaultTransactionController) EncodeTransactionData(w io.Writer, td TransactionData) error {
 	// encode to a byte slice first
-	b := encoding.Marshal(td)
+	b := siabin.Marshal(td)
 	// copy those bytes together with its prefixed length, as the final encoding
-	return encoding.NewEncoder(w).Encode(b)
+	return siabin.NewEncoder(w).Encode(b)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (dtc DefaultTransactionController) DecodeTransactionData(r io.Reader) (td TransactionData, err error) {
 	// decode it as a byte slice first
 	var b []byte
-	err = encoding.NewDecoder(r).Decode(&b)
+	err = siabin.NewDecoder(r).Decode(&b)
 	if err != nil {
 		return
 	}
 	// decode
-	err = encoding.Unmarshal(b, &td)
+	err = siabin.Unmarshal(b, &td)
 	return
 }
 
@@ -219,14 +279,14 @@ func (ltc LegacyTransactionController) EncodeTransactionData(w io.Writer, td Tra
 		return err
 	}
 	// and encode its result
-	return encoding.NewEncoder(w).Encode(ltd)
+	return siabin.NewEncoder(w).Encode(ltd)
 }
 
 // DecodeTransactionData implements TransactionController.DecodeTransactionData
 func (ltc LegacyTransactionController) DecodeTransactionData(r io.Reader) (TransactionData, error) {
 	// first decode it as the legacy format
 	var ltd legacyTransactionData
-	err := encoding.NewDecoder(r).Decode(&ltd)
+	err := siabin.NewDecoder(r).Decode(&ltd)
 	if err != nil {
 		return TransactionData{}, err
 	}
@@ -256,12 +316,11 @@ func (ltc LegacyTransactionController) JSONDecodeTransactionData(b []byte) (Tran
 	return ltd.TransactionData(), nil
 }
 
-// InputSigHash implements InputSigHasher.InputSigHash
-func (ltc LegacyTransactionController) InputSigHash(t Transaction, inputIndex uint64, extraObjects ...interface{}) (crypto.Hash, error) {
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (ltc LegacyTransactionController) SignatureHash(t Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
 	h := crypto.NewHash()
-	enc := encoding.NewEncoder(h)
+	enc := siabin.NewEncoder(h)
 
-	enc.Encode(inputIndex)
 	if len(extraObjects) > 0 {
 		enc.EncodeAll(extraObjects...)
 	}

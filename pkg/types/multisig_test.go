@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/threefoldtech/rivine/encoding"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	"github.com/threefoldtech/rivine/types"
 )
 
@@ -103,7 +103,7 @@ func TestDecodeBinaryCoinOutputsForIssue141(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to hex-decode binary data", err)
 	}
-	err = encoding.Unmarshal(binaryData, &coinoutputs)
+	err = siabin.Unmarshal(binaryData, &coinoutputs)
 	if err != nil {
 		t.Fatal("failed to binary-decode coin outputs", err)
 	}
@@ -121,7 +121,7 @@ func TestDecodeBinaryTransactionSetForIssue141(t *testing.T) {
 	if err != nil {
 		t.Fatal("failed to hex-decode binary data", err)
 	}
-	err = encoding.Unmarshal(binaryData, &transactions)
+	err = siabin.Unmarshal(binaryData, &transactions)
 	if err != nil {
 		t.Fatal("failed to binary-decode transactions", err)
 	}

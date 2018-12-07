@@ -71,7 +71,8 @@ type (
 	WalletTransactionPOST struct {
 		Condition types.UnlockConditionProxy `json:"condition"`
 		Amount    types.Currency             `json:"amount"`
-		Data      string                     `json:"data,omitempty"`
+		Data      []byte                     `json:"data,omitempty"`
+		DataType  types.ArbitraryDataType    `json:"datatype,omitempty"`
 	}
 
 	// WalletTransactionPOSTResponse contains the ID of the transaction
@@ -83,7 +84,9 @@ type (
 	// WalletCoinsPOST is given by the user
 	// to indicate to where to send how much coins
 	WalletCoinsPOST struct {
-		CoinOutputs []types.CoinOutput `json:"coinoutputs`
+		CoinOutputs []types.CoinOutput      `json:"coinoutputs`
+		Data        []byte                  `json:"data,omitempty"`
+		DataType    types.ArbitraryDataType `json:"datatype,omitempty"`
 	}
 	// WalletCoinsPOSTResp Resp contains the ID of the transaction
 	// that was created as a result of a POST call to /wallet/coins.
@@ -95,6 +98,8 @@ type (
 	// to indicate to where to send how much blockstakes
 	WalletBlockStakesPOST struct {
 		BlockStakeOutputs []types.BlockStakeOutput `json:"blockstakeoutputs`
+		Data              []byte                   `json:"data,omitempty"`
+		DataType          types.ArbitraryDataType  `json:"datatype,omitempty"`
 	}
 	// WalletBlockStakesPOSTResp Resp contains the ID of the transaction
 	// that was created as a result of a POST call to /wallet/blockstakes.
@@ -486,7 +491,7 @@ func NewWalletKeyHandler(wallet modules.Wallet) httprouter.Handle {
 			return
 		}
 		WriteJSON(w, WalletKeyGet{
-			AlgorithmSpecifier: pk.Algorithm,
+			AlgorithmSpecifier: pk.Algorithm.Specifier(),
 			PublicKey:          pk.Key,
 			SecretKey:          sk,
 		})
@@ -502,7 +507,7 @@ func NewWalletTransactionCreateHandler(wallet modules.Wallet) httprouter.Handle 
 			return
 		}
 
-		tx, err := wallet.SendCoins(body.Amount, body.Condition, []byte(body.Data))
+		tx, err := wallet.SendCoins(body.Amount, body.Condition, types.ArbitraryData{Data: body.Data, Type: body.DataType})
 		if err != nil {
 			WriteError(w, Error{"error after call to /wallet/transaction: " + err.Error()}, walletErrorToHTTPStatus(err))
 			return
@@ -521,7 +526,7 @@ func NewWalletCoinsHandler(wallet modules.Wallet) httprouter.Handle {
 			WriteError(w, Error{"error decoding the supplied coin outputs: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		tx, err := wallet.SendOutputs(body.CoinOutputs, nil, nil)
+		tx, err := wallet.SendOutputs(body.CoinOutputs, nil, types.ArbitraryData{Data: body.Data, Type: body.DataType})
 		if err != nil {
 			WriteError(w, Error{"error after call to /wallet/coins: " + err.Error()}, walletErrorToHTTPStatus(err))
 			return
@@ -540,7 +545,7 @@ func NewWalletBlockStakesHandler(wallet modules.Wallet) httprouter.Handle {
 			WriteError(w, Error{"error decoding the supplied blockstake outputs: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		tx, err := wallet.SendOutputs(nil, body.BlockStakeOutputs, nil)
+		tx, err := wallet.SendOutputs(nil, body.BlockStakeOutputs, types.ArbitraryData{Data: body.Data, Type: body.DataType})
 		if err != nil {
 			WriteError(w, Error{"error after call to /wallet/blockstakes: " + err.Error()}, walletErrorToHTTPStatus(err))
 			return
@@ -565,10 +570,19 @@ func NewWalletDataHandler(wallet modules.Wallet) httprouter.Handle {
 			WriteError(w, Error{"error after call to /wallet/coins: Failed to decode arbitrary data"}, http.StatusBadRequest)
 			return
 		}
+		var dataType types.ArbitraryDataType
+		dataTypeStr := req.FormValue("datatype")
+		if dataTypeStr != "" {
+			t, err := strconv.ParseUint(dataTypeStr, 10, 8)
+			if err != nil {
+				WriteError(w, Error{"error after call to /wallet/coins: Failed to decode arbitrary data type: " + err.Error()}, http.StatusBadRequest)
+			}
+			dataType = types.ArbitraryDataType(t)
+		}
 		// Since zero outputs are not allowed, just send one of the smallest unit, the minimal amount.
 		// The transaction fee should be much higher anyway
 		tx, err := wallet.SendCoins(types.NewCurrency64(1),
-			types.NewCondition(types.NewUnlockHashCondition(dest)), data)
+			types.NewCondition(types.NewUnlockHashCondition(dest)), types.ArbitraryData{Data: data, Type: dataType})
 		if err != nil {
 			WriteError(w, Error{"error after call to /wallet/coins: " + err.Error()}, walletErrorToHTTPStatus(err))
 			return

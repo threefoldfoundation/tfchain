@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/threefoldtech/rivine/crypto"
-	"github.com/threefoldtech/rivine/encoding"
-	"github.com/threefoldtech/rivine/types"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
-	tfencoding "github.com/threefoldfoundation/tfchain/pkg/encoding"
+	"github.com/threefoldtech/rivine/crypto"
+	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
+	"github.com/threefoldtech/rivine/types"
 )
 
 var (
@@ -252,12 +252,12 @@ func TestCoinCreationTransactionAsTransactionToAndFromJSON(t *testing.T) {
 // cctx -> Binary -> cctx
 func TestCoinCreationTransactionToAndFromBinary(t *testing.T) {
 	for i, testCase := range testCoinCreationTransactions {
-		b := encoding.Marshal(testCase)
+		b := siabin.Marshal(testCase)
 		if len(b) == 0 {
 			t.Error(i, "Binary-marshal output is empty")
 		}
 		var cctx CoinCreationTransaction
-		err := encoding.Unmarshal(b, &cctx)
+		err := siabin.Unmarshal(b, &cctx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
 			continue
@@ -276,12 +276,12 @@ func TestCoinCreationTransactionAsTransactionToAndFromBinary(t *testing.T) {
 	defer types.RegisterTransactionVersion(TransactionVersionCoinCreation, nil)
 
 	for i, testCase := range testCoinCreationTransactions {
-		b := encoding.Marshal(testCase.Transaction())
+		b := siabin.Marshal(testCase.Transaction())
 		if len(b) == 0 {
 			t.Error(i, "Binary-marshal output is empty")
 		}
 		var tx types.Transaction
-		err := encoding.Unmarshal(b, &tx)
+		err := siabin.Unmarshal(b, &tx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
 			continue
@@ -378,12 +378,12 @@ func TestMinterDefinitionTransactionAsTransactionToAndFromJSON(t *testing.T) {
 // mdtx -> Binary -> mdtx
 func TestMinterDefinitionTransactionToAndFromBinary(t *testing.T) {
 	for i, testCase := range testMinterDefinitionTransactions {
-		b := encoding.Marshal(testCase)
+		b := siabin.Marshal(testCase)
 		if len(b) == 0 {
 			t.Error(i, "Binary-marshal output is empty")
 		}
 		var mdtx MinterDefinitionTransaction
-		err := encoding.Unmarshal(b, &mdtx)
+		err := siabin.Unmarshal(b, &mdtx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
 			continue
@@ -402,12 +402,12 @@ func TestMinterDefinitionTransactionAsTransactionToAndFromBinary(t *testing.T) {
 	defer types.RegisterTransactionVersion(TransactionVersionMinterDefinition, nil)
 
 	for i, testCase := range testMinterDefinitionTransactions {
-		b := encoding.Marshal(testCase.Transaction())
+		b := siabin.Marshal(testCase.Transaction())
 		if len(b) == 0 {
 			t.Error(i, "Binary-marshal output is empty")
 		}
 		var tx types.Transaction
-		err := encoding.Unmarshal(b, &tx)
+		err := siabin.Unmarshal(b, &tx)
 		if err != nil {
 			t.Error(i, "failed to Binary-unmarshal tx", err)
 			continue
@@ -502,15 +502,15 @@ func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -551,7 +551,7 @@ func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 			types.NewCurrency64(3000000),
 			types.NewCurrency64(1230000000),
 		},
-		ArbitraryData: []byte("data"),
+		ArbitraryData: types.ArbitraryData{Data: []byte("data")},
 	})
 }
 
@@ -616,15 +616,15 @@ func TestJSONUnmarshalSpecMinterDefinitionTransactionExample(t *testing.T) {
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -648,7 +648,7 @@ func TestJSONUnmarshalSpecMinterDefinitionTransactionExample(t *testing.T) {
 			types.NewCurrency64(3000000),
 			types.NewCurrency64(1230000000),
 		},
-		ArbitraryData: []byte("data"),
+		ArbitraryData: types.ArbitraryData{Data: []byte("data")},
 	})
 }
 
@@ -683,9 +683,12 @@ func testCompareTwoCoinCreationTransactions(t *testing.T, i int, a, b CoinCreati
 		}
 	}
 	// compare arbitrary data
-	if bytes.Compare(a.ArbitraryData, b.ArbitraryData) != 0 {
+	if bytes.Compare(a.ArbitraryData.Data, b.ArbitraryData.Data) != 0 {
 		t.Error(i, "arbitrary not equal",
-			string(a.ArbitraryData), "!=", string(b.ArbitraryData))
+			string(a.ArbitraryData.Data), "!=", string(b.ArbitraryData.Data))
+	}
+	if a.ArbitraryData.Type != b.ArbitraryData.Type {
+		t.Error(i, "arbitrary data type not equal", a.ArbitraryData.Type, "!=", b.ArbitraryData.Type)
 	}
 }
 
@@ -694,8 +697,8 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 	{
 		Nonce: RandomTransactionNonce(),
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 			},
 			Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
@@ -718,15 +721,15 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -770,7 +773,7 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 		// smallest tx fee
 		MinerFees: []types.Currency{config.GetTestnetGenesis().MinimumTransactionFee},
 		// with a message
-		ArbitraryData: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
+		ArbitraryData: types.ArbitraryData{Data: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70")},
 	},
 }
 
@@ -795,9 +798,12 @@ func testCompareTwoMinterDefinitionTransactions(t *testing.T, i int, a, b Minter
 		}
 	}
 	// compare arbitrary data
-	if bytes.Compare(a.ArbitraryData, b.ArbitraryData) != 0 {
+	if bytes.Compare(a.ArbitraryData.Data, b.ArbitraryData.Data) != 0 {
 		t.Error(i, "arbitrary not equal",
-			string(a.ArbitraryData), "!=", string(b.ArbitraryData))
+			string(a.ArbitraryData.Data), "!=", string(b.ArbitraryData.Data))
+	}
+	if a.ArbitraryData.Type != b.ArbitraryData.Type {
+		t.Error(i, "arbitrary data type not equal", a.ArbitraryData.Type, "!=", b.ArbitraryData.Type)
 	}
 }
 
@@ -806,8 +812,8 @@ var testMinterDefinitionTransactions = []MinterDefinitionTransaction{
 	{
 		Nonce: RandomTransactionNonce(),
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 			},
 			Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
@@ -827,15 +833,15 @@ var testMinterDefinitionTransactions = []MinterDefinitionTransaction{
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -859,7 +865,7 @@ var testMinterDefinitionTransactions = []MinterDefinitionTransaction{
 		// smallest tx fee
 		MinerFees: []types.Currency{config.GetTestnetGenesis().MinimumTransactionFee},
 		// with a message
-		ArbitraryData: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
+		ArbitraryData: types.ArbitraryData{Data: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70")},
 	},
 }
 
@@ -1030,11 +1036,11 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 		}
 		for i := 0; i < signCount; i++ {
 			// sign fulfillment, which lives in the tx extension data
-			err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+			err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 				return fulfillment.Sign(types.FulfillmentSignContext{
-					InputIndex:  0, // doesn't matter really for this extension
-					Transaction: tx,
-					Key:         key,
+					ExtraObjects: eo,
+					Transaction:  tx,
+					Key:          key,
 				})
 			})
 			if err != nil {
@@ -1090,8 +1096,8 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 	// sign multisig condition, should fail as we didn't sign enough
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1105,8 +1111,8 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 	// sign multisig condition, should succeed
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1131,8 +1137,8 @@ func TestSignMinterDefinitionTransactionExtension(t *testing.T) {
 	// sign multisig condition, should succeed
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1175,11 +1181,11 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 		// redefine fulfillment, as signing an already signed fulfillment is not possible
 		removeTxSignature()
 		// sign fulfillment, which lives in the tx extension data
-		err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+		err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 			return fulfillment.Sign(types.FulfillmentSignContext{
-				InputIndex:  0, // doesn't matter really for this extension
-				Transaction: tx,
-				Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+				ExtraObjects: eo,
+				Transaction:  tx,
+				Key:          hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			})
 		})
 		if err != nil {
@@ -1210,7 +1216,7 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 
 	// make the arbitrary data too big, should fail
 	origArbitraryData := tx.ArbitraryData
-	tx.ArbitraryData = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
+	tx.ArbitraryData.Data = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
 	resignTx("changed arbitrary data")
 	// should fail now
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
@@ -1232,11 +1238,11 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 		MintCondition: origMDExtension.MintCondition,
 	}
 	// sign fulfillment, which lives in the tx extension data
-	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 		return fulfillment.Sign(types.FulfillmentSignContext{
-			InputIndex:  0, // doesn't matter really for this extension
-			Transaction: tx,
-			Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+			ExtraObjects: eo,
+			Transaction:  tx,
+			Key:          hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 		})
 	})
 	if err != nil {
@@ -1283,15 +1289,15 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -1308,8 +1314,8 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 	tx.Extension = &MinterDefinitionTransactionExtension{
 		Nonce: origMDExtension.Nonce,
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d"),
 			},
 			Signature: hbs("3e2ed4e893f66ffd57e26afe83d570ca4b8ba873f8236a60c018cde4852de1027256d088b2253ec061ae973f961f26cde8fa42f5d3c0ce1316560ceb25786f03"),
@@ -1555,11 +1561,11 @@ func TestSignCoinCreationTransactionExtension(t *testing.T) {
 		}
 		for i := 0; i < signCount; i++ {
 			// sign fulfillment, which lives in the tx extension data
-			err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+			err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 				return fulfillment.Sign(types.FulfillmentSignContext{
-					InputIndex:  0, // doesn't matter really for this extension
-					Transaction: tx,
-					Key:         key,
+					ExtraObjects: eo,
+					Transaction:  tx,
+					Key:          key,
 				})
 			})
 			if err != nil {
@@ -1605,8 +1611,8 @@ func TestSignCoinCreationTransactionExtension(t *testing.T) {
 	// sign multisig condition, should fail as we didn't sign enough
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1620,8 +1626,8 @@ func TestSignCoinCreationTransactionExtension(t *testing.T) {
 	// sign multisig condition, should succeed
 	err = signTxAndValidate(testKeyPair{
 		KeyPair: types.KeyPair{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
@@ -1663,11 +1669,11 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 		// redefine fulfillment, as signing an already signed fulfillment is not possible
 		removeTxSignature()
 		// sign fulfillment, which lives in the tx extension data
-		err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+		err := tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 			return fulfillment.Sign(types.FulfillmentSignContext{
-				InputIndex:  0, // doesn't matter really for this extension
-				Transaction: tx,
-				Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+				ExtraObjects: eo,
+				Transaction:  tx,
+				Key:          hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			})
 		})
 		if err != nil {
@@ -1704,11 +1710,11 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 		)),
 	}
 	// sign fulfillment, which lives in the tx extension data
-	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy) error {
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, eo ...interface{}) error {
 		return fulfillment.Sign(types.FulfillmentSignContext{
-			InputIndex:  0, // doesn't matter really for this extension
-			Transaction: tx,
-			Key:         hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+			ExtraObjects: eo,
+			Transaction:  tx,
+			Key:          hsk("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 		})
 	})
 	if err != nil {
@@ -1725,7 +1731,7 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 
 	// make the arbitrary data too big, should fail
 	origArbitraryData := tx.ArbitraryData
-	tx.ArbitraryData = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
+	tx.ArbitraryData.Data = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
 	resignTx("changed arbitrary data")
 	// should fail now
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
@@ -1768,15 +1774,15 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 		MintFulfillment: types.NewFulfillment(&types.MultiSignatureFulfillment{
 			Pairs: []types.PublicKeySignaturePair{
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("def123def123def123def123def123def123def123def123def123def123def1"),
 					},
 					Signature: hbs("ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef12345ef"),
 				},
 				{
-					PublicKey: types.SiaPublicKey{
-						Algorithm: types.SignatureEd25519,
+					PublicKey: types.PublicKey{
+						Algorithm: types.SignatureAlgoEd25519,
 						Key:       hbs("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
 					},
 					Signature: hbs("abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefab"),
@@ -1792,8 +1798,8 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 	tx.Extension = &CoinCreationTransactionExtension{
 		Nonce: origCCExtension.Nonce,
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d"),
 			},
 			Signature: hbs("3e2ed4e893f66ffd57e26afe83d570ca4b8ba873f8236a60c018cde4852de1027256d088b2253ec061ae973f961f26cde8fa42f5d3c0ce1316560ceb25786f03"),
@@ -1807,8 +1813,8 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 	tx.Extension = &CoinCreationTransactionExtension{
 		Nonce: origCCExtension.Nonce,
 		MintFulfillment: types.NewFulfillment(&types.SingleSignatureFulfillment{
-			PublicKey: types.SiaPublicKey{
-				Algorithm: types.SignatureEd25519,
+			PublicKey: types.PublicKey{
+				Algorithm: types.SignatureAlgoEd25519,
 				Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
 			},
 			Signature: nil,
@@ -2267,7 +2273,7 @@ func TestBotMonthsAndFlagsData(t *testing.T) {
 	}
 	for idx, testCase := range testCases {
 		var result BotMonthsAndFlagsData
-		err := tfencoding.Unmarshal(tfencoding.Marshal(testCase.Input), &result)
+		err := rivbin.Unmarshal(rivbin.Marshal(testCase.Input), &result)
 		if err != nil {
 			t.Error(idx, "error(Unmarshal:BotMonthsAndFlagData)", err)
 			continue
@@ -2277,7 +2283,7 @@ func TestBotMonthsAndFlagsData(t *testing.T) {
 			continue
 		}
 		var number uint8
-		err = tfencoding.Unmarshal(tfencoding.Marshal(result), &number)
+		err = rivbin.Unmarshal(rivbin.Marshal(result), &number)
 		if err != nil {
 			t.Error(idx, "error(Unmarshal:uint8)", err)
 			continue
@@ -2331,7 +2337,7 @@ func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := tx.ID()
-	b := tfencoding.Marshal(tx)
+	b := rivbin.Marshal(tx)
 
 	// go to 3bot Tx and back
 	botRegistrationTx, err := BotRegistrationTransactionFromTransaction(tx)
@@ -2340,7 +2346,7 @@ func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 	}
 	oTx := botRegistrationTx.Transaction(config.GetCurrencyUnits().OneCoin, types.UnlockConditionProxy{})
 	oID := oTx.ID()
-	oB := tfencoding.Marshal(oTx)
+	oB := rivbin.Marshal(oTx)
 	if id != oID {
 		t.Fatal(id, "!=", oID)
 	}
@@ -2359,8 +2365,8 @@ func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
 	const (
-		hexBlock       = `890c03073ba01fd531859075f98e2e08e27518eb33dd7428a4e81e13d5b75c163fc7d25b000000000200000000000000000000000000000000000000000000000200000000000000050000000000000002540be400015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e67915804000000000000003b9aca00015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580200000000000000010d010000000000000000000000000000000000000000000001000000000000005e9c485e44f1fe202a43261ea0e62f6b6a1497380db1f93c7e4a9ad95e63dc58018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778040000000000000003882c10527126106261bf905278f85ead81bf5e367db00f4ee0a4384a09a47be6f90a0369523ac2d51f6238b7c6a118b594e08846522f89e45774a2703dafe02010000000000000002000000000000000bb8012100000000000000015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580000000000000000000000000000000090e112115bc6aec02c6578616d706c652e6f72671e63686174626f742e6578616d706c6504000000000000003b9aca0002a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780400000000000000078168863933e533c4686ad9749933a02db79c2dd49fc44e46984990e59df704c48e61b8ba845eb781367a55ea49d14ca51d4994315e451fd90f9a3760513bd0b080000000000000001634560d9784e0001210000000000000001b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960100bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c67780661412bb912737dbd572a5c6695537cbf9d72654264b8b98d2929f5b829abbc682749a3a93c83c545315f5c15ee895e136abc023bb58f691010899b7a1d9d222340f`
-		expectedJSONTx = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"78168863933e533c4686ad9749933a02db79c2dd49fc44e46984990e59df704c48e61b8ba845eb781367a55ea49d14ca51d4994315e451fd90f9a3760513bd0b"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614","signature":"12bb912737dbd572a5c6695537cbf9d72654264b8b98d2929f5b829abbc682749a3a93c83c545315f5c15ee895e136abc023bb58f691010899b7a1d9d222340f"}}}`
+		hexBlock       = `0d3a8d36b50c3325044b5d994e52f00ce86b43ff84bdc0e7a1347c9b7621624ccf5af45b000000000100000000000000000000000000000000000000000000000200000000000000050000000000000002540be400015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e67915804000000000000003b9aca00015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580200000000000000010d010000000000000000000000000000000000000000000001000000000000001d7f4ac218a2f360dd802843a0003443f77d151ba9329fdecbd8da37519b3419018000000000000000656432353531390000000000000000002000000000000000d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d77804000000000000000b82990bcbdd96acb14a877f8b0364abbd8ceab232ce9caa3f8f3a15f7277978484a390d928cce671e9829d780715a6aaf8c686cc7074f7d558b03a4a73f96b07010000000000000002000000000000000bb8012100000000000000015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791580000000000000000000000000000000090e112115bc6aec02c6578616d706c652e6f72671e63686174626f742e6578616d706c65083b9aca0002a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee56301c401d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d778080909a7df820ec3cee1c99bd2c297b938f830da891439ef7d78452e29efb0c7e593683274c356f72d3b627c2954a24b2bc2276fed47b24cd62816c540c88f13d051001634560d9784e00014201b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960100bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c67780661498e71668dfe7726a357039d7c0e871b6c0ca8fa49dc1fcdccb5f23f5f0a5cab95cfcfd72a9fd2c5045ba899ecb0207ff01125a0151f3e35e3c6e13a7538b340a`
+		expectedJSONTx = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563","fulfillment":{"type":1,"data":{"publickey":"ed25519:d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780","signature":"909a7df820ec3cee1c99bd2c297b938f830da891439ef7d78452e29efb0c7e593683274c356f72d3b627c2954a24b2bc2276fed47b24cd62816c540c88f13d05"}}}],"refundcoinoutput":{"value":"99999899000000000","condition":{"type":1,"data":{"unlockhash":"01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"}}},"identification":{"publickey":"ed25519:00bde9571b30e1742c41fcca8c730183402d967df5b17b5f4ced22c677806614","signature":"98e71668dfe7726a357039d7c0e871b6c0ca8fa49dc1fcdccb5f23f5f0a5cab95cfcfd72a9fd2c5045ba899ecb0207ff01125a0151f3e35e3c6e13a7538b340a"}}}`
 	)
 
 	b, err := hex.DecodeString(hexBlock)
@@ -2368,7 +2374,7 @@ func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
 		t.Fatal(err)
 	}
 	var block types.Block
-	err = encoding.Unmarshal(b, &block)
+	err = siabin.Unmarshal(b, &block)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2383,6 +2389,401 @@ func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
 	}
 }
 
+var cryptoKeyPair = types.KeyPair{
+	PublicKey: types.PublicKey{
+		Algorithm: types.SignatureAlgoEd25519,
+		Key:       hbs("d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+	},
+	PrivateKey: hbs("788c0aaeec8e0d916a712535826fa2d47d19fd7b341242f05de0d2e6e7e06104d285f92d6d449d9abb27f4c6cf82713cec0696d62b8c123f1627e054dc6d7780"),
+}
+
+func TestBotRegistrationTransactionUniqueSignatures(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry:              nil,
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(fmt.Sprintf(`{
+	"version": 144,
+	"data": {
+		"names": ["foobar"],
+		"nrofmonths": 1,
+		"txfee": "1000000000",
+		"coininputs": [
+			{
+				"parentid": "a3c8f44d64c0636018a929d2caeec09fb9698bfdcbfa3a8225585a51e09ee563",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			},
+			{
+				"parentid": "91431da29b53669cdaecf5e31d9ae4d47fe4ebbd02e12fec185e28b7db6960dd",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			}
+		],
+		"refundcoinoutput": {
+			"value": "99999899000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f"
+				}
+			}
+		},
+		"identification": {
+			"publickey": "%[1]s",
+			"signature": ""
+		}
+	}
+}`, cryptoKeyPair.PublicKey.String())))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	signatures := map[string]struct{}{}
+	// sign coin inputs, validate a signature is defined and ensure they are unique
+	for cindex, ci := range tx.CoinInputs {
+		err = ci.Fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: []interface{}{uint64(cindex)},
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+
+		b, err := json.Marshal(ci.Fulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		var rawFulfillment map[string]interface{}
+		err = json.Unmarshal(b, &rawFulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		signature := rawFulfillment["data"].(map[string]interface{})["signature"].(string)
+		if signature == "" {
+			t.Error(cindex, "coin input: signature is empty")
+			continue
+		}
+		if _, ok := signatures[signature]; ok {
+			t.Error(cindex, "coin input: signature exists already:", signature)
+			continue
+		}
+		signatures[signature] = struct{}{}
+	}
+
+	// sign extension (the actual signature)
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, extraObjects ...interface{}) error {
+		if condition.UnlockHash().Cmp(types.NewPubKeyUnlockHash(cryptoKeyPair.PublicKey)) != 0 {
+			b, _ := json.Marshal(condition)
+			t.Fatalf("unexpected extension fulfill condition: %v", string(b))
+		}
+		return fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: extraObjects,
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	signature := tx.Extension.(*BotRegistrationTransactionExtension).Identification.Signature.String()
+	if signature == "" {
+		t.Fatal("extension (Sender): signature is empty")
+	}
+	if _, ok := signatures[signature]; ok {
+		t.Fatal("extension (Sender): signature exists already:", signature)
+	}
+	signatures[signature] = struct{}{}
+}
+
+func TestBotRecordUpdateTransactionUniqueSignatures(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, BotUpdateRecordTransactionController{
+		Registry: &inMemoryBotRegistry{
+			idMapping: map[BotID]BotRecord{
+				1: botRecordFromJSON(t, `{
+	"id": 1,
+	"addresses": ["93.184.216.34"],
+	"names": ["example"],
+	"publickey": "`+cryptoKeyPair.PublicKey.String()+`",
+	"expiration": 1538484360
+}`),
+			},
+		},
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(fmt.Sprintf(`{
+	"version": 145,
+	"data": {
+		"id": 1,
+		"addresses": {
+			"add": ["127.0.0.1", "api.mybot.io", "0:0:0:0:0:ffff:5db8:d822"],
+			"remove": ["93.184.216.34"]
+		},
+		"names": {
+			"add": ["mybot"],
+			"remove": ["example"]
+		},
+		"nrofmonths": 5,
+		"txfee": "1000000000",
+		"coininputs": [
+			{
+				"parentid": "c6b161d192d8095efd4d9946f7d154bf335f51fdfdeca4bb0cb990b25ffd7e95",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			},
+			{
+				"parentid": "91431da29b53669cdaecf5e31d9ae4d47fe4ebbd02e12fec185e28b7db6960dd",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			}
+		],
+		"refundcoinoutput": {
+			"value": "99999778000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "0161fbcf58efaeba8813150e88fc33405b3a77d51277a2cdf3f4d2ab770de287c7af9d456c4e68"
+				}
+			}
+		},
+		"signature": ""
+	}
+}`, cryptoKeyPair.PublicKey.String())))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	signatures := map[string]struct{}{}
+	// sign coin inputs, validate a signature is defined and ensure they are unique
+	for cindex, ci := range tx.CoinInputs {
+		err = ci.Fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: []interface{}{uint64(cindex)},
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+
+		b, err := json.Marshal(ci.Fulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		var rawFulfillment map[string]interface{}
+		err = json.Unmarshal(b, &rawFulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		signature := rawFulfillment["data"].(map[string]interface{})["signature"].(string)
+		if signature == "" {
+			t.Error(cindex, "coin input: signature is empty")
+			continue
+		}
+		if _, ok := signatures[signature]; ok {
+			t.Error(cindex, "coin input: signature exists already:", signature)
+			continue
+		}
+		signatures[signature] = struct{}{}
+	}
+
+	// sign extension (the actual signature)
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, extraObjects ...interface{}) error {
+		if condition.UnlockHash().Cmp(types.NewPubKeyUnlockHash(cryptoKeyPair.PublicKey)) != 0 {
+			b, _ := json.Marshal(condition)
+			t.Fatalf("unexpected extension fulfill condition: %v", string(b))
+		}
+		return fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: extraObjects,
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	signature := tx.Extension.(*BotRecordUpdateTransactionExtension).Signature.String()
+	if signature == "" {
+		t.Fatal("extension (Sender): signature is empty")
+	}
+	if _, ok := signatures[signature]; ok {
+		t.Fatal("extension (Sender): signature exists already:", signature)
+	}
+	signatures[signature] = struct{}{}
+}
+
+func TestBotNameTransferTransactionUniqueSignatures(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, BotNameTransferTransactionController{
+		Registry: &inMemoryBotRegistry{
+			idMapping: map[BotID]BotRecord{
+				1: botRecordFromJSON(t, `{
+	"id": 1,
+	"addresses": ["93.184.216.34"],
+	"names": ["example"],
+	"publickey": "`+cryptoKeyPair.PublicKey.String()+`",
+	"expiration": 1538484360
+}`),
+			},
+		},
+		RegistryPoolCondition: types.UnlockConditionProxy{},
+		OneCoin:               config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, nil)
+
+	var tx types.Transaction
+	err := tx.UnmarshalJSON([]byte(fmt.Sprintf(`{
+	"version": 146,
+	"data": {
+		"sender": {
+			"id": 1,
+			"signature": ""
+		},
+		"receiver": {
+			"id": 1,
+			"signature": ""
+		},
+		"names": [
+			"mybot"
+		],
+		"txfee": "1000000000",
+		"coininputs": [
+			{
+				"parentid": "c6b161d192d8095efd4d9946f7d154bf335f51fdfdeca4bb0cb990b25ffd7e95",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			},
+			{
+				"parentid": "91431da29b53669cdaecf5e31d9ae4d47fe4ebbd02e12fec185e28b7db6960dd",
+				"fulfillment": {
+					"type": 1,
+					"data": {
+						"publickey": "%[1]s",
+						"signature": ""
+					}
+				}
+			}
+		],
+		"refundcoinoutput": {
+			"value": "99999626000000000",
+			"condition": {
+				"type": 1,
+				"data": {
+					"unlockhash": "01822fd5fefd2748972ea828a5c56044dec9a2b2275229ce5b212f926cd52fba015846451e4e46"
+				}
+			}
+		}
+	}
+}`, cryptoKeyPair.PublicKey.String())))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	signatures := map[string]struct{}{}
+	// sign coin inputs, validate a signature is defined and ensure they are unique
+	for cindex, ci := range tx.CoinInputs {
+		err = ci.Fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: []interface{}{uint64(cindex)},
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+
+		b, err := json.Marshal(ci.Fulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		var rawFulfillment map[string]interface{}
+		err = json.Unmarshal(b, &rawFulfillment)
+		if err != nil {
+			t.Error(cindex, "coin input", err)
+			continue
+		}
+		signature := rawFulfillment["data"].(map[string]interface{})["signature"].(string)
+		if signature == "" {
+			t.Error(cindex, "coin input: signature is empty")
+			continue
+		}
+		if _, ok := signatures[signature]; ok {
+			t.Error(cindex, "coin input: signature exists already:", signature)
+			continue
+		}
+		signatures[signature] = struct{}{}
+	}
+
+	// sign extension (the actual signature)
+	err = tx.SignExtension(func(fulfillment *types.UnlockFulfillmentProxy, condition types.UnlockConditionProxy, extraObjects ...interface{}) error {
+		if condition.UnlockHash().Cmp(types.NewPubKeyUnlockHash(cryptoKeyPair.PublicKey)) != 0 {
+			b, _ := json.Marshal(condition)
+			t.Fatalf("unexpected extension fulfill condition: %v", string(b))
+		}
+		return fulfillment.Sign(types.FulfillmentSignContext{
+			ExtraObjects: extraObjects,
+			Transaction:  tx,
+			Key:          cryptoKeyPair.PrivateKey,
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ext := tx.Extension.(*BotNameTransferTransactionExtension)
+	extSignatures := []string{ext.Sender.Signature.String(), ext.Receiver.Signature.String()}
+	for index, signature := range extSignatures {
+		if signature == "" {
+			t.Fatalf("extension (%d): signature is empty", index)
+		}
+		if _, ok := signatures[signature]; ok {
+			t.Fatalf("extension (%d): signature exists already: %v", index, signature)
+		}
+		signatures[signature] = struct{}{}
+	}
+}
+
 func TestBotRegistrationFees(t *testing.T) {
 	// TODO:
 	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
@@ -2392,4 +2793,40 @@ func TestBotUpdateFees(t *testing.T) {
 	// TODO:
 	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
 	//  - test (*BotNameTransferTransaction)::RequiredBotFee
+}
+
+type inMemoryBotRegistry struct {
+	idMapping map[BotID]BotRecord
+}
+
+func botRecordFromJSON(t *testing.T, str string) BotRecord {
+	var record BotRecord
+	err := json.Unmarshal([]byte(str), &record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return record
+}
+
+func (reg *inMemoryBotRegistry) GetRecordForID(id BotID) (*BotRecord, error) {
+	if len(reg.idMapping) == 0 {
+		return nil, errors.New("no records available")
+	}
+	record, ok := reg.idMapping[id]
+	if !ok {
+		return nil, fmt.Errorf("no record available for id %v", id)
+	}
+	return &record, nil
+}
+
+func (reg *inMemoryBotRegistry) GetRecordForKey(key types.PublicKey) (*BotRecord, error) {
+	panic("NOT IMPLEMENTED")
+}
+
+func (reg *inMemoryBotRegistry) GetRecordForName(name BotName) (*BotRecord, error) {
+	panic("NOT IMPLEMENTED")
+}
+
+func (reg *inMemoryBotRegistry) GetBotTransactionIdentifiers(id BotID) ([]types.TransactionID, error) {
+	panic("NOT IMPLEMENTED")
 }
