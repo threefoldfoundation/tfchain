@@ -12,8 +12,6 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/decred/dcrwallet/version"
-
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 
@@ -98,7 +96,7 @@ func GetDevnetBootstrapPeers() []modules.NetAddress {
 // Root represents the root (`bridged`) command,
 // starting a bridged daemon instance, running until the user intervenes.
 func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
-	log.Println("starting bridged v" + version.String() + "...")
+	log.Println("starting bridged  0.1.0")
 
 	log.Println("loading network config, registering types and loading rivine transaction db (0/3)...")
 	switch cmd.BlockchainInfo.NetworkName {
@@ -228,7 +226,7 @@ func (cmd *Commands) perDir(module string) string {
 // returning the version of the tool, dependencies and Go,
 // as well as the OS and Arch type.
 func (cmd *Commands) Version(_ *cobra.Command, args []string) {
-	fmt.Printf("Bridged version            v%s\n", version.String())
+	fmt.Printf("Bridged version            1.2\n")
 	fmt.Printf("TFChain Daemon version  v%s\n", cmd.BlockchainInfo.ChainVersion.String())
 	fmt.Printf("Rivine protocol version v%s\n", cmd.BlockchainInfo.ProtocolVersion.String())
 	fmt.Println()
