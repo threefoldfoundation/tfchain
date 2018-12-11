@@ -42,7 +42,7 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo riv
 		bcInfo:   bcInfo,
 		chainCts: chainCts,
 	}
-	err := cs.ConsensusSetSubscribe(bridged, modules.ConsensusChangeRecent, cancel)
+	err := cs.ConsensusSetSubscribe(bridged, txdb.GetLastConsensusChangeID(), cancel)
 	if err != nil {
 		return nil, fmt.Errorf("bridged: failed to subscribe to consensus set: %v", err)
 	}
@@ -61,17 +61,24 @@ func (bridged *Bridged) Close() {
 func (bridged *Bridged) ProcessConsensusChange(css modules.ConsensusChange) {
 	bridged.mut.Lock()
 	defer bridged.mut.Unlock()
+	// FIXME: how to get the current height? is this the correct way?
+	currentHeight := bridged.cs.Height()
 
-	// update reverted blocks
-	for _, block := range css.RevertedBlocks {
-		fmt.Println("block reverted: ", block)
+	blocks := css.RevertedBlocks
+	blocks = append(blocks, css.AppliedBlocks...)
+
+	for _, block := range blocks {
+		fmt.Println("BLOCK : ", block)
+		height, _ := bridged.cs.BlockHeightOfBlock(block)
+		fmt.Println("HEIGHT: ", height)
+		fmt.Println("Current height: ", currentHeight)
+		// the block we're interested in shouldn't exist.
+		if height-6 == currentHeight {
+			// CODE HERE FOR to create the erc20 tokens or register a withdrawal address
+			// And should return afterwards.
+			fmt.Println("Differs by 6.")
+		}
 	}
-
-	// update applied blocks
-	for _, block := range css.AppliedBlocks {
-		fmt.Println("block applied: ", block)
-	}
-
 }
 
 type Commands struct {
