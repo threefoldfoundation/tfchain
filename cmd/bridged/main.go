@@ -17,12 +17,11 @@ import (
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 
+	"github.com/spf13/cobra"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/modules/consensus"
 	"github.com/threefoldtech/rivine/modules/gateway"
 	rivinetypes "github.com/threefoldtech/rivine/types"
-
-	"github.com/spf13/cobra"
 )
 
 // used to dump the data of a tfchain network in a meaningful way.
@@ -89,10 +88,16 @@ type Commands struct {
 	transactionDB     *persist.TransactionDB
 }
 
+func GetDevnetBootstrapPeers() []modules.NetAddress {
+	return []modules.NetAddress{
+		"localhost:23112",
+		"localhost:23113",
+	}
+}
+
 // Root represents the root (`bridged`) command,
 // starting a bridged daemon instance, running until the user intervenes.
 func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
-	peers := []modules.NetAddress{}
 	log.Println("starting bridged v" + version.String() + "...")
 
 	log.Println("loading network config, registering types and loading rivine transaction db (0/3)...")
@@ -102,11 +107,17 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		if cmdErr != nil {
 			return fmt.Errorf("failed to create tfchain transaction DB for tfchain standard: %v", cmdErr)
 		}
+		if len(cmd.BootstrapPeers) == 0 {
+			cmd.BootstrapPeers = config.GetStandardnetBootstrapPeers()
+		}
 
 	case config.NetworkNameTest:
 		cmd.transactionDB, cmdErr = persist.NewTransactionDB(cmd.rootPerDir(), config.GetTestnetGenesisMintCondition())
 		if cmdErr != nil {
 			return fmt.Errorf("failed to create tfchain transaction DB for tfchain testnet: %v", cmdErr)
+		}
+		if len(cmd.BootstrapPeers) == 0 {
+			cmd.BootstrapPeers = config.GetTestnetBootstrapPeers()
 		}
 
 	case config.NetworkNameDev:
@@ -117,6 +128,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		// get chain constants and bootstrap peers
 		cmd.ChainConstants = config.GetDevnetGenesis()
 
+		cmd.BootstrapPeers = GetDevnetBootstrapPeers()
 	default:
 		return fmt.Errorf(
 			"%q is an invalid network name, has to be one of {standard,testnet,devnet}",
@@ -135,7 +147,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		log.Println("loading rivine gateway module (1/3)...")
 		gateway, err := gateway.New(
 			cmd.RPCaddr, true, cmd.perDir("gateway"),
-			cmd.BlockchainInfo, cmd.ChainConstants, peers)
+			cmd.BlockchainInfo, cmd.ChainConstants, cmd.BootstrapPeers)
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create gateway module: %v", err)
 			log.Println("[ERROR] ", cmdErr)
