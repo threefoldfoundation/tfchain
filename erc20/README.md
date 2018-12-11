@@ -1,13 +1,17 @@
 # erc20
 
-[a basic solidity contract](basic_contract.sol), and [basic proxy contract](proxy_contract.sol)
-+ compiled files in the contract subdirectory.
+## Basic version
+
+Code is in the [basic](./basic) subdirectory.
+
+[a basic solidity contract](basic/basic_contract.sol), and [basic proxy contract](basic/proxy_contract.sol) +
+compiled files in the contract subdirectory.
 
 To recompile the contracts after changes, run
 
 ```bash
-solc --bin -o ./basic_contract basic_contract.sol
-solc --bin -o ./proxy_contract proxy_contract.sol
+solc --bin -o ./basic/basic_contract basic/basic_contract.sol
+solc --bin -o ./basic/proxy_contract basic/proxy_contract.sol
 ```
 
 ## Proxy Contract setup
