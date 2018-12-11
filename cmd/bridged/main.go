@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 	"log"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path"
 	"runtime"
 	"sync"
 
-	_ "net/http/pprof"
-
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 
 	"github.com/spf13/cobra"
+	tfchaintypes "github.com/threefoldfoundation/tfchain/pkg/types"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/modules/consensus"
 	"github.com/threefoldtech/rivine/modules/gateway"
@@ -44,7 +44,7 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo riv
 	}
 	err := cs.ConsensusSetSubscribe(bridged, modules.ConsensusChangeRecent, cancel)
 	if err != nil {
-		return nil, fmt.Errorf("explorer: failed to subscribe to consensus set: %v", err)
+		return nil, fmt.Errorf("bridged: failed to subscribe to consensus set: %v", err)
 	}
 	return bridged, nil
 }
@@ -105,6 +105,15 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		if cmdErr != nil {
 			return fmt.Errorf("failed to create tfchain transaction DB for tfchain standard: %v", cmdErr)
 		}
+		cmd.ChainConstants = config.GetStandardnetGenesis()
+		// Register the transaction controllers for all transaction versions
+		// supported on the standard network
+		tfchaintypes.RegisterTransactionTypesForStandardNetwork(cmd.transactionDB,
+			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetStandardDaemonNetworkConfig())
+		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
+		// until the blockchain reached a height of 42000 blocks.
+		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
+
 		if len(cmd.BootstrapPeers) == 0 {
 			cmd.BootstrapPeers = config.GetStandardnetBootstrapPeers()
 		}
@@ -114,6 +123,15 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		if cmdErr != nil {
 			return fmt.Errorf("failed to create tfchain transaction DB for tfchain testnet: %v", cmdErr)
 		}
+		// get chain constants and bootstrap peers
+		cmd.ChainConstants = config.GetTestnetGenesis()
+		// Register the transaction controllers for all transaction versions
+		// supported on the test network
+		tfchaintypes.RegisterTransactionTypesForTestNetwork(cmd.transactionDB,
+			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetTestnetDaemonNetworkConfig())
+		// Use our custom MultiSignatureCondition, just for testing purposes
+		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
+
 		if len(cmd.BootstrapPeers) == 0 {
 			cmd.BootstrapPeers = config.GetTestnetBootstrapPeers()
 		}
@@ -125,6 +143,12 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		}
 		// get chain constants and bootstrap peers
 		cmd.ChainConstants = config.GetDevnetGenesis()
+		// Register the transaction controllers for all transaction versions
+		// supported on the dev network
+		tfchaintypes.RegisterTransactionTypesForDevNetwork(cmd.transactionDB,
+			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetDevnetDaemonNetworkConfig())
+		// Use our custom MultiSignatureCondition, just for testing purposes
+		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		cmd.BootstrapPeers = GetDevnetBootstrapPeers()
 	default:
