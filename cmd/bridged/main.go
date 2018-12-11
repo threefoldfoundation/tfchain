@@ -62,8 +62,6 @@ func (bridged *Bridged) ProcessConsensusChange(css modules.ConsensusChange) {
 	bridged.mut.Lock()
 	defer bridged.mut.Unlock()
 
-	// var err error
-
 	// update reverted blocks
 	for _, block := range css.RevertedBlocks {
 		fmt.Println("block reverted: ", block)
@@ -211,6 +209,20 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			return
 		}
 
+		log.Println("loading bridged module (3/3)...")
+		bridged, err := NewBridged(
+			cs, cmd.transactionDB, cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
+		if err != nil {
+			cmdErr = fmt.Errorf("failed to create explorer module: %v", err)
+			log.Println("[ERROR] ", cmdErr)
+			cancel()
+			return
+		}
+		defer func() {
+			log.Println("closing bridged module...")
+			bridged.Close()
+
+		}()
 		log.Println("bridged is up and running...")
 
 		// wait until done
