@@ -14,6 +14,15 @@ solc --bin -o ./basic/basic_contract basic/basic_contract.sol
 solc --bin -o ./basic/proxy_contract basic/proxy_contract.sol
 ```
 
+## Extended version
+
+Code is in the [extended](./extended) subdirectory
+
+This is a more advanced setup which separates the storage for the ERC20 token from the conctract logic. As such,
+the storage model can be reused by both the proxy and the implementations. Although there are multiple different
+contracts here, the only 2 which actually matter are the [basic token contract](./extended/basic_contract.sol) and
+the [token proxy](./extended/token_proxy.sol) contracts.
+
 ## Proxy Contract setup
  
 ### motivation
