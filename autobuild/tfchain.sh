@@ -23,12 +23,17 @@ cp -ar /tfchain /root/go/src/github.com/threefoldfoundation/tfchain
 TFCHAIN=$GOPATH/src/github.com/threefoldfoundation/tfchain
 TFCHAIND=$TFCHAIN/cmd/tfchaind
 TFCHAINC=$TFCHAIN/cmd/tfchainc
+BRIDGED=$TFCHAIN/cmd/bridged
 
 pushd $TFCHAIND
 go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
 popd
 
 pushd $TFCHAINC
+go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
+popd
+
+pushd $BRIDGED
 go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
 popd
 
