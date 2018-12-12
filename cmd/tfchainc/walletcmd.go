@@ -119,6 +119,12 @@ is printed to the STDOUT.
 `,
 			Run: walletSubCmds.createBotNameTransferTxCmd,
 		}
+
+		sendERC20FundsCmd = &cobra.Command{
+			Use:   "erc20funds erc20_address amount",
+			Short: "Convert TFT to ERC20 funds and send those to an ERC20 adddress (minus fees)",
+			Run:   rivinecli.Wrap(walletSubCmds.sendERC20Funds),
+		}
 	)
 
 	// add commands as wallet sub commands
@@ -130,6 +136,7 @@ is printed to the STDOUT.
 	client.WalletCmd.RootCmdSend.AddCommand(
 		sendBotRegistrationTxCmd,
 		sendBotRecordUpdateTxCmd,
+		sendERC20FundsCmd,
 	)
 
 	// register flags
@@ -204,6 +211,10 @@ is printed to the STDOUT.
 	createBotNameTransferTxCmd.Flags().BoolVar(
 		&walletSubCmds.createBotNameTransferTxCfg.Sign, "sign", false,
 		"optionally sign the transaction (as sender/receiver) prior to printing it")
+
+	sendERC20FundsCmd.Flags().Var(
+		cli.NewEncodingTypeFlag(0, &walletSubCmds.sendERC20FundsCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
+		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
 }
 
 type walletSubCmds struct {
@@ -235,6 +246,10 @@ type walletSubCmds struct {
 	createBotNameTransferTxCfg struct {
 		EncodingType cli.EncodingType
 		Sign         bool
+	}
+
+	sendERC20FundsCfg struct {
+		EncodingType cli.EncodingType
 	}
 }
 
@@ -521,6 +536,74 @@ func (walletSubCmds *walletSubCmds) createBotNameTransferTxCmd(cmd *cobra.Comman
 		encode = json.NewEncoder(os.Stdout).Encode
 	}
 	err = encode(rtx)
+	if err != nil {
+		cli.DieWithError("failed to encode result", err)
+	}
+}
+
+func (walletSubCmds *walletSubCmds) sendERC20Funds(hexAddress, strAmount string) {
+	// load ERC20 address
+	var address types.ERC20Address
+	err := address.LoadString(hexAddress)
+	if err != nil {
+		cli.DieWithError("failed to parse hex-encoded ERC20 address", err)
+		return
+	}
+	// load amount (in TFT)
+	currencyConvertor := walletSubCmds.cli.CreateCurrencyConvertor()
+	amount, err := currencyConvertor.ParseCoinString(strAmount)
+	if err != nil {
+		cli.DieWithError("failed to parse coin (TFT) string", err)
+		return
+	}
+
+	// start the ER20 fund convert process
+	walletClient := internal.NewWalletClient(walletSubCmds.cli)
+
+	// create the ERC20 Convert Tx
+	tx := types.ERC20ConvertTransaction{
+		Address:        address,
+		Value:          amount,
+		TransactionFee: walletSubCmds.cli.Config.MinimumTransactionFee,
+	}
+	// fund the coin inputs
+	tx.CoinInputs, tx.RefundCoinOutput, err = walletClient.FundCoins(tx.TransactionFee.Add(tx.Value))
+	if err != nil {
+		cli.DieWithError("failed to fund the ERC20 Convert Txd", err)
+		return
+	}
+
+	// sign the Tx
+	rtx := tx.Transaction()
+	err = walletClient.GreedySignTx(&rtx)
+	if err != nil {
+		cli.DieWithError("failed to sign the ERC20 Convert Tx", err)
+		return
+	}
+
+	// submit the Tx
+	txPoolClient := internal.NewTransactionPoolClient(walletSubCmds.cli)
+	txID, err := txPoolClient.AddTransactiom(rtx)
+	if err != nil {
+		b, _ := json.Marshal(rtx)
+		fmt.Fprintln(os.Stderr, "bad tx: "+string(b))
+		cli.DieWithError("failed to submit the ERC20 Convert Tx to the Tx Pool", err)
+		return
+	}
+
+	// encode depending on the encoding flag
+	var encode func(interface{}) error
+	switch walletSubCmds.sendERC20FundsCfg.EncodingType {
+	case cli.EncodingTypeHuman:
+		e := json.NewEncoder(os.Stdout)
+		e.SetIndent("", "  ")
+		encode = e.Encode
+	case cli.EncodingTypeJSON:
+		encode = json.NewEncoder(os.Stdout).Encode
+	}
+	err = encode(map[string]interface{}{
+		"transactionid": txID,
+	})
 	if err != nil {
 		cli.DieWithError("failed to encode result", err)
 	}
