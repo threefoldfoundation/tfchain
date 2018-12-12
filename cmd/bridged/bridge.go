@@ -70,7 +70,6 @@ type ethBridge struct {
 }
 
 func newRinkebyEthBridge(port int, accountJSON, accountPass string, ethLog int) (*ethBridge, error) {
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ethLog), log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
 	var enodes []*discv5.Node
 	for _, boot := range strings.Split(strings.Join(params.RinkebyBootnodes, ","), ",") {
 		if url, err := discv5.ParseNode(boot); err == nil {
@@ -246,7 +245,7 @@ func (op *ethBridge) loop() {
 		case update <- head:
 			log.Info("Processing new head")
 		default:
-			log.Info("Ignoring current head, update already in progress")
+			log.Debug("Ignoring current head, update already in progress")
 		}
 	}
 }

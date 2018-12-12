@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/big"
 	_ "net/http/pprof"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 	"github.com/threefoldtech/rivine/types"
@@ -83,13 +83,18 @@ func (bridged *Bridged) ProcessConsensusChange(css modules.ConsensusChange) {
 	for _, block := range css.AppliedBlocks {
 		for _, tx := range block.Transactions {
 			if tx.Version == tfchaintypes.TransactionVersionERC20Conversion {
+				log.Warn("Found convert transacton")
 				txConvert, err := tfchaintypes.ERC20ConvertTransactionFromTransaction(tx)
 				if err != nil {
-					log.Fatal("Found a TFT convert transaction version, but can't create a conversion transaction from it")
+					log.Error("Found a TFT convert transaction version, but can't create a conversion transaction from it")
 					return
 				}
 				// Send the mint transaction, this requires gas
-				bridged.Mint(txConvert.Address, txConvert.Value, tx.ID())
+				if err = bridged.Mint(txConvert.Address, txConvert.Value, tx.ID()); err != nil {
+					log.Error("Failed to push mint transaction", "error", err)
+					return
+				}
+				log.Info("Created mint transaction on eth network")
 			}
 		}
 	}
@@ -132,9 +137,10 @@ func GetDevnetBootstrapPeers() []modules.NetAddress {
 // Root represents the root (`bridged`) command,
 // starting a bridged daemon instance, running until the user intervenes.
 func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
-	log.Println("starting bridged  0.1.0")
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(cmd.EthLog), log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
+	log.Info("starting bridged  0.1.0")
 
-	log.Println("loading network config, registering types and loading rivine transaction db (0/3)...")
+	log.Info("loading network config, registering types and loading rivine transaction db (0/3)...")
 	switch cmd.BlockchainInfo.NetworkName {
 	case config.NetworkNameStandard:
 		cmd.transactionDB, cmdErr = persist.NewTransactionDB(cmd.rootPerDir(), config.GetStandardnetGenesisMintCondition())
@@ -202,66 +208,66 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 	go func() {
 		defer wg.Done()
 
-		log.Println("loading rivine gateway module (1/3)...")
+		log.Info("loading rivine gateway module (1/3)...")
 		gateway, err := gateway.New(
 			cmd.RPCaddr, true, cmd.perDir("gateway"),
 			cmd.BlockchainInfo, cmd.ChainConstants, cmd.BootstrapPeers)
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create gateway module: %v", err)
-			log.Println("[ERROR] ", cmdErr)
+			log.Error("[ERROR] ", cmdErr)
 			cancel()
 			return
 		}
 		defer func() {
-			log.Println("Closing gateway module...")
+			log.Info("Closing gateway module...")
 			err := gateway.Close()
 			if err != nil {
 				cmdErr = err
-				log.Println("[ERROR] Closing gateway module resulted in an error: ", err)
+				log.Error("[ERROR] Closing gateway module resulted in an error: ", err)
 			}
 		}()
 
-		log.Println("loading rivine consensus module (2/3)...")
+		log.Info("loading rivine consensus module (2/3)...")
 		cs, err := consensus.New(
 			gateway, true, cmd.perDir("consensus"),
 			cmd.BlockchainInfo, cmd.ChainConstants)
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create consensus module: %v", err)
-			log.Println("[ERROR] ", cmdErr)
+			log.Error("[ERROR] ", cmdErr)
 			cancel()
 			return
 		}
 		defer func() {
-			log.Println("Closing consensus module...")
+			log.Info("Closing consensus module...")
 			err := cs.Close()
 			if err != nil {
 				cmdErr = err
-				log.Println("[ERROR] Closing consensus module resulted in an error: ", err)
+				log.Error("[ERROR] Closing consensus module resulted in an error: ", err)
 			}
 		}()
 		err = cmd.transactionDB.SubscribeToConsensusSet(cs)
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to subscribe earlier created transactionDB to the consensus created just now: %v", err)
-			log.Println("[ERROR] ", cmdErr)
+			log.Error("[ERROR] ", cmdErr)
 			cancel()
 			return
 		}
 
-		log.Println("loading bridged module (3/3)...")
+		log.Info("loading bridged module (3/3)...")
 		bridged, err := NewBridged(
 			cs, cmd.transactionDB, cmd.BlockchainInfo, cmd.ChainConstants, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthLog, ctx.Done())
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)
-			log.Println("[ERROR] ", cmdErr)
+			log.Error("[ERROR] ", cmdErr)
 			cancel()
 			return
 		}
 		defer func() {
-			log.Println("closing bridged module...")
+			log.Info("closing bridged module...")
 			bridged.Close()
 
 		}()
-		log.Println("bridged is up and running...")
+		log.Info("bridged is up and running...")
 
 		// wait until done
 		<-ctx.Done()
@@ -274,15 +280,15 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 	// wait for server to be killed or the process to be done
 	select {
 	case <-sigChan:
-		log.Println("Caught stop signal, quitting...")
+		log.Info("Caught stop signal, quitting...")
 	case <-ctx.Done():
-		log.Println("context is done, quitting...")
+		log.Info("context is done, quitting...")
 	}
 
 	cancel()
 	wg.Wait()
 
-	log.Println("Goodbye!")
+	log.Info("Goodbye!")
 	return
 }
 
