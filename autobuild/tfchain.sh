@@ -39,5 +39,4 @@ popd
 # make sure binary is executable
 chmod +x $FLIST/bin/*
 
-
 tar -czf "/tmp/archives/tfchain.tar.gz" -C $FLIST .
