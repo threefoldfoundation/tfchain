@@ -15,6 +15,16 @@ solc --bin -o ./basic/proxy_contract basic/proxy_contract.sol
 ```
 
 ## Proxy Contract setup
+ 
+### motivation
+
+Ethereum contracts are autonomous immutable code. Once deployed to the Ethereum blockchain though, they are essentially set in stone. This means that if a serious bug or issue appears and your contracts aren’t designed in a way that will allow them to be upgraded in your Dapp seamlessly, we're screwed.
+
+To  solve this we make two main design choices:
+- All main contracts must be upgradable
+- Have a flexible, yet simple way to store data permanently
+
+### Setup
 
 The problem with a contract proxy is that the proxy does not actually call the implementing contract. Instead,
 it loads the function code and executes it in it's own storage space. This means that the storage needs to be
