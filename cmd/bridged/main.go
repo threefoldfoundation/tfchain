@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/big"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -11,8 +12,10 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
+	"github.com/threefoldtech/rivine/types"
 
 	"github.com/spf13/cobra"
 	tfchaintypes "github.com/threefoldfoundation/tfchain/pkg/types"
@@ -55,6 +58,9 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo riv
 		return nil, fmt.Errorf("bridged: failed to subscribe to consensus set: %v", err)
 	}
 	go bridged.bridge.loop()
+	go bridged.bridge.SubscribeTransfers(ContractAddress)
+	go bridged.bridge.SubscribeMint(ContractAddress)
+
 	return bridged, nil
 }
 
@@ -71,23 +77,31 @@ func (bridged *Bridged) Close() {
 func (bridged *Bridged) ProcessConsensusChange(css modules.ConsensusChange) {
 	bridged.mut.Lock()
 	defer bridged.mut.Unlock()
-	// FIXME: how to get the current height? is this the correct way?
-	currentHeight := bridged.cs.Height()
 
-	blocks := css.RevertedBlocks
-	blocks = append(blocks, css.AppliedBlocks...)
+	// TODO: add delay
 
-	for _, block := range blocks {
-		log.Println("Got new TFT block")
-		height, _ := bridged.cs.BlockHeightOfBlock(block)
-		log.Println("HEIGHT: ", height)
-		// the block we're interested in shouldn't exist.
-		if height-6 == currentHeight {
-			// CODE HERE FOR to create the erc20 tokens or register a withdrawal address
-			// And should return afterwards.
-			fmt.Println("Differs by 6.")
+	for _, block := range css.AppliedBlocks {
+		for _, tx := range block.Transactions {
+			if tx.Version == tfchaintypes.TransactionVersionERC20Conversion {
+				txConvert, err := tfchaintypes.ERC20ConvertTransactionFromTransaction(tx)
+				if err != nil {
+					log.Fatal("Found a TFT convert transaction version, but can't create a conversion transaction from it")
+					return
+				}
+				// Send the mint transaction, this requires gas
+				bridged.Mint(txConvert.Address, txConvert.Value, tx.ID())
+			}
 		}
 	}
+}
+
+var (
+	// 18 digit precision
+	precision = big.NewInt(1000000000000000000)
+)
+
+func (bridged *Bridged) Mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
+	return bridged.bridge.Mint(ContractAddress, common.Address(receiver), big.NewInt(0).Mul(amount.Big(), precision), txID.String())
 }
 
 type Commands struct {

@@ -237,6 +237,7 @@ func (op *ethBridge) loop() {
 		select {
 		// only process new head if another isn't being processed yet
 		case update <- head:
+			log.Info("Processing new head")
 		default:
 			log.Info("Ignoring current head, update already in progress")
 		}
@@ -267,8 +268,8 @@ func (op *ethBridge) SubscribeTransfers(contractAddress common.Address) error {
 	}
 }
 
-// SubscribeTransfers subscribes to new Transfer events on the given contract. This call blocks
-// and prints out info about any transfer as it happened
+// SubscribeMint subscribes to new Mint events on the given contract. This call blocks
+// and prints out info about any mint as it happened
 func (op *ethBridge) SubscribeMint(contractAddress common.Address) error {
 	filter, err := NewTTFT20Filterer(contractAddress, op.client)
 	if err != nil {
