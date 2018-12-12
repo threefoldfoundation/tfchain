@@ -36,7 +36,6 @@ popd
 pushd $BRIDGED
 go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
 popd
-
 # make sure binary is executable
 chmod +x $FLIST/bin/*
 
