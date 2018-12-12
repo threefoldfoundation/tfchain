@@ -94,13 +94,20 @@ func newRinkebyEthBridge(port int, accountJSON, accountPass string, ethLog int) 
 		}
 
 	} else {
-		log.Info("Loading existing account")
 		if len(ks.Accounts()) == 0 {
-			return nil, errors.New("Failed to find an account in the keystore")
+			log.Info("Creating a new account")
+			var err error
+			acc, err = ks.NewAccount(accountPass)
+			if err != nil {
+				return nil, err
+			}
+
+		} else {
+			log.Info("Loading existing account")
+			acc = ks.Accounts()[0]
 		}
-		acc = ks.Accounts()[0]
 	}
-	log.Info("Unlocking account")
+	log.Info("Unlocking account " + acc.Address.String())
 	if err := ks.Unlock(acc, accountPass); err != nil {
 		return nil, err
 	}
