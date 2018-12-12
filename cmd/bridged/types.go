@@ -2,12 +2,24 @@ package main
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 	"github.com/threefoldtech/rivine/modules"
 	rivinetypes "github.com/threefoldtech/rivine/types"
 )
 
+type Bridged struct {
+	cs   modules.ConsensusSet
+	txdb *persist.TransactionDB
+
+	bcInfo   rivinetypes.BlockchainInfo
+	chainCts rivinetypes.ChainConstants
+
+	mut sync.Mutex
+}
+
+// Create new Bridged.
 func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, cancel <-chan struct{}) (*Bridged, error) {
 
 	bridged := &Bridged{
