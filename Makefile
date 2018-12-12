@@ -2,6 +2,7 @@ all: install
 
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
+bridgepkgs = ./cmd/bridged
 faucetpkgs = ./frontend/tftfaucet
 testpkgs = ./pkg/types ./pkg/persist
 pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
@@ -25,10 +26,12 @@ ldflagsversion = -X $(configpkg).rawVersion=$(fullversion)
 stdoutput = $(GOPATH)/bin
 daemonbin = $(stdoutput)/tfchaind
 clientbin = $(stdoutput)/tfchainc
+bridgebin = $(stdoutput)/bridged
 
 install:
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
+	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(bridgebin) $(bridgepkgs)
 
 install-std:
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)

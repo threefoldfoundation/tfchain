@@ -30,22 +30,31 @@ type Bridged struct {
 	bcInfo   rivinetypes.BlockchainInfo
 	chainCts rivinetypes.ChainConstants
 
+	bridge *ethBridge
+
 	mut sync.Mutex
 }
 
 // Create new Bridged.
-func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, cancel <-chan struct{}) (*Bridged, error) {
+func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, ethPort uint16, accountJSON, accountPass string, ethLog int, cancel <-chan struct{}) (*Bridged, error) {
+
+	bridge, err := newRinkebyEthBridge(int(ethPort), accountJSON, accountPass, ethLog)
+	if err != nil {
+		return nil, err
+	}
 
 	bridged := &Bridged{
 		cs:       cs,
 		txdb:     txdb,
 		bcInfo:   bcInfo,
 		chainCts: chainCts,
+		bridge:   bridge,
 	}
-	err := cs.ConsensusSetSubscribe(bridged, txdb.GetLastConsensusChangeID(), cancel)
+	err = cs.ConsensusSetSubscribe(bridged, txdb.GetLastConsensusChangeID(), cancel)
 	if err != nil {
 		return nil, fmt.Errorf("bridged: failed to subscribe to consensus set: %v", err)
 	}
+	go bridged.bridge.loop()
 	return bridged, nil
 }
 
@@ -53,6 +62,7 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo riv
 func (bridged *Bridged) Close() {
 	bridged.mut.Lock()
 	defer bridged.mut.Unlock()
+	bridged.bridge.close()
 	bridged.cs.Unsubscribe(bridged)
 }
 
@@ -68,10 +78,9 @@ func (bridged *Bridged) ProcessConsensusChange(css modules.ConsensusChange) {
 	blocks = append(blocks, css.AppliedBlocks...)
 
 	for _, block := range blocks {
-		fmt.Println("BLOCK : ", block)
+		log.Println("Got new TFT block")
 		height, _ := bridged.cs.BlockHeightOfBlock(block)
-		fmt.Println("HEIGHT: ", height)
-		fmt.Println("Current height: ", currentHeight)
+		log.Println("HEIGHT: ", height)
 		// the block we're interested in shouldn't exist.
 		if height-6 == currentHeight {
 			// CODE HERE FOR to create the erc20 tokens or register a withdrawal address
@@ -87,6 +96,15 @@ type Commands struct {
 	ChainConstants rivinetypes.ChainConstants
 	BootstrapPeers []modules.NetAddress
 
+	// eth port for light client
+	EthPort uint16
+
+	// eth account flags
+	accJSON string
+	accPass string
+
+	EthLog int
+
 	RootPersistentDir string
 	transactionDB     *persist.TransactionDB
 }
@@ -94,7 +112,6 @@ type Commands struct {
 func GetDevnetBootstrapPeers() []modules.NetAddress {
 	return []modules.NetAddress{
 		"localhost:23112",
-		"localhost:23113",
 	}
 }
 
@@ -218,9 +235,9 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		log.Println("loading bridged module (3/3)...")
 		bridged, err := NewBridged(
-			cs, cmd.transactionDB, cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
+			cs, cmd.transactionDB, cmd.BlockchainInfo, cmd.ChainConstants, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthLog, ctx.Done())
 		if err != nil {
-			cmdErr = fmt.Errorf("failed to create explorer module: %v", err)
+			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)
 			log.Println("[ERROR] ", cmdErr)
 			cancel()
 			return
@@ -325,6 +342,32 @@ func main() {
 		"network", "n",
 		cmd.BlockchainInfo.NetworkName,
 		"the name of the network to which the daemon connects, one of {standard,testnet,devnet}",
+	)
+
+	// bridge flags
+	cmdRoot.Flags().Uint16Var(
+		&cmd.EthPort,
+		"ethport", 3003,
+		"port for the ethereum deamon",
+	)
+
+	// bridge account
+	cmdRoot.Flags().StringVar(
+		&cmd.accJSON,
+		"account-json", "",
+		"the path to an account file. If set, the specified account will be loaded",
+	)
+
+	cmdRoot.Flags().StringVar(
+		&cmd.accPass,
+		"account-password", "",
+		"Password for the bridge account",
+	)
+
+	cmdRoot.Flags().IntVarP(
+		&cmd.EthLog,
+		"Ethereum-log-lvl", "e", 3,
+		"Log lvl for the ethereum logger",
 	)
 
 	// execute logic
