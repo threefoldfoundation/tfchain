@@ -38,7 +38,7 @@ const (
 	// RinkebyNetworkID is the network ID for the rinkeby network
 	RinkebyNetworkID = 4
 	// ContractAddressString is the hex string address of the contract to monitor
-	ContractAddressString = "0x2bB346A12d83ed7573334Ed80348B476cb6de635"
+	ContractAddressString = "0x21826CC49B92029553af86F4e7A62C427E61e53a"
 )
 
 var (
@@ -294,6 +294,54 @@ func (op *ethBridge) SubscribeMint(contractAddress common.Address) error {
 			return err
 		case mint := <-sink:
 			log.Info("Noticed mint event", "receiver", mint.Receiver, "amount", mint.Tokens, "TFT tx id", mint.Txid)
+		}
+	}
+}
+
+// SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
+// and prints out info about any withdraw as it happened
+func (op *ethBridge) SubscribeWithdraw(contractAddress common.Address) error {
+	filter, err := NewTTFT20Filterer(contractAddress, op.client)
+	if err != nil {
+		return err
+	}
+	sink := make(chan *TTFT20Withdraw)
+	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
+	sub, err := filter.WatchWithdraw(opts, sink, nil)
+	if err != nil {
+		return err
+	}
+	defer sub.Unsubscribe()
+	for {
+		select {
+		case err = <-sub.Err():
+			return err
+		case withdraw := <-sink:
+			log.Info("Noticed withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
+		}
+	}
+}
+
+// SubscribeRegisterWithdrawAddress subscribes to new RegisterWithdrawalAddress events on the given contract. This call blocks
+// and prints out info about any RegisterWithdrawalAddress event as it happened
+func (op *ethBridge) SubscribeRegisterWithdrawAddress(contractAddress common.Address) error {
+	filter, err := NewTTFT20Filterer(contractAddress, op.client)
+	if err != nil {
+		return err
+	}
+	sink := make(chan *TTFT20RegisterWithdrawalAddress)
+	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
+	sub, err := filter.WatchRegisterWithdrawalAddress(opts, sink, nil)
+	if err != nil {
+		return err
+	}
+	defer sub.Unsubscribe()
+	for {
+		select {
+		case err = <-sub.Err():
+			return err
+		case withdraw := <-sink:
+			log.Info("Noticed withadraw address registration event", "address", withdraw.Addr)
 		}
 	}
 }

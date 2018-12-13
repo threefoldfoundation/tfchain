@@ -60,6 +60,8 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo riv
 	go bridged.bridge.loop()
 	go bridged.bridge.SubscribeTransfers(ContractAddress)
 	go bridged.bridge.SubscribeMint(ContractAddress)
+	go bridged.bridge.SubscribeWithdraw(ContractAddress)
+	go bridged.bridge.SubscribeRegisterWithdrawAddress(ContractAddress)
 
 	return bridged, nil
 }

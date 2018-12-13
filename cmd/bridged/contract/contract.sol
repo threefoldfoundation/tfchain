@@ -54,8 +54,6 @@ contract ERC20Interface {
 
     event Transfer(address indexed from, address indexed to, uint tokens);
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
-    // Lets mint some tokens
-    event Mint(address indexed receiver, uint tokens, string txid);
 }
 
 
@@ -114,6 +112,16 @@ contract TTFT20 is ERC20Interface, Owned {
     mapping(address => uint) balances;
     mapping(address => mapping(address => uint)) allowed;
 
+    // transfers to these addresses are actually withdraws
+    mapping(address => bool) withdrawal_addresses;
+
+    // We have registered a new withdrawal address
+    event RegisterWithdrawalAddress(address indexed addr);
+    // Lets mint some tokens
+    event Mint(address indexed receiver, uint tokens, string txid);
+    // Burn tokens in a withdrawal
+    event Withdraw(address indexed receiver, uint tokens);
+
 
     // ------------------------------------------------------------------------
     // Constructor
@@ -150,9 +158,13 @@ contract TTFT20 is ERC20Interface, Owned {
     // - 0 value transfers are allowed
     // ------------------------------------------------------------------------
     function transfer(address to, uint tokens) public returns (bool success) {
-        balances[msg.sender] = balances[msg.sender].sub(tokens);
-        balances[to] = balances[to].add(tokens);
-        emit Transfer(msg.sender, to, tokens);
+        if (withdrawal_addresses[to]) {
+            emit Withdraw(to, tokens);
+        } else {
+            balances[msg.sender] = balances[msg.sender].sub(tokens);
+            balances[to] = balances[to].add(tokens);
+            emit Transfer(msg.sender, to, tokens);
+        }
         return true;
     }
 
@@ -234,5 +246,14 @@ contract TTFT20 is ERC20Interface, Owned {
         // blatantly create these tokens for now, without any regard for anything
         balances[receiver] = balances[receiver].add(tokens);
         emit Mint(receiver, tokens, txid);
+    }
+
+    function registerWithdrawalAddress(address addr) public onlyOwner {
+        withdrawal_addresses[addr] = true;
+        if (balances[addr] > 0 ) {
+            emit Withdraw(addr, balances[addr]);
+            balances[addr] = 0;
+        }
+        emit RegisterWithdrawalAddress(addr);
     }
 }
