@@ -8,6 +8,7 @@ apt-get install git gcc wget -y
 ARCHIVE=/tmp/archives
 FLIST=/tmp/flist
 mkdir -p $ARCHIVE
+mkdir -p $FLIST/bin
 
 # install go
 GOFILE=go1.10.linux-amd64.tar.gz
@@ -23,15 +24,22 @@ cp -ar /tfchain /root/go/src/github.com/threefoldfoundation/tfchain
 TFCHAIN=$GOPATH/src/github.com/threefoldfoundation/tfchain
 TFCHAIND=$TFCHAIN/cmd/tfchaind
 TFCHAINC=$TFCHAIN/cmd/tfchainc
+BRIDGED=$TFCHAIN/cmd/bridged
 
 pushd $TFCHAIND
-go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
+# go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
+go build -o $FLIST/bin/tfchaind
 popd
 
 pushd $TFCHAINC
-go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
+# go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
+go build -o $FLIST/bin/tfchainc
 popd
 
+pushd $BRIDGED
+# go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
+go build -o $FLIST/bin/bridged
+popd
 # make sure binary is executable
 chmod +x $FLIST/bin/*
 

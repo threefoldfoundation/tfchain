@@ -134,6 +134,11 @@ func NewTransactionDB(rootDir string, genesisMintCondition rivinetypes.UnlockCon
 	return txdb, nil
 }
 
+// Retrieves the Last ConsensusChangeID stored.
+func (txdb *TransactionDB) GetLastConsensusChangeID() modules.ConsensusChangeID {
+	return txdb.stats.ConsensusChangeID
+}
+
 // SubscribeToConsensusSet subscribes the TransactionDB to the given ConsensusSet,
 // allowing it to stay in sync with the blockchain, and also making it automatically unsubscribe
 // from the consensus set when the TransactionDB is closed (using (*TransactionDB).Close).
