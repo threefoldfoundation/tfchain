@@ -28,6 +28,9 @@ function appendTransactionStatistics(infoBody, explorerTransaction, confirmed) {
 		case 208:
 			appendV208Transaction(infoBody, explorerTransaction, confirmed);
 			break;
+		case 209:
+			appendV209Transaction(infoBody, explorerTransaction, confirmed);
+			break;
 		default:
 			appendUnknownTransaction(infoBody, explorerTransaction, confirmed)
 	}
@@ -1004,7 +1007,7 @@ function appendV208Transaction(infoBody, explorerTransaction, confirmed) {
 	appendStatTableTitle(infoBody, 'ERC20 Conversion');
 	var conversionTable = createStatsTable();
 	infoBody.appendChild(conversionTable);
-	appendStat(conversionTable, 'ERC20 address', explorerTransaction.rawtransaction.data.address);
+	appendStat(conversionTable, 'ERC20 Address', explorerTransaction.rawtransaction.data.address);
 	appendStat(conversionTable, 'value', readableCoins(explorerTransaction.rawtransaction.data.value))
 
 	if (explorerTransaction.rawtransaction.data.coininputs != null
@@ -1063,6 +1066,51 @@ function appendV208Transaction(infoBody, explorerTransaction, confirmed) {
 			infoBody.appendChild(outputTable);
 		}
 	}
+
+	if (confirmed) {
+		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+		if (payouts != null) {
+			// In a loop, add a new table for each miner payout.
+			appendStatTableTitle(infoBody, 'Transaction Fee Payout');
+			for (var i = 0; i < payouts.length; i++) {
+				var table = createStatsTable();
+				var doms = appendStat(table, 'ID', '');
+				linkHash(doms[2], payouts[i].id);
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], payouts[i].unlockhash);
+				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
+				infoBody.appendChild(table);
+			}
+		}
+	}
+}
+
+// ERC20 Coin Creation Tx
+function appendV209Transaction(infoBody, explorerTransaction, confirmed) {
+	var ctx = getBlockchainContext();
+
+	var statsTable = createStatsTable();
+	appendStatHeader(statsTable, 'ERC20 CoinCreation Transaction Statistics');
+	if (confirmed) {
+		var doms = appendStat(statsTable, 'Block Height', '');
+		linkHeight(doms[2], explorerTransaction.height);
+		doms = appendStat(statsTable, 'Block ID', '');
+		linkHash(doms[2], explorerTransaction.parent);
+		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
+	} else {
+		doms = appendStat(statsTable, 'Block Height', 'unconfirmed');
+	}
+	doms = appendStat(statsTable, 'ID', '');
+	linkHash(doms[2], explorerTransaction.id);
+	infoBody.appendChild(statsTable);// Add tables for each type of transaction element.
+
+	appendStatTableTitle(infoBody, 'ERC20 CoinCreation');
+	var conversionTable = createStatsTable();
+	infoBody.appendChild(conversionTable);
+	doms = appendStat(conversionTable, 'TFT Address', '');
+	linkHash(doms[2], explorerTransaction.rawtransaction.data.address);
+	appendStat(conversionTable, 'value', readableCoins(explorerTransaction.rawtransaction.data.value))
+	appendStat(conversionTable, 'ERC20 Transaction ID', explorerTransaction.rawtransaction.data.txid)
 
 	if (confirmed) {
 		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
@@ -2086,15 +2134,17 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 
 	// Create the table containing the coin input.
 	for (var i = 0; i < explorerHash.transactions.length; i++) {
-		for (var j = 0; j < explorerHash.transactions[i].rawtransaction.data.coininputs.length; j++) {
-			if (explorerHash.transactions[i].rawtransaction.data.coininputs[j].parentid == hash) {
-				appendStatTableTitle(infoBody, 'Coin Input');
-				var table = createStatsTable();
-				var doms = appendStat(table, 'ID', '');
-				linkHash(doms[2], hash);
-				doms = appendStat(table, 'Transaction ID', '');
-				linkHash(doms[2], explorerHash.transactions[i].id);
-				infoBody.appendChild(table);
+		if (explorerHash.transactions[i].rawtransaction.data.coininputs != null) {
+			for (var j = 0; j < explorerHash.transactions[i].rawtransaction.data.coininputs.length; j++) {
+				if (explorerHash.transactions[i].rawtransaction.data.coininputs[j].parentid == hash) {
+					appendStatTableTitle(infoBody, 'Coin Input');
+					var table = createStatsTable();
+					var doms = appendStat(table, 'ID', '');
+					linkHash(doms[2], hash);
+					doms = appendStat(table, 'Transaction ID', '');
+					linkHash(doms[2], explorerHash.transactions[i].id);
+					infoBody.appendChild(table);
+				}
 			}
 		}
 	}
@@ -2239,6 +2289,17 @@ function getCoinOutputsFromExplorerTransaction(txn) {
 			outputs.push(txn.rawtransaction.data.refundcoinoutput);
 		}
 		return outputs;
+	}
+	if (version == 209) {
+		return [{
+			'value': txn.rawtransaction.data.value,
+			'condition': {
+				'type': 1,
+				'data': {
+					'unlockhash': txn.rawtransaction.data.address,
+				}
+			}
+		}];
 	}
 	return [];
 }

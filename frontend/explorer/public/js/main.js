@@ -364,6 +364,11 @@ function txVersionName(version) {
 		case 146:
 			return "3Bot Name Transfer";
 
+		case 208:
+			return "TFT to ERC20 Transfer"
+		case 209:
+			return "ERC20 to TFT Transfer"
+
 		default:
 			return "Unknown";
 	}

@@ -2908,3 +2908,63 @@ func TestBinaryExampleERC20ConvertTransaction(t *testing.T) {
 		t.Fatal(hexEncodedExample, "!=", output)
 	}
 }
+
+func TestJSONExampleERC20CoinCreationTransaction(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
+	defer types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, nil)
+
+	const jsonEncodedExample = `{
+	"version": 209,
+	"data": {
+		"address": "01f68299b26a89efdb4351a61c3a062321d23edbc1399c8499947c1313375609adbbcd3977363c",
+		"value": "100000000000",
+		"txfee": "1000000000",
+		"txid": "0000000000000000000000000000000000000000000000000000000000000000"
+	}
+}`
+
+	var tx types.Transaction
+	err := json.Unmarshal([]byte(jsonEncodedExample), &tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	output := string(b)
+	buffer := bytes.NewBuffer(nil)
+	err = json.Compact(buffer, []byte(jsonEncodedExample))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedOutput := string(buffer.Bytes())
+	if expectedOutput != output {
+		t.Fatal(expectedOutput, "!=", output)
+	}
+}
+
+func TestBinaryExampleERC20CoinCreationTransaction(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
+	defer types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, nil)
+
+	const hexEncodedExample = `d101f68299b26a89efdb4351a61c3a062321d23edbc1399c8499947c1313375609ad0a174876e800083b9aca000000000000000000000000000000000000000000000000000000000000000000`
+
+	b, err := hex.DecodeString(hexEncodedExample)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tx types.Transaction
+	err = siabin.Unmarshal(b, &tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	b = siabin.Marshal(tx)
+	output := hex.EncodeToString(b)
+	if hexEncodedExample != output {
+		t.Fatal(hexEncodedExample, "!=", output)
+	}
+}
