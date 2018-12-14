@@ -131,6 +131,17 @@ is printed to the STDOUT.
 			Short: "Convert ERC20 funds to TFT",
 			Run:   rivinecli.Wrap(walletSubCmds.sendERC20FundsClaim),
 		}
+
+		sendERC20AddressRegistrationCmd = &cobra.Command{
+			Use:   "erc20address [public_key]",
+			Short: "Register an ERC20 address linked to a TFT Public Key",
+			Long: `Register an ERC20 address linked to a TFT Public Key
+
+If no Public Key is given, a new one will be generated
+using the unlocked wallet from the tfchain daemon.
+`,
+			Run: walletSubCmds.sendERC20AddressRegistration,
+		}
 	)
 
 	// add commands as wallet sub commands
@@ -144,6 +155,7 @@ is printed to the STDOUT.
 		sendBotRecordUpdateTxCmd,
 		sendERC20FundsCmd,
 		sendERC20FundsClaimCmd,
+		sendERC20AddressRegistrationCmd,
 	)
 
 	// register flags
@@ -226,6 +238,10 @@ is printed to the STDOUT.
 	sendERC20FundsClaimCmd.Flags().Var(
 		cli.NewEncodingTypeFlag(0, &walletSubCmds.sendERC20FundsClaimCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
+
+	sendERC20AddressRegistrationCmd.Flags().Var(
+		cli.NewEncodingTypeFlag(0, &walletSubCmds.sendERC20AddressRegistrationCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
+		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
 }
 
 type walletSubCmds struct {
@@ -263,6 +279,9 @@ type walletSubCmds struct {
 		EncodingType cli.EncodingType
 	}
 	sendERC20FundsClaimCfg struct {
+		EncodingType cli.EncodingType
+	}
+	sendERC20AddressRegistrationCfg struct {
 		EncodingType cli.EncodingType
 	}
 }
@@ -662,6 +681,82 @@ func (walletSubCmds *walletSubCmds) sendERC20FundsClaim(hexAddress, strAmount, h
 		b, _ := json.Marshal(rtx)
 		fmt.Fprintln(os.Stderr, "bad tx: "+string(b))
 		cli.DieWithError("failed to submit the ERC20 CoinCreation Tx to the Tx Pool", err)
+		return
+	}
+
+	// encode depending on the encoding flag
+	var encode func(interface{}) error
+	switch walletSubCmds.sendERC20FundsCfg.EncodingType {
+	case cli.EncodingTypeHuman:
+		e := json.NewEncoder(os.Stdout)
+		e.SetIndent("", "  ")
+		encode = e.Encode
+	case cli.EncodingTypeJSON:
+		encode = json.NewEncoder(os.Stdout).Encode
+	}
+	err = encode(map[string]interface{}{
+		"transactionid": txID,
+	})
+	if err != nil {
+		cli.DieWithError("failed to encode result", err)
+	}
+}
+
+func (walletSubCmds *walletSubCmds) sendERC20AddressRegistration(_ *cobra.Command, args []string) {
+	var pubkey rivinetypes.PublicKey
+
+	// required to fund as well as to create a public key if needed
+	walletClient := internal.NewWalletClient(walletSubCmds.cli)
+
+	switch len(args) {
+	case 0:
+		// generate a new public key
+		var err error
+		pubkey, err = walletClient.NewPublicKey()
+		if err != nil {
+			cli.DieWithError("failed to generate new public key", err)
+			return
+		}
+	case 1:
+		err := pubkey.LoadString(args[0])
+		if err != nil {
+			cli.DieWithError("failed to parse stringified public key", err)
+			return
+		}
+	default:
+		cli.Die("only one pos. argument is allowed, an optional public key")
+		return
+	}
+
+	// create the ERC20 Address Registration Tx
+	tx := types.ERC20AddressRegistrationTransaction{
+		PublicKey:      pubkey,
+		Signature:      nil, // will be signed later by the daemon
+		TransactionFee: walletSubCmds.cli.Config.MinimumTransactionFee,
+	}
+	// fund the coin inputs
+	var err error
+	tx.CoinInputs, tx.RefundCoinOutput, err = walletClient.FundCoins(tx.TransactionFee) // TODO: also fund the RegistrationFee once it is added
+	if err != nil {
+		cli.DieWithError("failed to fund the ERC20 Address Registration Tx", err)
+		return
+	}
+
+	// sign the Tx
+	rtx := tx.Transaction()
+	err = walletClient.GreedySignTx(&rtx)
+	if err != nil {
+		cli.DieWithError("failed to sign the ERC20 Address Registration Tx", err)
+		return
+	}
+
+	// submit the Tx
+	txPoolClient := internal.NewTransactionPoolClient(walletSubCmds.cli)
+	txID, err := txPoolClient.AddTransactiom(rtx)
+	if err != nil {
+		b, _ := json.Marshal(rtx)
+		fmt.Fprintln(os.Stderr, "bad tx: "+string(b))
+		cli.DieWithError("failed to submit the Address Registration Tx to the Tx Pool", err)
 		return
 	}
 

@@ -55,18 +55,23 @@ const (
 	// TransactionVersionERC20CoinCreation defines the Transaction version
 	// for an ERC20CoinCreationTransaction, used to convert ERC20 funds into TFT.
 	TransactionVersionERC20CoinCreation
+	// TransactionVersionERC20AddressRegistration defines the Transaction version
+	// for an TransactionVersionERC20AddressRegistration, used to register an ERC20 address,
+	// linked to an TFT address.
+	TransactionVersionERC20AddressRegistration
 )
 
 // These Specifiers are used internally when calculating a Transaction's ID.
 // See Rivine's Specifier for more details.
 var (
-	SpecifierMintDefinitionTransaction    = types.Specifier{'m', 'i', 'n', 't', 'e', 'r', ' ', 'd', 'e', 'f', 'i', 'n', ' ', 't', 'x'}
-	SpecifierCoinCreationTransaction      = types.Specifier{'c', 'o', 'i', 'n', ' ', 'm', 'i', 'n', 't', ' ', 't', 'x'}
-	SpecifierBotRegistrationTransaction   = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'g', 'i', 's', 't', 'e', 'r', ' ', 't', 'x'}
-	SpecifierBotRecordUpdateTransaction   = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'c', 'u', 'p', 'd', 'a', 't', 'e', ' ', 't', 'x'}
-	SpecifierBotNameTransferTransaction   = types.Specifier{'b', 'o', 't', ' ', 'n', 'a', 'm', 'e', 't', 'r', 'a', 'n', 's', ' ', 't', 'x'}
-	SpecifierERC20ConvertTransaction      = types.Specifier{'e', 'r', 'c', '2', '0', ' ', 'c', 'o', 'n', 'v', 'e', 'r', 't', ' ', 't', 'x'}
-	SpecifierERC20CoinCreationTransaction = types.Specifier{'e', 'r', 'c', '2', '0', ' ', 'c', 'o', 'i', 'n', 'g', 'e', 'n', ' ', 't', 'x'}
+	SpecifierMintDefinitionTransaction           = types.Specifier{'m', 'i', 'n', 't', 'e', 'r', ' ', 'd', 'e', 'f', 'i', 'n', ' ', 't', 'x'}
+	SpecifierCoinCreationTransaction             = types.Specifier{'c', 'o', 'i', 'n', ' ', 'm', 'i', 'n', 't', ' ', 't', 'x'}
+	SpecifierBotRegistrationTransaction          = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'g', 'i', 's', 't', 'e', 'r', ' ', 't', 'x'}
+	SpecifierBotRecordUpdateTransaction          = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'c', 'u', 'p', 'd', 'a', 't', 'e', ' ', 't', 'x'}
+	SpecifierBotNameTransferTransaction          = types.Specifier{'b', 'o', 't', ' ', 'n', 'a', 'm', 'e', 't', 'r', 'a', 'n', 's', ' ', 't', 'x'}
+	SpecifierERC20ConvertTransaction             = types.Specifier{'e', 'r', 'c', '2', '0', ' ', 'c', 'o', 'n', 'v', 'e', 'r', 't', ' ', 't', 'x'}
+	SpecifierERC20CoinCreationTransaction        = types.Specifier{'e', 'r', 'c', '2', '0', ' ', 'c', 'o', 'i', 'n', 'g', 'e', 'n', ' ', 't', 'x'}
+	SpecifierERC20AddressRegistrationTransaction = types.Specifier{'e', 'r', 'c', '2', '0', ' ', 'a', 'd', 'd', 'r', 'r', 'e', 'g', ' ', 't', 'x'}
 )
 
 // Bot validation errors
@@ -128,6 +133,7 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
+	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{})
 }
 
 // RegisterTransactionTypesForTestNetwork registers he transaction controllers
@@ -176,6 +182,7 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Curr
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
+	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{})
 }
 
 // RegisterTransactionTypesForDevNetwork registers he transaction controllers
@@ -218,6 +225,7 @@ func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Curre
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
+	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{})
 }
 
 type (
@@ -3212,7 +3220,7 @@ type (
 )
 
 var (
-	// ensure at compile time that BotNameTransferTransactionController
+	// ensure at compile time that ERC20ConvertTransactionController
 	// implements the desired interfaces
 	_ types.TransactionController      = ERC20ConvertTransactionController{}
 	_ types.TransactionValidator       = ERC20ConvertTransactionController{}
@@ -3239,7 +3247,7 @@ func (etctc ERC20ConvertTransactionController) DecodeTransactionData(r io.Reader
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to binary-decode tx as an ERC20ConvertTx: %v", err)
 	}
-	// return bot record update tx as regular tfchain tx data
+	// return ERC20 convert tx as regular tfchain tx data
 	return etctx.TransactionData(), nil
 }
 
@@ -3260,7 +3268,7 @@ func (etctc ERC20ConvertTransactionController) JSONDecodeTransactionData(data []
 		return types.TransactionData{}, fmt.Errorf(
 			"failed to json-decode tx as an ERC20ConvertTx: %v", err)
 	}
-	// return bot record update tx as regular tfchain tx data
+	// return ERC20 convert tx as regular tfchain tx data
 	return etctx.TransactionData(), nil
 }
 
@@ -3752,6 +3760,486 @@ func (etctc ERC20CoinCreationTransactionController) EncodeTransactionIDInput(w i
 		return fmt.Errorf("failed to convert txData to a ERC20 CoinCreation Tx: %v", err)
 	}
 	return siabin.NewEncoder(w).EncodeAll(SpecifierERC20CoinCreationTransaction, cctx)
+}
+
+type (
+	// ERC20AddressRegistrationTransaction defines the Transaction (with version 0xD2)
+	// used to register an ERC20 address linked to a regular TFT address (derived from the given public key).
+	// This is required as to be able to convert ERC20 Funds back into TFT.
+	ERC20AddressRegistrationTransaction struct {
+		// The public key of which a TFT address can be derived, and thus also an ERC20 Address
+		PublicKey types.PublicKey
+
+		// Signature that proofs the ownership of the attached Public Key.
+		Signature types.ByteSlice
+
+		// TODO: add RegistrationFee???
+
+		// TransactionFee defines the regular Tx fee.
+		TransactionFee types.Currency
+
+		// CoinInputs are only used for the required fees,
+		// which contains the regular Tx fee as well as the additional fees,
+		// to be paid for the address registration. At least one CoinInput is required.
+		CoinInputs []types.CoinInput
+		// RefundCoinOutput is an optional coin output that can be used
+		// to refund coins paid as inputs for the required fees.
+		RefundCoinOutput *types.CoinOutput
+	}
+
+	// ERC20AddressRegistrationTransactionJSON defines the JSON structure of an ERC20AddressRegistrationTransaction,
+	// which is an extended data structure when compared to the binary structure of an ERC20AddressRegistrationTransaction
+	ERC20AddressRegistrationTransactionJSON struct {
+		// The public key of which a TFT address can be derived, and thus also an ERC20 Address
+		PublicKey types.PublicKey `json:"pubkey"`
+
+		// TFTAddresses can be derived from the PublicKey,
+		// if defined however it will be validated that the public key matches the given PublicKey.
+		// Can be omitted as well, given that the raw tx does not contain this duplicate data.
+		TFTAddress types.UnlockHash `json:"tftaddress,omitempty"`
+		// ERC20Address can be derived from the PublicKey,
+		// if defined however it will be validated that the public key matches the given PublicKey.
+		// Can be omitted as well, given that the raw tx does not contain this duplicate data.
+		ERC20Address ERC20Address `json:"erc20address,omitempty"`
+
+		// Signature that proofs the ownership of the attached Public Key.
+		Signature types.ByteSlice `json:"signature"`
+
+		// TODO: add RegistrationFee???
+
+		// TransactionFee defines the regular Tx fee.
+		TransactionFee types.Currency `json:"txfee"`
+
+		// CoinInputs are only used for the required fees,
+		// which contains the regular Tx fee as well as the additional fees,
+		// to be paid for the address registration. At least one CoinInput is required.
+		CoinInputs []types.CoinInput `json:"coininputs"`
+		// RefundCoinOutput is an optional coin output that can be used
+		// to refund coins paid as inputs for the required fees.
+		RefundCoinOutput *types.CoinOutput `json:"refundcoinoutput,omitempty"`
+	}
+
+	// ERC20AddressRegistrationTransactionExtension defines the ERC20AddressRegistrationTransaction Extension Data
+	ERC20AddressRegistrationTransactionExtension struct {
+		PublicKey types.PublicKey
+		Signature types.ByteSlice
+	}
+)
+
+// ERC20AddressRegistrationTransactionFromTransaction creates an ERC20AddressRegistrationTransaction,
+// using a regular in-memory tfchain transaction.
+//
+// Past the (tx) Version validation it piggy-backs onto the
+// `ERC20AddressRegistrationTransactionFromTransactionData` constructor.
+func ERC20AddressRegistrationTransactionFromTransaction(tx types.Transaction) (ERC20AddressRegistrationTransaction, error) {
+	if tx.Version != TransactionVersionERC20AddressRegistration {
+		return ERC20AddressRegistrationTransaction{}, fmt.Errorf(
+			"an ERC20 address registration requires tx version %d",
+			TransactionVersionERC20AddressRegistration)
+	}
+	return ERC20AddressRegistrationTransactionFromTransactionData(types.TransactionData{
+		CoinInputs:        tx.CoinInputs,
+		CoinOutputs:       tx.CoinOutputs,
+		BlockStakeInputs:  tx.BlockStakeInputs,
+		BlockStakeOutputs: tx.BlockStakeOutputs,
+		MinerFees:         tx.MinerFees,
+		ArbitraryData:     tx.ArbitraryData,
+		Extension:         tx.Extension,
+	})
+}
+
+// ERC20AddressRegistrationTransactionFromTransactionData creates an ERC20ConvertTransaction,
+// using the TransactionData from a regular in-memory tfchain transaction.
+func ERC20AddressRegistrationTransactionFromTransactionData(txData types.TransactionData) (ERC20AddressRegistrationTransaction, error) {
+	// validate the Transaction Data
+
+	// at least one coin input as well as one miner fee is required
+	if len(txData.CoinInputs) == 0 || len(txData.MinerFees) != 1 {
+		return ERC20AddressRegistrationTransaction{}, errors.New("at least one coin input and exactly one miner fee is required for an ERC20 Address Registration Transaction")
+	}
+	// no block stake inputs or block stake outputs are allowed
+	if len(txData.BlockStakeInputs) != 0 || len(txData.BlockStakeOutputs) != 0 {
+		return ERC20AddressRegistrationTransaction{}, errors.New("no block stake inputs/outputs are allowed in an ERC20 Address Registration Transaction")
+	}
+	// no arbitrary data is allowed
+	if len(txData.ArbitraryData.Data) > 0 {
+		return ERC20AddressRegistrationTransaction{}, errors.New("no arbitrary data is allowed in an ERC20 Address Registration Transaction")
+	}
+	// validate that the coin outputs is within the expected range
+	if len(txData.CoinOutputs) > 1 {
+		return ERC20AddressRegistrationTransaction{}, errors.New("an ERC20 Address Registration Transaction can only have one coin output")
+	}
+
+	// (tx) extension (data) is expected to be a pointer to a valid ERC20AddressRegistrationTransaction,
+	// which contains all the properties unique to a 3bot (name transfer) Tx
+	extensionData, ok := txData.Extension.(*ERC20AddressRegistrationTransactionExtension)
+	if !ok {
+		return ERC20AddressRegistrationTransaction{}, errors.New("invalid extension data for an ERC20 Address Registration Transaction")
+	}
+
+	// create the ERC20AddressRegistrationTransaction and return it,
+	// further validation will/has-to be done using the Transaction Type, if required
+	tx := ERC20AddressRegistrationTransaction{
+		PublicKey:      extensionData.PublicKey,
+		Signature:      extensionData.Signature,
+		TransactionFee: txData.MinerFees[0],
+		CoinInputs:     txData.CoinInputs,
+	}
+	if len(txData.CoinOutputs) == 1 {
+		// take refund coin output if it exists
+		tx.RefundCoinOutput = &txData.CoinOutputs[0]
+	}
+	return tx, nil
+}
+
+// TransactionData returns this ERC20AddressRegistrationTransaction
+// as regular tfchain transaction data.
+func (eartx *ERC20AddressRegistrationTransaction) TransactionData() types.TransactionData {
+	txData := types.TransactionData{
+		CoinInputs: eartx.CoinInputs,
+		MinerFees:  []types.Currency{eartx.TransactionFee},
+		Extension: &ERC20AddressRegistrationTransactionExtension{
+			PublicKey: eartx.PublicKey,
+			Signature: eartx.Signature,
+		},
+	}
+	if eartx.RefundCoinOutput != nil {
+		txData.CoinOutputs = append(txData.CoinOutputs, *eartx.RefundCoinOutput)
+	}
+	return txData
+}
+
+// Transaction returns this ERC20AddressRegistrationTransaction
+// as regular tfchain transaction, using TransactionVersionERC20AddressRegistration as the type.
+func (eartx *ERC20AddressRegistrationTransaction) Transaction() types.Transaction {
+	tx := types.Transaction{
+		Version:    TransactionVersionERC20AddressRegistration,
+		CoinInputs: eartx.CoinInputs,
+		MinerFees:  []types.Currency{eartx.TransactionFee},
+		Extension: &ERC20AddressRegistrationTransactionExtension{
+			PublicKey: eartx.PublicKey,
+			Signature: eartx.Signature,
+		},
+	}
+	if eartx.RefundCoinOutput != nil {
+		tx.CoinOutputs = append(tx.CoinOutputs, *eartx.RefundCoinOutput)
+	}
+	return tx
+}
+
+// MarshalSia implements SiaMarshaler.MarshalSia,
+// alias of MarshalRivine for backwards-compatibility reasons.
+func (eartx ERC20AddressRegistrationTransaction) MarshalSia(w io.Writer) error {
+	return eartx.MarshalRivine(w)
+}
+
+// UnmarshalSia implements SiaUnmarshaler.UnmarshalSia,
+// alias of UnmarshalRivine for backwards-compatibility reasons.
+func (eartx *ERC20AddressRegistrationTransaction) UnmarshalSia(r io.Reader) error {
+	return eartx.UnmarshalRivine(r)
+}
+
+// MarshalRivine implements RivineMarshaler.MarshalRivine
+func (eartx ERC20AddressRegistrationTransaction) MarshalRivine(w io.Writer) error {
+	return rivbin.NewEncoder(w).EncodeAll(
+		eartx.PublicKey,
+		eartx.Signature,
+		eartx.TransactionFee,
+		eartx.CoinInputs,
+		eartx.RefundCoinOutput,
+	)
+}
+
+// UnmarshalRivine implements RivineUnmarshaler.UnmarshalRivine
+func (eartx *ERC20AddressRegistrationTransaction) UnmarshalRivine(r io.Reader) error {
+	return rivbin.NewDecoder(r).DecodeAll(
+		&eartx.PublicKey,
+		&eartx.Signature,
+		&eartx.TransactionFee,
+		&eartx.CoinInputs,
+		&eartx.RefundCoinOutput,
+	)
+}
+
+// ERC20AddressFromUnlockHash creates an ERC20Address using as input
+// for a new blake2b hash an UnlockHash (TFT Address), and taking the last 20 bytes of that.
+func ERC20AddressFromUnlockHash(uh types.UnlockHash) (addr ERC20Address) {
+	hash := crypto.HashObject(uh)
+	offset := crypto.HashSize - ERC20AddressLength
+	copy(addr[:], hash[offset:])
+	return
+}
+
+// MarshalJSON implements json.Marshaler.MarshalRivine
+func (eartx ERC20AddressRegistrationTransaction) MarshalJSON() ([]byte, error) {
+	uh := types.NewPubKeyUnlockHash(eartx.PublicKey)
+	addr := ERC20AddressFromUnlockHash(uh)
+	return json.Marshal(ERC20AddressRegistrationTransactionJSON{
+		PublicKey:        eartx.PublicKey,
+		TFTAddress:       uh,
+		ERC20Address:     addr,
+		Signature:        eartx.Signature,
+		TransactionFee:   eartx.TransactionFee,
+		CoinInputs:       eartx.CoinInputs,
+		RefundCoinOutput: eartx.RefundCoinOutput,
+	})
+}
+
+// UnmarshalJSON implements json.Unmarshaler.UnmarshalJSON
+func (eartx *ERC20AddressRegistrationTransaction) UnmarshalJSON(data []byte) error {
+	var tx ERC20AddressRegistrationTransactionJSON
+	err := json.Unmarshal(data, &tx)
+	if err != nil {
+		return err
+	}
+	// validate the TFT/ERC20 address if given
+	tftAddressDefined := tx.TFTAddress.Cmp(types.NilUnlockHash) != 0
+	erc20AddressDefined := tx.ERC20Address != (ERC20Address{})
+	if tftAddressDefined || erc20AddressDefined {
+		uh := types.NewPubKeyUnlockHash(tx.PublicKey)
+		if tftAddressDefined && tx.TFTAddress.Cmp(uh) != 0 {
+			return errors.New("non-matching public key and TFT Address defined")
+		}
+		if erc20AddressDefined {
+			addr := ERC20AddressFromUnlockHash(uh)
+			if tx.ERC20Address != addr {
+				return errors.New("non-matching public key and ERC20 Address defined")
+			}
+		}
+	}
+	// copy the in-memory (binary) format properties over and call it done
+	eartx.PublicKey = tx.PublicKey
+	eartx.Signature = tx.Signature
+	eartx.TransactionFee = tx.TransactionFee
+	eartx.CoinInputs = tx.CoinInputs
+	eartx.RefundCoinOutput = tx.RefundCoinOutput
+	return nil
+}
+
+type (
+	// ERC20AddressRegistrationTransactionController defines a tfchain-specific transaction controller,
+	// for a transaction type reserved at type 0xD2. It allows the registration of an ERC20 Address.
+	ERC20AddressRegistrationTransactionController struct{}
+)
+
+var (
+	// ensure at compile time that ERC20AddressRegistrationTransactionController
+	// implements the desired interfaces
+	_ types.TransactionController      = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionValidator       = ERC20AddressRegistrationTransactionController{}
+	_ types.BlockStakeOutputValidator  = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionSignatureHasher = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionExtensionSigner = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionIDEncoder       = ERC20AddressRegistrationTransactionController{}
+)
+
+// EncodeTransactionData implements TransactionController.EncodeTransactionData
+func (eartc ERC20AddressRegistrationTransactionController) EncodeTransactionData(w io.Writer, txData types.TransactionData) error {
+	eartx, err := ERC20AddressRegistrationTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to an ERC20AddressRegistrationTx: %v", err)
+	}
+	return rivbin.NewEncoder(w).Encode(eartx)
+}
+
+// DecodeTransactionData implements TransactionController.DecodeTransactionData
+func (eartc ERC20AddressRegistrationTransactionController) DecodeTransactionData(r io.Reader) (types.TransactionData, error) {
+	var eartx ERC20AddressRegistrationTransaction
+	err := rivbin.NewDecoder(r).Decode(&eartx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to binary-decode tx as an ERC20AddressRegistrationTx: %v", err)
+	}
+	// return ERC20 Address Registration tx as regular tfchain tx data
+	return eartx.TransactionData(), nil
+}
+
+// JSONEncodeTransactionData implements TransactionController.JSONEncodeTransactionData
+func (eartc ERC20AddressRegistrationTransactionController) JSONEncodeTransactionData(txData types.TransactionData) ([]byte, error) {
+	eartx, err := ERC20AddressRegistrationTransactionFromTransactionData(txData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert txData to an ERC20AddressRegistrationTx: %v", err)
+	}
+	return json.Marshal(eartx)
+}
+
+// JSONDecodeTransactionData implements TransactionController.JSONDecodeTransactionData
+func (eartc ERC20AddressRegistrationTransactionController) JSONDecodeTransactionData(data []byte) (types.TransactionData, error) {
+	var eartx ERC20AddressRegistrationTransaction
+	err := json.Unmarshal(data, &eartx)
+	if err != nil {
+		return types.TransactionData{}, fmt.Errorf(
+			"failed to json-decode tx as an ERC20AddressRegistrationTx: %v", err)
+	}
+	// return bot record update tx as regular tfchain tx data
+	return eartx.TransactionData(), nil
+}
+
+// Specifiers used to ensure the bot-signatures are unique within each Tx.
+var (
+	ERC20AdddressRegistrationSignatureSpecifier = [...]byte{'r', 'e', 'g', 'i', 's', 't', 'r', 'a', 't', 'i', 'o', 'n'}
+)
+
+// ValidateTransaction implements TransactionValidator.ValidateTransaction
+func (eartc ERC20AddressRegistrationTransactionController) ValidateTransaction(t types.Transaction, ctx types.ValidationContext, constants types.TransactionValidationConstants) error {
+	// check tx fits within a block
+	err := types.TransactionFitsInABlock(t, constants.BlockSizeLimit)
+	if err != nil {
+		return err
+	}
+
+	// get ERC20AddressRegistration Tx
+	eartx, err := ERC20AddressRegistrationTransactionFromTransaction(t)
+	if err != nil {
+		return fmt.Errorf("failed to use tx as an ERC20 AddressRegistration tx: %v", err)
+	}
+
+	// validate the signature
+	// > create condition
+	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(eartx.PublicKey)))
+	// > and a matching single-signature fulfillment
+	fulfillment := types.NewFulfillment(&types.SingleSignatureFulfillment{
+		PublicKey: eartx.PublicKey,
+		Signature: eartx.Signature,
+	})
+	// > validate the signature is correct
+	err = condition.Fulfill(fulfillment, types.FulfillContext{
+		ExtraObjects: []interface{}{ERC20AdddressRegistrationSignatureSpecifier},
+		BlockHeight:  ctx.BlockHeight,
+		BlockTime:    ctx.BlockTime,
+		Transaction:  t,
+	})
+	if err != nil {
+		return fmt.Errorf("unauthorized ERC20 AddressRegistration tx: %v", err)
+	}
+
+	// validate the miner fee
+	if eartx.TransactionFee.Cmp(constants.MinimumMinerFee) < 0 {
+		return types.ErrTooSmallMinerFee
+	}
+
+	// prevent double spending
+	spendCoins := make(map[types.CoinOutputID]struct{})
+	for _, ci := range eartx.CoinInputs {
+		if _, found := spendCoins[ci.ParentID]; found {
+			return types.ErrDoubleSpend
+		}
+		spendCoins[ci.ParentID] = struct{}{}
+	}
+
+	// check if optional coin output is using standard condition
+	if eartx.RefundCoinOutput != nil {
+		err = eartx.RefundCoinOutput.Condition.IsStandardCondition(ctx)
+		if err != nil {
+			return err
+		}
+		// ensure the value is not 0
+		if eartx.RefundCoinOutput.Value.IsZero() {
+			return types.ErrZeroOutput
+		}
+	}
+	// check if all fulfillments are standard
+	for _, sci := range eartx.CoinInputs {
+		err = sci.Fulfillment.IsStandardFulfillment(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	// TODO: validate the public key is not registered yet!
+
+	// Tx is valid
+	return nil
+}
+
+// ValidateCoinOutputs is handled using the default Rivine validation
+
+// ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
+func (eartc ERC20AddressRegistrationTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
+	return nil // always valid, no block stake inputs/outputs exist within an ERC20 AddressRegistration tx transaction
+}
+
+// SignatureHash implements TransactionSignatureHasher.SignatureHash
+func (eartc ERC20AddressRegistrationTransactionController) SignatureHash(t types.Transaction, extraObjects ...interface{}) (crypto.Hash, error) {
+	eartx, err := ERC20AddressRegistrationTransactionFromTransaction(t)
+	if err != nil {
+		return crypto.Hash{}, fmt.Errorf("failed to use tx as an ERC20AddressRegistrationTx: %v", err)
+	}
+
+	h := crypto.NewHash()
+	enc := rivbin.NewEncoder(h)
+
+	enc.EncodeAll(
+		t.Version,
+		SpecifierERC20AddressRegistrationTransaction,
+		eartx.PublicKey,
+	)
+
+	if len(extraObjects) > 0 {
+		enc.EncodeAll(extraObjects...)
+	}
+
+	enc.Encode(len(eartx.CoinInputs))
+	for _, ci := range eartx.CoinInputs {
+		enc.Encode(ci.ParentID)
+	}
+
+	enc.EncodeAll(
+		eartx.TransactionFee,
+		eartx.RefundCoinOutput,
+	)
+
+	var hash crypto.Hash
+	h.Sum(hash[:0])
+	return hash, nil
+}
+
+// SignExtension implements TransactionExtensionSigner.SignExtension
+func (eartc ERC20AddressRegistrationTransactionController) SignExtension(extension interface{}, sign func(*types.UnlockFulfillmentProxy, types.UnlockConditionProxy, ...interface{}) error) (interface{}, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid ERC20AddressRegistrationTransactionExtension,
+	// which contains the nonce and the mintFulfillment that can be used to fulfill the globally defined mint condition
+	eartxExtension, ok := extension.(*ERC20AddressRegistrationTransactionExtension)
+	if !ok {
+		return nil, errors.New("invalid extension data for a ERC20 AddressRegistration Transaction")
+	}
+
+	// > create condition
+	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(eartxExtension.PublicKey)))
+	// > and a matching single-signature fulfillment
+	fulfillment := types.NewFulfillment(&types.SingleSignatureFulfillment{
+		PublicKey: eartxExtension.PublicKey,
+		Signature: eartxExtension.Signature,
+	})
+	// sign the tx
+	err := sign(&fulfillment, condition, ERC20AdddressRegistrationSignatureSpecifier)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign ERC20 Address Registration Tx: %v", err)
+	}
+
+	// copy over the tx signature
+	// TODO: be able to get this directly from the fulfillment somehnow
+	var ffData map[string]interface{}
+	b, _ := json.Marshal(fulfillment)
+	err = json.Unmarshal(b, &ffData)
+	if err != nil {
+		return nil, fmt.Errorf("invalid signed ERC20 Address Registration Tx: %v", err)
+	}
+	rawsig := ffData["data"].(map[string]interface{})["signature"].(string)
+	err = eartxExtension.Signature.LoadString(rawsig)
+	if err != nil {
+		return nil, fmt.Errorf("invalid signed ERC20 Address Registration Tx: %v", err)
+	}
+
+	return eartxExtension, nil
+}
+
+// EncodeTransactionIDInput implements TransactionIDEncoder.EncodeTransactionIDInput
+func (eartc ERC20AddressRegistrationTransactionController) EncodeTransactionIDInput(w io.Writer, txData types.TransactionData) error {
+	eartx, err := ERC20AddressRegistrationTransactionFromTransactionData(txData)
+	if err != nil {
+		return fmt.Errorf("failed to convert txData to a ERC20AddressRegistration: %v", err)
+	}
+	return rivbin.NewEncoder(w).EncodeAll(SpecifierERC20AddressRegistrationTransaction, eartx)
 }
 
 // TransactionNonce is a nonce

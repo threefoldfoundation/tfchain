@@ -368,6 +368,8 @@ function txVersionName(version) {
 			return "TFT to ERC20 Transfer"
 		case 209:
 			return "ERC20 to TFT Transfer"
+		case 210:
+			return "ERC20 Address Registration"
 
 		default:
 			return "Unknown";
