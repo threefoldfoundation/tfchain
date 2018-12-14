@@ -3620,6 +3620,17 @@ type (
 	ERC20CoinCreationTransactionController struct{}
 )
 
+// ensure at compile time that CoinCreationTransactionController
+// implements the desired interfaces
+var (
+	_ types.TransactionController      = ERC20CoinCreationTransactionController{}
+	_ types.TransactionValidator       = ERC20CoinCreationTransactionController{}
+	_ types.CoinOutputValidator        = ERC20CoinCreationTransactionController{}
+	_ types.BlockStakeOutputValidator  = ERC20CoinCreationTransactionController{}
+	_ types.TransactionSignatureHasher = ERC20CoinCreationTransactionController{}
+	_ types.TransactionIDEncoder       = ERC20CoinCreationTransactionController{}
+)
+
 // EncodeTransactionData implements TransactionController.EncodeTransactionData
 func (etctc ERC20CoinCreationTransactionController) EncodeTransactionData(w io.Writer, txData types.TransactionData) error {
 	etctx, err := ERC20CoinCreationTransactionFromTransactionData(txData)
