@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"path/filepath"
 	"runtime"
 	"sync"
 
@@ -39,9 +40,9 @@ type Bridged struct {
 }
 
 // Create new Bridged.
-func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, ethPort uint16, accountJSON, accountPass string, ethLog int, cancel <-chan struct{}) (*Bridged, error) {
+func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, ethPort uint16, accountJSON, accountPass string, ethLog int, datadir string, cancel <-chan struct{}) (*Bridged, error) {
 
-	bridge, err := newRinkebyEthBridge(int(ethPort), accountJSON, accountPass, ethLog)
+	bridge, err := newRinkebyEthBridge(int(ethPort), accountJSON, accountPass, ethLog, filepath.Join(datadir, "eth"))
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		log.Info("loading bridged module (3/3)...")
 		bridged, err := NewBridged(
-			cs, cmd.transactionDB, cmd.BlockchainInfo, cmd.ChainConstants, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthLog, ctx.Done())
+			cs, cmd.transactionDB, cmd.BlockchainInfo, cmd.ChainConstants, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthLog, cmd.RootPersistentDir, ctx.Done())
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)
 			log.Error("[ERROR] ", cmdErr)
@@ -349,7 +350,7 @@ func main() {
 	cmdRoot.Flags().StringVarP(
 		&cmd.RootPersistentDir,
 		"persistent-directory", "d",
-		cmd.RootPersistentDir,
+		"bridgedata",
 		"location of the root diretory used to store persistent data of the daemon of "+cmd.BlockchainInfo.Name,
 	)
 	cmdRoot.Flags().StringVar(

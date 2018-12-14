@@ -8,7 +8,6 @@ import (
 
 	// "log"
 	"math/big"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -69,7 +68,7 @@ type ethBridge struct {
 	lock     sync.RWMutex        // Lock protecting the bridge's internals
 }
 
-func newRinkebyEthBridge(port int, accountJSON, accountPass string, ethLog int) (*ethBridge, error) {
+func newRinkebyEthBridge(port int, accountJSON, accountPass string, ethLog int, datadir string) (*ethBridge, error) {
 	var enodes []*discv5.Node
 	for _, boot := range strings.Split(strings.Join(params.RinkebyBootnodes, ","), ",") {
 		if url, err := discv5.ParseNode(boot); err == nil {
@@ -78,7 +77,7 @@ func newRinkebyEthBridge(port int, accountJSON, accountPass string, ethLog int) 
 			return nil, errors.New("Failed to parse bootnode URL" + "url" + boot + "err" + err.Error())
 		}
 	}
-	ks := keystore.NewKeyStore(filepath.Join(os.Getenv("HOME"), ".bridge-proto", "keys"), keystore.StandardScryptN, keystore.StandardScryptP)
+	ks := keystore.NewKeyStore(filepath.Join(datadir, "keys"), keystore.StandardScryptN, keystore.StandardScryptP)
 	var acc accounts.Account
 	if accountJSON != "" {
 		log.Info("Importing account")
@@ -111,15 +110,15 @@ func newRinkebyEthBridge(port int, accountJSON, accountPass string, ethLog int) 
 		return nil, err
 	}
 	log.Info("Account unlocked")
-	return newEthBridge(RinkebyGenesisBlock, port, enodes, RinkebyNetworkID, "", ks)
+	return newEthBridge(RinkebyGenesisBlock, port, enodes, RinkebyNetworkID, "", ks, datadir)
 }
 
-func newEthBridge(genesis *core.Genesis, port int, enodes []*discv5.Node, network uint64, stats string, ks *keystore.KeyStore) (*ethBridge, error) {
+func newEthBridge(genesis *core.Genesis, port int, enodes []*discv5.Node, network uint64, stats string, ks *keystore.KeyStore, datadir string) (*ethBridge, error) {
 	// Assemble the raw devp2p protocol stack
 	stack, err := node.New(&node.Config{
-		Name:    "tfb", //threefold bridge
+		Name:    "rinkeby", //network name
 		Version: params.VersionWithMeta,
-		DataDir: filepath.Join(os.Getenv("HOME"), ".bridge-proto"),
+		DataDir: datadir,
 		P2P: p2p.Config{
 			NAT:              nat.Any(),
 			NoDiscovery:      true,
@@ -135,7 +134,7 @@ func newEthBridge(genesis *core.Genesis, port int, enodes []*discv5.Node, networ
 	// Assemble the Ethereum light client protocol
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		cfg := eth.DefaultConfig
-		cfg.Ethash.DatasetDir = filepath.Join(os.Getenv("HOME"), ".bridge-proto", "ethash")
+		cfg.Ethash.DatasetDir = filepath.Join("bridgedata", "ethash")
 		cfg.SyncMode = downloader.LightSync
 		cfg.NetworkId = network
 		cfg.Genesis = genesis
