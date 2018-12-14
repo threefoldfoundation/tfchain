@@ -297,9 +297,15 @@ func (op *ethBridge) SubscribeMint(contractAddress common.Address) error {
 	}
 }
 
+type WithdrawEvent struct {
+	receiver common.Address
+	amount   *big.Int
+	txHash   common.Hash
+}
+
 // SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
 // and prints out info about any withdraw as it happened
-func (op *ethBridge) SubscribeWithdraw(contractAddress common.Address) error {
+func (op *ethBridge) SubscribeWithdraw(contractAddress common.Address, wc chan<- WithdrawEvent) error {
 	filter, err := NewTTFT20Filterer(contractAddress, op.client)
 	if err != nil {
 		return err
@@ -317,6 +323,7 @@ func (op *ethBridge) SubscribeWithdraw(contractAddress common.Address) error {
 			return err
 		case withdraw := <-sink:
 			log.Info("Noticed withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
+			wc <- WithdrawEvent{receiver: withdraw.Receiver, amount: withdraw.Tokens, txHash: withdraw.Raw.TxHash}
 		}
 	}
 }
@@ -378,6 +385,22 @@ func (op *ethBridge) Mint(contractAddress common.Address, receiver common.Addres
 	defer cancel()
 	opts := &bind.TransactOpts{Context: ctx, From: op.account.Address, Signer: op.GetSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
 	_, err = tr.MintTokens(opts, receiver, amount, txID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (op *ethBridge) RegisterWithdrawalAddress(contractAddress common.Address, address common.Address) error {
+	log.Info("Calling register withdrawel address function in contract")
+	tr, err := NewTTFT20Transactor(contractAddress, op.client)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+	opts := &bind.TransactOpts{Context: ctx, From: op.account.Address, Signer: op.GetSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
+	_, err = tr.RegisterWithdrawalAddress(opts, address)
 	if err != nil {
 		return err
 	}

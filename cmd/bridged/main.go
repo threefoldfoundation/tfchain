@@ -61,8 +61,16 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo riv
 	go bridged.bridge.loop()
 	go bridged.bridge.SubscribeTransfers(ContractAddress)
 	go bridged.bridge.SubscribeMint(ContractAddress)
-	go bridged.bridge.SubscribeWithdraw(ContractAddress)
 	go bridged.bridge.SubscribeRegisterWithdrawAddress(ContractAddress)
+
+	withdrawChan := make(chan WithdrawEvent)
+	go bridged.bridge.SubscribeWithdraw(ContractAddress, withdrawChan)
+	go func() {
+		for {
+			// we := <-withdrawChan
+
+		}
+	}()
 
 	return bridged, nil
 }
@@ -98,6 +106,19 @@ func (bridged *Bridged) ProcessConsensusChange(css modules.ConsensusChange) {
 					return
 				}
 				log.Info("Created mint transaction on eth network")
+			} else if tx.Version == tfchaintypes.TransactionVersionERC20AddressRegistration {
+				log.Warn("Found erc20 address registration")
+				txRegistration, err := tfchaintypes.ERC20AddressRegistrationTransactionFromTransaction(tx)
+				if err != nil {
+					log.Error("Found a TFT ERC20 Address registration transaction version, but can't create the right transaction for it")
+					return
+				}
+				// send the address registration transaction
+				if err = bridged.RegisterWithdrawalAddress(txRegistration.PublicKey); err != nil {
+					log.Error("Failed to push withdrawal address registration transaction", "err", err)
+					return
+				}
+				log.Info("Registered withdrawal address on eth network")
 			}
 		}
 	}
@@ -110,6 +131,13 @@ var (
 
 func (bridged *Bridged) Mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
 	return bridged.bridge.Mint(ContractAddress, common.Address(receiver), big.NewInt(0).Mul(amount.Big(), precision), txID.String())
+}
+
+func (bridged *Bridged) RegisterWithdrawalAddress(key types.PublicKey) error {
+	// use the first 20 bytes from the key for now
+	var addressBytes [20]byte
+	copy(addressBytes[:], key.Key[:20])
+	return bridged.bridge.RegisterWithdrawalAddress(ContractAddress, common.Address(addressBytes))
 }
 
 type Commands struct {
