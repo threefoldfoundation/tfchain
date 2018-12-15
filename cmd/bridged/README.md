@@ -16,6 +16,8 @@ An account is expected to run this example.
 
  After the first time, the account remains loaded (unless the keystore dir is removed/cleared), and only the password needs to be provided.
 
+**Attention** The keystore is stored per network (main, rinkeby or Ropsten testnets)
+
 ### Important
 
 If you want to create these mint transactions yourself, the provided contract will need to be deployed by the account of which you have imported the key.

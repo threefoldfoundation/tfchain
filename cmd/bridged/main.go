@@ -14,6 +14,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	bridgedeth "github.com/threefoldfoundation/tfchain/cmd/bridged/eth"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 	"github.com/threefoldtech/rivine/types"
@@ -40,9 +41,9 @@ type Bridged struct {
 }
 
 // Create new Bridged.
-func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, ethPort uint16, accountJSON, accountPass string, ethLog int, datadir string, cancel <-chan struct{}) (*Bridged, error) {
+func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, ethPort uint16, accountJSON, accountPass string, datadir string, ethNetworkName string, cancel <-chan struct{}) (*Bridged, error) {
 
-	bridge, err := newRinkebyEthBridge(int(ethPort), accountJSON, accountPass, ethLog, filepath.Join(datadir, "eth"))
+	bridge, err := newEthBridge(ethNetworkName, int(ethPort), accountJSON, accountPass, filepath.Join(datadir, "eth"))
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +59,8 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo riv
 	if err != nil {
 		return nil, fmt.Errorf("bridged: failed to subscribe to consensus set: %v", err)
 	}
+	networkConfig, err := bridgedeth.GetEthNetworkConfiguration(ethNetworkName)
+	ContractAddress := networkConfig.ContractAddress
 	go bridged.bridge.loop()
 	go bridged.bridge.SubscribeTransfers(ContractAddress)
 	go bridged.bridge.SubscribeMint(ContractAddress)
@@ -130,14 +133,14 @@ var (
 )
 
 func (bridged *Bridged) Mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
-	return bridged.bridge.Mint(ContractAddress, common.Address(receiver), big.NewInt(0).Mul(amount.Big(), precision), txID.String())
+	return bridged.bridge.Mint(bridged.bridge.GetContractAdress(), common.Address(receiver), big.NewInt(0).Mul(amount.Big(), precision), txID.String())
 }
 
 func (bridged *Bridged) RegisterWithdrawalAddress(key types.PublicKey) error {
 	// use the first 20 bytes from the key for now
 	var addressBytes [20]byte
 	copy(addressBytes[:], key.Key[:20])
-	return bridged.bridge.RegisterWithdrawalAddress(ContractAddress, common.Address(addressBytes))
+	return bridged.bridge.RegisterWithdrawalAddress(bridged.bridge.GetContractAdress(), common.Address(addressBytes))
 }
 
 type Commands struct {
@@ -145,6 +148,8 @@ type Commands struct {
 	BlockchainInfo rivinetypes.BlockchainInfo
 	ChainConstants rivinetypes.ChainConstants
 	BootstrapPeers []modules.NetAddress
+
+	EthNetworkName string
 
 	// eth port for light client
 	EthPort uint16
@@ -159,7 +164,7 @@ type Commands struct {
 	transactionDB     *persist.TransactionDB
 }
 
-func GetDevnetBootstrapPeers() []modules.NetAddress {
+func getDevnetBootstrapPeers() []modules.NetAddress {
 	return []modules.NetAddress{
 		"localhost:23112",
 	}
@@ -223,7 +228,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
-		cmd.BootstrapPeers = GetDevnetBootstrapPeers()
+		cmd.BootstrapPeers = getDevnetBootstrapPeers()
 	default:
 		return fmt.Errorf(
 			"%q is an invalid network name, has to be one of {standard,testnet,devnet}",
@@ -286,7 +291,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		log.Info("loading bridged module (3/3)...")
 		bridged, err := NewBridged(
-			cs, cmd.transactionDB, cmd.BlockchainInfo, cmd.ChainConstants, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthLog, cmd.RootPersistentDir, ctx.Done())
+			cs, cmd.transactionDB, cmd.BlockchainInfo, cmd.ChainConstants, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.RootPersistentDir, cmd.EthNetworkName, ctx.Done())
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)
 			log.Error("[ERROR] ", cmdErr)
@@ -392,10 +397,16 @@ func main() {
 		&cmd.BlockchainInfo.NetworkName,
 		"network", "n",
 		cmd.BlockchainInfo.NetworkName,
-		"the name of the network to which the daemon connects, one of {standard,testnet,devnet}",
+		"the name of the tfchain network to  connect to  {standard,testnet,devnet}",
 	)
 
 	// bridge flags
+
+	cmdRoot.Flags().StringVar(
+		&cmd.EthNetworkName,
+		"ethnetwork", "main",
+		"The ethereum network, {main,rinkeby, ropsten}",
+	)
 	cmdRoot.Flags().Uint16Var(
 		&cmd.EthPort,
 		"ethport", 3003,

@@ -4,20 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 
 	// "log"
 	"math/big"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/eth"
 	"github.com/ethereum/go-ethereum/eth/downloader"
@@ -27,24 +25,13 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/discv5"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/nat"
 	"github.com/ethereum/go-ethereum/params"
-)
-
-const (
-	// RinkebyNetworkID is the network ID for the rinkeby network
-	RinkebyNetworkID = 4
-	// ContractAddressString is the hex string address of the contract to monitor
-	ContractAddressString = "0x21826CC49B92029553af86F4e7A62C427E61e53a"
+	bridgedeth "github.com/threefoldfoundation/tfchain/cmd/bridged/eth"
 )
 
 var (
-	// RinkebyGenesisBlock is the genesis block used by the Rinkeby test network
-	RinkebyGenesisBlock = core.DefaultRinkebyGenesisBlock()
-	// ContractAddress is the address of the contract to monitor
-	ContractAddress = common.HexToAddress(ContractAddressString)
 	// OneToken is the exact value of one token
 	OneToken = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 )
@@ -56,67 +43,41 @@ var (
 // ethBridge represents a prototype for a bridge between tft and erc20, able to call
 // contract methods and listen for contract events
 type ethBridge struct {
-	config   *params.ChainConfig // Chain configurations for signing
-	stack    *node.Node          // Ethereum protocol stack
-	client   *ethclient.Client   // Client connection to the Ethereum chain
-	keystore *keystore.KeyStore  // Keystore containing the signing info
-	account  accounts.Account    // Account funding the bridge requests
-	head     *types.Header       // Current head header of the bridge
-	balance  *big.Int            // The current balance of the bridge (note: ethers only!)
-	nonce    uint64              // Current pending nonce of the bridge
-	price    *big.Int            // Current gas price to issue funds with
-	lock     sync.RWMutex        // Lock protecting the bridge's internals
+	networkConfig bridgedeth.NetworkConfiguration // Ethereum network
+	stack         *node.Node                      // Ethereum protocol stack
+	client        *ethclient.Client               // Client connection to the Ethereum chain
+	keystore      *keystore.KeyStore              // Keystore containing the signing info
+	account       accounts.Account                // Account funding the bridge requests
+	head          *types.Header                   // Current head header of the bridge
+	balance       *big.Int                        // The current balance of the bridge (note: ethers only!)
+	nonce         uint64                          // Current pending nonce of the bridge
+	price         *big.Int                        // Current gas price to issue funds with
+	lock          sync.RWMutex                    // Lock protecting the bridge's internals
 }
 
-func newRinkebyEthBridge(port int, accountJSON, accountPass string, ethLog int, datadir string) (*ethBridge, error) {
-	var enodes []*discv5.Node
-	for _, boot := range strings.Split(strings.Join(params.RinkebyBootnodes, ","), ",") {
-		if url, err := discv5.ParseNode(boot); err == nil {
-			enodes = append(enodes, url)
-		} else {
-			return nil, errors.New("Failed to parse bootnode URL" + "url" + boot + "err" + err.Error())
-		}
-	}
-	ks := keystore.NewKeyStore(filepath.Join(datadir, "keys"), keystore.StandardScryptN, keystore.StandardScryptP)
-	var acc accounts.Account
-	if accountJSON != "" {
-		log.Info("Importing account")
-		blob, err := ioutil.ReadFile(accountJSON)
-		if err != nil {
-			return nil, err
-		}
-		// Import the account
-		acc, err = ks.Import(blob, accountPass, accountPass)
-		if err != nil {
-			return nil, err
-		}
+func (bridge *ethBridge) GetContractAdress() common.Address {
+	return bridge.networkConfig.ContractAddress
 
-	} else {
-		if len(ks.Accounts()) == 0 {
-			log.Info("Creating a new account")
-			var err error
-			acc, err = ks.NewAccount(accountPass)
-			if err != nil {
-				return nil, err
-			}
+}
 
-		} else {
-			log.Info("Loading existing account")
-			acc = ks.Accounts()[0]
-		}
-	}
-	log.Info("Unlocking account " + acc.Address.String())
-	if err := ks.Unlock(acc, accountPass); err != nil {
+func newEthBridge(networkName string, port int, accountJSON, accountPass string, datadir string) (*ethBridge, error) {
+	datadir = filepath.Join(datadir, networkName)
+	ks, err := bridgedeth.InitializeKeystore(datadir, accountJSON, accountPass)
+	if err != nil {
 		return nil, err
 	}
-	log.Info("Account unlocked")
-	return newEthBridge(RinkebyGenesisBlock, port, enodes, RinkebyNetworkID, "", ks, datadir)
-}
+	networkConfig, err := bridgedeth.GetEthNetworkConfiguration(networkName)
+	if err != nil {
+		return nil, err
+	}
 
-func newEthBridge(genesis *core.Genesis, port int, enodes []*discv5.Node, network uint64, stats string, ks *keystore.KeyStore, datadir string) (*ethBridge, error) {
+	enodes, err := networkConfig.GetBootnodes()
+	if err != nil {
+		return nil, err
+	}
 	// Assemble the raw devp2p protocol stack
 	stack, err := node.New(&node.Config{
-		Name:    "rinkeby", //network name
+		Name:    "chain",
 		Version: params.VersionWithMeta,
 		DataDir: datadir,
 		P2P: p2p.Config{
@@ -134,14 +95,15 @@ func newEthBridge(genesis *core.Genesis, port int, enodes []*discv5.Node, networ
 	// Assemble the Ethereum light client protocol
 	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
 		cfg := eth.DefaultConfig
-		cfg.Ethash.DatasetDir = filepath.Join("bridgedata", "ethash")
+		cfg.Ethash.DatasetDir = filepath.Join(datadir, "ethash")
 		cfg.SyncMode = downloader.LightSync
-		cfg.NetworkId = network
-		cfg.Genesis = genesis
+		cfg.NetworkId = networkConfig.NetworkID
+		cfg.Genesis = networkConfig.GenesisBlock
 		return les.New(ctx, &cfg)
 	}); err != nil {
 		return nil, err
 	}
+	stats := "" // Todo: should this stay in here?
 	// Assemble the ethstats monitoring and reporting service'
 	if stats != "" {
 		if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
@@ -171,29 +133,29 @@ func newEthBridge(genesis *core.Genesis, port int, enodes []*discv5.Node, networ
 	}
 	client := ethclient.NewClient(api)
 	return &ethBridge{
-		config:   genesis.Config,
-		stack:    stack,
-		client:   client,
-		keystore: ks,
-		account:  ks.Accounts()[0],
+		networkConfig: networkConfig,
+		stack:         stack,
+		client:        client,
+		keystore:      ks,
+		account:       ks.Accounts()[0],
 	}, nil
 }
 
 // close terminates the Ethereum connection and tears down the bridge proto.
-func (op *ethBridge) close() error {
-	return op.stack.Stop()
+func (bridge *ethBridge) close() error {
+	return bridge.stack.Stop()
 }
 
 // refresh attempts to retrieve the latest header from the chain and extract the
 // associated bridge balance and nonce for connectivity caching.
-func (op *ethBridge) refresh(head *types.Header) error {
+func (bridge *ethBridge) refresh(head *types.Header) error {
 	// Ensure a state update does not run for too long
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	// If no header was specified, use the current chain head
 	var err error
 	if head == nil {
-		if head, err = op.client.HeaderByNumber(ctx, nil); err != nil {
+		if head, err = bridge.client.HeaderByNumber(ctx, nil); err != nil {
 			return err
 		}
 	}
@@ -203,26 +165,26 @@ func (op *ethBridge) refresh(head *types.Header) error {
 		price   *big.Int
 		balance *big.Int
 	)
-	if price, err = op.client.SuggestGasPrice(ctx); err != nil {
+	if price, err = bridge.client.SuggestGasPrice(ctx); err != nil {
 		return err
 	}
-	if balance, err = op.client.BalanceAt(ctx, op.account.Address, head.Number); err != nil {
+	if balance, err = bridge.client.BalanceAt(ctx, bridge.account.Address, head.Number); err != nil {
 		return err
 	}
 	// Everything succeeded, update the cached stats
-	op.lock.Lock()
-	op.head, op.balance = head, balance
-	op.price, op.nonce = price, nonce
-	op.lock.Unlock()
+	bridge.lock.Lock()
+	bridge.head, bridge.balance = head, balance
+	bridge.price, bridge.nonce = price, nonce
+	bridge.lock.Unlock()
 	return nil
 }
 
-func (op *ethBridge) loop() {
+func (bridge *ethBridge) loop() {
 	log.Info("Subscribing to eth headers")
 	// channel to receive head updates from client on
 	heads := make(chan *types.Header, 16)
 	// subscribe to head upates
-	sub, err := op.client.SubscribeNewHead(context.Background(), heads)
+	sub, err := bridge.client.SubscribeNewHead(context.Background(), heads)
 	if err != nil {
 		// log.Fatal("Failed to subscribe to head events", "err", err)
 	}
@@ -232,10 +194,10 @@ func (op *ethBridge) loop() {
 	go func() {
 		for head := range update {
 			// old heads should be ignored during a chain sync after some downtime
-			if err := op.refresh(head); err != nil {
+			if err := bridge.refresh(head); err != nil {
 				log.Warn("Failed to update state", "block", head.Number, "err", err)
 			}
-			log.Info("Internal stats updated", "block", head.Number, "account balance", op.balance, "gas price", op.price, "nonce", op.nonce)
+			log.Info("Internal stats updated", "block", head.Number, "account balance", bridge.balance, "gas price", bridge.price, "nonce", bridge.nonce)
 		}
 	}()
 	for head := range heads {
@@ -251,8 +213,8 @@ func (op *ethBridge) loop() {
 
 // SubscribeTransfers subscribes to new Transfer events on the given contract. This call blocks
 // and prints out info about any transfer as it happened
-func (op *ethBridge) SubscribeTransfers(contractAddress common.Address) error {
-	filter, err := NewTTFT20Filterer(contractAddress, op.client)
+func (bridge *ethBridge) SubscribeTransfers(contractAddress common.Address) error {
+	filter, err := NewTTFT20Filterer(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
@@ -275,8 +237,8 @@ func (op *ethBridge) SubscribeTransfers(contractAddress common.Address) error {
 
 // SubscribeMint subscribes to new Mint events on the given contract. This call blocks
 // and prints out info about any mint as it happened
-func (op *ethBridge) SubscribeMint(contractAddress common.Address) error {
-	filter, err := NewTTFT20Filterer(contractAddress, op.client)
+func (bridge *ethBridge) SubscribeMint(contractAddress common.Address) error {
+	filter, err := NewTTFT20Filterer(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
@@ -305,8 +267,8 @@ type WithdrawEvent struct {
 
 // SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
 // and prints out info about any withdraw as it happened
-func (op *ethBridge) SubscribeWithdraw(contractAddress common.Address, wc chan<- WithdrawEvent) error {
-	filter, err := NewTTFT20Filterer(contractAddress, op.client)
+func (bridge *ethBridge) SubscribeWithdraw(contractAddress common.Address, wc chan<- WithdrawEvent) error {
+	filter, err := NewTTFT20Filterer(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
@@ -330,8 +292,8 @@ func (op *ethBridge) SubscribeWithdraw(contractAddress common.Address, wc chan<-
 
 // SubscribeRegisterWithdrawAddress subscribes to new RegisterWithdrawalAddress events on the given contract. This call blocks
 // and prints out info about any RegisterWithdrawalAddress event as it happened
-func (op *ethBridge) SubscribeRegisterWithdrawAddress(contractAddress common.Address) error {
-	filter, err := NewTTFT20Filterer(contractAddress, op.client)
+func (bridge *ethBridge) SubscribeRegisterWithdrawAddress(contractAddress common.Address) error {
+	filter, err := NewTTFT20Filterer(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
@@ -353,17 +315,17 @@ func (op *ethBridge) SubscribeRegisterWithdrawAddress(contractAddress common.Add
 }
 
 //
-func (op *ethBridge) TransferFunds(contractAddress common.Address, recipient common.Address, amount *big.Int) error {
+func (bridge *ethBridge) TransferFunds(contractAddress common.Address, recipient common.Address, amount *big.Int) error {
 	if amount == nil {
 		return errors.New("invalid amount")
 	}
-	tr, err := NewTTFT20Transactor(contractAddress, op.client)
+	tr, err := NewTTFT20Transactor(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	opts := &bind.TransactOpts{Context: ctx, From: op.account.Address, Signer: op.GetSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
+	opts := &bind.TransactOpts{Context: ctx, From: bridge.account.Address, Signer: bridge.GetSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
 	_, err = tr.Transfer(opts, recipient, amount)
 	if err != nil {
 		return err
@@ -372,18 +334,18 @@ func (op *ethBridge) TransferFunds(contractAddress common.Address, recipient com
 }
 
 //
-func (op *ethBridge) Mint(contractAddress common.Address, receiver common.Address, amount *big.Int, txID string) error {
+func (bridge *ethBridge) Mint(contractAddress common.Address, receiver common.Address, amount *big.Int, txID string) error {
 	log.Info("Calling mint function in contract")
 	if amount == nil {
 		return errors.New("invalid amount")
 	}
-	tr, err := NewTTFT20Transactor(contractAddress, op.client)
+	tr, err := NewTTFT20Transactor(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	opts := &bind.TransactOpts{Context: ctx, From: op.account.Address, Signer: op.GetSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
+	opts := &bind.TransactOpts{Context: ctx, From: bridge.account.Address, Signer: bridge.GetSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
 	_, err = tr.MintTokens(opts, receiver, amount, txID)
 	if err != nil {
 		return err
@@ -391,15 +353,15 @@ func (op *ethBridge) Mint(contractAddress common.Address, receiver common.Addres
 	return nil
 }
 
-func (op *ethBridge) RegisterWithdrawalAddress(contractAddress common.Address, address common.Address) error {
+func (bridge *ethBridge) RegisterWithdrawalAddress(contractAddress common.Address, address common.Address) error {
 	log.Info("Calling register withdrawel address function in contract")
-	tr, err := NewTTFT20Transactor(contractAddress, op.client)
+	tr, err := NewTTFT20Transactor(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	opts := &bind.TransactOpts{Context: ctx, From: op.account.Address, Signer: op.GetSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
+	opts := &bind.TransactOpts{Context: ctx, From: bridge.account.Address, Signer: bridge.GetSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
 	_, err = tr.RegisterWithdrawalAddress(opts, address)
 	if err != nil {
 		return err
@@ -407,11 +369,12 @@ func (op *ethBridge) RegisterWithdrawalAddress(contractAddress common.Address, a
 	return nil
 }
 
-func (op *ethBridge) GetSignerFunc() bind.SignerFn {
+func (bridge *ethBridge) GetSignerFunc() bind.SignerFn {
 	return func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
-		if address != op.account.Address {
+		if address != bridge.account.Address {
 			return nil, errors.New("not authorized to sign this account")
 		}
-		return op.keystore.SignTx(op.account, tx, big.NewInt(RinkebyNetworkID))
+		networkID := int64(bridge.networkConfig.NetworkID)
+		return bridge.keystore.SignTx(bridge.account, tx, big.NewInt(networkID))
 	}
 }
