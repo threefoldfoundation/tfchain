@@ -12,6 +12,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/threefoldtech/rivine/modules/transactionpool"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
 	bridgedeth "github.com/threefoldfoundation/tfchain/cmd/bridged/eth"
@@ -31,6 +33,7 @@ import (
 type Bridged struct {
 	cs   modules.ConsensusSet
 	txdb *persist.TransactionDB
+	tp   modules.TransactionPool
 
 	bcInfo   rivinetypes.BlockchainInfo
 	chainCts rivinetypes.ChainConstants
@@ -41,7 +44,7 @@ type Bridged struct {
 }
 
 // Create new Bridged.
-func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, ethPort uint16, accountJSON, accountPass string, datadir string, ethNetworkName string, cancel <-chan struct{}) (*Bridged, error) {
+func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.TransactionPool, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, ethPort uint16, accountJSON, accountPass string, datadir string, ethNetworkName string, cancel <-chan struct{}) (*Bridged, error) {
 
 	bridge, err := newEthBridge(ethNetworkName, int(ethPort), accountJSON, accountPass, filepath.Join(datadir, "eth"))
 	if err != nil {
@@ -51,6 +54,7 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo riv
 	bridged := &Bridged{
 		cs:       cs,
 		txdb:     txdb,
+		tp:       tp,
 		bcInfo:   bcInfo,
 		chainCts: chainCts,
 		bridge:   bridge,
@@ -69,9 +73,20 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, bcInfo riv
 	withdrawChan := make(chan WithdrawEvent)
 	go bridged.bridge.SubscribeWithdraw(ContractAddress, withdrawChan)
 	go func() {
+		addr := types.UnlockHash{}
+		addr.LoadString("01fcf7fadb91c63ff6ff9ac5fd1405eee0ae8b29c7f0a95e7e8772bd02dc6e77df4b74a631487b")
 		for {
-			// we := <-withdrawChan
-
+			we := <-withdrawChan
+			tx := tfchaintypes.ERC20CoinCreationTransaction{}
+			// Todo: dynamic address
+			tx.Address = addr
+			tx.Value = types.NewCurrency(we.amount)
+			tx.TransactionID = tfchaintypes.ERC20TransactionID(we.txHash)
+			tx.TransactionFee = types.NewCurrency(OneToken)
+			if err := tp.AcceptTransactionSet([]types.Transaction{tx.Transaction()}); err != nil {
+				log.Error("Failed to push ERC20 -> TFT transaction", "err", err)
+				return
+			}
 		}
 	}()
 
@@ -244,7 +259,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 	go func() {
 		defer wg.Done()
 
-		log.Info("loading rivine gateway module (1/3)...")
+		log.Info("loading rivine gateway module (1/4)...")
 		gateway, err := gateway.New(
 			cmd.RPCaddr, true, cmd.perDir("gateway"),
 			cmd.BlockchainInfo, cmd.ChainConstants, cmd.BootstrapPeers)
@@ -263,7 +278,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			}
 		}()
 
-		log.Info("loading rivine consensus module (2/3)...")
+		log.Info("loading rivine consensus module (2/4)...")
 		cs, err := consensus.New(
 			gateway, true, cmd.perDir("consensus"),
 			cmd.BlockchainInfo, cmd.ChainConstants)
@@ -288,10 +303,26 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			cancel()
 			return
 		}
+		log.Info("loading transactionpool module (3/4)...")
+		tpool, err := transactionpool.New(cs, gateway, cmd.perDir("transactionpool"), cmd.BlockchainInfo, cmd.ChainConstants)
+		if err != nil {
+			cmdErr = fmt.Errorf("failed to create transactionpool module")
+			log.Error("Failed to create txpool module", "err", err)
+			cancel()
+			return
+		}
+		defer func() {
+			log.Info("Closing transactionpool module...")
+			err := tpool.Close()
+			if err != nil {
+				cmdErr = err
+				log.Error("Failed to close the transactionpool module", "err", err)
+			}
+		}()
 
-		log.Info("loading bridged module (3/3)...")
+		log.Info("loading bridged module (4/4)...")
 		bridged, err := NewBridged(
-			cs, cmd.transactionDB, cmd.BlockchainInfo, cmd.ChainConstants, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.RootPersistentDir, cmd.EthNetworkName, ctx.Done())
+			cs, cmd.transactionDB, tpool, cmd.BlockchainInfo, cmd.ChainConstants, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.RootPersistentDir, cmd.EthNetworkName, ctx.Done())
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)
 			log.Error("[ERROR] ", cmdErr)
