@@ -2058,7 +2058,14 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 			var doms = appendUnlabeledStat(walletsTable, '')
 			linkHash(doms[1], explorerHash.multisigaddresses[i]);
 		}
-		domParent.appendChild(walletsTable)
+		domParent.appendChild(walletsTable);
+	}
+
+	if (explorerHash.erc20info && explorerHash.erc20info.erc20address != null && explorerHash.erc20info.erc20address != "0000000000000000000000000000000000000000") {
+		appendStatTableTitle(domParent, "Linked ERC20 Wallet");
+		var erc20WalletTable = createStatsTable();
+		appendStat(erc20WalletTable, 'ERC20 Address', explorerHash.erc20info.erc20address);
+		domParent.appendChild(erc20WalletTable);
 	}
 
 	var found = false;
@@ -2127,8 +2134,6 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 			domParent.appendChild(tables[i]);
 		}
 	}
-
-	
 
 	// Compile all of the tables + headers that can be created from
 	// transactions featuring the hash.
@@ -2357,6 +2362,12 @@ function populateHashPage(hash, explorerHash) {
 		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
 		appendRawTransaction(infoBody, explorerHash.transaction.rawtransaction);
 	} else if (hashType === "unlockhash") {
+		if (hash != null && hash.length == 40) {
+			// if an ERC20 address was looked up, show the linked TFT wallet
+			if (explorerHash != null && explorerHash.erc20info != null && explorerHash.erc20info.tftaddress != null) {
+				hash = explorerHash.erc20info.tftaddress;
+			}
+		}
 		appendNavigationMenuUnlockHash(hash);
 		appendHeading(infoBody, 'Hash Type: Unlock Hash');
 		appendHeading(infoBody, 'Hash: ' + hash);

@@ -47,14 +47,6 @@ const (
 //   names/records/identifiers/publickeys
 //   (for mint condition I do not think it is required, as interaction with minting is minimal)
 
-// TODO:
-//    facilitate :id/transactions (how to handle nicely from the explorer POV)
-//		BotTransaction{
-//			NewExpirationTime (?)
-//			Names{add+remove}
-//			Address{add+remove}
-//		}
-
 // internal bucket database keys used for the transactionDB
 var (
 	bucketInternal         = []byte("internal")
@@ -70,6 +62,10 @@ var (
 	bucketBotNameToIDMapping       = []byte("botnames")        // Name => ID
 	bucketBotRecordImplicitUpdates = []byte("botimplupdates")  // txID => implicitBotRecordUpdate
 	bucketBotTransactions          = []byte("bottransactions") // ID => []txID
+
+	// buckets for the ERC20-bridge feature
+	bucketERC20ToTFTAddresses = []byte("addresses_erc20_to_tft") // erc20 => TFT
+	bucketTFTToERC20Addresses = []byte("addresses_tft_to_erc20") // TFT => erc20
 )
 
 type (
@@ -111,8 +107,10 @@ type (
 var (
 	// ensure TransactionDB implements the MintConditionGetter interface
 	_ types.MintConditionGetter = (*TransactionDB)(nil)
-	// enssure TransactionDB implements the BotRecordReadRegistry interface
+	// ensure TransactionDB implements the BotRecordReadRegistry interface
 	_ types.BotRecordReadRegistry = (*TransactionDB)(nil)
+	// ensure TransactionDB implements the ERC20AddressRegistry interface
+	_ types.ERC20AddressRegistry = (*TransactionDB)(nil)
 )
 
 // NewTransactionDB creates a new TransactionDB, using the given file (path) to store the (single) persistent BoltDB file.
@@ -339,6 +337,26 @@ func (txdb *TransactionDB) GetBotTransactionIdentifiers(id types.BotID) (ids []r
 	return
 }
 
+// GetERC20AddressForTFTAddress returns the mapped ERC20 address for the given TFT Address,
+// iff the TFT Address has registered an ERC20 address explicitly.
+func (txdb *TransactionDB) GetERC20AddressForTFTAddress(uh rivinetypes.UnlockHash) (addr types.ERC20Address, err error) {
+	err = txdb.db.View(func(tx *bolt.Tx) (err error) {
+		addr, err = getERC20AddressForTFTAddress(tx, uh)
+		return
+	})
+	return
+}
+
+// GetTFTAddressForERC20Address returns the mapped TFT address for the given ERC20 Address,
+// iff the TFT Address has registered an ERC20 address explicitly.
+func (txdb *TransactionDB) GetTFTAddressForERC20Address(addr types.ERC20Address) (uh rivinetypes.UnlockHash, err error) {
+	err = txdb.db.View(func(tx *bolt.Tx) (err error) {
+		uh, err = getTFTAddressForERC20Address(tx, addr)
+		return
+	})
+	return
+}
+
 // Close the transaction DB,
 // meaning the db will be unsubscribed from the consensus set,
 // as well the threadgroup will be stopped and the internal bolt db will be closed.
@@ -372,7 +390,7 @@ func (txdb *TransactionDB) openDB(filename string, genesisMintCondition rivinety
 	var (
 		dbMetadata = persist.Metadata{
 			Header:  "TFChain Transaction Database",
-			Version: "1.1.2",
+			Version: "1.1.2.1",
 		}
 	)
 
@@ -381,56 +399,12 @@ func (txdb *TransactionDB) openDB(filename string, genesisMintCondition rivinety
 		if err != persist.ErrBadVersion {
 			return fmt.Errorf("error opening tfchain transaction database: %v", err)
 		}
-		// try to open the DB using the original version
-		originalDBMetadata := persist.Metadata{
-			Header:  "TFChain Transaction Database",
-			Version: "1.1.0",
-		}
-		txdb.db, err = persist.OpenDatabase(originalDBMetadata, filename)
+		// try to migrate the DB
+		err = txdb.migrateDB(filename)
 		if err != nil {
-			return fmt.Errorf("error opening tfchain transaction database using v1.1.0: %v", err)
+			return err
 		}
-		// create added buckets
-		err = txdb.db.Update(func(tx *bolt.Tx) (err error) {
-			// Enumerate and create the new database buckets.
-			buckets := [][]byte{
-				bucketBotRecords,
-				bucketBotKeyToIDMapping,
-				bucketBotNameToIDMapping,
-				bucketBotRecordImplicitUpdates,
-				bucketBotTransactions,
-			}
-			for _, bucket := range buckets {
-				_, err = tx.CreateBucket(bucket)
-				if err != nil {
-					return err
-				}
-			}
-			// update the stats bucket
-			var oldStats struct {
-				ConsensusChangeID modules.ConsensusChangeID
-				BlockHeight       rivinetypes.BlockHeight
-				Synced            bool
-			}
-			internalBucket := tx.Bucket(bucketInternal)
-			b := internalBucket.Get(bucketInternalKeyStats)
-			if len(b) == 0 {
-				return errors.New("structured stats value could not be found in existing transaction db")
-			}
-			err = siabin.Unmarshal(b, &oldStats)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal structured stats value from existing transaction db: %v", err)
-			}
-			return internalBucket.Put(bucketInternalKeyStats, siabin.Marshal(transactionDBStats{
-				ConsensusChangeID: oldStats.ConsensusChangeID,
-				BlockHeight:       oldStats.BlockHeight,
-				ChainTime:         0, // will fix itself on the first block it receives
-				Synced:            oldStats.Synced,
-			}))
-		})
-		if err != nil {
-			return fmt.Errorf("error adding v1.1.2 buckets to tfchain transaction database: %v", err)
-		}
+		// save the new metadata
 		txdb.db.Metadata = dbMetadata
 		err = txdb.db.SaveMetadata()
 		if err != nil {
@@ -477,6 +451,98 @@ func (txdb *TransactionDB) openDB(filename string, genesisMintCondition rivinety
 	})
 }
 
+func (txdb *TransactionDB) migrateDB(filename string) error {
+	// try to open the DB using the original version
+	dbMetadata := persist.Metadata{
+		Header:  "TFChain Transaction Database",
+		Version: "1.1.0",
+	}
+	var err error
+	txdb.db, err = persist.OpenDatabase(dbMetadata, filename)
+	if err == nil {
+		// migrate from a v1.1.0 DB
+		return txdb.db.Update(txdb.migrateV110DB)
+	}
+	if err != persist.ErrBadVersion {
+		return fmt.Errorf("error opening tfchain transaction v1.1.0 database: %v", err)
+	}
+
+	// try to open the initial v1.2.0 DB (never released, but already out in field for dev purposes)
+	dbMetadata.Version = "1.2.0"
+	txdb.db, err = persist.OpenDatabase(dbMetadata, filename)
+	if err == nil {
+		// migrate from a v1.2.0 DB
+		return txdb.db.Update(txdb.migrateV120DB)
+	}
+	if err == persist.ErrBadVersion {
+		return fmt.Errorf("error opening tfchain transaction database with unknown version: %v", err)
+	}
+	return fmt.Errorf("error opening tfchain transaction v1.2.0 database: %v", err)
+}
+
+func (txdb *TransactionDB) migrateV110DB(tx *bolt.Tx) error {
+	// Enumerate and create the new database buckets.
+	buckets := [][]byte{
+		bucketBotRecords,
+		bucketBotKeyToIDMapping,
+		bucketBotNameToIDMapping,
+		bucketBotRecordImplicitUpdates,
+		bucketBotTransactions,
+	}
+	var err error
+	for _, bucket := range buckets {
+		_, err = tx.CreateBucket(bucket)
+		if err != nil {
+			return err
+		}
+	}
+	// update the stats bucket
+	var oldStats struct {
+		ConsensusChangeID modules.ConsensusChangeID
+		BlockHeight       rivinetypes.BlockHeight
+		Synced            bool
+	}
+	internalBucket := tx.Bucket(bucketInternal)
+	b := internalBucket.Get(bucketInternalKeyStats)
+	if len(b) == 0 {
+		return errors.New("structured stats value could not be found in existing transaction db")
+	}
+	err = siabin.Unmarshal(b, &oldStats)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal structured stats value from existing transaction db: %v", err)
+	}
+	err = internalBucket.Put(bucketInternalKeyStats, siabin.Marshal(transactionDBStats{
+		ConsensusChangeID: oldStats.ConsensusChangeID,
+		BlockHeight:       oldStats.BlockHeight,
+		ChainTime:         0, // will fix itself on the first block it receives
+		Synced:            oldStats.Synced,
+	}))
+	if err != nil {
+		return err
+	}
+
+	// Continue the migration process towards the newest version
+	return txdb.migrateV120DB(tx)
+}
+
+func (txdb *TransactionDB) migrateV120DB(tx *bolt.Tx) error {
+	// Enumerate and create the new database buckets.
+	buckets := [][]byte{
+		bucketERC20ToTFTAddresses,
+		bucketTFTToERC20Addresses,
+	}
+	var err error
+	for _, bucket := range buckets {
+		_, err = tx.CreateBucket(bucket)
+		if err != nil {
+			return err
+		}
+	}
+
+	// migration process is finished
+	return nil
+}
+
 // dbInitialized returns true if the database appears to be initialized, false
 // if not. Checking for the existence of the siafund pool bucket is typically
 // sufficient to determine whether the database has gone through the
@@ -496,6 +562,8 @@ func (txdb *TransactionDB) createDB(tx *bolt.Tx, genesisMintCondition rivinetype
 		bucketBotNameToIDMapping,
 		bucketBotRecordImplicitUpdates,
 		bucketBotTransactions,
+		bucketERC20ToTFTAddresses,
+		bucketTFTToERC20Addresses,
 	}
 	for _, bucket := range buckets {
 		_, err = tx.CreateBucket(bucket)
@@ -612,6 +680,10 @@ func (txdb *TransactionDB) revertBlocks(tx *bolt.Tx, blocks []rivinetypes.Block)
 				err = txdb.revertRecordUpdateTx(tx, ctx, rtx)
 			case types.TransactionVersionBotNameTransfer:
 				err = txdb.revertBotNameTransferTx(tx, ctx, rtx)
+
+			case types.TransactionVersionERC20AddressRegistration:
+				err = txdb.revertERC20AddressRegistrationTx(tx, ctx, rtx)
+
 			case types.TransactionVersionMinterDefinition:
 				err = txdb.revertMintConditionTx(tx, rtx)
 			}
@@ -666,6 +738,10 @@ func (txdb *TransactionDB) applyBlocks(tx *bolt.Tx, blocks []rivinetypes.Block) 
 				err = txdb.applyRecordUpdateTx(tx, ctx, rtx)
 			case types.TransactionVersionBotNameTransfer:
 				err = txdb.applyBotNameTransferTx(tx, ctx, rtx)
+
+			case types.TransactionVersionERC20AddressRegistration:
+				err = txdb.applyERC20AddressRegistrationTx(tx, ctx, rtx)
+
 			case types.TransactionVersionMinterDefinition:
 				err = txdb.applyMintConditionTx(tx, rtx)
 			}
@@ -1164,6 +1240,30 @@ func (txdb *TransactionDB) revertBotNameTransferTx(tx *bolt.Tx, ctx transactionC
 	return nil
 }
 
+func (txdb *TransactionDB) applyERC20AddressRegistrationTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
+	etartx, err := types.ERC20AddressRegistrationTransactionFromTransaction(*rtx)
+	if err != nil {
+		return fmt.Errorf("unexpected error while unpacking the ERC20 Address Registration tx type: %v", err)
+	}
+
+	tftaddr := rivinetypes.NewPubKeyUnlockHash(etartx.PublicKey)
+	erc20addr := types.ERC20AddressFromUnlockHash(tftaddr)
+
+	return applyERC20AddressMapping(tx, tftaddr, erc20addr)
+}
+
+func (txdb *TransactionDB) revertERC20AddressRegistrationTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
+	etartx, err := types.ERC20AddressRegistrationTransactionFromTransaction(*rtx)
+	if err != nil {
+		return fmt.Errorf("unexpected error while unpacking the ERC20 Address Registration tx type: %v", err)
+	}
+
+	tftaddr := rivinetypes.NewPubKeyUnlockHash(etartx.PublicKey)
+	erc20addr := types.ERC20AddressFromUnlockHash(tftaddr)
+
+	return revertERC20AddressMapping(tx, tftaddr, erc20addr)
+}
+
 // apply/revert the Key->ID mapping for a 3bot
 func applyKeyToIDMapping(tx *bolt.Tx, key rivinetypes.PublicKey, id types.BotID) error {
 	mappingBucket := tx.Bucket(bucketBotKeyToIDMapping)
@@ -1448,4 +1548,91 @@ func (ibru *implicitBotRecordUpdate) UnmarshalRivine(r io.Reader) error {
 
 	// all read succesfully
 	return nil
+}
+
+func applyERC20AddressMapping(tx *bolt.Tx, tftaddr rivinetypes.UnlockHash, erc20addr types.ERC20Address) error {
+	btft, berc20 := rivbin.Marshal(tftaddr), rivbin.Marshal(erc20addr)
+
+	// store ERC20->TFT mapping
+	bucket := tx.Bucket(bucketERC20ToTFTAddresses)
+	if bucket == nil {
+		return errors.New("corrupt transaction DB: ERC20->TFT bucket does not exist")
+	}
+	err := bucket.Put(berc20, btft)
+	if err != nil {
+		return fmt.Errorf("error while storing ERC20->TFT address mapping: %v", err)
+	}
+
+	// store TFT->ERC20 mapping
+	bucket = tx.Bucket(bucketTFTToERC20Addresses)
+	if bucket == nil {
+		return errors.New("corrupt transaction DB: TFT->ERC20 bucket does not exist")
+	}
+	err = bucket.Put(btft, berc20)
+	if err != nil {
+		return fmt.Errorf("error while storing TFT->ERC20 address mapping: %v", err)
+	}
+
+	// done
+	return nil
+}
+func revertERC20AddressMapping(tx *bolt.Tx, tftaddr rivinetypes.UnlockHash, erc20addr types.ERC20Address) error {
+	btft, berc20 := rivbin.Marshal(tftaddr), rivbin.Marshal(erc20addr)
+
+	// delete ERC20->TFT mapping
+	bucket := tx.Bucket(bucketERC20ToTFTAddresses)
+	if bucket == nil {
+		return errors.New("corrupt transaction DB: ERC20->TFT bucket does not exist")
+	}
+	err := bucket.Delete(berc20)
+	if err != nil {
+		return fmt.Errorf("error while deleting ERC20->TFT address mapping: %v", err)
+	}
+
+	// delete TFT->ERC20 mapping
+	bucket = tx.Bucket(bucketTFTToERC20Addresses)
+	if bucket == nil {
+		return errors.New("corrupt transaction DB: TFT->ERC20 bucket does not exist")
+	}
+	err = bucket.Delete(btft)
+	if err != nil {
+		return fmt.Errorf("error while deleting TFT->ERC20 address mapping: %v", err)
+	}
+
+	// done
+	return nil
+}
+
+func getERC20AddressForTFTAddress(tx *bolt.Tx, uh rivinetypes.UnlockHash) (types.ERC20Address, error) {
+	bucket := tx.Bucket(bucketTFTToERC20Addresses)
+	if bucket == nil {
+		return types.ERC20Address{}, errors.New("corrupt transaction DB: TFT->ERC20 bucket does not exist")
+	}
+	b := bucket.Get(rivbin.Marshal(uh))
+	if len(b) == 0 {
+		return types.ERC20Address{}, nil
+	}
+	var addr types.ERC20Address
+	err := rivbin.Unmarshal(b, &addr)
+	if err != nil {
+		return types.ERC20Address{}, fmt.Errorf("failed to fetch ERC20 Address for TFT address %v: %v", uh, err)
+	}
+	return addr, nil
+}
+
+func getTFTAddressForERC20Address(tx *bolt.Tx, addr types.ERC20Address) (rivinetypes.UnlockHash, error) {
+	bucket := tx.Bucket(bucketERC20ToTFTAddresses)
+	if bucket == nil {
+		return rivinetypes.UnlockHash{}, errors.New("corrupt transaction DB: ERC20->TFT bucket does not exist")
+	}
+	b := bucket.Get(rivbin.Marshal(addr))
+	if len(b) == 0 {
+		return rivinetypes.UnlockHash{}, nil
+	}
+	var uh rivinetypes.UnlockHash
+	err := rivbin.Unmarshal(b, &uh)
+	if err != nil {
+		return rivinetypes.UnlockHash{}, fmt.Errorf("failed to fetch TFT Address for ERC20 address %v: %v", addr, err)
+	}
+	return uh, nil
 }

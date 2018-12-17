@@ -177,7 +177,10 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 		if err != nil {
 			return err
 		}
-		rivineapi.RegisterExplorerHTTPHandlers(router, cs, e, tpool)
+		// DO NOT register rivineapi for Explorer HTTP Handles,
+		// as they are included in the tfchain api already
+		//rivineapi.RegisterExplorerHTTPHandlers(router, cs, e, tpool)
+		api.RegisterExplorerHTTPHandlers(router, cs, e, tpool, txdb)
 		defer func() {
 			fmt.Println("Closing explorer...")
 			err := e.Close()

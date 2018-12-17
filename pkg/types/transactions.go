@@ -85,6 +85,7 @@ var (
 type TFChainReadDB interface {
 	MintConditionGetter
 	BotRecordReadRegistry
+	ERC20AddressRegistry
 }
 
 // RegisterTransactionTypesForStandardNetwork registers he transaction controllers
@@ -133,7 +134,9 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
-	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{})
+	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
+		Registry: db,
+	})
 }
 
 // RegisterTransactionTypesForTestNetwork registers he transaction controllers
@@ -182,7 +185,9 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Curr
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
-	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{})
+	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
+		Registry: db,
+	})
 }
 
 // RegisterTransactionTypesForDevNetwork registers he transaction controllers
@@ -225,7 +230,9 @@ func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Curre
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
-	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{})
+	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
+		Registry: db,
+	})
 }
 
 type (
@@ -3763,6 +3770,13 @@ func (etctc ERC20CoinCreationTransactionController) EncodeTransactionIDInput(w i
 }
 
 type (
+	// ERC20AddressRegistry defines the public READ API expected from an ERC20 Address Read-Only registry.
+	ERC20AddressRegistry interface {
+		GetERC20AddressForTFTAddress(types.UnlockHash) (ERC20Address, error)
+	}
+)
+
+type (
 	// ERC20AddressRegistrationTransaction defines the Transaction (with version 0xD2)
 	// used to register an ERC20 address linked to a regular TFT address (derived from the given public key).
 	// This is required as to be able to convert ERC20 Funds back into TFT.
@@ -4019,7 +4033,9 @@ func (eartx *ERC20AddressRegistrationTransaction) UnmarshalJSON(data []byte) err
 type (
 	// ERC20AddressRegistrationTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 0xD2. It allows the registration of an ERC20 Address.
-	ERC20AddressRegistrationTransactionController struct{}
+	ERC20AddressRegistrationTransactionController struct {
+		Registry ERC20AddressRegistry
+	}
 )
 
 var (
@@ -4096,7 +4112,8 @@ func (eartc ERC20AddressRegistrationTransactionController) ValidateTransaction(t
 
 	// validate the signature
 	// > create condition
-	condition := types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(eartx.PublicKey)))
+	uh := types.NewPubKeyUnlockHash(eartx.PublicKey)
+	condition := types.NewCondition(types.NewUnlockHashCondition(uh))
 	// > and a matching single-signature fulfillment
 	fulfillment := types.NewFulfillment(&types.SingleSignatureFulfillment{
 		PublicKey: eartx.PublicKey,
@@ -4111,6 +4128,15 @@ func (eartc ERC20AddressRegistrationTransactionController) ValidateTransaction(t
 	})
 	if err != nil {
 		return fmt.Errorf("unauthorized ERC20 AddressRegistration tx: %v", err)
+	}
+
+	// validate the public key is not registered yet
+	addr, err := eartc.Registry.GetERC20AddressForTFTAddress(uh)
+	if err == nil && addr != (ERC20Address{}) {
+		return errors.New("invalid ERC20 AddressRegistration tx: public key has already registered an ERC20 address")
+	}
+	if err != nil {
+		return fmt.Errorf("error while validating ERC20 AddressRegistration tx: error originating from TransactiondB: %v", err)
 	}
 
 	// validate the miner fee
@@ -4145,8 +4171,6 @@ func (eartc ERC20AddressRegistrationTransactionController) ValidateTransaction(t
 			return err
 		}
 	}
-
-	// TODO: validate the public key is not registered yet!
 
 	// Tx is valid
 	return nil

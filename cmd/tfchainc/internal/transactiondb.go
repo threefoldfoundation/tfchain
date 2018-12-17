@@ -139,3 +139,13 @@ func (cli *TransactionDBClient) GetRecordForString(str string) (*types.BotRecord
 	}
 	return cli.GetRecordForKey(publicKey)
 }
+
+// GetERC20AddressForTFTAddress implements types.ERC20AddressRegistry.GetERC20AddressForTFTAddress
+func (cli *TransactionDBClient) GetERC20AddressForTFTAddress(uh rivinetypes.UnlockHash) (types.ERC20Address, error) {
+	var result api.TransactionDBGetERC20RelatedAddress
+	err := cli.client.GetAPI(fmt.Sprintf("%s/erc20/addresses/%s", cli.rootEndpoint, uh.String()), &result)
+	if err != nil {
+		return types.ERC20Address{}, fmt.Errorf("failed to get ERC20 Info for TFT address %s from daemon: %v", uh.String(), err)
+	}
+	return result.ERC20Address, nil
+}
