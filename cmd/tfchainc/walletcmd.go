@@ -728,15 +728,19 @@ func (walletSubCmds *walletSubCmds) sendERC20AddressRegistration(_ *cobra.Comman
 		return
 	}
 
+	// compute the hardcoded Tx fee
+	regFee := walletSubCmds.cli.Config.CurrencyUnits.OneCoin.Mul64(types.HardcodedERC20AddressRegistrationFeeOneCoinMultiplier)
+
 	// create the ERC20 Address Registration Tx
 	tx := types.ERC20AddressRegistrationTransaction{
-		PublicKey:      pubkey,
-		Signature:      nil, // will be signed later by the daemon
-		TransactionFee: walletSubCmds.cli.Config.MinimumTransactionFee,
+		PublicKey:       pubkey,
+		Signature:       nil, // will be signed later by the daemon
+		RegistrationFee: regFee,
+		TransactionFee:  walletSubCmds.cli.Config.MinimumTransactionFee,
 	}
 	// fund the coin inputs
 	var err error
-	tx.CoinInputs, tx.RefundCoinOutput, err = walletClient.FundCoins(tx.TransactionFee) // TODO: also fund the RegistrationFee once it is added
+	tx.CoinInputs, tx.RefundCoinOutput, err = walletClient.FundCoins(tx.TransactionFee.Add(regFee))
 	if err != nil {
 		cli.DieWithError("failed to fund the ERC20 Address Registration Tx", err)
 		return

@@ -136,6 +136,7 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry: db,
+		OneCoin:  oneCoin,
 	})
 }
 
@@ -187,6 +188,7 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Curr
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry: db,
+		OneCoin:  oneCoin,
 	})
 }
 
@@ -232,6 +234,7 @@ func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Curre
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry: db,
+		OneCoin:  oneCoin,
 	})
 }
 
@@ -3776,6 +3779,10 @@ type (
 	}
 )
 
+const (
+	HardcodedERC20AddressRegistrationFeeOneCoinMultiplier = 10
+)
+
 type (
 	// ERC20AddressRegistrationTransaction defines the Transaction (with version 0xD2)
 	// used to register an ERC20 address linked to a regular TFT address (derived from the given public key).
@@ -3787,7 +3794,10 @@ type (
 		// Signature that proofs the ownership of the attached Public Key.
 		Signature types.ByteSlice
 
-		// TODO: add RegistrationFee???
+		// RegistrationFee defines the Registration fee to be paid for the
+		// registration on top of the regular Transaction fee.
+		// TODO: integrate it into the parent block, for now it is ignored.
+		RegistrationFee types.Currency
 
 		// TransactionFee defines the regular Tx fee.
 		TransactionFee types.Currency
@@ -3819,7 +3829,10 @@ type (
 		// Signature that proofs the ownership of the attached Public Key.
 		Signature types.ByteSlice `json:"signature"`
 
-		// TODO: add RegistrationFee???
+		// RegistrationFee defines the Registration fee to be paid for the
+		// registration on top of the regular Transaction fee.
+		// TODO: integrate it into the parent block, for now it is ignored.
+		RegistrationFee types.Currency `json:"regfee"`
 
 		// TransactionFee defines the regular Tx fee.
 		TransactionFee types.Currency `json:"txfee"`
@@ -3835,8 +3848,9 @@ type (
 
 	// ERC20AddressRegistrationTransactionExtension defines the ERC20AddressRegistrationTransaction Extension Data
 	ERC20AddressRegistrationTransactionExtension struct {
-		PublicKey types.PublicKey
-		Signature types.ByteSlice
+		RegistrationFee types.Currency
+		PublicKey       types.PublicKey
+		Signature       types.ByteSlice
 	}
 )
 
@@ -3894,10 +3908,11 @@ func ERC20AddressRegistrationTransactionFromTransactionData(txData types.Transac
 	// create the ERC20AddressRegistrationTransaction and return it,
 	// further validation will/has-to be done using the Transaction Type, if required
 	tx := ERC20AddressRegistrationTransaction{
-		PublicKey:      extensionData.PublicKey,
-		Signature:      extensionData.Signature,
-		TransactionFee: txData.MinerFees[0],
-		CoinInputs:     txData.CoinInputs,
+		PublicKey:       extensionData.PublicKey,
+		Signature:       extensionData.Signature,
+		RegistrationFee: extensionData.RegistrationFee,
+		TransactionFee:  txData.MinerFees[0],
+		CoinInputs:      txData.CoinInputs,
 	}
 	if len(txData.CoinOutputs) == 1 {
 		// take refund coin output if it exists
@@ -3913,8 +3928,9 @@ func (eartx *ERC20AddressRegistrationTransaction) TransactionData() types.Transa
 		CoinInputs: eartx.CoinInputs,
 		MinerFees:  []types.Currency{eartx.TransactionFee},
 		Extension: &ERC20AddressRegistrationTransactionExtension{
-			PublicKey: eartx.PublicKey,
-			Signature: eartx.Signature,
+			PublicKey:       eartx.PublicKey,
+			Signature:       eartx.Signature,
+			RegistrationFee: eartx.RegistrationFee,
 		},
 	}
 	if eartx.RefundCoinOutput != nil {
@@ -3931,8 +3947,9 @@ func (eartx *ERC20AddressRegistrationTransaction) Transaction() types.Transactio
 		CoinInputs: eartx.CoinInputs,
 		MinerFees:  []types.Currency{eartx.TransactionFee},
 		Extension: &ERC20AddressRegistrationTransactionExtension{
-			PublicKey: eartx.PublicKey,
-			Signature: eartx.Signature,
+			PublicKey:       eartx.PublicKey,
+			Signature:       eartx.Signature,
+			RegistrationFee: eartx.RegistrationFee,
 		},
 	}
 	if eartx.RefundCoinOutput != nil {
@@ -3958,6 +3975,7 @@ func (eartx ERC20AddressRegistrationTransaction) MarshalRivine(w io.Writer) erro
 	return rivbin.NewEncoder(w).EncodeAll(
 		eartx.PublicKey,
 		eartx.Signature,
+		eartx.RegistrationFee,
 		eartx.TransactionFee,
 		eartx.CoinInputs,
 		eartx.RefundCoinOutput,
@@ -3969,6 +3987,7 @@ func (eartx *ERC20AddressRegistrationTransaction) UnmarshalRivine(r io.Reader) e
 	return rivbin.NewDecoder(r).DecodeAll(
 		&eartx.PublicKey,
 		&eartx.Signature,
+		&eartx.RegistrationFee,
 		&eartx.TransactionFee,
 		&eartx.CoinInputs,
 		&eartx.RefundCoinOutput,
@@ -3993,6 +4012,7 @@ func (eartx ERC20AddressRegistrationTransaction) MarshalJSON() ([]byte, error) {
 		TFTAddress:       uh,
 		ERC20Address:     addr,
 		Signature:        eartx.Signature,
+		RegistrationFee:  eartx.RegistrationFee,
 		TransactionFee:   eartx.TransactionFee,
 		CoinInputs:       eartx.CoinInputs,
 		RefundCoinOutput: eartx.RefundCoinOutput,
@@ -4024,6 +4044,7 @@ func (eartx *ERC20AddressRegistrationTransaction) UnmarshalJSON(data []byte) err
 	// copy the in-memory (binary) format properties over and call it done
 	eartx.PublicKey = tx.PublicKey
 	eartx.Signature = tx.Signature
+	eartx.RegistrationFee = tx.RegistrationFee
 	eartx.TransactionFee = tx.TransactionFee
 	eartx.CoinInputs = tx.CoinInputs
 	eartx.RefundCoinOutput = tx.RefundCoinOutput
@@ -4035,6 +4056,7 @@ type (
 	// for a transaction type reserved at type 0xD2. It allows the registration of an ERC20 Address.
 	ERC20AddressRegistrationTransactionController struct {
 		Registry ERC20AddressRegistry
+		OneCoin  types.Currency
 	}
 )
 
@@ -4043,6 +4065,7 @@ var (
 	// implements the desired interfaces
 	_ types.TransactionController      = ERC20AddressRegistrationTransactionController{}
 	_ types.TransactionValidator       = ERC20AddressRegistrationTransactionController{}
+	_ types.CoinOutputValidator        = ERC20AddressRegistrationTransactionController{}
 	_ types.BlockStakeOutputValidator  = ERC20AddressRegistrationTransactionController{}
 	_ types.TransactionSignatureHasher = ERC20AddressRegistrationTransactionController{}
 	_ types.TransactionExtensionSigner = ERC20AddressRegistrationTransactionController{}
@@ -4139,6 +4162,11 @@ func (eartc ERC20AddressRegistrationTransactionController) ValidateTransaction(t
 		return fmt.Errorf("error while validating ERC20 AddressRegistration tx: error originating from TransactiondB: %v", err)
 	}
 
+	// validate the registration fee
+	if eartx.RegistrationFee.Cmp(eartc.OneCoin.Mul64(HardcodedERC20AddressRegistrationFeeOneCoinMultiplier)) != 0 {
+		return errors.New("invalid ERC20 Address Registration fee")
+	}
+
 	// validate the miner fee
 	if eartx.TransactionFee.Cmp(constants.MinimumMinerFee) < 0 {
 		return types.ErrTooSmallMinerFee
@@ -4176,7 +4204,37 @@ func (eartc ERC20AddressRegistrationTransactionController) ValidateTransaction(t
 	return nil
 }
 
-// ValidateCoinOutputs is handled using the default Rivine validation
+// ValidateCoinOutputs implements CoinOutputValidator.ValidateCoinOutputs
+func (eartc ERC20AddressRegistrationTransactionController) ValidateCoinOutputs(t types.Transaction, ctx types.FundValidationContext, coinInputs map[types.CoinOutputID]types.CoinOutput) (err error) {
+	// get ERC20AddressRegistration Tx
+	eartx, err := ERC20AddressRegistrationTransactionFromTransaction(t)
+	if err != nil {
+		return fmt.Errorf("failed to use tx as an ERC20 AddressRegistration tx: %v", err)
+	}
+
+	var inputSum types.Currency
+	for index, sci := range t.CoinInputs {
+		sco, ok := coinInputs[sci.ParentID]
+		if !ok {
+			return types.MissingCoinOutputError{ID: sci.ParentID}
+		}
+		// check if the referenced output's condition has been fulfilled
+		err = sco.Condition.Fulfill(sci.Fulfillment, types.FulfillContext{
+			ExtraObjects: []interface{}{uint64(index)},
+			BlockHeight:  ctx.BlockHeight,
+			BlockTime:    ctx.BlockTime,
+			Transaction:  t,
+		})
+		if err != nil {
+			return
+		}
+		inputSum = inputSum.Add(sco.Value)
+	}
+	if !inputSum.Equals(t.CoinOutputSum().Add(eartx.RegistrationFee)) {
+		return types.ErrCoinInputOutputMismatch
+	}
+	return nil
+}
 
 // ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
 func (eartc ERC20AddressRegistrationTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
@@ -4209,6 +4267,7 @@ func (eartc ERC20AddressRegistrationTransactionController) SignatureHash(t types
 	}
 
 	enc.EncodeAll(
+		eartx.RegistrationFee,
 		eartx.TransactionFee,
 		eartx.RefundCoinOutput,
 	)

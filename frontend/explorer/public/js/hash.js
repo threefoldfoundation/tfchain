@@ -1161,6 +1161,10 @@ function appendV210Transaction(infoBody, explorerTransaction, confirmed) {
 	linkHash(doms[2], explorerTransaction.rawtransaction.data.tftaddress);
 	appendStat(conversionTable, 'ERC20 Address', explorerTransaction.rawtransaction.data.erc20address);
 
+	if (explorerTransaction.rawtransaction.data && explorerTransaction.rawtransaction.data.regfee) {
+		appendStat(conversionTable, 'Registration Fee', readableCoins(explorerTransaction.rawtransaction.data.regfee));
+	}
+
 	if (explorerTransaction.rawtransaction.data.coininputs != null
 		&& explorerTransaction.rawtransaction.data.coininputs.length > 0) {
 		appendStatTableTitle(infoBody, 'Coin Inputs');
