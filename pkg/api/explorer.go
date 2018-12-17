@@ -6,9 +6,9 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/rivine/rivine/build"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 	"github.com/threefoldfoundation/tfchain/pkg/types"
+	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/crypto"
 	"github.com/threefoldtech/rivine/modules"
 	rapi "github.com/threefoldtech/rivine/pkg/api"
