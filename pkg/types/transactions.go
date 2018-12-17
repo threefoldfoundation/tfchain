@@ -3744,7 +3744,7 @@ func (etctc ERC20CoinCreationTransactionController) SignatureHash(t types.Transa
 
 	enc.EncodeAll(
 		t.Version,
-		SpecifierCoinCreationTransaction,
+		SpecifierERC20CoinCreationTransaction,
 	)
 
 	if len(extraObjects) > 0 {
