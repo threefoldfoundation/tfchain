@@ -10,7 +10,9 @@ This  allows a  user to easily convert tft to tft erc20 and back, making the pro
 ### Ethereum testnetworks
 
 #### Rinkeby
-
+Faucets:
+- https://faucet.rinkeby.io
+  Requires a Twitter, Google+ or Facebook post and can take up to 8 hours but is usually funded directly.
 #### Ropsten
 Faucets:
 - https://faucet.ropsten.be 
