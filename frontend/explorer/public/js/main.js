@@ -281,6 +281,21 @@ function getBlockchainContext() {
 	};
 }
 
+function getCustomMinerPayoutSourceInfoArrayForTransaction(explorerTx) {
+	switch (explorerTx.rawtransaction.version) {
+	// TODO: also add 3bot tx
+	case 210:
+		return [
+			{
+				'desc': 'ERC20 Registration Fee Payout',
+				'txid': explorerTx.id,
+			}
+		]
+	default:
+		return [];
+	}
+}
+
 // appendBlockMinerPayouts fills out the css + tables that hold the miner
 // payouts of a block
 function appendBlockMinerPayouts(element, explorerBlock) {
@@ -291,15 +306,55 @@ function appendBlockMinerPayouts(element, explorerBlock) {
 	}
 
 	// In a loop, add a new table for each miner payout.
-	appendStatTableTitle(element, 'Block creator rewards');
-	for (var i = 0; i < explorerBlock.rawblock.minerpayouts.length; i++) {
-		var table = createStatsTable();
-		var doms = appendStat(table, 'ID', '');
-		linkHash(doms[2], explorerBlock.minerpayoutids[i]);
-		doms = appendStat(table, 'Payout Address', '');
-		linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
-		appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
-		element.appendChild(table);
+	appendStatTableTitle(element, 'Reward and Fee Payouts');
+	var txIndex = 0;
+	for (var i = 0; i < explorerBlock.rawblock.minerpayouts.length;) {
+		if (i == 0 || i == 1) {
+			var table = createStatsTable();
+
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], explorerBlock.minerpayoutids[i]);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
+			appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
+			if (i == 0) {
+				txIndex++
+				appendStat(table, 'Source Description', 'Block Creator Reward (New Coins)');
+			} else {
+				doms = appendStat(table, 'Source Transaction Identifiers', '');
+				for(var u = txIndex; u < explorerBlock.transactions.length; u++) {
+					linkHash(doms[2], explorerBlock.transactions[u].id);
+					if (u < explorerBlock.transactions.length-1) {
+						doms[2].appendChild(document.createTextNode(', '));
+					}
+				}
+				appendStat(table, 'Source Description', 'All Transaction Fees Combined');
+			}
+
+			element.appendChild(table);
+
+			i++;
+			continue;
+		}
+
+		var payouts = getCustomMinerPayoutSourceInfoArrayForTransaction(explorerBlock.transactions[txIndex]);
+		for (var u = 0; u < payouts.length; u++) {
+			var table = createStatsTable();
+
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], explorerBlock.minerpayoutids[i]);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
+			appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
+			doms = appendStat(table, 'Source Transaction ID', '');
+			linkHash(doms[2], payouts[u].txid);
+			appendStat(table, 'Source Description', payouts[u].desc);
+
+			element.appendChild(table);
+
+			i++
+		}
+		txIndex++;
 	}
 }
 
@@ -326,9 +381,15 @@ function appendBlockTransactions(element, explorerBlock) {
 			&& explorerBlock.rawblock.transactions[i].data.coininputs.length > 0) {
 			appendStat(table, 'Coin Input Count', explorerBlock.rawblock.transactions[i].data.coininputs.length);
 		}
-		if (explorerBlock.rawblock.transactions[i].data.coinoutputs != null
-			&& explorerBlock.rawblock.transactions[i].data.coinoutputs.length > 0) {
-			appendStat(table, 'Coin Output Count', explorerBlock.rawblock.transactions[i].data.coinoutputs.length);
+		var coinoutputLength = 0;
+		if (explorerBlock.rawblock.transactions[i].data.coinoutputs != null) {
+			coinoutputLength += explorerBlock.rawblock.transactions[i].data.coinoutputs.length
+		}
+		if (explorerBlock.rawblock.transactions[i].data.refundcoinoutput != null) {
+			coinoutputLength += 1;
+		}
+		if (coinoutputLength > 0) {
+			appendStat(table, 'Coin Output Count', coinoutputLength);
 		}
 		if (explorerBlock.rawblock.transactions[i].data.blockstakeinputs != null
 			&& explorerBlock.rawblock.transactions[i].data.blockstakeinputs.length > 0) {

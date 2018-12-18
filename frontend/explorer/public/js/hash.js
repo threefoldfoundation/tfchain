@@ -1161,7 +1161,7 @@ function appendV210Transaction(infoBody, explorerTransaction, confirmed) {
 	linkHash(doms[2], explorerTransaction.rawtransaction.data.tftaddress);
 	appendStat(conversionTable, 'ERC20 Address', explorerTransaction.rawtransaction.data.erc20address);
 
-	if (explorerTransaction.rawtransaction.data && explorerTransaction.rawtransaction.data.regfee) {
+	if (!confirmed && explorerTransaction.rawtransaction.data && explorerTransaction.rawtransaction.data.regfee) {
 		appendStat(conversionTable, 'Registration Fee', readableCoins(explorerTransaction.rawtransaction.data.regfee));
 	}
 
@@ -1223,9 +1223,11 @@ function appendV210Transaction(infoBody, explorerTransaction, confirmed) {
 	}
 
 	if (confirmed) {
-		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+		var explorerBlock = fetchHashInfo(explorerTransaction.parent).block;
+
+		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
 		if (payouts != null) {
-			// In a loop, add a new table for each miner payout.
+			// In a loop, add a new table for each transaction fee payout.
 			appendStatTableTitle(infoBody, 'Transaction Fee Payout');
 			for (var i = 0; i < payouts.length; i++) {
 				var table = createStatsTable();
@@ -1234,6 +1236,21 @@ function appendV210Transaction(infoBody, explorerTransaction, confirmed) {
 				doms = appendStat(table, 'Payout Address', '');
 				linkHash(doms[2], payouts[i].unlockhash);
 				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
+				infoBody.appendChild(table);
+			}
+		}
+
+		payouts = getERC20RegistrationFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
+		if (payouts != null) {
+			// In a loop, add a new table for each ERC20 Registration fee payout.
+			appendStatTableTitle(infoBody, 'ERC20 Registration Fee Payout');
+			for (var i = 0; i < payouts.length; i++) {
+				var table = createStatsTable();
+				var doms = appendStat(table, 'ID', '');
+				linkHash(doms[2], payouts[i].id);
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], payouts[i].unlockhash);
+				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue));
 				infoBody.appendChild(table);
 			}
 		}
@@ -2481,10 +2498,16 @@ function computeRequiredBotFeesFromRawTransaction(rawTransaction) {
 	return "0";
 }
 
+function getCustomMinerPayoutLengthForTransaction(explorerTx) {
+	return getCustomMinerPayoutSourceInfoArrayForTransaction(explorerTx).length;
+}
+
 // getMinerFeesAsFeePayouts assumes that all miner fees are merged into a single block reward,
 // the second one.
-function getMinerFeesAsFeePayouts(txID, blockID) {
-	var explorerBlock = fetchHashInfo(blockID).block;
+function getMinerFeesAsFeePayouts(txID, blockID, explorerBlock) {
+	if (explorerBlock == null) {
+		explorerBlock = fetchHashInfo(blockID).block;
+	}
 	if (explorerBlock == null || explorerBlock.rawblock == null || explorerBlock.rawblock.minerpayouts == null || explorerBlock.rawblock.minerpayouts.length < 2) {
 		return null;
 	}
@@ -2495,8 +2518,11 @@ function getMinerFeesAsFeePayouts(txID, blockID) {
 	var feePayoutID = explorerBlock.minerpayoutids[1];
 	for (var i = 0; i < explorerBlock.transactions.length; i++) {
 		var tx = explorerBlock.transactions[i];
-		if (tx.id !== txID || tx.rawtransaction.data.minerfees == null) {
+		if (tx.id !== txID) {
 			continue;
+		}
+		if (tx.rawtransaction.data.minerfees == null) {
+			return null;
 		}
 		var minerFees = tx.rawtransaction.data.minerfees;
 		var feePayouts = [];
@@ -2512,8 +2538,10 @@ function getMinerFeesAsFeePayouts(txID, blockID) {
 	}
 	return null;
 }
-function getTransactionFeesAsFeePayouts(txID, blockID) {
-	var explorerBlock = fetchHashInfo(blockID).block;
+function getTransactionFeesAsFeePayouts(txID, blockID, explorerBlock) {
+	if (explorerBlock == null) {
+		explorerBlock = fetchHashInfo(blockID).block;
+	}
 	if (explorerBlock == null || explorerBlock.rawblock == null || explorerBlock.rawblock.minerpayouts == null || explorerBlock.rawblock.minerpayouts.length < 2) {
 		return null;
 	}
@@ -2524,14 +2552,48 @@ function getTransactionFeesAsFeePayouts(txID, blockID) {
 	var feePayoutID = explorerBlock.minerpayoutids[1];
 	for (var i = 0; i < explorerBlock.transactions.length; i++) {
 		var tx = explorerBlock.transactions[i];
-		if (tx.id !== txID || tx.rawtransaction.data.txfee == null) {
+		if (tx.id !== txID) {
 			continue;
+		}
+		if (tx.rawtransaction.data.txfee == null) {
+			return null;
 		}
 		return [{
 			id: feePayoutID,
 			unlockhash: feePayout.unlockhash,
 			value: feePayout.value,
 			paidvalue: tx.rawtransaction.data.txfee,
+		}];
+	}
+	return null;
+}
+function getERC20RegistrationFeesAsFeePayouts(txID, blockID, explorerBlock) {
+	if (explorerBlock == null) {
+		explorerBlock = fetchHashInfo(blockID).block;
+	}
+	if (explorerBlock == null || explorerBlock.rawblock == null || explorerBlock.rawblock.minerpayouts == null || explorerBlock.rawblock.minerpayouts.length < 2) {
+		return null;
+	}
+	if (explorerBlock.transactions == null) {
+		return null;
+	}
+	var payoutIndex = 2;
+	for (var i = 0; i < explorerBlock.transactions.length; i++) {
+		var tx = explorerBlock.transactions[i];
+		if (tx.id !== txID) {
+			payoutIndex += getCustomMinerPayoutLengthForTransaction(tx);
+			continue;
+		}
+		if (tx.rawtransaction.data.txfee == null) {
+			return null;
+		}
+		var feePayout = explorerBlock.rawblock.minerpayouts[payoutIndex];
+		var feePayoutID = explorerBlock.minerpayoutids[payoutIndex];
+		return [{
+			id: feePayoutID,
+			unlockhash: feePayout.unlockhash,
+			value: feePayout.value,
+			paidvalue: tx.rawtransaction.data.regfee,
 		}];
 	}
 	return null;
