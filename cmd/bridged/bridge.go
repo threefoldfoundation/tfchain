@@ -29,6 +29,8 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/nat"
 	"github.com/ethereum/go-ethereum/params"
 	bridgedeth "github.com/threefoldfoundation/tfchain/cmd/bridged/eth"
+
+	"github.com/threefoldfoundation/tfchain/pkg/erc20/contract"
 )
 
 var (
@@ -214,11 +216,11 @@ func (bridge *ethBridge) loop() {
 // SubscribeTransfers subscribes to new Transfer events on the given contract. This call blocks
 // and prints out info about any transfer as it happened
 func (bridge *ethBridge) SubscribeTransfers(contractAddress common.Address) error {
-	filter, err := NewTTFT20Filterer(contractAddress, bridge.client)
+	filter, err := contract.NewTTFT20Filterer(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
-	sink := make(chan *TTFT20Transfer)
+	sink := make(chan *contract.TTFT20Transfer)
 	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	sub, err := filter.WatchTransfer(opts, sink, nil, nil)
 	if err != nil {
@@ -238,11 +240,11 @@ func (bridge *ethBridge) SubscribeTransfers(contractAddress common.Address) erro
 // SubscribeMint subscribes to new Mint events on the given contract. This call blocks
 // and prints out info about any mint as it happened
 func (bridge *ethBridge) SubscribeMint(contractAddress common.Address) error {
-	filter, err := NewTTFT20Filterer(contractAddress, bridge.client)
+	filter, err := contract.NewTTFT20Filterer(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
-	sink := make(chan *TTFT20Mint)
+	sink := make(chan *contract.TTFT20Mint)
 	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	sub, err := filter.WatchMint(opts, sink, nil)
 	if err != nil {
@@ -268,11 +270,11 @@ type WithdrawEvent struct {
 // SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
 // and prints out info about any withdraw as it happened
 func (bridge *ethBridge) SubscribeWithdraw(contractAddress common.Address, wc chan<- WithdrawEvent) error {
-	filter, err := NewTTFT20Filterer(contractAddress, bridge.client)
+	filter, err := contract.NewTTFT20Filterer(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
-	sink := make(chan *TTFT20Withdraw)
+	sink := make(chan *contract.TTFT20Withdraw)
 	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	sub, err := filter.WatchWithdraw(opts, sink, nil)
 	if err != nil {
@@ -293,11 +295,11 @@ func (bridge *ethBridge) SubscribeWithdraw(contractAddress common.Address, wc ch
 // SubscribeRegisterWithdrawAddress subscribes to new RegisterWithdrawalAddress events on the given contract. This call blocks
 // and prints out info about any RegisterWithdrawalAddress event as it happened
 func (bridge *ethBridge) SubscribeRegisterWithdrawAddress(contractAddress common.Address) error {
-	filter, err := NewTTFT20Filterer(contractAddress, bridge.client)
+	filter, err := contract.NewTTFT20Filterer(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
-	sink := make(chan *TTFT20RegisterWithdrawalAddress)
+	sink := make(chan *contract.TTFT20RegisterWithdrawalAddress)
 	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	sub, err := filter.WatchRegisterWithdrawalAddress(opts, sink, nil)
 	if err != nil {
@@ -319,7 +321,7 @@ func (bridge *ethBridge) TransferFunds(contractAddress common.Address, recipient
 	if amount == nil {
 		return errors.New("invalid amount")
 	}
-	tr, err := NewTTFT20Transactor(contractAddress, bridge.client)
+	tr, err := contract.NewTTFT20Transactor(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
@@ -339,7 +341,7 @@ func (bridge *ethBridge) Mint(contractAddress common.Address, receiver common.Ad
 	if amount == nil {
 		return errors.New("invalid amount")
 	}
-	tr, err := NewTTFT20Transactor(contractAddress, bridge.client)
+	tr, err := contract.NewTTFT20Transactor(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
@@ -355,7 +357,7 @@ func (bridge *ethBridge) Mint(contractAddress common.Address, receiver common.Ad
 
 func (bridge *ethBridge) RegisterWithdrawalAddress(contractAddress common.Address, address common.Address) error {
 	log.Info("Calling register withdrawel address function in contract")
-	tr, err := NewTTFT20Transactor(contractAddress, bridge.client)
+	tr, err := contract.NewTTFT20Transactor(contractAddress, bridge.client)
 	if err != nil {
 		return err
 	}
