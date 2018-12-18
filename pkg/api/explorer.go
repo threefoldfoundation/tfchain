@@ -62,6 +62,7 @@ func RegisterExplorerHTTPHandlers(router rapi.Router, cs modules.ConsensusSet, e
 	router.GET("/explorer/3bot/:id/transactions", NewTransactionDBGetBotTransactionsHandler(txdb))
 
 	router.GET("/explorer/erc20/addresses/:address", NewTransactionDBGetERC20RelatedAddressHandler(txdb))
+	router.GET("/explorer/erc20/transactions/:txid", NewTransactionDBGetERC20TransactionID(txdb))
 
 	// tfchain rivine-overwritten endpoints
 

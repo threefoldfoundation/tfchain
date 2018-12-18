@@ -85,7 +85,7 @@ var (
 type TFChainReadDB interface {
 	MintConditionGetter
 	BotRecordReadRegistry
-	ERC20AddressRegistry
+	ERC20Registry
 }
 
 // RegisterTransactionTypesForStandardNetwork registers he transaction controllers
@@ -133,7 +133,9 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
-	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
+	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{
+		Registry: db,
+	})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry: db,
 		OneCoin:  oneCoin,
@@ -185,7 +187,9 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Curr
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
-	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
+	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{
+		Registry: db,
+	})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry: db,
 		OneCoin:  oneCoin,
@@ -231,7 +235,9 @@ func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Curre
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
-	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
+	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{
+		Registry: db,
+	})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry: db,
 		OneCoin:  oneCoin,
@@ -3051,6 +3057,14 @@ func (address *ERC20Address) UnmarshalJSON(b []byte) error {
 }
 
 type (
+	// ERC20Registry defines the public READ API expected from an ERC20 Read-Only registry.
+	ERC20Registry interface {
+		GetERC20AddressForTFTAddress(types.UnlockHash) (ERC20Address, error)
+		GetTFTTransactionIDForERC20TransactionID(ERC20TransactionID) (types.TransactionID, error)
+	}
+)
+
+type (
 	// ERC20ConvertTransaction defines the Transaction (with version 0xD1)
 	// used to convert TFT into ERC20 funds paid to the defined ERC20 address.
 	//
@@ -3635,7 +3649,9 @@ func (etctx *ERC20CoinCreationTransaction) UnmarshalRivine(r io.Reader) error {
 type (
 	// ERC20CoinCreationTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 0xD1. It allows the conversion of ERC20-funds to TFT.
-	ERC20CoinCreationTransactionController struct{}
+	ERC20CoinCreationTransactionController struct {
+		Registry ERC20Registry
+	}
 )
 
 // ensure at compile time that CoinCreationTransactionController
@@ -3716,8 +3732,17 @@ func (etctc ERC20CoinCreationTransactionController) ValidateTransaction(t types.
 		return types.ErrZeroOutput
 	}
 
-	// TODO: do we need any validation for the transactionID?
-	// it is already guaranteed by the decoding process that we decode 32 bytes, so that is already guarded requirement as-is
+	// validate if the ERC20 Transaction ID isn't already used
+	txid, err := etctc.Registry.GetTFTTransactionIDForERC20TransactionID(etctx.TransactionID)
+	if err != nil {
+		return fmt.Errorf("internal error occured while checking if the ERC20 TransactionID %v was already registered: %v", etctx.TransactionID, err)
+	}
+	if txid != (types.TransactionID{}) {
+		return fmt.Errorf("invalid ERC20 CoinCreation Tx: ERC20 Tx ID %v already mapped to TFT Tx ID %v", etctx.TransactionID, txid)
+	}
+
+	// TODO: optionally validate the transaction ID on the ERC20 side using its ERC20 TxID
+	//       https://github.com/threefoldfoundation/tfchain/issues/224
 
 	return nil
 }
@@ -3765,21 +3790,17 @@ func (etctc ERC20CoinCreationTransactionController) SignatureHash(t types.Transa
 
 // EncodeTransactionIDInput implements TransactionIDEncoder.EncodeTransactionIDInput
 func (etctc ERC20CoinCreationTransactionController) EncodeTransactionIDInput(w io.Writer, txData types.TransactionData) error {
-	cctx, err := CoinCreationTransactionFromTransactionData(txData)
+	cctx, err := ERC20CoinCreationTransactionFromTransactionData(txData)
 	if err != nil {
 		return fmt.Errorf("failed to convert txData to a ERC20 CoinCreation Tx: %v", err)
 	}
 	return siabin.NewEncoder(w).EncodeAll(SpecifierERC20CoinCreationTransaction, cctx)
 }
 
-type (
-	// ERC20AddressRegistry defines the public READ API expected from an ERC20 Address Read-Only registry.
-	ERC20AddressRegistry interface {
-		GetERC20AddressForTFTAddress(types.UnlockHash) (ERC20Address, error)
-	}
-)
-
 const (
+	// HardcodedERC20AddressRegistrationFeeOneCoinMultiplier defines the hardcoded multiplier
+	// (to be multiplied with the OneCoin Currency Value of the network), that defines the constant (hardcoded)
+	// Registration Fee to be paid for the Registration of an ERC20 Withdrawal address.
 	HardcodedERC20AddressRegistrationFeeOneCoinMultiplier = 10
 )
 
@@ -4055,7 +4076,7 @@ type (
 	// ERC20AddressRegistrationTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 0xD2. It allows the registration of an ERC20 Address.
 	ERC20AddressRegistrationTransactionController struct {
-		Registry ERC20AddressRegistry
+		Registry ERC20Registry
 		OneCoin  types.Currency
 	}
 )

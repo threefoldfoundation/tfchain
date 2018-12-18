@@ -140,7 +140,7 @@ func (cli *TransactionDBClient) GetRecordForString(str string) (*types.BotRecord
 	return cli.GetRecordForKey(publicKey)
 }
 
-// GetERC20AddressForTFTAddress implements types.ERC20AddressRegistry.GetERC20AddressForTFTAddress
+// GetERC20AddressForTFTAddress implements types.ERC20Registry.GetERC20AddressForTFTAddress
 func (cli *TransactionDBClient) GetERC20AddressForTFTAddress(uh rivinetypes.UnlockHash) (types.ERC20Address, error) {
 	var result api.TransactionDBGetERC20RelatedAddress
 	err := cli.client.GetAPI(fmt.Sprintf("%s/erc20/addresses/%s", cli.rootEndpoint, uh.String()), &result)
@@ -148,4 +148,14 @@ func (cli *TransactionDBClient) GetERC20AddressForTFTAddress(uh rivinetypes.Unlo
 		return types.ERC20Address{}, fmt.Errorf("failed to get ERC20 Info for TFT address %s from daemon: %v", uh.String(), err)
 	}
 	return result.ERC20Address, nil
+}
+
+// GetTFTTransactionIDForERC20TransactionID implements types.ERC20Registry.GetTFTTransactionIDForERC20TransactionID
+func (cli *TransactionDBClient) GetTFTTransactionIDForERC20TransactionID(txid types.ERC20TransactionID) (rivinetypes.TransactionID, error) {
+	var result api.TransactionDBGetERC20TransactionID
+	err := cli.client.GetAPI(fmt.Sprintf("%s/erc20/transactions/%s", cli.rootEndpoint, txid.String()), &result)
+	if err != nil {
+		return rivinetypes.TransactionID{}, fmt.Errorf("failed to get info linked to ERC20 Transaction ID %s from daemon: %v", txid.String(), err)
+	}
+	return result.TfchainTransactionID, nil
 }

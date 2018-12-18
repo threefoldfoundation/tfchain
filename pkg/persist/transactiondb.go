@@ -66,6 +66,7 @@ var (
 	// buckets for the ERC20-bridge feature
 	bucketERC20ToTFTAddresses = []byte("addresses_erc20_to_tft") // erc20 => TFT
 	bucketTFTToERC20Addresses = []byte("addresses_tft_to_erc20") // TFT => erc20
+	bucketERC20TransactionIDs = []byte("erc20_transactionids")   // stores all unique ERC20 transaction ids used for erc20=>TFT exchanges
 )
 
 type (
@@ -109,8 +110,8 @@ var (
 	_ types.MintConditionGetter = (*TransactionDB)(nil)
 	// ensure TransactionDB implements the BotRecordReadRegistry interface
 	_ types.BotRecordReadRegistry = (*TransactionDB)(nil)
-	// ensure TransactionDB implements the ERC20AddressRegistry interface
-	_ types.ERC20AddressRegistry = (*TransactionDB)(nil)
+	// ensure TransactionDB implements the ERC20Registry interface
+	_ types.ERC20Registry = (*TransactionDB)(nil)
 )
 
 // NewTransactionDB creates a new TransactionDB, using the given file (path) to store the (single) persistent BoltDB file.
@@ -357,6 +358,16 @@ func (txdb *TransactionDB) GetTFTAddressForERC20Address(addr types.ERC20Address)
 	return
 }
 
+// GetTFTTransactionIDForERC20TransactionID returns the mapped TFT TransactionID for the given ERC20 TransactionID,
+// iff the ERC20 TransactionID has been used to fund an ERC20 CoinCreation Tx and has been registered as such, a nil TransactionID is returned otherwise.
+func (txdb *TransactionDB) GetTFTTransactionIDForERC20TransactionID(id types.ERC20TransactionID) (txid rivinetypes.TransactionID, err error) {
+	err = txdb.db.View(func(tx *bolt.Tx) (err error) {
+		txid, err = getTfchainTransactionIDForERC20TransactionID(tx, id)
+		return
+	})
+	return
+}
+
 // Close the transaction DB,
 // meaning the db will be unsubscribed from the consensus set,
 // as well the threadgroup will be stopped and the internal bolt db will be closed.
@@ -530,6 +541,7 @@ func (txdb *TransactionDB) migrateV120DB(tx *bolt.Tx) error {
 	buckets := [][]byte{
 		bucketERC20ToTFTAddresses,
 		bucketTFTToERC20Addresses,
+		bucketERC20TransactionIDs,
 	}
 	var err error
 	for _, bucket := range buckets {
@@ -564,6 +576,7 @@ func (txdb *TransactionDB) createDB(tx *bolt.Tx, genesisMintCondition rivinetype
 		bucketBotTransactions,
 		bucketERC20ToTFTAddresses,
 		bucketTFTToERC20Addresses,
+		bucketERC20TransactionIDs,
 	}
 	for _, bucket := range buckets {
 		_, err = tx.CreateBucket(bucket)
@@ -681,6 +694,8 @@ func (txdb *TransactionDB) revertBlocks(tx *bolt.Tx, blocks []rivinetypes.Block)
 			case types.TransactionVersionBotNameTransfer:
 				err = txdb.revertBotNameTransferTx(tx, ctx, rtx)
 
+			case types.TransactionVersionERC20CoinCreation:
+				err = txdb.revertERC20CoinCreationTx(tx, ctx, rtx)
 			case types.TransactionVersionERC20AddressRegistration:
 				err = txdb.revertERC20AddressRegistrationTx(tx, ctx, rtx)
 
@@ -739,6 +754,8 @@ func (txdb *TransactionDB) applyBlocks(tx *bolt.Tx, blocks []rivinetypes.Block) 
 			case types.TransactionVersionBotNameTransfer:
 				err = txdb.applyBotNameTransferTx(tx, ctx, rtx)
 
+			case types.TransactionVersionERC20CoinCreation:
+				err = txdb.applyERC20CoinCreationTx(tx, ctx, rtx)
 			case types.TransactionVersionERC20AddressRegistration:
 				err = txdb.applyERC20AddressRegistrationTx(tx, ctx, rtx)
 
@@ -1264,6 +1281,22 @@ func (txdb *TransactionDB) revertERC20AddressRegistrationTx(tx *bolt.Tx, ctx tra
 	return revertERC20AddressMapping(tx, tftaddr, erc20addr)
 }
 
+func (txdb *TransactionDB) applyERC20CoinCreationTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
+	etcctx, err := types.ERC20CoinCreationTransactionFromTransaction(*rtx)
+	if err != nil {
+		return fmt.Errorf("unexpected error while unpacking the ERC20 Coin Creation Tx type: %v", err)
+	}
+	return applyERC20TransactionID(tx, etcctx.TransactionID, rtx.ID())
+}
+
+func (txdb *TransactionDB) revertERC20CoinCreationTx(tx *bolt.Tx, ctx transactionContext, rtx *rivinetypes.Transaction) error {
+	etcctx, err := types.ERC20CoinCreationTransactionFromTransaction(*rtx)
+	if err != nil {
+		return fmt.Errorf("unexpected error while unpacking the ERC20 Coin Creation Tx type: %v", err)
+	}
+	return revertERC20TransactionID(tx, etcctx.TransactionID)
+}
+
 // apply/revert the Key->ID mapping for a 3bot
 func applyKeyToIDMapping(tx *bolt.Tx, key rivinetypes.PublicKey, id types.BotID) error {
 	mappingBucket := tx.Bucket(bucketBotKeyToIDMapping)
@@ -1635,4 +1668,43 @@ func getTFTAddressForERC20Address(tx *bolt.Tx, addr types.ERC20Address) (rivinet
 		return rivinetypes.UnlockHash{}, fmt.Errorf("failed to fetch TFT Address for ERC20 address %v: %v", addr, err)
 	}
 	return uh, nil
+}
+
+func applyERC20TransactionID(tx *bolt.Tx, erc20id types.ERC20TransactionID, tftid rivinetypes.TransactionID) error {
+	bucket := tx.Bucket(bucketERC20TransactionIDs)
+	if bucket == nil {
+		return errors.New("corrupt transaction DB: ERC20 TransactionIDs bucket does not exist")
+	}
+	err := bucket.Put(rivbin.Marshal(erc20id), rivbin.Marshal(tftid))
+	if err != nil {
+		return fmt.Errorf("error while storing ERC20 TransactionID %v: %v", erc20id, err)
+	}
+	return nil
+}
+func revertERC20TransactionID(tx *bolt.Tx, id types.ERC20TransactionID) error {
+	bucket := tx.Bucket(bucketERC20TransactionIDs)
+	if bucket == nil {
+		return errors.New("corrupt transaction DB: ERC20 TransactionIDs bucket does not exist")
+	}
+	err := bucket.Delete(rivbin.Marshal(id))
+	if err != nil {
+		return fmt.Errorf("error while deleting ERC20 TransactionID %v: %v", id, err)
+	}
+	return nil
+}
+func getTfchainTransactionIDForERC20TransactionID(tx *bolt.Tx, id types.ERC20TransactionID) (rivinetypes.TransactionID, error) {
+	bucket := tx.Bucket(bucketERC20TransactionIDs)
+	if bucket == nil {
+		return rivinetypes.TransactionID{}, errors.New("corrupt transaction DB: ERC20 TransactionIDs bucket does not exist")
+	}
+	b := bucket.Get(rivbin.Marshal(id))
+	if len(b) == 0 {
+		return rivinetypes.TransactionID{}, nil
+	}
+	var txid rivinetypes.TransactionID
+	err := rivbin.Unmarshal(b, &txid)
+	if err != nil {
+		return rivinetypes.TransactionID{}, fmt.Errorf("corrupt transaction DB: invalid tfchain TransactionID fetched for ERC20 TxID %v: %v", id, err)
+	}
+	return txid, nil
 }

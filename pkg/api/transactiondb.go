@@ -37,6 +37,12 @@ type (
 		TFTAddress   types.UnlockHash     `json:"tftaddress"`
 		ERC20Address tftypes.ERC20Address `json:"erc20address"`
 	}
+
+	// TransactionDBGetERC20TransactionID contains the requested info found for the given ERC20 TransactionID.
+	TransactionDBGetERC20TransactionID struct {
+		ERC20TransaxtionID   tftypes.ERC20TransactionID `json:"er20txid"`
+		TfchainTransactionID types.TransactionID        `json:"tfttxid"`
+	}
 )
 
 // RegisterTransactionDBHTTPHandlers registers the handlers for all TransactionDB HTTP endpoints.
@@ -56,6 +62,7 @@ func RegisterTransactionDBHTTPHandlers(router api.Router, txdb *persist.Transact
 	router.GET("/consensus/3bot/:id/transactions", NewTransactionDBGetBotTransactionsHandler(txdb))
 
 	router.GET("/consensus/erc20/addresses/:address", NewTransactionDBGetERC20RelatedAddressHandler(txdb))
+	router.GET("/consensus/erc20/transactions/:txid", NewTransactionDBGetERC20TransactionID(txdb))
 }
 
 // NewTransactionDBGetActiveMintConditionHandler creates a handler to handle the API calls to /transactiondb/mintcondition.
@@ -203,5 +210,29 @@ func NewTransactionDBGetERC20RelatedAddressHandler(txdb *persist.TransactionDB) 
 			}
 		}
 		api.WriteJSON(w, resp)
+	}
+}
+
+// NewTransactionDBGetERC20TransactionID creates a handler to handle the API calls to /transactiondb/erc20/transactions/:txid.
+func NewTransactionDBGetERC20TransactionID(txdb *persist.TransactionDB) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		txidStr := ps.ByName("txid")
+		var txid tftypes.ERC20TransactionID
+		err := txid.LoadString(txidStr)
+		if err != nil {
+			api.WriteError(w, api.Error{Message: fmt.Sprintf("invalid ERC20 TransactionID given: %v", err)}, http.StatusBadRequest)
+			return
+		}
+
+		tfttxid, err := txdb.GetTFTTransactionIDForERC20TransactionID(txid)
+		if err != nil {
+			api.WriteError(w, api.Error{Message: fmt.Sprintf("error while fetching info linked to ERC20 TransactionID: %v", err)}, http.StatusInternalServerError)
+			return
+		}
+
+		api.WriteJSON(w, TransactionDBGetERC20TransactionID{
+			ERC20TransaxtionID:   txid,
+			TfchainTransactionID: tfttxid,
+		})
 	}
 }
