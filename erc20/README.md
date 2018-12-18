@@ -7,12 +7,6 @@ Code is in the [basic](./basic) subdirectory.
 [a basic solidity contract](basic/basic_contract.sol), and [basic proxy contract](basic/proxy_contract.sol) +
 compiled files in the contract subdirectory.
 
-To recompile the contracts after changes, run
-
-```bash
-solc --bin -o ./basic/basic_contract basic/basic_contract.sol
-solc --bin -o ./basic/proxy_contract basic/proxy_contract.sol
-```
 
 ## Extended version
 
@@ -56,3 +50,10 @@ defined in the proxy as well, and the storage layout needs to be the same.
 
 Notice that inheritance order in TokenProxy needs to be the same as the one in UpgradeableTokenStorage, otherwise the memory layout will
 be different, causing the proxy to fail.
+
+## Building and deployment
+
+In both the basic and extended folders a `compile.sh` script is present to compile the contracts.
+
+The solidity compiler (`solc`) is required. :
+- Mac osx: `brew install solidity`  
