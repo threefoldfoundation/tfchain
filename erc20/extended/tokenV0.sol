@@ -39,7 +39,7 @@ contract TTFT20 is OwnedTokenStorage {
     // Lets mint some tokens, also index the TFT tx id
     event Mint(address indexed receiver, uint tokens, string indexed txid);
     // Burn tokens in a withdrawal
-    event Withdraw(address indexed receiver, uint tokens);
+    event Withdraw(address indexed from, address indexed receiver, uint tokens);
 
     // ------------------------------------------------------------------------
     // Constructor
@@ -101,8 +101,12 @@ contract TTFT20 is OwnedTokenStorage {
     // ------------------------------------------------------------------------
     function transfer(address to, uint tokens) public returns (bool success) {
         setBalance(msg.sender, getBalance(msg.sender).sub(tokens));
-        setBalance(to, getBalance(to).add(tokens));
-        emit Transfer(msg.sender, to, tokens);
+        if (_isWithdrawalAddress(to)) {
+            emit Withdraw(msg.sender, to, tokens);
+        } else {
+            setBalance(to, getBalance(to).add(tokens));
+            emit Transfer(msg.sender, to, tokens);
+        }
         return true;
     }
 
@@ -134,8 +138,12 @@ contract TTFT20 is OwnedTokenStorage {
     function transferFrom(address from, address to, uint tokens) public returns (bool success) {
         setAllowed(from, msg.sender, getAllowed(from, msg.sender).sub(tokens));
         setBalance(from, getBalance(from).sub(tokens));
-        setBalance(to, getBalance(to).add(tokens));
-        emit Transfer(from, to, tokens);
+        if (_isWithdrawalAddress(to)) {
+            emit Withdraw(from, to, tokens);
+        } else {
+            setBalance(to, getBalance(to).add(tokens));
+            emit Transfer(from, to, tokens);
+        }   
         return true;
     }
 
@@ -172,7 +180,7 @@ contract TTFT20 is OwnedTokenStorage {
         uint _balance = getBalance(addr);
         if (_balance > 0) {
             setBalance(addr, 0);
-            emit Withdraw(addr, _balance);
+            emit Withdraw(addr, addr, _balance);
         }
         emit RegisterWithdrawalAddress(addr);
     }
