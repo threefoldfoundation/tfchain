@@ -19,27 +19,27 @@ contract TokenStorage is Storage {
     // -----------------------------------------------------
     // getter utilities
     // -----------------------------------------------------
-    function getSymbol() public view returns (string memory) {
+    function getSymbol() internal view returns (string memory) {
         return getString(keccak256(abi.encode("symbol")));
     }
 
-    function getName() public view returns (string memory) {
+    function getName() internal view returns (string memory) {
         return getString(keccak256(abi.encode("name")));
     }
 
-    function getDecimals() public view returns (uint8) {
+    function getDecimals() internal view returns (uint8) {
         return uint8(getUint(keccak256(abi.encode("decimals"))))    ;
     }
 
-    function getTotalSupply() public view returns (uint) {
+    function getTotalSupply() internal view returns (uint) {
         return getUint(keccak256(abi.encode("totalSupply")));
     }
 
-    function getBalance(address _account) public view returns (uint) {
+    function getBalance(address _account) internal view returns (uint) {
         return getUint(keccak256(abi.encode("balance", _account)));
     }
 
-    function getAllowed(address _account, address _spender) public view returns (uint) {
+    function getAllowed(address _account, address _spender) internal view returns (uint) {
         return getUint(keccak256(abi.encode("allowed", _account, _spender)));
     }
 
