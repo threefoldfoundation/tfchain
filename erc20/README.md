@@ -60,6 +60,13 @@ There is only a single contract which actually defines a storage layout: `Storag
 their own storage requirements actually use getters and setters which access the storage. The storage structure is defined as a key-value store
 for all available primitive types. The key is defined as a `bytes32` type, in practice we use a `keccak256` hash.
 
+### Deployment
+
+There are 2 main contracts which need to be deployed: `TokenProxy` and the actual token implementation (`TokenV0`). Both contracts can be deployed separatly,
+but once they are deployed, the address of the `Token` contract needs to be set in the `TokenProxy` contract (via the `upgradeTo` method of this contract). Once the
+`TokenProxy` has been deployed, new owners can also be added to it, who will be allowed to add other owners, change the `Token` contract, and call protected
+methods on said contract.
+
 ## Building and deployment
 
 In both the basic and extended folders a `compile.sh` script is present to compile the contracts.
