@@ -43,20 +43,22 @@ The two main contracts here are TokenProxy  and tokenV0..Vx
 This way , the address of the deployed TokenProxy never changes.
 
 helper contracts:
++ Storage defines the storage layout
 + Proxy provides the functionality to delegate any unknown method to an embedded contract address
-+ UpgradeabilityStorage is the contract storage holding the version and address of the actual token implementation
-+ UpgradeabilityProxy adds the upgrade logic
-+ TokenStorage is the storage for the erc20 token (balances, allowances, ...), which is immutable.
-+ TokenProxy extends from UpgradeabilityProxy and TokenStorage, it is the contract which will delegate calls to the
-  specific ERC20 contracts. (No actual implementation, only inheritence)
-+ UpgradeableTokenStorage extends from UpgradeabilityStorage and TokenStorage. This includes all the required components
-  for the upgraded token. (No actual implementation, only inheritence)
-  The specific token contracts extend from UpgradeableTokenStorage, so they all have the same memory structure.
++ Owned alllows us to have the notion of "owners", and adds a modifier to methods which ensures that only addresses in the owner list can call them.
++ OwnedUpgradeabilityProxy adds the upgrade logic, and stores the address and version of the currently used token contract
++ TokenStorage is the storage for the erc20 token (balances, allowances, ...).
++ TokenProxy extends from OwnedUpgradeabilityProxy and TokenStorage, it is the contract which will delegate calls to the
+  specific ERC20 contracts. (No actual implementation, only inheritence). This is the actually deployed proxy contract
++ OwnedTokenStorage extends from Owned and TokenStorage. This includes all the required components
+  for the owned token. (No actual implementation, only inheritence)
+  The specific token contracts extend from OwnedTokenStorage, so they all have the same memory structure
 
 ### Important
 
-Notice that inheritance order in TokenProxy needs to be the same as the one in UpgradeableTokenStorage, otherwise the memory layout will
-be different, causing the proxy to fail.
+There is only a single contract which actually defines a storage layout: `Storage`. All other contracts which inherit from this and have
+their own storage requirements actually use getters and setters which access the storage. The storage structure is defined as a key-value store
+for all available primitive types. The key is defined as a `bytes32` type, in practice we use a `keccak256` hash.
 
 ## Building and deployment
 
