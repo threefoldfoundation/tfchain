@@ -167,7 +167,10 @@ contract TTFT20 is OwnedTokenStorage {
     // Owner can mint tokens
     // -----------------------------------------------------------------------
     function mintTokens(address receiver, uint tokens, string memory txid) public onlyOwner {
+        // check if the txid is already known
+        require(!_isMintID(txid), "TFT transacton ID already known");
         // blatantly create these tokens for now, without any regard for anything
+        _setMintID(txid);
         setBalance(receiver, getBalance(receiver).add(tokens));
         emit Mint(receiver, tokens, txid);
     }
@@ -191,5 +194,13 @@ contract TTFT20 is OwnedTokenStorage {
 
     function _isWithdrawalAddress(address _addr) internal view returns (bool) {
         return getBool(keccak256(abi.encode("address","withdrawal", _addr)));
+    }
+
+    function _setMintID(string memory _txid) internal {
+        setBool(keccak256(abi.encode("mint","transaction","id",_txid)), true);
+    }
+
+    function _isMintID(string memory _txid) internal view returns (bool) {
+        return getBool(keccak256(abi.encode("mint","transaction","id", _txid)));
     }
 }
