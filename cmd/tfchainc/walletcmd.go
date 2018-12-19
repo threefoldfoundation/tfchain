@@ -389,9 +389,7 @@ func (walletSubCmds *walletSubCmds) sendBotRegistrationTxCmd() {
 	}
 
 	// sign the Tx
-	rtx := tx.Transaction(
-		walletSubCmds.cli.Config.CurrencyUnits.OneCoin,
-		internal.GetFoundationPoolCondition(walletSubCmds.cli.Config.NetworkName))
+	rtx := tx.Transaction(walletSubCmds.cli.Config.CurrencyUnits.OneCoin)
 	err = walletClient.GreedySignTx(&rtx)
 	if err != nil {
 		cli.DieWithError("failed to sign the bot registration Tx", err)
@@ -461,9 +459,7 @@ func (walletSubCmds *walletSubCmds) sendBotRecordUpdateTxCmd(str string) {
 	}
 
 	// sign the Tx
-	rtx := tx.Transaction(
-		walletSubCmds.cli.Config.CurrencyUnits.OneCoin,
-		internal.GetFoundationPoolCondition(walletSubCmds.cli.Config.NetworkName))
+	rtx := tx.Transaction(walletSubCmds.cli.Config.CurrencyUnits.OneCoin)
 	err = walletClient.GreedySignTx(&rtx)
 	if err != nil {
 		cli.DieWithError("failed to sign the bot record update Tx", err)
@@ -545,9 +541,7 @@ func (walletSubCmds *walletSubCmds) createBotNameTransferTxCmd(cmd *cobra.Comman
 		return
 	}
 
-	rtx := tx.Transaction(
-		walletSubCmds.cli.Config.CurrencyUnits.OneCoin,
-		internal.GetFoundationPoolCondition(walletSubCmds.cli.Config.NetworkName))
+	rtx := tx.Transaction(walletSubCmds.cli.Config.CurrencyUnits.OneCoin)
 
 	if walletSubCmds.createBotNameTransferTxCfg.Sign {
 		// optionally sign the Tx

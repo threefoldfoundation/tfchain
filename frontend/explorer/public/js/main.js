@@ -283,14 +283,22 @@ function getBlockchainContext() {
 
 function getCustomMinerPayoutSourceInfoArrayForTransaction(explorerTx) {
 	switch (explorerTx.rawtransaction.version) {
-	// TODO: also add 3bot tx
+	case 144:
+	case 145:
+	case 146:
+		return [
+			{
+				'desc': '3Bot Fee Payout',
+				'txid': explorerTx.id,
+			}
+		];
 	case 210:
 		return [
 			{
-				'desc': 'ERC20 Registration Fee Payout',
+				'desc': 'ERC20 Address Registration Fee Payout',
 				'txid': explorerTx.id,
 			}
-		]
+		];
 	default:
 		return [];
 	}
@@ -308,7 +316,25 @@ function appendBlockMinerPayouts(element, explorerBlock) {
 	// In a loop, add a new table for each miner payout.
 	appendStatTableTitle(element, 'Reward and Fee Payouts');
 	var txIndex = 0;
-	for (var i = 0; i < explorerBlock.rawblock.minerpayouts.length;) {
+	var i = 0;
+	for (; i < explorerBlock.rawblock.minerpayouts.length;) {
+		if (txIndex >= explorerBlock.transactions.length) {
+			// continue the rest using the old approach,
+			// as this might indicate we have an issue
+			for (; i < explorerBlock.rawblock.minerpayouts.length; i++) {
+				var table = createStatsTable();
+
+				var doms = appendStat(table, 'ID', '');
+				linkHash(doms[2], explorerBlock.minerpayoutids[i]);
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
+				appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
+
+				element.appendChild(table);
+			}
+			break;
+		}
+
 		if (i == 0 || i == 1) {
 			var table = createStatsTable();
 
@@ -318,8 +344,8 @@ function appendBlockMinerPayouts(element, explorerBlock) {
 			linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
 			appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
 			if (i == 0) {
-				txIndex++
 				appendStat(table, 'Source Description', 'Block Creator Reward (New Coins)');
+				txIndex++
 			} else {
 				doms = appendStat(table, 'Source Transaction Identifiers', '');
 				for(var u = txIndex; u < explorerBlock.transactions.length; u++) {
@@ -354,6 +380,7 @@ function appendBlockMinerPayouts(element, explorerBlock) {
 
 			i++
 		}
+
 		txIndex++;
 	}
 }
@@ -537,6 +564,16 @@ function getBotTransactions(id) {
 		return [];
 	}
 	return JSON.parse(request.responseText).ids;
+}
+
+function getERC20Transaction(id) {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer/erc20/transactions/' + id, false);
+	request.send();
+	if (request.status != 200) {
+		return null;
+	}
+	return JSON.parse(request.responseText);
 }
 
 //Changes the document title according to the network the page is running on

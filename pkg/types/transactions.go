@@ -117,19 +117,19 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              db,
-		RegistryPoolCondition: cfg.FoundationPoolCondition,
-		OneCoin:               oneCoin,
+		Registry:            db,
+		RegistryPoolAddress: cfg.FoundationPoolAddress,
+		OneCoin:             oneCoin,
 	})
 	types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, BotUpdateRecordTransactionController{
-		Registry:              db,
-		RegistryPoolCondition: cfg.FoundationPoolCondition,
-		OneCoin:               oneCoin,
+		Registry:            db,
+		RegistryPoolAddress: cfg.FoundationPoolAddress,
+		OneCoin:             oneCoin,
 	})
 	types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, BotNameTransferTransactionController{
-		Registry:              db,
-		RegistryPoolCondition: cfg.FoundationPoolCondition,
-		OneCoin:               oneCoin,
+		Registry:            db,
+		RegistryPoolAddress: cfg.FoundationPoolAddress,
+		OneCoin:             oneCoin,
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
@@ -172,19 +172,19 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Curr
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              db,
-		RegistryPoolCondition: cfg.FoundationPoolCondition,
-		OneCoin:               oneCoin,
+		Registry:            db,
+		RegistryPoolAddress: cfg.FoundationPoolAddress,
+		OneCoin:             oneCoin,
 	})
 	types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, BotUpdateRecordTransactionController{
-		Registry:              db,
-		RegistryPoolCondition: cfg.FoundationPoolCondition,
-		OneCoin:               oneCoin,
+		Registry:            db,
+		RegistryPoolAddress: cfg.FoundationPoolAddress,
+		OneCoin:             oneCoin,
 	})
 	types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, BotNameTransferTransactionController{
-		Registry:              db,
-		RegistryPoolCondition: cfg.FoundationPoolCondition,
-		OneCoin:               oneCoin,
+		Registry:            db,
+		RegistryPoolAddress: cfg.FoundationPoolAddress,
+		OneCoin:             oneCoin,
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
@@ -221,19 +221,19 @@ func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Curre
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              db,
-		RegistryPoolCondition: cfg.FoundationPoolCondition,
-		OneCoin:               oneCoin,
+		Registry:            db,
+		RegistryPoolAddress: cfg.FoundationPoolAddress,
+		OneCoin:             oneCoin,
 	})
 	types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, BotUpdateRecordTransactionController{
-		Registry:              db,
-		RegistryPoolCondition: cfg.FoundationPoolCondition,
-		OneCoin:               oneCoin,
+		Registry:            db,
+		RegistryPoolAddress: cfg.FoundationPoolAddress,
+		OneCoin:             oneCoin,
 	})
 	types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, BotNameTransferTransactionController{
-		Registry:              db,
-		RegistryPoolCondition: cfg.FoundationPoolCondition,
-		OneCoin:               oneCoin,
+		Registry:            db,
+		RegistryPoolAddress: cfg.FoundationPoolAddress,
+		OneCoin:             oneCoin,
 	})
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
@@ -1130,6 +1130,22 @@ type (
 	}
 )
 
+// RequiredBotFee computes the required Bot Fee, that is to be applied as a required
+// additional fee on top of the regular required (minimum) Tx fee.
+func (brtxe *BotRegistrationTransactionExtension) RequiredBotFee(oneCoin types.Currency) types.Currency {
+	// a static registration fee has to be paid
+	fee := oneCoin.Mul64(BotRegistrationFeeMultiplier)
+	// the amount of desired months also has to be paid
+	fee = fee.Add(ComputeMonthlyBotFees(brtxe.NrOfMonths, oneCoin))
+	// if more than one name is defined it also has to be paid
+	if n := len(brtxe.Names); n > 1 {
+		fee = fee.Add(oneCoin.Mul64(uint64(n-1) * BotFeePerAdditionalNameMultiplier))
+	}
+	// no fee has to be paid for the used network addresses during registration
+	// return the total fees
+	return fee
+}
+
 // BotRegistrationTransactionFromTransaction creates a BotRegistrationTransaction,
 // using a regular in-memory tfchain transaction.
 //
@@ -1178,26 +1194,19 @@ func BotRegistrationTransactionFromTransactionData(txData types.TransactionData)
 		CoinInputs:     txData.CoinInputs,
 		Identification: extensionData.Identification,
 	}
-	if len(txData.CoinOutputs) == 2 {
+	if len(txData.CoinOutputs) == 1 {
 		// take refund coin output
-		// convention always assumed to be the required BotFee
-		tx.RefundCoinOutput = &txData.CoinOutputs[1]
+		tx.RefundCoinOutput = &txData.CoinOutputs[0]
 	}
 	return tx, nil
 }
 
 // TransactionData returns this BotRegistrationTransaction
 // as regular tfchain transaction data.
-func (brtx *BotRegistrationTransaction) TransactionData(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.TransactionData {
+func (brtx *BotRegistrationTransaction) TransactionData(oneCoin types.Currency) types.TransactionData {
 	txData := types.TransactionData{
 		CoinInputs: brtx.CoinInputs,
-		CoinOutputs: []types.CoinOutput{
-			{
-				Value:     brtx.RequiredBotFee(oneCoin),
-				Condition: registryPoolCondition,
-			},
-		},
-		MinerFees: []types.Currency{brtx.TransactionFee},
+		MinerFees:  []types.Currency{brtx.TransactionFee},
 		Extension: &BotRegistrationTransactionExtension{
 			Addresses:      brtx.Addresses,
 			Names:          brtx.Names,
@@ -1213,17 +1222,11 @@ func (brtx *BotRegistrationTransaction) TransactionData(oneCoin types.Currency, 
 
 // Transaction returns this BotRegistrationTransaction
 // as regular tfchain transaction, using TransactionVersionBotRegistration as the type.
-func (brtx *BotRegistrationTransaction) Transaction(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.Transaction {
+func (brtx *BotRegistrationTransaction) Transaction(oneCoin types.Currency) types.Transaction {
 	tx := types.Transaction{
 		Version:    TransactionVersionBotRegistration,
 		CoinInputs: brtx.CoinInputs,
-		CoinOutputs: []types.CoinOutput{
-			{
-				Value:     brtx.RequiredBotFee(oneCoin),
-				Condition: registryPoolCondition,
-			},
-		},
-		MinerFees: []types.Currency{brtx.TransactionFee},
+		MinerFees:  []types.Currency{brtx.TransactionFee},
 		Extension: &BotRegistrationTransactionExtension{
 			Addresses:      brtx.Addresses,
 			Names:          brtx.Names,
@@ -1240,17 +1243,12 @@ func (brtx *BotRegistrationTransaction) Transaction(oneCoin types.Currency, regi
 // RequiredBotFee computes the required Bot Fee, that is to be applied as a required
 // additional fee on top of the regular required (minimum) Tx fee.
 func (brtx *BotRegistrationTransaction) RequiredBotFee(oneCoin types.Currency) types.Currency {
-	// a static registration fee has to be paid
-	fee := oneCoin.Mul64(BotRegistrationFeeMultiplier)
-	// the amount of desired months also has to be paid
-	fee = fee.Add(ComputeMonthlyBotFees(brtx.NrOfMonths, oneCoin))
-	// if more than one name is defined it also has to be paid
-	if n := len(brtx.Names); n > 1 {
-		fee = fee.Add(oneCoin.Mul64(uint64(n-1) * BotFeePerAdditionalNameMultiplier))
-	}
-	// no fee has to be paid for the used network addresses during registration
-	// return the total fees
-	return fee
+	return (&BotRegistrationTransactionExtension{
+		Addresses:      brtx.Addresses,
+		Names:          brtx.Names,
+		NrOfMonths:     brtx.NrOfMonths,
+		Identification: brtx.Identification,
+	}).RequiredBotFee(oneCoin)
 }
 
 // MarshalSia implements SiaMarshaler.MarshalSia,
@@ -1447,6 +1445,26 @@ type (
 	}
 )
 
+// RequiredBotFee computes the required Bot Fee, that is to be applied as a required
+// additional fee on top of the regular required (minimum) Tx fee.
+func (brutxe *BotRecordUpdateTransactionExtension) RequiredBotFee(oneCoin types.Currency) (fee types.Currency) {
+	// all additional months have to be paid
+	if brutxe.NrOfMonths > 0 {
+		fee = fee.Add(ComputeMonthlyBotFees(brutxe.NrOfMonths, oneCoin))
+	}
+	// a Tx that modifies the network address info of a 3bot record also has to be paid
+	if len(brutxe.AddressUpdate.Add) > 0 || len(brutxe.AddressUpdate.Remove) > 0 {
+		fee = fee.Add(oneCoin.Mul64(BotFeeForNetworkAddressInfoChangeMultiplier))
+	}
+	// each additional name has to be paid as well
+	// (regardless of the fact that the 3bot has a name or not)
+	if n := len(brutxe.NameUpdate.Add); n > 0 {
+		fee = fee.Add(oneCoin.Mul64(BotFeePerAdditionalNameMultiplier * uint64(n)))
+	}
+	// return the total fees
+	return fee
+}
+
 // BotRecordUpdateTransactionFromTransaction creates a BotRecordUpdateTransaction,
 // using a regular in-memory tfchain transaction.
 //
@@ -1496,26 +1514,19 @@ func BotRecordUpdateTransactionFromTransactionData(txData types.TransactionData)
 		CoinInputs:     txData.CoinInputs,
 		Signature:      extensionData.Signature,
 	}
-	if len(txData.CoinOutputs) == 2 {
+	if len(txData.CoinOutputs) == 1 {
 		// take refund coin output
-		// convention always assumed to be the required BotFee
-		tx.RefundCoinOutput = &txData.CoinOutputs[1]
+		tx.RefundCoinOutput = &txData.CoinOutputs[0]
 	}
 	return tx, nil
 }
 
 // TransactionData returns this BotRecordUpdateTransaction
 // as regular tfchain transaction data.
-func (brutx *BotRecordUpdateTransaction) TransactionData(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.TransactionData {
+func (brutx *BotRecordUpdateTransaction) TransactionData(oneCoin types.Currency) types.TransactionData {
 	txData := types.TransactionData{
 		CoinInputs: brutx.CoinInputs,
-		CoinOutputs: []types.CoinOutput{
-			{
-				Value:     brutx.RequiredBotFee(oneCoin),
-				Condition: registryPoolCondition,
-			},
-		},
-		MinerFees: []types.Currency{brutx.TransactionFee},
+		MinerFees:  []types.Currency{brutx.TransactionFee},
 		Extension: &BotRecordUpdateTransactionExtension{
 			Identifier:    brutx.Identifier,
 			Signature:     brutx.Signature,
@@ -1532,17 +1543,11 @@ func (brutx *BotRecordUpdateTransaction) TransactionData(oneCoin types.Currency,
 
 // Transaction returns this BotRecordUpdateTransaction
 // as regular tfchain transaction, using TransactionVersionBotRecordUpdate as the type.
-func (brutx *BotRecordUpdateTransaction) Transaction(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.Transaction {
+func (brutx *BotRecordUpdateTransaction) Transaction(oneCoin types.Currency) types.Transaction {
 	tx := types.Transaction{
 		Version:    TransactionVersionBotRecordUpdate,
 		CoinInputs: brutx.CoinInputs,
-		CoinOutputs: []types.CoinOutput{
-			{
-				Value:     brutx.RequiredBotFee(oneCoin),
-				Condition: registryPoolCondition,
-			},
-		},
-		MinerFees: []types.Currency{brutx.TransactionFee},
+		MinerFees:  []types.Currency{brutx.TransactionFee},
 		Extension: &BotRecordUpdateTransactionExtension{
 			Identifier:    brutx.Identifier,
 			Signature:     brutx.Signature,
@@ -1560,21 +1565,13 @@ func (brutx *BotRecordUpdateTransaction) Transaction(oneCoin types.Currency, reg
 // RequiredBotFee computes the required Bot Fee, that is to be applied as a required
 // additional fee on top of the regular required (minimum) Tx fee.
 func (brutx *BotRecordUpdateTransaction) RequiredBotFee(oneCoin types.Currency) (fee types.Currency) {
-	// all additional months have to be paid
-	if brutx.NrOfMonths > 0 {
-		fee = fee.Add(ComputeMonthlyBotFees(brutx.NrOfMonths, oneCoin))
-	}
-	// a Tx that modifies the network address info of a 3bot record also has to be paid
-	if len(brutx.Addresses.Add) > 0 || len(brutx.Addresses.Remove) > 0 {
-		fee = fee.Add(oneCoin.Mul64(BotFeeForNetworkAddressInfoChangeMultiplier))
-	}
-	// each additional name has to be paid as well
-	// (regardless of the fact that the 3bot has a name or not)
-	if n := len(brutx.Names.Add); n > 0 {
-		fee = fee.Add(oneCoin.Mul64(BotFeePerAdditionalNameMultiplier * uint64(n)))
-	}
-	// return the total fees
-	return fee
+	return (&BotRecordUpdateTransactionExtension{
+		Identifier:    brutx.Identifier,
+		Signature:     brutx.Signature,
+		AddressUpdate: brutx.Addresses,
+		NameUpdate:    brutx.Names,
+		NrOfMonths:    brutx.NrOfMonths,
+	}).RequiredBotFee(oneCoin)
 }
 
 // UpdateBotRecord updates the given record, within the context of the given blockTime,
@@ -1911,6 +1908,12 @@ type (
 	}
 )
 
+// RequiredBotFee computes the required Bot Fee, that is to be applied as a required
+// additional fee on top of the regular required (minimum) Tx fee.
+func (bnttxe *BotNameTransferTransactionExtension) RequiredBotFee(oneCoin types.Currency) types.Currency {
+	return oneCoin.Mul64(BotFeePerAdditionalNameMultiplier * uint64(len(bnttxe.Names)))
+}
+
 // BotNameTransferTransactionFromTransaction creates a BotNameTransferTransaction,
 // using a regular in-memory tfchain transaction.
 //
@@ -1958,26 +1961,19 @@ func BotNameTransferTransactionFromTransactionData(txData types.TransactionData)
 		TransactionFee: txData.MinerFees[0],
 		CoinInputs:     txData.CoinInputs,
 	}
-	if len(txData.CoinOutputs) == 2 {
+	if len(txData.CoinOutputs) == 1 {
 		// take refund coin output
-		// convention always assumed to be the required BotFee
-		tx.RefundCoinOutput = &txData.CoinOutputs[1]
+		tx.RefundCoinOutput = &txData.CoinOutputs[0]
 	}
 	return tx, nil
 }
 
 // TransactionData returns this BotNameTransferTransaction
 // as regular tfchain transaction data.
-func (bnttx *BotNameTransferTransaction) TransactionData(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.TransactionData {
+func (bnttx *BotNameTransferTransaction) TransactionData(oneCoin types.Currency) types.TransactionData {
 	txData := types.TransactionData{
 		CoinInputs: bnttx.CoinInputs,
-		CoinOutputs: []types.CoinOutput{
-			{
-				Value:     bnttx.RequiredBotFee(oneCoin),
-				Condition: registryPoolCondition,
-			},
-		},
-		MinerFees: []types.Currency{bnttx.TransactionFee},
+		MinerFees:  []types.Currency{bnttx.TransactionFee},
 		Extension: &BotNameTransferTransactionExtension{
 			Sender:   bnttx.Sender,
 			Receiver: bnttx.Receiver,
@@ -1992,17 +1988,11 @@ func (bnttx *BotNameTransferTransaction) TransactionData(oneCoin types.Currency,
 
 // Transaction returns this BotNameTransferTransaction
 // as regular tfchain transaction, using TransactionVersionBotNameTransfer as the type.
-func (bnttx *BotNameTransferTransaction) Transaction(oneCoin types.Currency, registryPoolCondition types.UnlockConditionProxy) types.Transaction {
+func (bnttx *BotNameTransferTransaction) Transaction(oneCoin types.Currency) types.Transaction {
 	tx := types.Transaction{
 		Version:    TransactionVersionBotNameTransfer,
 		CoinInputs: bnttx.CoinInputs,
-		CoinOutputs: []types.CoinOutput{
-			{
-				Value:     bnttx.RequiredBotFee(oneCoin),
-				Condition: registryPoolCondition,
-			},
-		},
-		MinerFees: []types.Currency{bnttx.TransactionFee},
+		MinerFees:  []types.Currency{bnttx.TransactionFee},
 		Extension: &BotNameTransferTransactionExtension{
 			Sender:   bnttx.Sender,
 			Receiver: bnttx.Receiver,
@@ -2018,7 +2008,11 @@ func (bnttx *BotNameTransferTransaction) Transaction(oneCoin types.Currency, reg
 // RequiredBotFee computes the required Bot Fee, that is to be applied as a required
 // additional fee on top of the regular required (minimum) Tx fee.
 func (bnttx *BotNameTransferTransaction) RequiredBotFee(oneCoin types.Currency) types.Currency {
-	return oneCoin.Mul64(BotFeePerAdditionalNameMultiplier * uint64(len(bnttx.Names)))
+	return (&BotNameTransferTransactionExtension{
+		Sender:   bnttx.Sender,
+		Receiver: bnttx.Receiver,
+		Names:    bnttx.Names,
+	}).RequiredBotFee(oneCoin)
 }
 
 // UpdateReceiverBotRecord updates the given (receiver bot) record, within the context of the given blockTime,
@@ -2228,21 +2222,22 @@ type (
 	// BotRegistrationTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 0x90. It allows the registration of a new3bot.
 	BotRegistrationTransactionController struct {
-		Registry              BotRecordReadRegistry
-		RegistryPoolCondition types.UnlockConditionProxy
-		OneCoin               types.Currency
+		Registry            BotRecordReadRegistry
+		RegistryPoolAddress types.UnlockHash
+		OneCoin             types.Currency
 	}
 )
 
 var (
 	// ensure at compile time that BotRegistrationTransactionController
 	// implements the desired interfaces
-	_ types.TransactionController      = BotRegistrationTransactionController{}
-	_ types.TransactionExtensionSigner = BotRegistrationTransactionController{}
-	_ types.TransactionValidator       = BotRegistrationTransactionController{}
-	_ types.BlockStakeOutputValidator  = BotRegistrationTransactionController{}
-	_ types.TransactionSignatureHasher = BotRegistrationTransactionController{}
-	_ types.TransactionIDEncoder       = BotRegistrationTransactionController{}
+	_ types.TransactionController              = BotRegistrationTransactionController{}
+	_ types.TransactionExtensionSigner         = BotRegistrationTransactionController{}
+	_ types.TransactionValidator               = BotRegistrationTransactionController{}
+	_ types.BlockStakeOutputValidator          = BotRegistrationTransactionController{}
+	_ types.TransactionSignatureHasher         = BotRegistrationTransactionController{}
+	_ types.TransactionIDEncoder               = BotRegistrationTransactionController{}
+	_ types.TransactionCustomMinerPayoutGetter = BotRegistrationTransactionController{}
 )
 
 // EncodeTransactionData implements TransactionController.EncodeTransactionData
@@ -2263,7 +2258,7 @@ func (brtc BotRegistrationTransactionController) DecodeTransactionData(r io.Read
 			"failed to binary-decode tx as a BotRegistrationTx: %v", err)
 	}
 	// return bot registration tx as regular tfchain tx data
-	return brtx.TransactionData(brtc.OneCoin, brtc.RegistryPoolCondition), nil
+	return brtx.TransactionData(brtc.OneCoin), nil
 }
 
 // JSONEncodeTransactionData implements TransactionController.JSONEncodeTransactionData
@@ -2284,7 +2279,7 @@ func (brtc BotRegistrationTransactionController) JSONDecodeTransactionData(data 
 			"failed to json-decode tx as a BotRegistrationTx: %v", err)
 	}
 	// return bot registration tx as regular tfchain tx data
-	return brtx.TransactionData(brtc.OneCoin, brtc.RegistryPoolCondition), nil
+	return brtx.TransactionData(brtc.OneCoin), nil
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
@@ -2401,7 +2396,7 @@ func (brtc BotRegistrationTransactionController) ValidateTransaction(t types.Tra
 // Rivine handles ValidateCoinOutputs,
 // which is possible as all our coin inputs are standard,
 // the (single) miner fee is standard as well, and
-// the additional (bot) fee is seen by Rivine as a coin output to a hardcoded condition.
+// the additional (bot) fee is seen by Rivine as a (custom) miner payout.
 
 // ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
 func (brtc BotRegistrationTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
@@ -2458,25 +2453,41 @@ func (brtc BotRegistrationTransactionController) EncodeTransactionIDInput(w io.W
 	return rivbin.NewEncoder(w).EncodeAll(SpecifierBotRegistrationTransaction, brtx)
 }
 
+// GetCustomMinerPayouts implements TransactionCustomMinerPayoutGetter.GetCustomMinerPayouts
+func (brtc BotRegistrationTransactionController) GetCustomMinerPayouts(extension interface{}) ([]types.MinerPayout, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid BotRegistrationTransactionExtension
+	brtxExtension, ok := extension.(*BotRegistrationTransactionExtension)
+	if !ok {
+		return nil, errors.New("invalid extension data for a Bot Registration Transaction")
+	}
+	return []types.MinerPayout{
+		{
+			Value:      brtxExtension.RequiredBotFee(brtc.OneCoin),
+			UnlockHash: brtc.RegistryPoolAddress,
+		},
+	}, nil
+}
+
 type (
 	// BotUpdateRecordTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 0x91. It allows the update of the record of an existing 3bot.
 	BotUpdateRecordTransactionController struct {
-		Registry              BotRecordReadRegistry
-		RegistryPoolCondition types.UnlockConditionProxy
-		OneCoin               types.Currency
+		Registry            BotRecordReadRegistry
+		RegistryPoolAddress types.UnlockHash
+		OneCoin             types.Currency
 	}
 )
 
 var (
 	// ensure at compile time that BotUpdateRecordTransactionController
 	// implements the desired interfaces
-	_ types.TransactionController      = BotUpdateRecordTransactionController{}
-	_ types.TransactionExtensionSigner = BotUpdateRecordTransactionController{}
-	_ types.TransactionValidator       = BotUpdateRecordTransactionController{}
-	_ types.BlockStakeOutputValidator  = BotUpdateRecordTransactionController{}
-	_ types.TransactionSignatureHasher = BotUpdateRecordTransactionController{}
-	_ types.TransactionIDEncoder       = BotUpdateRecordTransactionController{}
+	_ types.TransactionController              = BotUpdateRecordTransactionController{}
+	_ types.TransactionExtensionSigner         = BotUpdateRecordTransactionController{}
+	_ types.TransactionValidator               = BotUpdateRecordTransactionController{}
+	_ types.BlockStakeOutputValidator          = BotUpdateRecordTransactionController{}
+	_ types.TransactionSignatureHasher         = BotUpdateRecordTransactionController{}
+	_ types.TransactionIDEncoder               = BotUpdateRecordTransactionController{}
+	_ types.TransactionCustomMinerPayoutGetter = BotUpdateRecordTransactionController{}
 )
 
 // EncodeTransactionData implements TransactionController.EncodeTransactionData
@@ -2497,7 +2508,7 @@ func (brutc BotUpdateRecordTransactionController) DecodeTransactionData(r io.Rea
 			"failed to binary-decode tx as a BotUpdateRecordTx: %v", err)
 	}
 	// return bot record update tx as regular tfchain tx data
-	return burtx.TransactionData(brutc.OneCoin, brutc.RegistryPoolCondition), nil
+	return burtx.TransactionData(brutc.OneCoin), nil
 }
 
 // JSONEncodeTransactionData implements TransactionController.JSONEncodeTransactionData
@@ -2518,7 +2529,7 @@ func (brutc BotUpdateRecordTransactionController) JSONDecodeTransactionData(data
 			"failed to json-decode tx as a BotUpdateRecordTx: %v", err)
 	}
 	// return bot record update tx as regular tfchain tx data
-	return burtx.TransactionData(brutc.OneCoin, brutc.RegistryPoolCondition), nil
+	return burtx.TransactionData(brutc.OneCoin), nil
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
@@ -2602,7 +2613,7 @@ func (brutc BotUpdateRecordTransactionController) ValidateTransaction(t types.Tr
 // Rivine handles ValidateCoinOutputs,
 // which is possible as all our coin inputs are standard,
 // the (single) miner fee is standard as well, and
-// the additional (bot) fee is seen by Rivine as a coin output to a hardcoded condition.
+// the additional (bot) fee is seen by Rivine as a (custom) miner payout.
 
 // ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
 func (brutc BotUpdateRecordTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
@@ -2659,26 +2670,42 @@ func (brutc BotUpdateRecordTransactionController) EncodeTransactionIDInput(w io.
 	return rivbin.NewEncoder(w).EncodeAll(SpecifierBotRecordUpdateTransaction, brutx)
 }
 
+// GetCustomMinerPayouts implements TransactionCustomMinerPayoutGetter.GetCustomMinerPayouts
+func (brutc BotUpdateRecordTransactionController) GetCustomMinerPayouts(extension interface{}) ([]types.MinerPayout, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid BotRecordUpdateTransactionExtension
+	brutxExtension, ok := extension.(*BotRecordUpdateTransactionExtension)
+	if !ok {
+		return nil, errors.New("invalid extension data for a Bot RecordUpdate Transaction")
+	}
+	return []types.MinerPayout{
+		{
+			Value:      brutxExtension.RequiredBotFee(brutc.OneCoin),
+			UnlockHash: brutc.RegistryPoolAddress,
+		},
+	}, nil
+}
+
 type (
 	// BotNameTransferTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 0x92. It allows the transfer of names and update of the record
 	// of the two existing 3bot that participate in this transfer.
 	BotNameTransferTransactionController struct {
-		Registry              BotRecordReadRegistry
-		RegistryPoolCondition types.UnlockConditionProxy
-		OneCoin               types.Currency
+		Registry            BotRecordReadRegistry
+		RegistryPoolAddress types.UnlockHash
+		OneCoin             types.Currency
 	}
 )
 
 var (
 	// ensure at compile time that BotNameTransferTransactionController
 	// implements the desired interfaces
-	_ types.TransactionController      = BotNameTransferTransactionController{}
-	_ types.TransactionExtensionSigner = BotNameTransferTransactionController{}
-	_ types.TransactionValidator       = BotNameTransferTransactionController{}
-	_ types.BlockStakeOutputValidator  = BotNameTransferTransactionController{}
-	_ types.TransactionSignatureHasher = BotNameTransferTransactionController{}
-	_ types.TransactionIDEncoder       = BotNameTransferTransactionController{}
+	_ types.TransactionController              = BotNameTransferTransactionController{}
+	_ types.TransactionExtensionSigner         = BotNameTransferTransactionController{}
+	_ types.TransactionValidator               = BotNameTransferTransactionController{}
+	_ types.BlockStakeOutputValidator          = BotNameTransferTransactionController{}
+	_ types.TransactionSignatureHasher         = BotNameTransferTransactionController{}
+	_ types.TransactionIDEncoder               = BotNameTransferTransactionController{}
+	_ types.TransactionCustomMinerPayoutGetter = BotNameTransferTransactionController{}
 )
 
 // EncodeTransactionData implements TransactionController.EncodeTransactionData
@@ -2699,7 +2726,7 @@ func (bnttc BotNameTransferTransactionController) DecodeTransactionData(r io.Rea
 			"failed to binary-decode tx as a BotNameTransferTx: %v", err)
 	}
 	// return bot record update tx as regular tfchain tx data
-	return bnttx.TransactionData(bnttc.OneCoin, bnttc.RegistryPoolCondition), nil
+	return bnttx.TransactionData(bnttc.OneCoin), nil
 }
 
 // JSONEncodeTransactionData implements TransactionController.JSONEncodeTransactionData
@@ -2720,7 +2747,7 @@ func (bnttc BotNameTransferTransactionController) JSONDecodeTransactionData(data
 			"failed to json-decode tx as a BotNameTransferTx: %v", err)
 	}
 	// return bot record update tx as regular tfchain tx data
-	return bnttx.TransactionData(bnttc.OneCoin, bnttc.RegistryPoolCondition), nil
+	return bnttx.TransactionData(bnttc.OneCoin), nil
 }
 
 // SignExtension implements TransactionExtensionSigner.SignExtension
@@ -2839,7 +2866,7 @@ func (bnttc BotNameTransferTransactionController) ValidateTransaction(t types.Tr
 // Rivine handles ValidateCoinOutputs,
 // which is possible as all our coin inputs are standard,
 // the (single) miner fee is standard as well, and
-// the additional (bot) fee is seen by Rivine as a coin output to a hardcoded condition.
+// the additional (bot) fee is seen by Rivine as a (custom) miner payout.
 
 // ValidateBlockStakeOutputs implements BlockStakeOutputValidator.ValidateBlockStakeOutputs
 func (bnttc BotNameTransferTransactionController) ValidateBlockStakeOutputs(t types.Transaction, ctx types.FundValidationContext, blockStakeInputs map[types.BlockStakeOutputID]types.BlockStakeOutput) (err error) {
@@ -2895,6 +2922,21 @@ func (bnttc BotNameTransferTransactionController) EncodeTransactionIDInput(w io.
 	return rivbin.NewEncoder(w).EncodeAll(SpecifierBotNameTransferTransaction, bnttx)
 }
 
+// GetCustomMinerPayouts implements TransactionCustomMinerPayoutGetter.GetCustomMinerPayouts
+func (bnttc BotNameTransferTransactionController) GetCustomMinerPayouts(extension interface{}) ([]types.MinerPayout, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid BotNameTransferTransactionExtension
+	bnttxExtension, ok := extension.(*BotNameTransferTransactionExtension)
+	if !ok {
+		return nil, errors.New("invalid extension data for a Bot NameTransfer Transaction")
+	}
+	return []types.MinerPayout{
+		{
+			Value:      bnttxExtension.RequiredBotFee(bnttc.OneCoin),
+			UnlockHash: bnttc.RegistryPoolAddress,
+		},
+	}, nil
+}
+
 func getConditionAndFulfillmentForBotID(registry BotRecordReadRegistry, id BotID) (types.UnlockConditionProxy, types.UnlockFulfillmentProxy, error) {
 	record, err := registry.GetRecordForID(id)
 	if err != nil {
@@ -2927,8 +2969,8 @@ func validateBotInMemoryTransactionDataRequirements(txData types.TransactionData
 		return errors.New("no arbitrary data is allowed in a Bot Transaction")
 	}
 	// validate that the coin outputs is within the expected range
-	if s := len(txData.CoinOutputs); s == 0 || s > 2 {
-		return errors.New("a Bot Transaction requires one or two coin outputs")
+	if len(txData.CoinOutputs) > 1 {
+		return errors.New("a Bot Transaction can have maximum 1 Coin Output")
 	}
 	return nil
 }

@@ -643,7 +643,6 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 	linkBotKey(botPKDoms[2], explorerTransaction.rawtransaction.data.identification.publickey);
 	appendStat(botRegTable, 'Signature', explorerTransaction.rawtransaction.data.identification.signature);
 
-	var botFeeValue = 0;
 	if (explorerTransaction.rawtransaction.data.coininputs != null
 		&& explorerTransaction.rawtransaction.data.coininputs.length > 0) {
 		appendStatTableTitle(infoBody, 'Coin Inputs');
@@ -665,7 +664,6 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 					continue;
 			}
 			var inputoutputspecifier = getInputOutputSpecifier('coins');
-			botFeeValue += parseInt(explorerTransaction[inputoutputspecifier][i].value);
 			f(infoBody, explorerTransaction, i, 'coins');
 		}
 	}
@@ -675,7 +673,6 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
 		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
 		appendStatTableTitle(infoBody, 'Refund Coin Output');
-		botFeeValue -= parseInt(outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value);
 		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
 		var f;
 		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
@@ -705,9 +702,11 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 	}
 
 	if (confirmed) {
-		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+		var explorerBlock = fetchHashInfo(explorerTransaction.parent).block;
+
+		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
 		if (payouts != null) {
-			// In a loop, add a new table for each miner payout.
+			// In a loop, add a new table for each transaction fee payout.
 			appendStatTableTitle(infoBody, 'Transaction Fee Payout');
 			for (var i = 0; i < payouts.length; i++) {
 				var table = createStatsTable();
@@ -715,14 +714,26 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 				linkHash(doms[2], payouts[i].id);
 				doms = appendStat(table, 'Payout Address', '');
 				linkHash(doms[2], payouts[i].unlockhash);
-				botFeeValue -= parseInt(payouts[i].paidvalue);
 				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
 				infoBody.appendChild(table);
 			}
 		}
-	}
 
-	appendStat(statsTable, 'Paid 3Bot Fee', readableCoins(botFeeValue));
+		payouts = getSingleCustomFeeAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
+		if (payouts != null) {
+			// In a loop, add a new table for each 3Bot fee payout.
+			appendStatTableTitle(infoBody, '3Bot Fee Payout');
+			for (var i = 0; i < payouts.length; i++) {
+				var table = createStatsTable();
+				var doms = appendStat(table, 'ID', '');
+				linkHash(doms[2], payouts[i].id);
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], payouts[i].unlockhash);
+				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue));
+				infoBody.appendChild(table);
+			}
+		}
+	}
 }
 
 // 3bot record update Tx
@@ -784,7 +795,6 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 	}
 	appendStat(botRegTable, 'Signature', explorerTransaction.rawtransaction.data.signature);
 
-	var botFeeValue = 0;
 	if (explorerTransaction.rawtransaction.data.coininputs != null
 		&& explorerTransaction.rawtransaction.data.coininputs.length > 0) {
 		appendStatTableTitle(infoBody, 'Coin Inputs');
@@ -806,7 +816,6 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 					continue;
 			}
 			var inputoutputspecifier = getInputOutputSpecifier('coins');
-			botFeeValue += parseInt(explorerTransaction[inputoutputspecifier][i].value);
 			f(infoBody, explorerTransaction, i, 'coins');
 		}
 	}
@@ -816,7 +825,6 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
 		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
 		appendStatTableTitle(infoBody, 'Refund Coin Output');
-		botFeeValue -= parseInt(outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value);
 		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
 		var f;
 		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
@@ -846,9 +854,11 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 	}
 
 	if (confirmed) {
-		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+		var explorerBlock = fetchHashInfo(explorerTransaction.parent).block;
+
+		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
 		if (payouts != null) {
-			// In a loop, add a new table for each miner payout.
+			// In a loop, add a new table for each transaction fee payout.
 			appendStatTableTitle(infoBody, 'Transaction Fee Payout');
 			for (var i = 0; i < payouts.length; i++) {
 				var table = createStatsTable();
@@ -856,14 +866,26 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 				linkHash(doms[2], payouts[i].id);
 				doms = appendStat(table, 'Payout Address', '');
 				linkHash(doms[2], payouts[i].unlockhash);
-				botFeeValue -= parseInt(payouts[i].paidvalue);
 				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
 				infoBody.appendChild(table);
 			}
 		}
-	}
 
-	appendStat(statsTable, 'Paid 3Bot Fee', readableCoins(botFeeValue));
+		payouts = getSingleCustomFeeAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
+		if (payouts != null) {
+			// In a loop, add a new table for each 3Bot fee payout.
+			appendStatTableTitle(infoBody, '3Bot Fee Payout');
+			for (var i = 0; i < payouts.length; i++) {
+				var table = createStatsTable();
+				var doms = appendStat(table, 'ID', '');
+				linkHash(doms[2], payouts[i].id);
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], payouts[i].unlockhash);
+				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue));
+				infoBody.appendChild(table);
+			}
+		}
+	}
 }
 
 // 3bot name transfer Tx
@@ -906,7 +928,6 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 		}
 	}
 
-	var botFeeValue = 0;
 	if (explorerTransaction.rawtransaction.data.coininputs != null
 		&& explorerTransaction.rawtransaction.data.coininputs.length > 0) {
 		appendStatTableTitle(infoBody, 'Coin Inputs');
@@ -928,7 +949,6 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 					continue;
 			}
 			var inputoutputspecifier = getInputOutputSpecifier('coins');
-			botFeeValue += parseInt(explorerTransaction[inputoutputspecifier][i].value);
 			f(infoBody, explorerTransaction, i, 'coins');
 		}
 	}
@@ -938,7 +958,6 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.refundcoinoutput != null) {
 		var outputExplorerTransaction = JSON.parse(JSON.stringify(explorerTransaction));
 		appendStatTableTitle(infoBody, 'Refund Coin Output');
-		botFeeValue -= parseInt(outputExplorerTransaction.rawtransaction.data.refundcoinoutput.value);
 		outputExplorerTransaction.rawtransaction.data.coinoutputs = [outputExplorerTransaction.rawtransaction.data.refundcoinoutput]; // to make our existing functions work
 		var f;
 		switch (outputExplorerTransaction.rawtransaction.data.refundcoinoutput.condition.type) {
@@ -968,9 +987,11 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 	}
 
 	if (confirmed) {
-		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+		var explorerBlock = fetchHashInfo(explorerTransaction.parent).block;
+
+		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
 		if (payouts != null) {
-			// In a loop, add a new table for each miner payout.
+			// In a loop, add a new table for each transaction fee payout.
 			appendStatTableTitle(infoBody, 'Transaction Fee Payout');
 			for (var i = 0; i < payouts.length; i++) {
 				var table = createStatsTable();
@@ -978,14 +999,26 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 				linkHash(doms[2], payouts[i].id);
 				doms = appendStat(table, 'Payout Address', '');
 				linkHash(doms[2], payouts[i].unlockhash);
-				botFeeValue -= parseInt(payouts[i].paidvalue);
 				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
 				infoBody.appendChild(table);
 			}
 		}
-	}
 
-	appendStat(statsTable, 'Paid 3Bot Fee', readableCoins(botFeeValue));
+		payouts = getSingleCustomFeeAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
+		if (payouts != null) {
+			// In a loop, add a new table for each 3Bot fee payout.
+			appendStatTableTitle(infoBody, '3Bot Fee Payout');
+			for (var i = 0; i < payouts.length; i++) {
+				var table = createStatsTable();
+				var doms = appendStat(table, 'ID', '');
+				linkHash(doms[2], payouts[i].id);
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], payouts[i].unlockhash);
+				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue));
+				infoBody.appendChild(table);
+			}
+		}
+	}
 }
 
 // ERC20 Convert Tx
@@ -1240,10 +1273,10 @@ function appendV210Transaction(infoBody, explorerTransaction, confirmed) {
 			}
 		}
 
-		payouts = getERC20RegistrationFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
+		payouts = getSingleCustomFeeAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
 		if (payouts != null) {
-			// In a loop, add a new table for each ERC20 Registration fee payout.
-			appendStatTableTitle(infoBody, 'ERC20 Registration Fee Payout');
+			// In a loop, add a new table for each ERC20 Address Registration fee payout.
+			appendStatTableTitle(infoBody, 'ERC20 Address Registration Fee Payout');
 			for (var i = 0; i < payouts.length; i++) {
 				var table = createStatsTable();
 				var doms = appendStat(table, 'ID', '');
@@ -2101,22 +2134,57 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 	if (explorerHash.blocks != null && explorerHash.blocks.length != 0) {
 		for (var i = 0; i < explorerHash.blocks.length; i++) {
 			for (var j = 0; j < explorerHash.blocks[i].minerpayoutids.length; j++) {
-				if (explorerHash.blocks[i].rawblock.minerpayouts[j].unlockhash == hash) {
-					found = true;
-					var table = createStatsTable();
-					tables.push(table);
-					var doms = appendStat(table, 'Previous Block ID', '');
-					linkHash(doms[2], explorerHash.blocks[i].blockid);
-					doms = appendStat(table, 'Miner Payout ID', '');
-					linkHash(doms[2], explorerHash.blocks[i].minerpayoutids[j]);
-					doms = appendStat(table, 'Payout Address', '');
-					linkHash(doms[2], hash);
-					var value = explorerHash.blocks[i].rawblock.minerpayouts[j].value;
-					values.push(value);
-					appendStat(table, 'Value', readableCoins(value));
-					scoids.push(explorerHash.blocks[i].minerpayoutids[j]);
-					scoidMatches.push(false);
+				if (explorerHash.blocks[i].rawblock.minerpayouts[j].unlockhash != hash) {
+					continue;
 				}
+
+				found = true;
+				var table = createStatsTable();
+				tables.push(table);
+				var doms = appendStat(table, 'Block ID', '');
+				linkHash(doms[2], explorerHash.blocks[i].blockid);
+				doms = appendStat(table, 'Payout (Coin Output) ID', '');
+				linkHash(doms[2], explorerHash.blocks[i].minerpayoutids[j]);
+
+				var sourceDesc = null;
+				var sourceTx = null;
+				if (j == 0) {
+					sourceDesc = 'Block Creator Reward';
+				} else if (j == 1) {
+					sourceDesc = 'Transactions Fee Payout'; 
+				} else {
+					// try to get specific title for this custom Miner Fee Payout
+					var targetIndex = j - 2;
+					var currentIndex = 0;
+					for (var u = 0; u < explorerHash.blocks[i].transactions.length; u++) {
+						var arr = getCustomMinerPayoutSourceInfoArrayForTransaction(explorerHash.blocks[i].transactions[u]);
+						if (currentIndex+arr.length < targetIndex || arr.length == 0) {
+							currentIndex += arr.length;
+							continue;
+						}
+						arrIndex = targetIndex - currentIndex;
+						if (arrIndex >= 0 && arrIndex < arr.length) {
+							sourceDesc = arr[arrIndex].desc;
+							sourceTx = explorerHash.blocks[i].transactions[u].id;
+						}
+						break;
+					}
+				}
+				if (sourceDesc != null) {
+					appendStat(table, 'Source Description', sourceDesc);
+					if (sourceTx != null) {
+						doms = appendStat(table, 'Source Transaction ID', '');
+						linkHash(doms[2], sourceTx);
+					}
+				}
+
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], hash);
+				var value = explorerHash.blocks[i].rawblock.minerpayouts[j].value;
+				values.push(value);
+				appendStat(table, 'Value', readableCoins(value));
+				scoids.push(explorerHash.blocks[i].minerpayoutids[j]);
+				scoidMatches.push(false);
 			}
 		}
 	}
@@ -2126,7 +2194,7 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 	// if there were any significant miner outputs
 	if (found) {
 		// Add the header for the siacoin outputs.
-		appendStatTableTitle(domParent, 'Miner Payout Appearances');
+		appendStatTableTitle(domParent, 'Fee/Reward Payout Appearances');
 
 		if (explorerHash.transactions != null) {
 			for (var i = 0; i < explorerHash.transactions.length; i++) {
@@ -2188,19 +2256,42 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 	if (explorerHash.blocks != null) {
 		// Siacoin output is a miner payout.
 		for (var i = 0; i < explorerHash.blocks[0].minerpayoutids.length; i++) {
-			if (explorerHash.blocks[0].minerpayoutids[i] == hash) {
-				appendStatTableTitle(infoBody, 'Coin Output - Block Creator Reward');
-				var table = createStatsTable();
-				var doms = appendStat(table, 'ID', '');
-				linkHash(doms[2], hash);
-				doms = appendStat(table, 'Block ID', '');
-				linkHash(doms[2], explorerHash.blocks[0].blockid);
-				doms = appendStat(table, 'Address', '');
-				linkHash(doms[2], explorerHash.blocks[0].rawblock.minerpayouts[i].unlockhash);
-				appendStat(table, 'Value', readableCoins(explorerHash.blocks[0].rawblock.minerpayouts[i].value));
-				appendStat(table, 'Has Been Spent', hasBeenSpent);
-				infoBody.appendChild(table);
+			if (explorerHash.blocks[0].minerpayoutids[i] != hash) {
+				continue;
 			}
+			if (i == 0) {
+				appendStatTableTitle(infoBody, 'Coin Output - Block Creator Reward');
+			} else if (i == 1) {
+				appendStatTableTitle(infoBody, 'Coin Output - Transactions Fee Payout');
+			} else {
+				// try to get specific title for this custom Miner Fee Payout
+				var targetIndex = i - 2;
+				var currentIndex = 0;
+				var title = 'Reward/Fee Payout';
+				for (var u = 0; u < explorerHash.blocks[0].transactions.length; u++) {
+					var arr = getCustomMinerPayoutSourceInfoArrayForTransaction(explorerHash.blocks[0].transactions[u]);
+					if (currentIndex+arr.length < targetIndex || arr.length == 0) {
+						currentIndex += arr.length;
+						continue;
+					}
+					arrIndex = targetIndex - currentIndex;
+					if (arrIndex >= 0 && arrIndex < arr.length) {
+						title = arr[arrIndex].desc;
+					}
+					break;
+				}
+				appendStatTableTitle(infoBody, 'Coin Output - ' + title);
+			}
+			var table = createStatsTable();
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], hash);
+			doms = appendStat(table, 'Block ID', '');
+			linkHash(doms[2], explorerHash.blocks[0].blockid);
+			doms = appendStat(table, 'Address', '');
+			linkHash(doms[2], explorerHash.blocks[0].rawblock.minerpayouts[i].unlockhash);
+			appendStat(table, 'Value', readableCoins(explorerHash.blocks[0].rawblock.minerpayouts[i].value));
+			appendStat(table, 'Has Been Spent', hasBeenSpent);
+			infoBody.appendChild(table);
 		}
 	} else {
 		// Create the table containing the siacoin output.
@@ -2265,17 +2356,19 @@ function appendCoinOutputTables(infoBody, hash, explorerHash) {
 	}
 
 	// Create the table containing the coin input.
-	for (var i = 0; i < explorerHash.transactions.length; i++) {
-		if (explorerHash.transactions[i].rawtransaction.data.coininputs != null) {
-			for (var j = 0; j < explorerHash.transactions[i].rawtransaction.data.coininputs.length; j++) {
-				if (explorerHash.transactions[i].rawtransaction.data.coininputs[j].parentid == hash) {
-					appendStatTableTitle(infoBody, 'Coin Input');
-					var table = createStatsTable();
-					var doms = appendStat(table, 'ID', '');
-					linkHash(doms[2], hash);
-					doms = appendStat(table, 'Transaction ID', '');
-					linkHash(doms[2], explorerHash.transactions[i].id);
-					infoBody.appendChild(table);
+	if (explorerHash.transactions != null) {
+		for (var i = 0; i < explorerHash.transactions.length; i++) {
+			if (explorerHash.transactions[i].rawtransaction.data.coininputs != null) {
+				for (var j = 0; j < explorerHash.transactions[i].rawtransaction.data.coininputs.length; j++) {
+					if (explorerHash.transactions[i].rawtransaction.data.coininputs[j].parentid == hash) {
+						appendStatTableTitle(infoBody, 'Coin Input');
+						var table = createStatsTable();
+						var doms = appendStat(table, 'ID', '');
+						linkHash(doms[2], hash);
+						doms = appendStat(table, 'Transaction ID', '');
+						linkHash(doms[2], explorerHash.transactions[i].id);
+						infoBody.appendChild(table);
+					}
 				}
 			}
 		}
@@ -2369,7 +2462,7 @@ function appendRawTransaction(infoBody, rawTx) {
 
 // populateHashPage parses a query to the hash explorer and then returns
 // information about the query.
-function populateHashPage(hash, explorerHash) {
+function populateHashPage(hash, explorerHash, hashTypeStr) {
 	var hashType = explorerHash.hashtype;
 	var infoBody = document.getElementById('dynamic-elements');
 	if (hashType === "blockid") {
@@ -2378,7 +2471,10 @@ function populateHashPage(hash, explorerHash) {
 		appendExplorerBlock(infoBody, explorerHash.block, explorerHash.unconfirmed!==true);
 	} else if (hashType === "transactionid") {
 		appendNavigationMenuTransaction(explorerHash.transaction, explorerHash.unconfirmed!==true);
-		appendHeading(infoBody, 'Hash Type: Transaction ID');
+		if (hashTypeStr == null) {
+			hashTypeStr = 'Transaction ID';
+		}
+		appendHeading(infoBody, 'Hash Type: ' + hashTypeStr);
 		appendHeading(infoBody, 'Hash: ' + hash);
 		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
 		appendRawTransaction(infoBody, explorerHash.transaction.rawtransaction);
@@ -2567,7 +2663,7 @@ function getTransactionFeesAsFeePayouts(txID, blockID, explorerBlock) {
 	}
 	return null;
 }
-function getERC20RegistrationFeesAsFeePayouts(txID, blockID, explorerBlock) {
+function getSingleCustomFeeAsFeePayouts(txID, blockID, explorerBlock) {
 	if (explorerBlock == null) {
 		explorerBlock = fetchHashInfo(blockID).block;
 	}
@@ -2593,7 +2689,7 @@ function getERC20RegistrationFeesAsFeePayouts(txID, blockID, explorerBlock) {
 			id: feePayoutID,
 			unlockhash: feePayout.unlockhash,
 			value: feePayout.value,
-			paidvalue: tx.rawtransaction.data.regfee,
+			paidvalue: feePayout.value, // for custom (single) fee payouts value == paidvalue
 		}];
 	}
 	return null;
@@ -2634,7 +2730,7 @@ function appendNavigationMenuCoinOutput(explorerHash, hash) {
 	if (explorerHash.blocks == null) {
 		return;
 	}
-	//Coin Ouput - Block Creator Reward
+	//Coin Ouput - Reward or Fee Payout
 	for (var i = 0; i < explorerHash.blocks.length; i++) {
 		for (var j = 0; j < explorerHash.blocks[i].minerpayoutids.length; j++) {
 			if (explorerHash.blocks[i].minerpayoutids[j] == hash) {
@@ -2734,6 +2830,17 @@ function buildHashPage() {
 	var hash = parseHashQuery();
 	var explorerHash = fetchHashInfo(hash);
 	if (explorerHash == 'error') { // if an error occurs: check the different scenarios
+		if (hash != null && hash.length == 64) {
+			// try to interpret it as a TFT20 TransactionID
+			resp = getERC20Transaction(hash);
+			if (resp != null) {
+				explorerHash = fetchHashInfo(resp.tfttxid);
+				if (explorerHash != 'error') {
+					populateHashPage(hash, explorerHash, 'TFT20 TransactionID');
+					return;
+				}
+			}
+		}
 		appendNavigationInvalidHash();
 		buildErrorPage(hash);
 		appendSearchHash();

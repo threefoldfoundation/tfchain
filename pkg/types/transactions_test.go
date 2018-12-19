@@ -2324,9 +2324,8 @@ func TestComputeMonthlyBotFees(t *testing.T) {
 func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              nil,
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
@@ -2344,7 +2343,7 @@ func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	oTx := botRegistrationTx.Transaction(config.GetCurrencyUnits().OneCoin, types.UnlockConditionProxy{})
+	oTx := botRegistrationTx.Transaction(config.GetCurrencyUnits().OneCoin)
 	oID := oTx.ID()
 	oB := rivbin.Marshal(oTx)
 	if id != oID {
@@ -2358,9 +2357,8 @@ func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              nil,
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
@@ -2400,9 +2398,8 @@ var cryptoKeyPair = types.KeyPair{
 func TestBotRegistrationTransactionUniqueSignatures(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              nil,
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
@@ -2529,8 +2526,7 @@ func TestBotRecordUpdateTransactionUniqueSignatures(t *testing.T) {
 }`),
 			},
 		},
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		OneCoin: config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, nil)
 
@@ -2662,8 +2658,7 @@ func TestBotNameTransferTransactionUniqueSignatures(t *testing.T) {
 }`),
 			},
 		},
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		OneCoin: config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, nil)
 
@@ -2782,17 +2777,6 @@ func TestBotNameTransferTransactionUniqueSignatures(t *testing.T) {
 		}
 		signatures[signature] = struct{}{}
 	}
-}
-
-func TestBotRegistrationFees(t *testing.T) {
-	// TODO:
-	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
-}
-
-func TestBotUpdateFees(t *testing.T) {
-	// TODO:
-	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
-	//  - test (*BotNameTransferTransaction)::RequiredBotFee
 }
 
 type inMemoryBotRegistry struct {
