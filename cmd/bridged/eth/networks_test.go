@@ -2,8 +2,6 @@ package eth
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 //TestGetEthNetworkConfiguration is not an extensive test,as it would just duplicate  the constans defined in the networks file.
@@ -19,15 +17,26 @@ func TestGetEthNetworkConfiguration(t *testing.T) {
 	}
 	for _, testcase := range testcases {
 		conf, err := GetEthNetworkConfiguration(testcase.networkname)
-
-		assert.Nil(t, err, "An existing networkname should not return an error")
-		assert.Equal(t, testcase.networkname, conf.NetworkName)
-		assert.Equal(t, testcase.networkID, conf.NetworkID)
+		if err != nil {
+			t.Error("An existing networkname should not return an error:", err)
+		}
+		if testcase.networkname != conf.NetworkName {
+			t.Error(testcase.networkname, "!=", conf.NetworkName)
+		}
+		if testcase.networkID != conf.NetworkID {
+			t.Error(testcase.networkID, "!=", conf.NetworkID)
+		}
 		bootnodes, err := conf.GetBootnodes()
-		assert.Nil(t, err)
-		assert.NotEmpty(t, bootnodes)
+		if err != nil {
+			t.Error("error while getting BootNodes:", err)
+		}
+		if len(bootnodes) == 0 {
+			t.Error("unexpected empty bootnodes list")
+		}
 	}
 	//Unexisting networkname should return an error
-	_, err := GetEthNetworkConfiguration("unexisting_blablabla")
-	assert.Error(t, err, "An unexisting networkname should return an error")
+	_, err := GetEthNetworkConfiguration("foo")
+	if err == nil {
+		t.Error("An unexisting networkname should return an error")
+	}
 }
