@@ -4,7 +4,7 @@ daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
 bridgepkgs = ./cmd/bridged
 faucetpkgs = ./frontend/tftfaucet
-testpkgs = ./pkg/types ./pkg/persist
+testpkgs = ./pkg/types ./pkg/persist ./pkg/eth
 pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
 
 version = $(shell git describe --abbrev=0)

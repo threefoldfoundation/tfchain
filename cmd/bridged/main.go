@@ -16,8 +16,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	bridgedeth "github.com/threefoldfoundation/tfchain/cmd/bridged/eth"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
+	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 	"github.com/threefoldtech/rivine/types"
 
@@ -63,7 +63,7 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules
 	if err != nil {
 		return nil, fmt.Errorf("bridged: failed to subscribe to consensus set: %v", err)
 	}
-	networkConfig, err := bridgedeth.GetEthNetworkConfiguration(ethNetworkName)
+	networkConfig, err := tfeth.GetEthNetworkConfiguration(ethNetworkName)
 	ContractAddress := networkConfig.ContractAddress
 	go bridged.bridge.loop()
 	go bridged.bridge.SubscribeTransfers(ContractAddress)

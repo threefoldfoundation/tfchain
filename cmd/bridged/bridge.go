@@ -28,7 +28,8 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/p2p/nat"
 	"github.com/ethereum/go-ethereum/params"
-	bridgedeth "github.com/threefoldfoundation/tfchain/cmd/bridged/eth"
+
+	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
 
 	"github.com/threefoldfoundation/tfchain/pkg/erc20/contract"
 )
@@ -45,16 +46,16 @@ var (
 // ethBridge represents a prototype for a bridge between tft and erc20, able to call
 // contract methods and listen for contract events
 type ethBridge struct {
-	networkConfig bridgedeth.NetworkConfiguration // Ethereum network
-	stack         *node.Node                      // Ethereum protocol stack
-	client        *ethclient.Client               // Client connection to the Ethereum chain
-	keystore      *keystore.KeyStore              // Keystore containing the signing info
-	account       accounts.Account                // Account funding the bridge requests
-	head          *types.Header                   // Current head header of the bridge
-	balance       *big.Int                        // The current balance of the bridge (note: ethers only!)
-	nonce         uint64                          // Current pending nonce of the bridge
-	price         *big.Int                        // Current gas price to issue funds with
-	lock          sync.RWMutex                    // Lock protecting the bridge's internals
+	networkConfig tfeth.NetworkConfiguration // Ethereum network
+	stack         *node.Node                 // Ethereum protocol stack
+	client        *ethclient.Client          // Client connection to the Ethereum chain
+	keystore      *keystore.KeyStore         // Keystore containing the signing info
+	account       accounts.Account           // Account funding the bridge requests
+	head          *types.Header              // Current head header of the bridge
+	balance       *big.Int                   // The current balance of the bridge (note: ethers only!)
+	nonce         uint64                     // Current pending nonce of the bridge
+	price         *big.Int                   // Current gas price to issue funds with
+	lock          sync.RWMutex               // Lock protecting the bridge's internals
 }
 
 func (bridge *ethBridge) GetContractAdress() common.Address {
@@ -64,11 +65,11 @@ func (bridge *ethBridge) GetContractAdress() common.Address {
 
 func newEthBridge(networkName string, port int, accountJSON, accountPass string, datadir string) (*ethBridge, error) {
 	datadir = filepath.Join(datadir, networkName)
-	ks, err := bridgedeth.InitializeKeystore(datadir, accountJSON, accountPass)
+	ks, err := tfeth.InitializeKeystore(datadir, accountJSON, accountPass)
 	if err != nil {
 		return nil, err
 	}
-	networkConfig, err := bridgedeth.GetEthNetworkConfiguration(networkName)
+	networkConfig, err := tfeth.GetEthNetworkConfiguration(networkName)
 	if err != nil {
 		return nil, err
 	}
