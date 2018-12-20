@@ -3,23 +3,19 @@ package main
 import (
 	"context"
 	"fmt"
-	"math/big"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path"
-	"path/filepath"
 	"runtime"
 	"sync"
 
 	"github.com/threefoldtech/rivine/modules/transactionpool"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/threefoldfoundation/tfchain/pkg/bridge"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
-	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
-	"github.com/threefoldtech/rivine/types"
 
 	"github.com/spf13/cobra"
 	tfchaintypes "github.com/threefoldfoundation/tfchain/pkg/types"
@@ -28,142 +24,6 @@ import (
 	"github.com/threefoldtech/rivine/modules/gateway"
 	rivinetypes "github.com/threefoldtech/rivine/types"
 )
-
-// used to dump the data of a tfchain network in a meaningful way.
-type Bridged struct {
-	cs   modules.ConsensusSet
-	txdb *persist.TransactionDB
-	tp   modules.TransactionPool
-
-	bcInfo   rivinetypes.BlockchainInfo
-	chainCts rivinetypes.ChainConstants
-
-	bridge *ethBridge
-
-	mut sync.Mutex
-}
-
-// Create new Bridged.
-func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.TransactionPool, bcInfo rivinetypes.BlockchainInfo, chainCts rivinetypes.ChainConstants, ethPort uint16, accountJSON, accountPass string, datadir string, ethNetworkName string, cancel <-chan struct{}) (*Bridged, error) {
-
-	bridge, err := newEthBridge(ethNetworkName, int(ethPort), accountJSON, accountPass, filepath.Join(datadir, "eth"))
-	if err != nil {
-		return nil, err
-	}
-
-	bridged := &Bridged{
-		cs:       cs,
-		txdb:     txdb,
-		tp:       tp,
-		bcInfo:   bcInfo,
-		chainCts: chainCts,
-		bridge:   bridge,
-	}
-	err = cs.ConsensusSetSubscribe(bridged, txdb.GetLastConsensusChangeID(), cancel)
-	if err != nil {
-		return nil, fmt.Errorf("bridged: failed to subscribe to consensus set: %v", err)
-	}
-	networkConfig, err := tfeth.GetEthNetworkConfiguration(ethNetworkName)
-	ContractAddress := networkConfig.ContractAddress
-	go bridged.bridge.loop()
-	go bridged.bridge.SubscribeTransfers(ContractAddress)
-	go bridged.bridge.SubscribeMint(ContractAddress)
-	go bridged.bridge.SubscribeRegisterWithdrawAddress(ContractAddress)
-
-	withdrawChan := make(chan WithdrawEvent)
-	go bridged.bridge.SubscribeWithdraw(ContractAddress, withdrawChan)
-	go func() {
-		for {
-			we := <-withdrawChan
-			uh, found, err := txdb.GetTFTAddressForERC20Address(tfchaintypes.ERC20Address(we.receiver))
-			if err != nil {
-				log.Error("Retireving TFT address for registered ERC20 address errored: ", err)
-				return
-			}
-			if !found {
-				log.Error("Failed to retrieve TFT address for registered ERC20 Withdrawal address")
-				return
-			}
-
-			tx := tfchaintypes.ERC20CoinCreationTransaction{}
-			// Todo: dynamic address
-			tx.Address = uh
-			tx.Value = types.NewCurrency(we.amount)
-			tx.TransactionID = tfchaintypes.ERC20TransactionID(we.txHash)
-			tx.TransactionFee = types.NewCurrency(OneToken)
-			if err := tp.AcceptTransactionSet([]types.Transaction{tx.Transaction()}); err != nil {
-				log.Error("Failed to push ERC20 -> TFT transaction", "err", err)
-				return
-			}
-		}
-	}()
-
-	return bridged, nil
-}
-
-// Close bridged.
-func (bridged *Bridged) Close() {
-	bridged.mut.Lock()
-	defer bridged.mut.Unlock()
-	bridged.bridge.close()
-	bridged.cs.Unsubscribe(bridged)
-}
-
-// ProcessConsensusChange implements modules.ConsensusSetSubscriber,
-// used to apply/revert blocks.
-func (bridged *Bridged) ProcessConsensusChange(css modules.ConsensusChange) {
-	bridged.mut.Lock()
-	defer bridged.mut.Unlock()
-
-	// TODO: add delay
-
-	for _, block := range css.AppliedBlocks {
-		for _, tx := range block.Transactions {
-			if tx.Version == tfchaintypes.TransactionVersionERC20Conversion {
-				log.Warn("Found convert transacton")
-				txConvert, err := tfchaintypes.ERC20ConvertTransactionFromTransaction(tx)
-				if err != nil {
-					log.Error("Found a TFT convert transaction version, but can't create a conversion transaction from it")
-					return
-				}
-				// Send the mint transaction, this requires gas
-				if err = bridged.Mint(txConvert.Address, txConvert.Value, tx.ID()); err != nil {
-					log.Error("Failed to push mint transaction", "error", err)
-					return
-				}
-				log.Info("Created mint transaction on eth network")
-			} else if tx.Version == tfchaintypes.TransactionVersionERC20AddressRegistration {
-				log.Warn("Found erc20 address registration")
-				txRegistration, err := tfchaintypes.ERC20AddressRegistrationTransactionFromTransaction(tx)
-				if err != nil {
-					log.Error("Found a TFT ERC20 Address registration transaction version, but can't create the right transaction for it")
-					return
-				}
-				// send the address registration transaction
-				if err = bridged.RegisterWithdrawalAddress(txRegistration.PublicKey); err != nil {
-					log.Error("Failed to push withdrawal address registration transaction", "err", err)
-					return
-				}
-				log.Info("Registered withdrawal address on eth network")
-			}
-		}
-	}
-}
-
-var (
-	// 18 digit precision
-	precision = big.NewInt(1000000000000000000)
-)
-
-func (bridged *Bridged) Mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
-	return bridged.bridge.Mint(bridged.bridge.GetContractAdress(), common.Address(receiver), big.NewInt(0).Mul(amount.Big(), precision), txID.String())
-}
-
-func (bridged *Bridged) RegisterWithdrawalAddress(key types.PublicKey) error {
-	// convert public key to unlockhash to eth address
-	erc20addr := tfchaintypes.ERC20AddressFromUnlockHash(types.NewPubKeyUnlockHash(key))
-	return bridged.bridge.RegisterWithdrawalAddress(bridged.bridge.GetContractAdress(), common.Address(erc20addr))
-}
 
 type Commands struct {
 	RPCaddr        string
@@ -328,8 +188,8 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		}()
 
 		log.Info("loading bridged module (4/4)...")
-		bridged, err := NewBridged(
-			cs, cmd.transactionDB, tpool, cmd.BlockchainInfo, cmd.ChainConstants, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.RootPersistentDir, cmd.EthNetworkName, ctx.Done())
+		bridged, err := bridge.New(
+			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.RootPersistentDir, cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)
 			log.Error("[ERROR] ", cmdErr)
@@ -466,7 +326,7 @@ func main() {
 
 	cmdRoot.Flags().IntVarP(
 		&cmd.EthLog,
-		"Ethereum-log-lvl", "e", 3,
+		"ethereum-log-lvl", "e", 3,
 		"Log lvl for the ethereum logger",
 	)
 
