@@ -51,6 +51,7 @@ type bridgeContract struct {
 
 	filter     *contract.TTFT20Filterer
 	transactor *contract.TTFT20Transactor
+	caller     *contract.TTFT20Caller
 
 	// cache some stats in case they might be usefull
 	head    *types.Header // Current head header of the bridge
@@ -162,6 +163,11 @@ func newBridgeContract(networkName string, port int, accountJSON, accountPass st
 		return nil, err
 	}
 
+	caller, err := contract.NewTTFT20Caller(networkConfig.ContractAddress, client)
+	if err != nil {
+		return nil, err
+	}
+
 	return &bridgeContract{
 		networkConfig: networkConfig,
 		stack:         stack,
@@ -171,6 +177,7 @@ func newBridgeContract(networkName string, port int, accountJSON, accountPass st
 
 		filter:     filter,
 		transactor: transactor,
+		caller:     caller,
 	}, nil
 }
 

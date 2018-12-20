@@ -73,7 +73,11 @@ func New(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.Transa
 
 			tx := tfchaintypes.ERC20CoinCreationTransaction{}
 			tx.Address = uh
-			tx.Value = types.NewCurrency(we.amount)
+
+			// calculate the amount of tokens we need to hand out
+			erc20Tokens := big.NewInt(0).Div(we.amount, erc20Precision)
+			tfTokens := big.NewInt(0).Mul(erc20Tokens, tftPrecision)
+			tx.Value = types.NewCurrency(tfTokens)
 			tx.TransactionID = tfchaintypes.ERC20TransactionID(we.txHash)
 			tx.TransactionFee = types.NewCurrency(OneToken)
 			if err := tp.AcceptTransactionSet([]types.Transaction{tx.Transaction()}); err != nil {
@@ -87,19 +91,19 @@ func New(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.Transa
 	return bridge, nil
 }
 
-// Close bridged.
-func (bridged *Bridge) Close() {
-	bridged.mut.Lock()
-	defer bridged.mut.Unlock()
-	bridged.bridgeContract.close()
-	bridged.cs.Unsubscribe(bridged)
+// Close bridge
+func (bridge *Bridge) Close() {
+	bridge.mut.Lock()
+	defer bridge.mut.Unlock()
+	bridge.bridgeContract.close()
+	bridge.cs.Unsubscribe(bridge)
 }
 
 // ProcessConsensusChange implements modules.ConsensusSetSubscriber,
 // used to apply/revert blocks.
-func (bridged *Bridge) ProcessConsensusChange(css modules.ConsensusChange) {
-	bridged.mut.Lock()
-	defer bridged.mut.Unlock()
+func (bridge *Bridge) ProcessConsensusChange(css modules.ConsensusChange) {
+	bridge.mut.Lock()
+	defer bridge.mut.Unlock()
 
 	// TODO: add delay
 
@@ -113,7 +117,7 @@ func (bridged *Bridge) ProcessConsensusChange(css modules.ConsensusChange) {
 					return
 				}
 				// Send the mint transaction, this requires gas
-				if err = bridged.Mint(txConvert.Address, txConvert.Value, tx.ID()); err != nil {
+				if err = bridge.mint(txConvert.Address, txConvert.Value, tx.ID()); err != nil {
 					log.Error("Failed to push mint transaction", "error", err)
 					return
 				}
@@ -126,7 +130,7 @@ func (bridged *Bridge) ProcessConsensusChange(css modules.ConsensusChange) {
 					return
 				}
 				// send the address registration transaction
-				if err = bridged.RegisterWithdrawalAddress(txRegistration.PublicKey); err != nil {
+				if err = bridge.registerWithdrawalAddress(txRegistration.PublicKey); err != nil {
 					log.Error("Failed to push withdrawal address registration transaction", "err", err)
 					return
 				}
@@ -138,14 +142,18 @@ func (bridged *Bridge) ProcessConsensusChange(css modules.ConsensusChange) {
 
 var (
 	// 18 digit precision
-	precision = big.NewInt(1000000000000000000)
+	erc20Precision = big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil)
+	// 9 digit precision
+	tftPrecision = big.NewInt(0).Exp(big.NewInt(10), big.NewInt(9), nil)
 )
 
-func (bridge *Bridge) Mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
-	return bridge.bridgeContract.mint(common.Address(receiver), big.NewInt(0).Mul(amount.Big(), precision), txID.String())
+func (bridge *Bridge) mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
+	tfTokens := big.NewInt(0).Div(amount.Big(), tftPrecision)
+	erc20Tokens := big.NewInt(0).Mul(tfTokens, erc20Precision)
+	return bridge.bridgeContract.mint(common.Address(receiver), erc20Tokens, txID.String())
 }
 
-func (bridge *Bridge) RegisterWithdrawalAddress(key types.PublicKey) error {
+func (bridge *Bridge) registerWithdrawalAddress(key types.PublicKey) error {
 	// convert public key to unlockhash to eth address
 	erc20addr := tfchaintypes.ERC20AddressFromUnlockHash(types.NewPubKeyUnlockHash(key))
 	return bridge.bridgeContract.registerWithdrawalAddress(common.Address(erc20addr))
