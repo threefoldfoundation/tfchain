@@ -183,8 +183,9 @@ func NewTransactionDBGetERC20RelatedAddressHandler(txdb *persist.TransactionDB) 
 		addressStr := ps.ByName("address")
 
 		var (
-			err  error
-			resp TransactionDBGetERC20RelatedAddress
+			err   error
+			found bool
+			resp  TransactionDBGetERC20RelatedAddress
 		)
 		if len(addressStr) == tftypes.ERC20AddressLength*2 {
 			err = resp.ERC20Address.LoadString(addressStr)
@@ -192,9 +193,13 @@ func NewTransactionDBGetERC20RelatedAddressHandler(txdb *persist.TransactionDB) 
 				api.WriteError(w, api.Error{Message: fmt.Sprintf("invalid ERC20 address given: %v", err)}, http.StatusBadRequest)
 				return
 			}
-			resp.TFTAddress, err = txdb.GetTFTAddressForERC20Address(resp.ERC20Address)
+			resp.TFTAddress, found, err = txdb.GetTFTAddressForERC20Address(resp.ERC20Address)
 			if err != nil {
 				api.WriteError(w, api.Error{Message: fmt.Sprintf("error while fetching TFT Address: %v", err)}, http.StatusInternalServerError)
+				return
+			}
+			if !found {
+				api.WriteError(w, api.Error{Message: "error while fetching TFT Address: address not found"}, http.StatusNoContent)
 				return
 			}
 		} else {
@@ -203,9 +208,13 @@ func NewTransactionDBGetERC20RelatedAddressHandler(txdb *persist.TransactionDB) 
 				api.WriteError(w, api.Error{Message: fmt.Sprintf("invalid (TFT) address given: %v", err)}, http.StatusBadRequest)
 				return
 			}
-			resp.ERC20Address, err = txdb.GetERC20AddressForTFTAddress(resp.TFTAddress)
+			resp.ERC20Address, found, err = txdb.GetERC20AddressForTFTAddress(resp.TFTAddress)
 			if err != nil {
 				api.WriteError(w, api.Error{Message: fmt.Sprintf("error while fetching ERC20 Address: %v", err)}, http.StatusInternalServerError)
+				return
+			}
+			if !found {
+				api.WriteError(w, api.Error{Message: "error while fetching ERC20 Address: address not found"}, http.StatusNoContent)
 				return
 			}
 		}
@@ -224,9 +233,13 @@ func NewTransactionDBGetERC20TransactionID(txdb *persist.TransactionDB) httprout
 			return
 		}
 
-		tfttxid, err := txdb.GetTFTTransactionIDForERC20TransactionID(txid)
+		tfttxid, found, err := txdb.GetTFTTransactionIDForERC20TransactionID(txid)
 		if err != nil {
 			api.WriteError(w, api.Error{Message: fmt.Sprintf("error while fetching info linked to ERC20 TransactionID: %v", err)}, http.StatusInternalServerError)
+			return
+		}
+		if !found {
+			api.WriteError(w, api.Error{Message: "error while fetching info linked to ERC20 TransactionID: ID not found"}, http.StatusNoContent)
 			return
 		}
 

@@ -3059,8 +3059,8 @@ func (address *ERC20Address) UnmarshalJSON(b []byte) error {
 type (
 	// ERC20Registry defines the public READ API expected from an ERC20 Read-Only registry.
 	ERC20Registry interface {
-		GetERC20AddressForTFTAddress(types.UnlockHash) (ERC20Address, error)
-		GetTFTTransactionIDForERC20TransactionID(ERC20TransactionID) (types.TransactionID, error)
+		GetERC20AddressForTFTAddress(types.UnlockHash) (ERC20Address, bool, error)
+		GetTFTTransactionIDForERC20TransactionID(ERC20TransactionID) (types.TransactionID, bool, error)
 	}
 )
 
@@ -3488,8 +3488,6 @@ func (txid *ERC20TransactionID) UnmarshalJSON(b []byte) error {
 type (
 	// ERC20CoinCreationTransaction defines the Transaction (with version 0xD1)
 	// used to convert ERC20 funds into TFT (the reverse of the ERC20ConvertTransaction).
-	//
-	// TODO: validation
 	ERC20CoinCreationTransaction struct {
 		// The address to send the TFT-converted tfchain ERC20 funds into.
 		Address types.UnlockHash `json:"address"`
@@ -3717,9 +3715,6 @@ func (etctc ERC20CoinCreationTransactionController) ValidateTransaction(t types.
 		return fmt.Errorf("failed to use Tx as a ERC20 CoinCreation Tx: %v", err)
 	}
 
-	// TODO: (maybe)
-	// Validate if created by an authorized party
-
 	// check if the miner fee has the required minimum miner fee
 	if etctx.TransactionFee.Cmp(constants.MinimumMinerFee) == -1 {
 		return types.ErrTooSmallMinerFee
@@ -3733,12 +3728,22 @@ func (etctc ERC20CoinCreationTransactionController) ValidateTransaction(t types.
 	}
 
 	// validate if the ERC20 Transaction ID isn't already used
-	txid, err := etctc.Registry.GetTFTTransactionIDForERC20TransactionID(etctx.TransactionID)
+	txid, found, err := etctc.Registry.GetTFTTransactionIDForERC20TransactionID(etctx.TransactionID)
 	if err != nil {
 		return fmt.Errorf("internal error occured while checking if the ERC20 TransactionID %v was already registered: %v", etctx.TransactionID, err)
 	}
-	if txid != (types.TransactionID{}) {
+	if found {
 		return fmt.Errorf("invalid ERC20 CoinCreation Tx: ERC20 Tx ID %v already mapped to TFT Tx ID %v", etctx.TransactionID, txid)
+	}
+
+	// validate if the TFT Target Address is actually registered
+	// as an ERC20 Withdrawal address
+	_, found, err = etctc.Registry.GetERC20AddressForTFTAddress(etctx.Address)
+	if err != nil {
+		return fmt.Errorf("internal error occured while checking if the TFT address %v is registered as ERC20 withdrawal address: %v", etctx.Address, err)
+	}
+	if !found {
+		return fmt.Errorf("invalid ERC20 CoinCreation Tx: Address %v is not registered as an ERC20 withdrawal address", etctx.Address)
 	}
 
 	// TODO: optionally validate the transaction ID on the ERC20 side using its ERC20 TxID
@@ -3852,7 +3857,6 @@ type (
 
 		// RegistrationFee defines the Registration fee to be paid for the
 		// registration on top of the regular Transaction fee.
-		// TODO: integrate it into the parent block, for now it is ignored.
 		RegistrationFee types.Currency `json:"regfee"`
 
 		// TransactionFee defines the regular Tx fee.
@@ -4175,8 +4179,8 @@ func (eartc ERC20AddressRegistrationTransactionController) ValidateTransaction(t
 	}
 
 	// validate the public key is not registered yet
-	addr, err := eartc.Registry.GetERC20AddressForTFTAddress(uh)
-	if err == nil && addr != (ERC20Address{}) {
+	_, found, err := eartc.Registry.GetERC20AddressForTFTAddress(uh)
+	if err == nil && found {
 		return errors.New("invalid ERC20 AddressRegistration tx: public key has already registered an ERC20 address")
 	}
 	if err != nil {

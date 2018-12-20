@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -80,6 +81,7 @@ func NewExplorerHashHandler(explorer modules.Explorer, tpool modules.Transaction
 
 			hstr := ps.ByName("hash")
 			addr, err := rapi.ScanAddress(hstr)
+			var found bool
 			if err != nil {
 				if len(hstr) != types.ERC20AddressLength*2 {
 					rapi.WriteError(w, rapi.Error{Message: err.Error()}, http.StatusBadRequest)
@@ -94,16 +96,19 @@ func NewExplorerHashHandler(explorer modules.Explorer, tpool modules.Transaction
 				}
 
 				// get the TFT address using the ERC20 address
-				addr, err = txdb.GetTFTAddressForERC20Address(erc20Address)
-				if err != nil || addr == (rtypes.UnlockHash{}) {
+				addr, found, err = txdb.GetTFTAddressForERC20Address(erc20Address)
+				if err != nil || !found {
 					rapi.WriteError(w, rapi.Error{Message: "invalid ERC20 address: address not found"}, http.StatusBadRequest)
 					return
 				}
 			} else {
 				// try to get the ERC20 Address
 				// ignore error: is not critical
-				erc20Address, err = txdb.GetERC20AddressForTFTAddress(addr)
-				if err != nil {
+				erc20Address, found, err = txdb.GetERC20AddressForTFTAddress(addr)
+				if err != nil || !found {
+					if err == nil {
+						err = errors.New("address not found")
+					}
 					log.Printf("error while fetching ERC20 address for TFT Address %v: %v", addr, err)
 				}
 			}

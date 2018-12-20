@@ -340,9 +340,9 @@ func (txdb *TransactionDB) GetBotTransactionIdentifiers(id types.BotID) (ids []r
 
 // GetERC20AddressForTFTAddress returns the mapped ERC20 address for the given TFT Address,
 // iff the TFT Address has registered an ERC20 address explicitly.
-func (txdb *TransactionDB) GetERC20AddressForTFTAddress(uh rivinetypes.UnlockHash) (addr types.ERC20Address, err error) {
+func (txdb *TransactionDB) GetERC20AddressForTFTAddress(uh rivinetypes.UnlockHash) (addr types.ERC20Address, found bool, err error) {
 	err = txdb.db.View(func(tx *bolt.Tx) (err error) {
-		addr, err = getERC20AddressForTFTAddress(tx, uh)
+		addr, found, err = getERC20AddressForTFTAddress(tx, uh)
 		return
 	})
 	return
@@ -350,9 +350,9 @@ func (txdb *TransactionDB) GetERC20AddressForTFTAddress(uh rivinetypes.UnlockHas
 
 // GetTFTAddressForERC20Address returns the mapped TFT address for the given ERC20 Address,
 // iff the TFT Address has registered an ERC20 address explicitly.
-func (txdb *TransactionDB) GetTFTAddressForERC20Address(addr types.ERC20Address) (uh rivinetypes.UnlockHash, err error) {
+func (txdb *TransactionDB) GetTFTAddressForERC20Address(addr types.ERC20Address) (uh rivinetypes.UnlockHash, found bool, err error) {
 	err = txdb.db.View(func(tx *bolt.Tx) (err error) {
-		uh, err = getTFTAddressForERC20Address(tx, addr)
+		uh, found, err = getTFTAddressForERC20Address(tx, addr)
 		return
 	})
 	return
@@ -360,9 +360,9 @@ func (txdb *TransactionDB) GetTFTAddressForERC20Address(addr types.ERC20Address)
 
 // GetTFTTransactionIDForERC20TransactionID returns the mapped TFT TransactionID for the given ERC20 TransactionID,
 // iff the ERC20 TransactionID has been used to fund an ERC20 CoinCreation Tx and has been registered as such, a nil TransactionID is returned otherwise.
-func (txdb *TransactionDB) GetTFTTransactionIDForERC20TransactionID(id types.ERC20TransactionID) (txid rivinetypes.TransactionID, err error) {
+func (txdb *TransactionDB) GetTFTTransactionIDForERC20TransactionID(id types.ERC20TransactionID) (txid rivinetypes.TransactionID, found bool, err error) {
 	err = txdb.db.View(func(tx *bolt.Tx) (err error) {
-		txid, err = getTfchainTransactionIDForERC20TransactionID(tx, id)
+		txid, found, err = getTfchainTransactionIDForERC20TransactionID(tx, id)
 		return
 	})
 	return
@@ -1636,38 +1636,38 @@ func revertERC20AddressMapping(tx *bolt.Tx, tftaddr rivinetypes.UnlockHash, erc2
 	return nil
 }
 
-func getERC20AddressForTFTAddress(tx *bolt.Tx, uh rivinetypes.UnlockHash) (types.ERC20Address, error) {
+func getERC20AddressForTFTAddress(tx *bolt.Tx, uh rivinetypes.UnlockHash) (types.ERC20Address, bool, error) {
 	bucket := tx.Bucket(bucketTFTToERC20Addresses)
 	if bucket == nil {
-		return types.ERC20Address{}, errors.New("corrupt transaction DB: TFT->ERC20 bucket does not exist")
+		return types.ERC20Address{}, false, errors.New("corrupt transaction DB: TFT->ERC20 bucket does not exist")
 	}
 	b := bucket.Get(rivbin.Marshal(uh))
 	if len(b) == 0 {
-		return types.ERC20Address{}, nil
+		return types.ERC20Address{}, false, nil
 	}
 	var addr types.ERC20Address
 	err := rivbin.Unmarshal(b, &addr)
 	if err != nil {
-		return types.ERC20Address{}, fmt.Errorf("failed to fetch ERC20 Address for TFT address %v: %v", uh, err)
+		return types.ERC20Address{}, false, fmt.Errorf("failed to fetch ERC20 Address for TFT address %v: %v", uh, err)
 	}
-	return addr, nil
+	return addr, true, nil
 }
 
-func getTFTAddressForERC20Address(tx *bolt.Tx, addr types.ERC20Address) (rivinetypes.UnlockHash, error) {
+func getTFTAddressForERC20Address(tx *bolt.Tx, addr types.ERC20Address) (rivinetypes.UnlockHash, bool, error) {
 	bucket := tx.Bucket(bucketERC20ToTFTAddresses)
 	if bucket == nil {
-		return rivinetypes.UnlockHash{}, errors.New("corrupt transaction DB: ERC20->TFT bucket does not exist")
+		return rivinetypes.UnlockHash{}, false, errors.New("corrupt transaction DB: ERC20->TFT bucket does not exist")
 	}
 	b := bucket.Get(rivbin.Marshal(addr))
 	if len(b) == 0 {
-		return rivinetypes.UnlockHash{}, nil
+		return rivinetypes.UnlockHash{}, false, nil
 	}
 	var uh rivinetypes.UnlockHash
 	err := rivbin.Unmarshal(b, &uh)
 	if err != nil {
-		return rivinetypes.UnlockHash{}, fmt.Errorf("failed to fetch TFT Address for ERC20 address %v: %v", addr, err)
+		return rivinetypes.UnlockHash{}, false, fmt.Errorf("failed to fetch TFT Address for ERC20 address %v: %v", addr, err)
 	}
-	return uh, nil
+	return uh, true, nil
 }
 
 func applyERC20TransactionID(tx *bolt.Tx, erc20id types.ERC20TransactionID, tftid rivinetypes.TransactionID) error {
@@ -1692,19 +1692,19 @@ func revertERC20TransactionID(tx *bolt.Tx, id types.ERC20TransactionID) error {
 	}
 	return nil
 }
-func getTfchainTransactionIDForERC20TransactionID(tx *bolt.Tx, id types.ERC20TransactionID) (rivinetypes.TransactionID, error) {
+func getTfchainTransactionIDForERC20TransactionID(tx *bolt.Tx, id types.ERC20TransactionID) (rivinetypes.TransactionID, bool, error) {
 	bucket := tx.Bucket(bucketERC20TransactionIDs)
 	if bucket == nil {
-		return rivinetypes.TransactionID{}, errors.New("corrupt transaction DB: ERC20 TransactionIDs bucket does not exist")
+		return rivinetypes.TransactionID{}, false, errors.New("corrupt transaction DB: ERC20 TransactionIDs bucket does not exist")
 	}
 	b := bucket.Get(rivbin.Marshal(id))
 	if len(b) == 0 {
-		return rivinetypes.TransactionID{}, nil
+		return rivinetypes.TransactionID{}, false, nil
 	}
 	var txid rivinetypes.TransactionID
 	err := rivbin.Unmarshal(b, &txid)
 	if err != nil {
-		return rivinetypes.TransactionID{}, fmt.Errorf("corrupt transaction DB: invalid tfchain TransactionID fetched for ERC20 TxID %v: %v", id, err)
+		return rivinetypes.TransactionID{}, false, fmt.Errorf("corrupt transaction DB: invalid tfchain TransactionID fetched for ERC20 TxID %v: %v", id, err)
 	}
-	return txid, nil
+	return txid, true, nil
 }

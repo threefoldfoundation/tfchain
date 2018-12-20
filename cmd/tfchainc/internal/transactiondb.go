@@ -8,6 +8,7 @@ import (
 	"github.com/threefoldfoundation/tfchain/pkg/api"
 	"github.com/threefoldfoundation/tfchain/pkg/types"
 
+	rapi "github.com/threefoldtech/rivine/pkg/api"
 	"github.com/threefoldtech/rivine/pkg/client"
 	rivinetypes "github.com/threefoldtech/rivine/types"
 )
@@ -141,21 +142,27 @@ func (cli *TransactionDBClient) GetRecordForString(str string) (*types.BotRecord
 }
 
 // GetERC20AddressForTFTAddress implements types.ERC20Registry.GetERC20AddressForTFTAddress
-func (cli *TransactionDBClient) GetERC20AddressForTFTAddress(uh rivinetypes.UnlockHash) (types.ERC20Address, error) {
+func (cli *TransactionDBClient) GetERC20AddressForTFTAddress(uh rivinetypes.UnlockHash) (types.ERC20Address, bool, error) {
 	var result api.TransactionDBGetERC20RelatedAddress
 	err := cli.client.GetAPI(fmt.Sprintf("%s/erc20/addresses/%s", cli.rootEndpoint, uh.String()), &result)
 	if err != nil {
-		return types.ERC20Address{}, fmt.Errorf("failed to get ERC20 Info for TFT address %s from daemon: %v", uh.String(), err)
+		if err == rapi.ErrStatusNotFound {
+			return types.ERC20Address{}, false, nil
+		}
+		return types.ERC20Address{}, false, fmt.Errorf("failed to get ERC20 Info for TFT address %s from daemon: %v", uh.String(), err)
 	}
-	return result.ERC20Address, nil
+	return result.ERC20Address, true, nil
 }
 
 // GetTFTTransactionIDForERC20TransactionID implements types.ERC20Registry.GetTFTTransactionIDForERC20TransactionID
-func (cli *TransactionDBClient) GetTFTTransactionIDForERC20TransactionID(txid types.ERC20TransactionID) (rivinetypes.TransactionID, error) {
+func (cli *TransactionDBClient) GetTFTTransactionIDForERC20TransactionID(txid types.ERC20TransactionID) (rivinetypes.TransactionID, bool, error) {
 	var result api.TransactionDBGetERC20TransactionID
 	err := cli.client.GetAPI(fmt.Sprintf("%s/erc20/transactions/%s", cli.rootEndpoint, txid.String()), &result)
 	if err != nil {
-		return rivinetypes.TransactionID{}, fmt.Errorf("failed to get info linked to ERC20 Transaction ID %s from daemon: %v", txid.String(), err)
+		if err == rapi.ErrStatusNotFound {
+			return rivinetypes.TransactionID{}, false, nil
+		}
+		return rivinetypes.TransactionID{}, false, fmt.Errorf("failed to get info linked to ERC20 Transaction ID %s from daemon: %v", txid.String(), err)
 	}
-	return result.TfchainTransactionID, nil
+	return result.TfchainTransactionID, true, nil
 }
