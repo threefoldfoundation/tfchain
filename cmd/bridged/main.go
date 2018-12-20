@@ -73,13 +73,21 @@ func NewBridged(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules
 	withdrawChan := make(chan WithdrawEvent)
 	go bridged.bridge.SubscribeWithdraw(ContractAddress, withdrawChan)
 	go func() {
-		addr := types.UnlockHash{}
-		addr.LoadString("01fcf7fadb91c63ff6ff9ac5fd1405eee0ae8b29c7f0a95e7e8772bd02dc6e77df4b74a631487b")
 		for {
 			we := <-withdrawChan
+			uh, found, err := txdb.GetTFTAddressForERC20Address(tfchaintypes.ERC20Address(we.receiver))
+			if err != nil {
+				log.Error("Retireving TFT address for registered ERC20 address errored: ", err)
+				return
+			}
+			if !found {
+				log.Error("Failed to retrieve TFT address for registered ERC20 Withdrawal address")
+				return
+			}
+
 			tx := tfchaintypes.ERC20CoinCreationTransaction{}
 			// Todo: dynamic address
-			tx.Address = addr
+			tx.Address = uh
 			tx.Value = types.NewCurrency(we.amount)
 			tx.TransactionID = tfchaintypes.ERC20TransactionID(we.txHash)
 			tx.TransactionFee = types.NewCurrency(OneToken)
@@ -152,10 +160,9 @@ func (bridged *Bridged) Mint(receiver tfchaintypes.ERC20Address, amount types.Cu
 }
 
 func (bridged *Bridged) RegisterWithdrawalAddress(key types.PublicKey) error {
-	// use the first 20 bytes from the key for now
-	var addressBytes [20]byte
-	copy(addressBytes[:], key.Key[:20])
-	return bridged.bridge.RegisterWithdrawalAddress(bridged.bridge.GetContractAdress(), common.Address(addressBytes))
+	// convert public key to unlockhash to eth address
+	erc20addr := tfchaintypes.ERC20AddressFromUnlockHash(types.NewPubKeyUnlockHash(key))
+	return bridged.bridge.RegisterWithdrawalAddress(bridged.bridge.GetContractAdress(), common.Address(erc20addr))
 }
 
 type Commands struct {

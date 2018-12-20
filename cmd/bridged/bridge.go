@@ -247,7 +247,7 @@ func (bridge *ethBridge) SubscribeMint(contractAddress common.Address) error {
 	}
 	sink := make(chan *contract.TTFT20Mint)
 	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
-	sub, err := filter.WatchMint(opts, sink, nil)
+	sub, err := filter.WatchMint(opts, sink, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -277,7 +277,7 @@ func (bridge *ethBridge) SubscribeWithdraw(contractAddress common.Address, wc ch
 	}
 	sink := make(chan *contract.TTFT20Withdraw)
 	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
-	sub, err := filter.WatchWithdraw(opts, sink, nil)
+	sub, err := filter.WatchWithdraw(opts, sink, nil, nil)
 	if err != nil {
 		return err
 	}
