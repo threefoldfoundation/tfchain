@@ -13,8 +13,8 @@ import (
 	"github.com/threefoldtech/rivine/modules/transactionpool"
 
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/threefoldfoundation/tfchain/pkg/bridge"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
+	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 
 	"github.com/spf13/cobra"
@@ -25,6 +25,7 @@ import (
 	rivinetypes "github.com/threefoldtech/rivine/types"
 )
 
+// Commands defines the CLI Commands for the Bridge as well as its in-memory state.
 type Commands struct {
 	RPCaddr        string
 	BlockchainInfo rivinetypes.BlockchainInfo
@@ -188,7 +189,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		}()
 
 		log.Info("loading bridged module (4/4)...")
-		bridged, err := bridge.New(
+		bridged, err := erc20.NewBridge(
 			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.RootPersistentDir, cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)

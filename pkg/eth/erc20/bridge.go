@@ -1,4 +1,4 @@
-package bridge
+package erc20
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/lunny/log"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 	tfchaintypes "github.com/threefoldfoundation/tfchain/pkg/types"
 	"github.com/threefoldtech/rivine/modules"
@@ -29,9 +29,8 @@ type Bridge struct {
 	mut sync.Mutex
 }
 
-// New creates a new Bridge.
-func New(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.TransactionPool, ethPort uint16, accountJSON, accountPass string, ethNetworkName string, datadir string, bcInfo types.BlockchainInfo, chainCts types.ChainConstants, cancel <-chan struct{}) (*Bridge, error) {
-
+// NewBridge creates a new Bridge.
+func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.TransactionPool, ethPort uint16, accountJSON, accountPass string, ethNetworkName string, datadir string, bcInfo types.BlockchainInfo, chainCts types.ChainConstants, cancel <-chan struct{}) (*Bridge, error) {
 	contract, err := newBridgeContract(ethNetworkName, int(ethPort), accountJSON, accountPass, filepath.Join(datadir, "eth"))
 	if err != nil {
 		return nil, err

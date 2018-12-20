@@ -1,4 +1,4 @@
-package bridge
+package erc20
 
 import (
 	"context"
@@ -28,7 +28,7 @@ import (
 
 	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
 
-	"github.com/threefoldfoundation/tfchain/pkg/erc20/contract"
+	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20/contract"
 )
 
 var (
