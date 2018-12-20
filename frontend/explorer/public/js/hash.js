@@ -1110,8 +1110,12 @@ function appendV209Transaction(infoBody, explorerTransaction, confirmed) {
 	appendStatTableTitle(infoBody, 'ERC20 CoinCreation');
 	var conversionTable = createStatsTable();
 	infoBody.appendChild(conversionTable);
-	doms = appendStat(conversionTable, 'TFT Address', '');
+	doms = appendStat(conversionTable, 'TFT Target Address', '');
 	linkHash(doms[2], explorerTransaction.rawtransaction.data.address);
+	if (explorerTransaction.coinoutputids != null && explorerTransaction.coinoutputids.length == 1) {
+		doms = appendStat(conversionTable, 'Coin Output ID', '');
+		linkHash(doms[2], explorerTransaction.coinoutputids[0]);
+	}
 	appendStat(conversionTable, 'value', readableCoins(explorerTransaction.rawtransaction.data.value))
 	appendStat(conversionTable, 'ERC20 Transaction ID', explorerTransaction.rawtransaction.data.txid)
 
