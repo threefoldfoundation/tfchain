@@ -41,26 +41,6 @@ contract TTFT20 is OwnedTokenStorage {
     // Burn tokens in a withdrawal
     event Withdraw(address indexed from, address indexed receiver, uint tokens);
 
-    // ------------------------------------------------------------------------
-    // Constructor
-    // ------------------------------------------------------------------------
-    constructor() public {
-        setSymbol("TTFT20");
-        setName("TTFT ERC20 representation");
-
-        uint8 _decimals = 18;
-        setDecimals(_decimals);
-
-        // TODO: How much total supply
-        uint _totalSupply = 1000000 * 10 ** uint(_decimals);
-        setTotalSupply(_totalSupply);
-
-        // TODO: At start nobody should have any tokens?
-        // setBalance(msg.sender, _totalSupply);
-
-        // emit Transfer(address(0), msg.sender, _totalSupply);
-    }
-
 
     // name, symbol and decimals getters are optional per the ERC20 spec. Normally auto generated from public variables
     // but that is obviously not going to work for us

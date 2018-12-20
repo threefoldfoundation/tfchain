@@ -69,4 +69,25 @@ contract TokenStorage is Storage {
     function setAllowed(address _account, address _spender, uint _allowance) internal {
         setUint(keccak256(abi.encode("allowed", _account, _spender)), _allowance);
     }
+
+    // ------------------------------------------------------------------------
+    // Constructor
+    // ------------------------------------------------------------------------
+    // Token constructor here so it is also inheritted by our proxy. Needed to set some constants
+    constructor() public {
+        setSymbol("TTFT20");
+        setName("TTFT ERC20 representation");
+
+        uint8 _decimals = 18;
+        setDecimals(_decimals);
+
+        // TODO: How much total supply
+        uint _totalSupply = 1000000 * 10 ** uint(_decimals);
+        setTotalSupply(_totalSupply);
+
+        // TODO: At start nobody should have any tokens?
+        // setBalance(msg.sender, _totalSupply);
+
+        // emit Transfer(address(0), msg.sender, _totalSupply);
+    }
 }
