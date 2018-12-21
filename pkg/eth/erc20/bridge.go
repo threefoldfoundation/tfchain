@@ -107,6 +107,8 @@ func (bridge *Bridge) ProcessConsensusChange(css modules.ConsensusChange) {
 	// TODO: add delay
 
 	for _, block := range css.AppliedBlocks {
+		height, _ := bridge.cs.BlockHeightOfBlock(block)
+		log.Info("Processing TfChain block", "block", height)
 		for _, tx := range block.Transactions {
 			if tx.Version == tfchaintypes.TransactionVersionERC20Conversion {
 				log.Warn("Found convert transacton")
