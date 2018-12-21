@@ -95,9 +95,9 @@ func TestValidateUniquenessOfBotNames_Error(t *testing.T) {
 }
 
 const (
-	exampleBotTransactionPublicKey            = `ed25519:880ee50bd7efa4c8b2b5949688a09818a652727fd3c0cb406013be442df68b34`
-	exampleBotTransactionSignature            = `625c2db62790a2be025ba72356bb5f0539ada3d2feb923eaeda4aa798845dd71c08f0e669479087b3c59f828e3abe38f75690c443188f4cadcdad0b539e5dc0e`
-	exampleUnsignedBotTransactionInJSONFormat = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"e6239feadc465055e17ab9a3111836e82ad35e7bb1559da3317e6f2cc624582c","fulfillment":{"type":1,"data":{"publickey":"ed25519:a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d","signature":"d4e5d23929151fe511be963dde8b221f314a4decb9dc8ddcd34a0bc969a5d129dc32127d753054b80837192eead9a353bce4841de3d911e1de3d05ba8ae30102"}}}],"refundcoinoutput":{"value":"99999798000000000","condition":{"type":1,"data":{"unlockhash":"01972837ee396f22f96846a0c700f9cf7c8fa83ab4110da91a1c7d02f94f28ff03e45f1470df82"}}},"identification":{"publickey":"` +
+	exampleBotTransactionPublicKey            = `ed25519:29eb219e2a943325c2ce4bad26e464e24c9eed50f3b5acdd8a772e0947a0db4f`
+	exampleBotTransactionSignature            = `73fd66f07ec9df121dcacc48ef00d332509210e689fc33d56a12e990c669bb86c59f33e276669ddaf187ac3238b623035ecb91a8edc7ffaf1131b802b6947807`
+	exampleUnsignedBotTransactionInJSONFormat = `{"version":144,"data":{"addresses":["91.198.174.192","example.org"],"names":["chatbot.example"],"nrofmonths":1,"txfee":"1000000000","coininputs":[{"parentid":"73b691ee623eac8cadb20407aef944eda82cce3778840892f56ea1c78eb9cd60","fulfillment":{"type":1,"data":{"publickey":"ed25519:cb7db3934c904fb70e50c063fc54a20d7cad375e101a9ef21f7b7d1f7ad23cd8","signature":"2c46f922629032aab4053d57c46febce1ca7b5e597f81b55784ddad85da03c00c2db8aea0817b453c0e24134ba6eb5b738eb17f891eee6ebb65b890dd990e406"}}}],"refundcoinoutput":{"value":"99999565000000000","condition":{"type":1,"data":{"unlockhash":"01a006599af1155f43d687635e9680650003a6c506934996b90ae84d07648927414046f9f0e936"}}},"identification":{"publickey":"` +
 		exampleBotTransactionPublicKey + `","signature":"` +
 		exampleBotTransactionSignature + `"}}}`
 )
@@ -105,9 +105,8 @@ const (
 func TestValidateBotSignature_Correct(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              nil,
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
@@ -132,9 +131,9 @@ func TestValidateBotSignature_Correct(t *testing.T) {
 	// taken from devnet
 	err = validateBotSignature(tx, publicKey, signature, types.ValidationContext{
 		Confirmed:   true,
-		BlockHeight: 784,
-		BlockTime:   1539634805,
-	})
+		BlockHeight: 575,
+		BlockTime:   1545236350,
+	}, BotSignatureSpecifierSender)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,9 +142,8 @@ func TestValidateBotSignature_Correct(t *testing.T) {
 func TestValidateBotSignature_Error(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              nil,
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
@@ -176,9 +174,9 @@ func TestValidateBotSignature_Error(t *testing.T) {
 	// taken from devnet
 	err = validateBotSignature(tx, publicKey, signature, types.ValidationContext{
 		Confirmed:   true,
-		BlockHeight: 784,
-		BlockTime:   1539634805,
-	})
+		BlockHeight: 575,
+		BlockTime:   1545236350,
+	}, BotSignatureSpecifierSender)
 	if err == nil {
 		t.Fatal("validateBotSignature should be invalid, given signature is invalid, but doesn't seem to be invalid")
 	}
@@ -187,9 +185,8 @@ func TestValidateBotSignature_Error(t *testing.T) {
 func TestValidateBotSignature_InvalidPublicKey(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              nil,
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
@@ -214,9 +211,9 @@ func TestValidateBotSignature_InvalidPublicKey(t *testing.T) {
 	// taken from devnet
 	err = validateBotSignature(tx, publicKey, signature, types.ValidationContext{
 		Confirmed:   true,
-		BlockHeight: 784,
-		BlockTime:   1539634805,
-	})
+		BlockHeight: 575,
+		BlockTime:   1545236350,
+	}, BotSignatureSpecifierSender)
 	if err == nil {
 		t.Fatal("validateBotSignature should be invalid, given signature is invalid, but doesn't seem to be invalid")
 	}
