@@ -1,6 +1,7 @@
 package erc20
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"path/filepath"
@@ -21,6 +22,10 @@ type Bridge struct {
 	txdb *persist.TransactionDB
 	tp   modules.TransactionPool
 
+	persistDir string
+	persist    persistence
+	buffer     *blockBuffer
+
 	bcInfo   types.BlockchainInfo
 	chainCts types.ChainConstants
 
@@ -40,12 +45,20 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 		cs:             cs,
 		txdb:           txdb,
 		tp:             tp,
+		persistDir:     datadir,
 		bcInfo:         bcInfo,
 		chainCts:       chainCts,
 		bridgeContract: contract,
 	}
 
-	err = cs.ConsensusSetSubscribe(bridge, txdb.GetLastConsensusChangeID(), cancel)
+	err = bridge.initPersist()
+	if err != nil {
+		return nil, errors.New("block creator persistence startup failed: " + err.Error())
+	}
+
+	bridge.buffer = newBlockBuffer(blockDelay)
+
+	err = cs.ConsensusSetSubscribe(bridge, bridge.persist.RecentChange, cancel)
 	if err != nil {
 		return nil, fmt.Errorf("bridged: failed to subscribe to consensus set: %v", err)
 	}
@@ -96,49 +109,6 @@ func (bridge *Bridge) Close() {
 	defer bridge.mut.Unlock()
 	bridge.bridgeContract.close()
 	bridge.cs.Unsubscribe(bridge)
-}
-
-// ProcessConsensusChange implements modules.ConsensusSetSubscriber,
-// used to apply/revert blocks.
-func (bridge *Bridge) ProcessConsensusChange(css modules.ConsensusChange) {
-	bridge.mut.Lock()
-	defer bridge.mut.Unlock()
-
-	// TODO: add delay
-
-	for _, block := range css.AppliedBlocks {
-		height, _ := bridge.cs.BlockHeightOfBlock(block)
-		log.Debug("Processing TfChain block", "block", height)
-		for _, tx := range block.Transactions {
-			if tx.Version == tfchaintypes.TransactionVersionERC20Conversion {
-				log.Warn("Found convert transacton")
-				txConvert, err := tfchaintypes.ERC20ConvertTransactionFromTransaction(tx)
-				if err != nil {
-					log.Error("Found a TFT convert transaction version, but can't create a conversion transaction from it")
-					return
-				}
-				// Send the mint transaction, this requires gas
-				if err = bridge.mint(txConvert.Address, txConvert.Value, tx.ID()); err != nil {
-					log.Error("Failed to push mint transaction", "error", err)
-					return
-				}
-				log.Info("Created mint transaction on eth network")
-			} else if tx.Version == tfchaintypes.TransactionVersionERC20AddressRegistration {
-				log.Warn("Found erc20 address registration")
-				txRegistration, err := tfchaintypes.ERC20AddressRegistrationTransactionFromTransaction(tx)
-				if err != nil {
-					log.Error("Found a TFT ERC20 Address registration transaction version, but can't create the right transaction for it")
-					return
-				}
-				// send the address registration transaction
-				if err = bridge.registerWithdrawalAddress(txRegistration.PublicKey); err != nil {
-					log.Error("Failed to push withdrawal address registration transaction", "err", err)
-					return
-				}
-				log.Info("Registered withdrawal address on eth network")
-			}
-		}
-	}
 }
 
 var (

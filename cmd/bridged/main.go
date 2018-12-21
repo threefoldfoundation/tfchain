@@ -190,7 +190,8 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		log.Info("loading bridged module (4/4)...")
 		bridged, err := erc20.NewBridge(
-			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.RootPersistentDir, cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
+			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.perDir("bridge"),
+			cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)
 			log.Error("[ERROR] ", cmdErr)
