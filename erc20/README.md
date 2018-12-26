@@ -39,19 +39,19 @@ The two main contracts here are TokenProxy  and tokenV0..Vx
 
 **tokenV0..Vx** are the actual upgradeable implementations
 
-**TokenProxy** is the contract that will be called by the users. It delegates all calls to the current tokenV0..Vx implementation. The method are not defined here , every call it receives is delegated so if the implementation adds functionality, this contract does not have to be upgraded.
+**Proxy** is the contract that will be called by the users. It delegates all calls to the current tokenV0..Vx implementation. The method are not defined here , every call it receives is delegated so if the implementation adds functionality, this contract does not have to be upgraded.
 This way , the address of the deployed TokenProxy never changes.
 
 helper contracts:
 + Storage defines the storage layout
++ TokenStorage exposes storage helpers for the erc20 token (balances, allowances, ...). It also has the token constructor which sets some general variables (name, precision, ...)
 + Proxy provides the functionality to delegate any unknown method to an embedded contract address
 + Owned alllows us to have the notion of "owners", and adds a modifier to methods which ensures that only addresses in the owner list can call them.
-+ OwnedUpgradeabilityProxy adds the upgrade logic, and stores the address and version of the currently used token contract
-+ TokenStorage is the storage for the erc20 token (balances, allowances, ...).
-+ TokenProxy extends from OwnedUpgradeabilityProxy and TokenStorage, it is the contract which will delegate calls to the
-  specific ERC20 contracts. (No actual implementation, only inheritence). This is the actually deployed proxy contract
-+ OwnedTokenStorage extends from Owned and TokenStorage. This includes all the required components
-  for the owned token. (No actual implementation, only inheritence)
++ Upgradeable adds the upgrade logic, and stores the address and version of the currently used token contract. Note that this contract is only extended from by the tokens,
+    even though these do not use the upgrade logic themselves. This way the proxy does not need to be aware of the actual token upgrade logic, which allows the upgrade logic itself
+    to be upgradeable.
++ OwnedUpgradeableTokenStorage extends from Upgradeable and TokenStorage. This includes all the required components
+  for the owned, upgradeable token. (No actual implementation, only inheritence)
   The specific token contracts extend from OwnedTokenStorage, so they all have the same memory structure
 
 ### Important
@@ -62,10 +62,10 @@ for all available primitive types. The key is defined as a `bytes32` type, in pr
 
 ### Deployment
 
-There are 2 main contracts which need to be deployed: `TokenProxy` and the actual token implementation (`TokenV0`). Both contracts can be deployed separatly,
-but once they are deployed, the address of the `Token` contract needs to be set in the `TokenProxy` contract (via the `upgradeTo` method of this contract). Once the
-`TokenProxy` has been deployed, new owners can also be added to it, who will be allowed to add other owners, change the `Token` contract, and call protected
-methods on said contract.
+There are 2 main contracts which need to be deployed: `Proxy` and the actual token implementation (`TokenV0`). The token contract needs to be deployed first, so the `Proxy`
+constructor can set the initial address of said contract. After that, contract upgrades can be done by using the `upgradeTo` method which is inheritted by the actual Token. Once the
+`Proxy` has been deployed, new owners can also be added to it (also via proxied calls to the `Token` contract), who will be allowed to add other owners, change the `Token` contract,
+and call protected methods on said contract.
 
 ## Building and deployment
 

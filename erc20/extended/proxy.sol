@@ -22,4 +22,11 @@ contract Proxy is TokenStorage {
             default { return(ptr, size) }
         }
     }
+
+    constructor() public {
+        //set initial contract address, needs to be hardcoded
+        // TODO: Set correct address
+        setAddress(keccak256(abi.encode("implementation")), address(0));
+        setString(keccak256(abi.encode("version")),"0");
+    }
 }

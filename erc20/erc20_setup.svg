@@ -1,42 +1,368 @@
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<!-- Created using Karbon, part of Calligra: http://www.calligra.org/karbon -->
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="595.277pt" height="541.891pt">
-<defs>
-  <path id="baseline0" d="M377.674 198.683L705.314 198.683L705.314 253.58L377.674 253.58L377.674 198.683"/>
- </defs>
-<g id="layer0">
-  <rect id="shape0" transform="translate(17.2863, 99.6896)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="77.74260966500pt" height="43.25390894596pt"/>
-  <rect id="shape1" transform="translate(196.194, 100.669)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="186.16647177628pt" height="41.75066074602pt"/>
-  <rect id="shape2" transform="translate(504.977, 100.853)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="159.80425320027pt" height="41.39255907840pt"/>
-  <rect id="shape3" transform="translate(377.674, 198.683)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="232.11236470163pt" height="43.91744896743pt"/>
-  <rect id="shape4" transform="translate(9.84758, 199.111)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="246.41320039812pt" height="44.33912087824pt"/>
-  <rect id="shape5" transform="translate(17.6454, 311.213)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="168.64908017562pt" height="43.91744896743pt"/>
-  <rect id="shape6" transform="translate(338.256, 310.763)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="136.25632614854pt" height="43.91744896743pt"/>
-  <rect id="shape7" transform="translate(535.312, 312.112)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="136.25632614854pt" height="43.91744896743pt"/>
-  <path id="shape8" transform="translate(46.5821, 153.824)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
-  <path id="shape9" transform="translate(200.556, 153.824)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
-  <path id="shape10" transform="translate(385.969, 153.506)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
-  <path id="shape11" transform="translate(587.08, 153.506)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
-  <path id="shape12" transform="translate(107.876, 254.534)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 22.5955L0 22.5955L19.5648 0L39.1296 22.5955L25.4342 22.5955L25.4342 56.4887L13.6954 56.4887Z"/>
-  <path id="shape13" transform="translate(403.91, 254.085)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 22.5955L0 22.5955L19.5648 0L39.1296 22.5955L25.4342 22.5955L25.4342 56.4887L13.6954 56.4887Z"/>
-  <path id="shape14" transform="translate(602.766, 254.085)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 23.1353L0 23.1353L19.5648 0L39.1296 23.1353L25.4342 23.1353L25.4342 57.8384L13.6954 57.8384Z"/>
-  <path id="shape15" transform="translate(262.31, 390.504)" fill="#000000" d="M0 0L18.0075 32.4134"/>
-  <path id="shape16" transform="translate(382.699, 55.4089)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
-  <path id="shape17" transform="translate(527.119, 55.9539)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
- </g><g id="New layer">
-  <path id="shape18" transform="translate(705.617, 110.59)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M12.7956 10.121L12.7956 0L0 14.4585L12.7956 28.917L12.7956 18.7961L31.9889 18.7961L31.9889 10.121Z"/>
-  <path id="shape19" transform="translate(125.584, 121.037)" fill="none" stroke="#000000" stroke-width="1.41732529000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M0.264023 247.888L0 282.239L612.663 282.801L612.091 0"/>
- </g><g id="layer1">
-  <text id="shape0" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="14.57812500000pt" transform="translate(33.7426, 116.398)"><tspan x="0"  y="18.2227">Proxy</tspan></text>
-  <text id="shape01" fill="#000000" font-family="ComicSans" font-size="15.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="translate(19.9287, 215.494)"><tspan x="0"  y="19.0039">OwnedUpgradeabilityProxy</tspan></text>
-  <text id="shape02" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="translate(265.467, 115.617)"><tspan>Owned</tspan></text>
-  <text id="shape03" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="translate(518.734, 115.353)"><tspan x="0"  y="19.0039">TokenStorage</tspan></text>
-  <text id="shape04" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="translate(10, 36)"><textPath xlink:href="#baseline0"><tspan>OwnedTokenStorage</tspan></textPath></text>
-  <text id="shape05" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="matrix(1.15881 0 0 1 38.0576 327.969)"><tspan x="0"  y="19.0039">TokenProxy</tspan></text>
-  <text id="shape06" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312000000pt" transform="matrix(1.20827 0 0 1 359.54 327.519)"><tspan x="0"  y="19.0039">TokenV0</tspan></text>
-  <text id="shape07" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="matrix(1.20827 0 0 1 556.596 328.869)"><tspan x="0"  y="19.0039">TokenV1</tspan></text>
-  <rect id="shape20" transform="translate(350.425, 3.11677)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="186.16647177628pt" height="41.75066074602pt"/>
-  <text id="shape08" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="14.84375000000pt" transform="translate(419.697, 18.5135)"><tspan>Storage</tspan></text>
- </g>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   id="svg8"
+   version="1.1"
+   viewBox="0 0 210 297"
+   height="297mm"
+   width="210mm">
+  <defs
+     id="defs2">
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lstart"
+       refX="0.0"
+       refY="0.0"
+       orient="auto">
+      <path
+         transform="scale(0.8) translate(12.5,0)"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         id="path4645" />
+    </marker>
+    <marker
+       style="overflow:visible;"
+       id="Arrow1Lend"
+       refX="0.0"
+       refY="0.0"
+       orient="auto">
+      <path
+         transform="scale(0.8) rotate(180) translate(12.5,0)"
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1pt;stroke-opacity:1;fill:#000000;fill-opacity:1"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         id="path4648" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend-2"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path4648-7" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend-9"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path4648-3" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend-0"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path4648-6" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend-6"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path4648-1" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend-6-2"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path4648-1-3" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend-6-5"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path4648-1-9" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend-6-28"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path4648-1-97" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend-6-6"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path4648-1-1" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="Arrow1Lend-6-6-3"
+       refX="0"
+       refY="0"
+       orient="auto">
+      <path
+         transform="matrix(-0.8,0,0,-0.8,-10,0)"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:1.00000003pt;stroke-opacity:1"
+         d="M 0,0 5,-5 -12.5,0 5,5 Z"
+         id="path4648-1-1-1" />
+    </marker>
+  </defs>
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1">
+    <rect
+       y="6.6568899"
+       x="80.073555"
+       height="8.9972315"
+       width="30.730864"
+       id="rect3818"
+       style="fill:none;stroke:#000000;stroke-width:0.14979054" />
+    <text
+       id="text3822"
+       y="13.328869"
+       x="81.831848"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       xml:space="preserve"><tspan
+         style="font-size:7.05555534px;stroke-width:0.26458332"
+         y="13.328869"
+         x="81.831848"
+         id="tspan3820">Storage</tspan></text>
+    <path
+       id="path4977"
+       d="M 78.462262,93.696499 86.395179,80.742866"
+       style="fill:none;stroke:#000000;stroke-width:0.34655625px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)" />
+    <rect
+       y="25.101091"
+       x="28.316204"
+       height="7.9122405"
+       width="50.710522"
+       id="rect3818-3"
+       style="fill:none;stroke:#000000;stroke-width:0.1804435" />
+    <text
+       id="text3822-6"
+       y="31.085634"
+       x="30.247692"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       xml:space="preserve"><tspan
+         style="font-size:7.05555534px;stroke-width:0.26458332"
+         y="31.085634"
+         x="30.247692"
+         id="tspan3820-7">TokenStorage</tspan></text>
+    <flowRoot
+       transform="scale(0.26458333)"
+       style="font-style:normal;font-weight:normal;font-size:40px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+       id="flowRoot5030"
+       xml:space="preserve"><flowRegion
+         id="flowRegion5032"><rect
+           y="179.66254"
+           x="393.57144"
+           height="41.428577"
+           width="247.85713"
+           id="rect5034" /></flowRegion><flowPara
+         id="flowPara5036">OOOwned</flowPara><flowPara
+         id="flowPara5038" /></flowRoot>    <text
+       id="text5042"
+       y="34.117558"
+       x="125.67708"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       xml:space="preserve"><tspan
+         style="font-size:7.05555534px;stroke-width:0.26458332"
+         y="34.117558"
+         x="125.67708"
+         id="tspan5040">Owned</tspan></text>
+    <text
+       id="text5046"
+       y="54.651058"
+       x="43.209034"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       xml:space="preserve"><tspan
+         style="font-size:7.05555534px;stroke-width:0.26458332"
+         y="54.651058"
+         x="43.209034"
+         id="tspan5044">Proxy</tspan></text>
+    <text
+       id="text5050"
+       y="55.662197"
+       x="115.8497"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       xml:space="preserve"><tspan
+         style="font-size:7.05555534px;stroke-width:0.26458332"
+         y="55.662197"
+         x="115.8497"
+         id="tspan5048">Upgradeable</tspan></text>
+    <text
+       id="text5054"
+       y="78.519829"
+       x="76.33477"
+       style="font-style:normal;font-weight:normal;font-size:7.05555534px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       xml:space="preserve"><tspan
+         style="font-size:7.05555534px;stroke-width:0.26458332"
+         y="78.519829"
+         x="76.33477"
+         id="tspan5052">OwnedUpgradeableTokenStorage</tspan></text>
+    <text
+       id="text5058"
+       y="100.31672"
+       x="67.969627"
+       style="font-style:normal;font-weight:normal;font-size:7.05555534px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       xml:space="preserve"><tspan
+         style="font-size:7.05555534px;stroke-width:0.26458332"
+         y="100.31672"
+         x="67.969627"
+         id="tspan5056">TokenV0</tspan></text>
+    <text
+       id="text5062"
+       y="100.72874"
+       x="116.69057"
+       style="font-style:normal;font-weight:normal;font-size:7.05555534px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.26458332"
+         y="100.72874"
+         x="116.69057"
+         id="tspan5060">TokenV1</tspan></text>
+    <text
+       id="text5066"
+       y="101.25639"
+       x="167.18687"
+       style="font-style:normal;font-weight:normal;font-size:7.05555534px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       xml:space="preserve"><tspan
+         style="stroke-width:0.26458332"
+         y="101.25639"
+         x="167.18687"
+         id="tspan5064">TokenVx</tspan></text>
+    <rect
+       y="27.909048"
+       x="124.47676"
+       height="7.8813009"
+       width="27.158087"
+       id="rect3818-5"
+       style="fill:none;stroke:#000000;stroke-width:0.13179262" />
+    <rect
+       y="49.675529"
+       x="114.76527"
+       height="7.8385329"
+       width="47.904011"
+       id="rect3818-5-3"
+       style="fill:none;stroke:#000000;stroke-width:0.17456046" />
+    <rect
+       y="48.700783"
+       x="42.20607"
+       height="7.8961039"
+       width="21.359777"
+       id="rect3818-5-5"
+       style="fill:none;stroke:#000000;stroke-width:0.11698962" />
+    <rect
+       y="72.499649"
+       x="75.092102"
+       height="7.7387018"
+       width="119.89164"
+       id="rect3818-5-6"
+       style="fill:none;stroke:#000000;stroke-width:0.27439177" />
+    <rect
+       y="93.681221"
+       x="66.874031"
+       height="7.8714151"
+       width="31.424513"
+       id="rect3818-5-2"
+       style="fill:none;stroke:#000000;stroke-width:0.14167827" />
+    <rect
+       y="94.482292"
+       x="115.51633"
+       height="7.8729129"
+       width="30.757837"
+       id="rect3818-5-9"
+       style="fill:none;stroke:#000000;stroke-width:0.14018068" />
+    <rect
+       y="95.284843"
+       x="166.16466"
+       height="7.8714151"
+       width="31.424513"
+       id="rect3818-5-1"
+       style="fill:none;stroke:#000000;stroke-width:0.14167827" />
+    <path
+       id="path4977-0"
+       d="M 104.44816,72.43875 114.68491,57.61721"
+       style="fill:none;stroke:#000000;stroke-width:0.42110375px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-2)" />
+    <path
+       id="path4977-6"
+       d="m 120.34988,49.664083 8.83683,-13.311826"
+       style="fill:none;stroke:#000000;stroke-width:0.37079048px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-9)" />
+    <path
+       id="path4977-2"
+       d="M 69.070603,24.838415 85.52346,15.848153"
+       style="fill:none;stroke:#000000;stroke-width:0.41578451px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-0)" />
+    <path
+       id="path4977-8"
+       d="m 179.67161,95.094985 -8.3296,-14.495432"
+       style="fill:none;stroke:#000000;stroke-width:0.38165507px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-6)" />
+    <path
+       id="path4977-8-7"
+       d="m 162.75748,72.531437 -8.3296,-14.495432"
+       style="fill:none;stroke:#000000;stroke-width:0.3816551px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-6-2)" />
+    <path
+       id="path4977-8-2"
+       d="M 155.28685,49.679467 147.19293,36.343792"
+       style="fill:none;stroke:#000000;stroke-width:0.36085311px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-6-5)" />
+    <path
+       id="path4977-8-3"
+       d="M 131.33826,27.805544 106.19366,16.329275"
+       style="fill:none;stroke:#000000;stroke-width:0.59001923px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-6-28)" />
+    <path
+       id="path4977-8-29"
+       d="m 130.4104,94.491357 0.2348,-13.51397"
+       style="fill:none;stroke:#000000;stroke-width:0.35440299px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-6-6)" />
+    <path
+       id="path4977-8-29-9"
+       d="M 52.774421,48.726965 53.003108,33.722361"
+       style="fill:none;stroke:#000000;stroke-width:0.36854488px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend-6-6-3)" />
+  </g>
 </svg>
