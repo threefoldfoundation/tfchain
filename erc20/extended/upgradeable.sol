@@ -1,10 +1,8 @@
 pragma solidity ^0.5.0;
 
-import "./proxy.sol";
 import "./owned.sol";
 
-contract OwnedUpgradeabilityProxy is Proxy, Owned {
-
+contract Upgradeable is Owned {
     // -----------------------------------------------------
     // Usual storage
     // -----------------------------------------------------

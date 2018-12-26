@@ -75,19 +75,15 @@ contract TokenStorage is Storage {
     // ------------------------------------------------------------------------
     // Token constructor here so it is also inheritted by our proxy. Needed to set some constants
     constructor() public {
-        setSymbol("TTFT20");
-        setName("TTFT ERC20 representation");
+        setSymbol("TFT20");
+        setName("TFT ERC20 representation");
 
-        uint8 _decimals = 18;
+        // Use 9 decimals instead of 18, this way we have the same amount of decimals in both TFT and this Token
+        uint8 _decimals = 9;
         setDecimals(_decimals);
 
-        // TODO: How much total supply
-        uint _totalSupply = 1000000 * 10 ** uint(_decimals);
+        // Theoretically all TFT could be converted to this Token, so 100 billion total supply
+        uint _totalSupply = 100000000000 * 10 ** uint(_decimals);
         setTotalSupply(_totalSupply);
-
-        // TODO: At start nobody should have any tokens?
-        // setBalance(msg.sender, _totalSupply);
-
-        // emit Transfer(address(0), msg.sender, _totalSupply);
     }
 }

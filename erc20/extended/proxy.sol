@@ -1,10 +1,14 @@
 pragma solidity ^0.5.0;
 
-contract Proxy {
-    function implementation() public view returns (address);
- 
+import "./token_storage.sol";
+
+// inherit from TokenStorage so we have the constructor, since the token variables need to be stored in the
+// proxy's storage
+contract Proxy is TokenStorage {
     function () external payable {
-        address _impl = implementation();
+        // directly get the implementation contract address from the storage. This way we don't need to depend
+        // on the upgradeable contract
+        address _impl = getAddress(keccak256(abi.encode("implementation")));
         require(_impl != address(0));
         bytes memory data = msg.data;
 

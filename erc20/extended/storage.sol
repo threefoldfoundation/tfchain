@@ -5,15 +5,12 @@ contract Storage {
 
     /**** Storage Types *******/
 
-    mapping(bytes32 => uint256)    internal uIntStorage;
-    mapping(bytes32 => string)     internal stringStorage;
-    mapping(bytes32 => address)    internal addressStorage;
-    mapping(bytes32 => bytes)      internal bytesStorage;
-    mapping(bytes32 => bool)       internal boolStorage;
-    mapping(bytes32 => int256)     internal intStorage;
-
-    // TODO: Are these individual methdos actually required, given that the storage is internal
-    // and all contracts are inheriting from this?. If not remove them, if Yes, make the above private
+    mapping(bytes32 => uint256)    private uIntStorage;
+    mapping(bytes32 => string)     private stringStorage;
+    mapping(bytes32 => address)    private addressStorage;
+    mapping(bytes32 => bytes)      private bytesStorage;
+    mapping(bytes32 => bool)       private boolStorage;
+    mapping(bytes32 => int256)     private intStorage;
 
     /**** Get Methods ***********/
 

@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "./owned_token_storage.sol";
+import "./owned_upgradeable_token_storage.sol";
 
 // ----------------------------------------------------------------------------
 // Safe maths
@@ -28,7 +28,7 @@ library SafeMath {
 // ERC20 Token, with the addition of symbol, name and decimals and a
 // fixed supply
 // ----------------------------------------------------------------------------
-contract TTFT20 is OwnedTokenStorage {
+contract TTFT20 is OwnedUpgradeableTokenStorage {
     using SafeMath for uint;
 
     event Transfer(address indexed from, address indexed to, uint tokens);

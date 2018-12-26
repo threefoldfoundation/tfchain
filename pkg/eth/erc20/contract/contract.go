@@ -31,7 +31,7 @@ var (
 const OwnedABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"_toRemove\",\"type\":\"address\"}],\"name\":\"removeOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"addOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"AddedOwner\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"removedOwner\",\"type\":\"address\"}],\"name\":\"RemovedOwner\",\"type\":\"event\"}]"
 
 // OwnedBin is the compiled bytecode used for deploying new contracts.
-const OwnedBin = `0x608060405234801561001057600080fd5b5061002333640100000000610029810204565b506100c7565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906100a29060016401000000006100a7810204565b919050565b600091825260046020526040909120805460ff1916911515919091179055565b61037f806100d66000396000f3fe60806040526004361061004b5763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663173825d981146100505780637065cb4814610085575b600080fd5b34801561005c57600080fd5b506100836004803603602081101561007357600080fd5b5035600160a060020a03166100b8565b005b34801561009157600080fd5b50610083600480360360208110156100a857600080fd5b5035600160a060020a0316610140565b6100c1336101b2565b15156100cc57600080fd5b600160a060020a03811615156100e157600080fd5b600160a060020a0381163314156100f757600080fd5b61010081610228565b5060408051600160a060020a038316815290517ff8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf9181900360200190a150565b610149336101b2565b151561015457600080fd5b600160a060020a038116151561016957600080fd5b61017281610296565b5060408051600160a060020a038316815290517f9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea269181900360200190a150565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a0909201909252805191012060009061022090610306565b90505b919050565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906102239061031b565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610223906001610333565b60009081526004602052604090205460ff1690565b6000908152600460205260409020805460ff19169055565b600091825260046020526040909120805460ff191691151591909117905556fea165627a7a7230582099f82a33d75e3beaae0fdabad6c668689742ba4b9f982fbeb421865e32c764e80029`
+const OwnedBin = `0x608060405234801561001057600080fd5b5061002333640100000000610029810204565b506100c7565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906100a29060016401000000006100a7810204565b919050565b600091825260046020526040909120805460ff1916911515919091179055565b61036c806100d66000396000f3fe608060405234801561001057600080fd5b5060043610610052577c01000000000000000000000000000000000000000000000000000000006000350463173825d981146100575780637065cb481461007f575b600080fd5b61007d6004803603602081101561006d57600080fd5b5035600160a060020a03166100a5565b005b61007d6004803603602081101561009557600080fd5b5035600160a060020a031661012d565b6100ae3361019f565b15156100b957600080fd5b600160a060020a03811615156100ce57600080fd5b600160a060020a0381163314156100e457600080fd5b6100ed81610215565b5060408051600160a060020a038316815290517ff8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf9181900360200190a150565b6101363361019f565b151561014157600080fd5b600160a060020a038116151561015657600080fd5b61015f81610283565b5060408051600160a060020a038316815290517f9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea269181900360200190a150565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a0909201909252805191012060009061020d906102f3565b90505b919050565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a0909201909252805191012060009061021090610308565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610210906001610320565b60009081526004602052604090205460ff1690565b6000908152600460205260409020805460ff19169055565b600091825260046020526040909120805460ff191691151591909117905556fea165627a7a7230582088d3d44e59479fffc501a83b42f82fcde84988e65e44f42d721724ccac88f2550029`
 
 // DeployOwned deploys a new Ethereum contract, binding an instance of Owned to it.
 func DeployOwned(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Owned, error) {
@@ -474,123 +474,123 @@ func (_Owned *OwnedFilterer) WatchRemovedOwner(opts *bind.WatchOpts, sink chan<-
 	}), nil
 }
 
-// OwnedTokenStorageABI is the input ABI used to generate the binding from.
-const OwnedTokenStorageABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"_toRemove\",\"type\":\"address\"}],\"name\":\"removeOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"addOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"AddedOwner\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"removedOwner\",\"type\":\"address\"}],\"name\":\"RemovedOwner\",\"type\":\"event\"}]"
+// OwnedUpgradeableTokenStorageABI is the input ABI used to generate the binding from.
+const OwnedUpgradeableTokenStorageABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"_toRemove\",\"type\":\"address\"}],\"name\":\"removeOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_version\",\"type\":\"string\"},{\"name\":\"_implementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"addOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"version\",\"type\":\"string\"},{\"indexed\":true,\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"AddedOwner\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"removedOwner\",\"type\":\"address\"}],\"name\":\"RemovedOwner\",\"type\":\"event\"}]"
 
-// OwnedTokenStorageBin is the compiled bytecode used for deploying new contracts.
-const OwnedTokenStorageBin = `0x60c0604052600660809081527f545446543230000000000000000000000000000000000000000000000000000060a052610041906401000000006100d9810204565b60408051808201909152601981527f5454465420455243323020726570726573656e746174696f6e0000000000000060208201526100879064010000000061014c810204565b601261009b816401000000006101bc810204565b620f424060ff8216600a0a026100b98164010000000061022f810204565b50506100d33361029f640100000000026401000000009004565b5061040e565b6101496040516020018080602001828103825260068152602001807f73796d626f6c0000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208261031d640100000000026401000000009004565b50565b6101496040516020018080602001828103825260048152602001807f6e616d6500000000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208261031d640100000000026401000000009004565b6101496040516020018080602001828103825260088152602001807f646563696d616c73000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208260ff16610341640100000000026401000000009004565b61014960405160200180806020018281038252600b8152602001807f746f74616c537570706c790000000000000000000000000000000000000000008152506020019150506040516020818303038152906040528051906020012082610341640100000000026401000000009004565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610318906001640100000000610353810204565b919050565b6000828152600160209081526040909120825161033c92840190610373565b505050565b60009182526020829052604090912055565b600091825260046020526040909120805460ff1916911515919091179055565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f106103b457805160ff19168380011785556103e1565b828001600101855582156103e1579182015b828111156103e15782518255916020019190600101906103c6565b506103ed9291506103f1565b5090565b61040b91905b808211156103ed57600081556001016103f7565b90565b61037f8061041d6000396000f3fe60806040526004361061004b5763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663173825d981146100505780637065cb4814610085575b600080fd5b34801561005c57600080fd5b506100836004803603602081101561007357600080fd5b5035600160a060020a03166100b8565b005b34801561009157600080fd5b50610083600480360360208110156100a857600080fd5b5035600160a060020a0316610140565b6100c1336101b2565b15156100cc57600080fd5b600160a060020a03811615156100e157600080fd5b600160a060020a0381163314156100f757600080fd5b61010081610228565b5060408051600160a060020a038316815290517ff8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf9181900360200190a150565b610149336101b2565b151561015457600080fd5b600160a060020a038116151561016957600080fd5b61017281610296565b5060408051600160a060020a038316815290517f9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea269181900360200190a150565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a0909201909252805191012060009061022090610306565b90505b919050565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906102239061031b565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610223906001610333565b60009081526004602052604090205460ff1690565b6000908152600460205260409020805460ff19169055565b600091825260046020526040909120805460ff191691151591909117905556fea165627a7a723058208cc3e2563da34ebd3c444748af71bc9b8c81fa7a68784ee6dec8333ec6f2ad5d0029`
+// OwnedUpgradeableTokenStorageBin is the compiled bytecode used for deploying new contracts.
+const OwnedUpgradeableTokenStorageBin = `0x60c0604052600560809081527f544654323000000000000000000000000000000000000000000000000000000060a0526200004390640100000000620000e6810204565b60408051808201909152601881527f54465420455243323020726570726573656e746174696f6e000000000000000060208201526200008b906401000000006200015b810204565b6009620000a181640100000000620001cd810204565b64174876e80060ff8216600a0a02620000c38164010000000062000242810204565b5050620000df33620002b4640100000000026401000000009004565b5062000431565b620001586040516020018080602001828103825260068152602001807f73796d626f6c0000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208262000334640100000000026401000000009004565b50565b620001586040516020018080602001828103825260048152602001807f6e616d6500000000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208262000334640100000000026401000000009004565b620001586040516020018080602001828103825260088152602001807f646563696d616c73000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208260ff166200035a640100000000026401000000009004565b6200015860405160200180806020018281038252600b8152602001807f746f74616c537570706c7900000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826200035a640100000000026401000000009004565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906200032f9060016401000000006200036c810204565b919050565b6000828152600160209081526040909120825162000355928401906200038c565b505050565b60009182526020829052604090912055565b600091825260046020526040909120805460ff1916911515919091179055565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f10620003cf57805160ff1916838001178555620003ff565b82800160010185558215620003ff579182015b82811115620003ff578251825591602001919060010190620003e2565b506200040d92915062000411565b5090565b6200042e91905b808211156200040d576000815560010162000418565b90565b61090a80620004416000396000f3fe608060405234801561001057600080fd5b5060043610610073577c01000000000000000000000000000000000000000000000000000000006000350463173825d9811461007857806354fd4d50146100a05780635a8b1a9f1461011d5780635c60da1b146101ce5780637065cb48146101f2575b600080fd5b61009e6004803603602081101561008e57600080fd5b5035600160a060020a0316610218565b005b6100a86102a0565b6040805160208082528351818301528351919283929083019185019080838360005b838110156100e25781810151838201526020016100ca565b50505050905090810190601f16801561010f5780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b61009e6004803603604081101561013357600080fd5b81019060208101813564010000000081111561014e57600080fd5b82018360208201111561016057600080fd5b8035906020019184600183028401116401000000008311171561018257600080fd5b91908080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525092955050509035600160a060020a031691506102b09050565b6101d661038d565b60408051600160a060020a039092168252519081900360200190f35b61009e6004803603602081101561020857600080fd5b5035600160a060020a0316610397565b61022133610409565b151561022c57600080fd5b600160a060020a038116151561024157600080fd5b600160a060020a03811633141561025757600080fd5b6102608161047f565b5060408051600160a060020a038316815290517ff8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf9181900360200190a150565b60606102aa6104ed565b90505b90565b6102b933610409565b15156102c457600080fd5b80600160a060020a03166102d6610548565b600160a060020a031614156102ea57600080fd5b6102f3826105aa565b6102fc8161060e565b80600160a060020a0316826040518082805190602001908083835b602083106103365780518252601f199092019160209182019101610317565b5181516020939093036101000a60001901801990911692169190911790526040519201829003822093507f8e05e0e35ff592971ca8b477d4285a33a61ded208d644042667b78693a472f5e92506000919050a35050565b60006102aa610548565b6103a033610409565b15156103ab57600080fd5b600160a060020a03811615156103c057600080fd5b6103c98161066f565b5060408051600160a060020a038316815290517f9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea269181900360200190a150565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610477906106df565b90505b919050565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a0909201909252805191012060009061047a906106f4565b6040805160208082018190526007828401527f76657273696f6e00000000000000000000000000000000000000000000000000606083810191909152835180840382018152608090930190935281519101206102aa9061070c565b60006102aa60405160200180806020018281038252600e8152602001807f696d706c656d656e746174696f6e000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001206107ac565b61060b6040516020018080602001828103825260078152602001807f76657273696f6e0000000000000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826107c7565b50565b61060b60405160200180806020018281038252600e8152602001807f696d706c656d656e746174696f6e00000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826107eb565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a0909201909252805191012060009061047a906001610826565b60009081526004602052604090205460ff1690565b6000908152600460205260409020805460ff19169055565b60008181526001602081815260409283902080548451600294821615610100026000190190911693909304601f810183900483028401830190945283835260609390918301828280156107a05780601f10610775576101008083540402835291602001916107a0565b820191906000526020600020905b81548152906001019060200180831161078357829003601f168201915b50505050509050919050565b600090815260026020526040902054600160a060020a031690565b600082815260016020908152604090912082516107e692840190610846565b505050565b600091825260026020526040909120805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a03909216919091179055565b600091825260046020526040909120805460ff1916911515919091179055565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f1061088757805160ff19168380011785556108b4565b828001600101855582156108b4579182015b828111156108b4578251825591602001919060010190610899565b506108c09291506108c4565b5090565b6102ad91905b808211156108c057600081556001016108ca56fea165627a7a72305820a6dcddd3739255d766a33df43de6dda7344979876378c130382057f3937e41230029`
 
-// DeployOwnedTokenStorage deploys a new Ethereum contract, binding an instance of OwnedTokenStorage to it.
-func DeployOwnedTokenStorage(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *OwnedTokenStorage, error) {
-	parsed, err := abi.JSON(strings.NewReader(OwnedTokenStorageABI))
+// DeployOwnedUpgradeableTokenStorage deploys a new Ethereum contract, binding an instance of OwnedUpgradeableTokenStorage to it.
+func DeployOwnedUpgradeableTokenStorage(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *OwnedUpgradeableTokenStorage, error) {
+	parsed, err := abi.JSON(strings.NewReader(OwnedUpgradeableTokenStorageABI))
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(OwnedTokenStorageBin), backend)
+	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(OwnedUpgradeableTokenStorageBin), backend)
 	if err != nil {
 		return common.Address{}, nil, nil, err
 	}
-	return address, tx, &OwnedTokenStorage{OwnedTokenStorageCaller: OwnedTokenStorageCaller{contract: contract}, OwnedTokenStorageTransactor: OwnedTokenStorageTransactor{contract: contract}, OwnedTokenStorageFilterer: OwnedTokenStorageFilterer{contract: contract}}, nil
+	return address, tx, &OwnedUpgradeableTokenStorage{OwnedUpgradeableTokenStorageCaller: OwnedUpgradeableTokenStorageCaller{contract: contract}, OwnedUpgradeableTokenStorageTransactor: OwnedUpgradeableTokenStorageTransactor{contract: contract}, OwnedUpgradeableTokenStorageFilterer: OwnedUpgradeableTokenStorageFilterer{contract: contract}}, nil
 }
 
-// OwnedTokenStorage is an auto generated Go binding around an Ethereum contract.
-type OwnedTokenStorage struct {
-	OwnedTokenStorageCaller     // Read-only binding to the contract
-	OwnedTokenStorageTransactor // Write-only binding to the contract
-	OwnedTokenStorageFilterer   // Log filterer for contract events
+// OwnedUpgradeableTokenStorage is an auto generated Go binding around an Ethereum contract.
+type OwnedUpgradeableTokenStorage struct {
+	OwnedUpgradeableTokenStorageCaller     // Read-only binding to the contract
+	OwnedUpgradeableTokenStorageTransactor // Write-only binding to the contract
+	OwnedUpgradeableTokenStorageFilterer   // Log filterer for contract events
 }
 
-// OwnedTokenStorageCaller is an auto generated read-only Go binding around an Ethereum contract.
-type OwnedTokenStorageCaller struct {
+// OwnedUpgradeableTokenStorageCaller is an auto generated read-only Go binding around an Ethereum contract.
+type OwnedUpgradeableTokenStorageCaller struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// OwnedTokenStorageTransactor is an auto generated write-only Go binding around an Ethereum contract.
-type OwnedTokenStorageTransactor struct {
+// OwnedUpgradeableTokenStorageTransactor is an auto generated write-only Go binding around an Ethereum contract.
+type OwnedUpgradeableTokenStorageTransactor struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// OwnedTokenStorageFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
-type OwnedTokenStorageFilterer struct {
+// OwnedUpgradeableTokenStorageFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type OwnedUpgradeableTokenStorageFilterer struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// OwnedTokenStorageSession is an auto generated Go binding around an Ethereum contract,
+// OwnedUpgradeableTokenStorageSession is an auto generated Go binding around an Ethereum contract,
 // with pre-set call and transact options.
-type OwnedTokenStorageSession struct {
-	Contract     *OwnedTokenStorage // Generic contract binding to set the session for
-	CallOpts     bind.CallOpts      // Call options to use throughout this session
-	TransactOpts bind.TransactOpts  // Transaction auth options to use throughout this session
+type OwnedUpgradeableTokenStorageSession struct {
+	Contract     *OwnedUpgradeableTokenStorage // Generic contract binding to set the session for
+	CallOpts     bind.CallOpts                 // Call options to use throughout this session
+	TransactOpts bind.TransactOpts             // Transaction auth options to use throughout this session
 }
 
-// OwnedTokenStorageCallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// OwnedUpgradeableTokenStorageCallerSession is an auto generated read-only Go binding around an Ethereum contract,
 // with pre-set call options.
-type OwnedTokenStorageCallerSession struct {
-	Contract *OwnedTokenStorageCaller // Generic contract caller binding to set the session for
-	CallOpts bind.CallOpts            // Call options to use throughout this session
+type OwnedUpgradeableTokenStorageCallerSession struct {
+	Contract *OwnedUpgradeableTokenStorageCaller // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts                       // Call options to use throughout this session
 }
 
-// OwnedTokenStorageTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// OwnedUpgradeableTokenStorageTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
 // with pre-set transact options.
-type OwnedTokenStorageTransactorSession struct {
-	Contract     *OwnedTokenStorageTransactor // Generic contract transactor binding to set the session for
-	TransactOpts bind.TransactOpts            // Transaction auth options to use throughout this session
+type OwnedUpgradeableTokenStorageTransactorSession struct {
+	Contract     *OwnedUpgradeableTokenStorageTransactor // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts                       // Transaction auth options to use throughout this session
 }
 
-// OwnedTokenStorageRaw is an auto generated low-level Go binding around an Ethereum contract.
-type OwnedTokenStorageRaw struct {
-	Contract *OwnedTokenStorage // Generic contract binding to access the raw methods on
+// OwnedUpgradeableTokenStorageRaw is an auto generated low-level Go binding around an Ethereum contract.
+type OwnedUpgradeableTokenStorageRaw struct {
+	Contract *OwnedUpgradeableTokenStorage // Generic contract binding to access the raw methods on
 }
 
-// OwnedTokenStorageCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
-type OwnedTokenStorageCallerRaw struct {
-	Contract *OwnedTokenStorageCaller // Generic read-only contract binding to access the raw methods on
+// OwnedUpgradeableTokenStorageCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type OwnedUpgradeableTokenStorageCallerRaw struct {
+	Contract *OwnedUpgradeableTokenStorageCaller // Generic read-only contract binding to access the raw methods on
 }
 
-// OwnedTokenStorageTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
-type OwnedTokenStorageTransactorRaw struct {
-	Contract *OwnedTokenStorageTransactor // Generic write-only contract binding to access the raw methods on
+// OwnedUpgradeableTokenStorageTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type OwnedUpgradeableTokenStorageTransactorRaw struct {
+	Contract *OwnedUpgradeableTokenStorageTransactor // Generic write-only contract binding to access the raw methods on
 }
 
-// NewOwnedTokenStorage creates a new instance of OwnedTokenStorage, bound to a specific deployed contract.
-func NewOwnedTokenStorage(address common.Address, backend bind.ContractBackend) (*OwnedTokenStorage, error) {
-	contract, err := bindOwnedTokenStorage(address, backend, backend, backend)
+// NewOwnedUpgradeableTokenStorage creates a new instance of OwnedUpgradeableTokenStorage, bound to a specific deployed contract.
+func NewOwnedUpgradeableTokenStorage(address common.Address, backend bind.ContractBackend) (*OwnedUpgradeableTokenStorage, error) {
+	contract, err := bindOwnedUpgradeableTokenStorage(address, backend, backend, backend)
 	if err != nil {
 		return nil, err
 	}
-	return &OwnedTokenStorage{OwnedTokenStorageCaller: OwnedTokenStorageCaller{contract: contract}, OwnedTokenStorageTransactor: OwnedTokenStorageTransactor{contract: contract}, OwnedTokenStorageFilterer: OwnedTokenStorageFilterer{contract: contract}}, nil
+	return &OwnedUpgradeableTokenStorage{OwnedUpgradeableTokenStorageCaller: OwnedUpgradeableTokenStorageCaller{contract: contract}, OwnedUpgradeableTokenStorageTransactor: OwnedUpgradeableTokenStorageTransactor{contract: contract}, OwnedUpgradeableTokenStorageFilterer: OwnedUpgradeableTokenStorageFilterer{contract: contract}}, nil
 }
 
-// NewOwnedTokenStorageCaller creates a new read-only instance of OwnedTokenStorage, bound to a specific deployed contract.
-func NewOwnedTokenStorageCaller(address common.Address, caller bind.ContractCaller) (*OwnedTokenStorageCaller, error) {
-	contract, err := bindOwnedTokenStorage(address, caller, nil, nil)
+// NewOwnedUpgradeableTokenStorageCaller creates a new read-only instance of OwnedUpgradeableTokenStorage, bound to a specific deployed contract.
+func NewOwnedUpgradeableTokenStorageCaller(address common.Address, caller bind.ContractCaller) (*OwnedUpgradeableTokenStorageCaller, error) {
+	contract, err := bindOwnedUpgradeableTokenStorage(address, caller, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &OwnedTokenStorageCaller{contract: contract}, nil
+	return &OwnedUpgradeableTokenStorageCaller{contract: contract}, nil
 }
 
-// NewOwnedTokenStorageTransactor creates a new write-only instance of OwnedTokenStorage, bound to a specific deployed contract.
-func NewOwnedTokenStorageTransactor(address common.Address, transactor bind.ContractTransactor) (*OwnedTokenStorageTransactor, error) {
-	contract, err := bindOwnedTokenStorage(address, nil, transactor, nil)
+// NewOwnedUpgradeableTokenStorageTransactor creates a new write-only instance of OwnedUpgradeableTokenStorage, bound to a specific deployed contract.
+func NewOwnedUpgradeableTokenStorageTransactor(address common.Address, transactor bind.ContractTransactor) (*OwnedUpgradeableTokenStorageTransactor, error) {
+	contract, err := bindOwnedUpgradeableTokenStorage(address, nil, transactor, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &OwnedTokenStorageTransactor{contract: contract}, nil
+	return &OwnedUpgradeableTokenStorageTransactor{contract: contract}, nil
 }
 
-// NewOwnedTokenStorageFilterer creates a new log filterer instance of OwnedTokenStorage, bound to a specific deployed contract.
-func NewOwnedTokenStorageFilterer(address common.Address, filterer bind.ContractFilterer) (*OwnedTokenStorageFilterer, error) {
-	contract, err := bindOwnedTokenStorage(address, nil, nil, filterer)
+// NewOwnedUpgradeableTokenStorageFilterer creates a new log filterer instance of OwnedUpgradeableTokenStorage, bound to a specific deployed contract.
+func NewOwnedUpgradeableTokenStorageFilterer(address common.Address, filterer bind.ContractFilterer) (*OwnedUpgradeableTokenStorageFilterer, error) {
+	contract, err := bindOwnedUpgradeableTokenStorage(address, nil, nil, filterer)
 	if err != nil {
 		return nil, err
 	}
-	return &OwnedTokenStorageFilterer{contract: contract}, nil
+	return &OwnedUpgradeableTokenStorageFilterer{contract: contract}, nil
 }
 
-// bindOwnedTokenStorage binds a generic wrapper to an already deployed contract.
-func bindOwnedTokenStorage(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := abi.JSON(strings.NewReader(OwnedTokenStorageABI))
+// bindOwnedUpgradeableTokenStorage binds a generic wrapper to an already deployed contract.
+func bindOwnedUpgradeableTokenStorage(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(OwnedUpgradeableTokenStorageABI))
 	if err != nil {
 		return nil, err
 	}
@@ -601,85 +601,158 @@ func bindOwnedTokenStorage(address common.Address, caller bind.ContractCaller, t
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_OwnedTokenStorage *OwnedTokenStorageRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
-	return _OwnedTokenStorage.Contract.OwnedTokenStorageCaller.contract.Call(opts, result, method, params...)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _OwnedUpgradeableTokenStorage.Contract.OwnedUpgradeableTokenStorageCaller.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_OwnedTokenStorage *OwnedTokenStorageRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OwnedTokenStorage.Contract.OwnedTokenStorageTransactor.contract.Transfer(opts)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.OwnedUpgradeableTokenStorageTransactor.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_OwnedTokenStorage *OwnedTokenStorageRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _OwnedTokenStorage.Contract.OwnedTokenStorageTransactor.contract.Transact(opts, method, params...)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.OwnedUpgradeableTokenStorageTransactor.contract.Transact(opts, method, params...)
 }
 
 // Call invokes the (constant) contract method with params as input values and
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_OwnedTokenStorage *OwnedTokenStorageCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
-	return _OwnedTokenStorage.Contract.contract.Call(opts, result, method, params...)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _OwnedUpgradeableTokenStorage.Contract.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_OwnedTokenStorage *OwnedTokenStorageTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _OwnedTokenStorage.Contract.contract.Transfer(opts)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_OwnedTokenStorage *OwnedTokenStorageTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _OwnedTokenStorage.Contract.contract.Transact(opts, method, params...)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.contract.Transact(opts, method, params...)
+}
+
+// Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
+//
+// Solidity: function implementation() constant returns(address)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageCaller) Implementation(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _OwnedUpgradeableTokenStorage.contract.Call(opts, out, "implementation")
+	return *ret0, err
+}
+
+// Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
+//
+// Solidity: function implementation() constant returns(address)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageSession) Implementation() (common.Address, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.Implementation(&_OwnedUpgradeableTokenStorage.CallOpts)
+}
+
+// Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
+//
+// Solidity: function implementation() constant returns(address)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageCallerSession) Implementation() (common.Address, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.Implementation(&_OwnedUpgradeableTokenStorage.CallOpts)
+}
+
+// Version is a free data retrieval call binding the contract method 0x54fd4d50.
+//
+// Solidity: function version() constant returns(string)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageCaller) Version(opts *bind.CallOpts) (string, error) {
+	var (
+		ret0 = new(string)
+	)
+	out := ret0
+	err := _OwnedUpgradeableTokenStorage.contract.Call(opts, out, "version")
+	return *ret0, err
+}
+
+// Version is a free data retrieval call binding the contract method 0x54fd4d50.
+//
+// Solidity: function version() constant returns(string)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageSession) Version() (string, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.Version(&_OwnedUpgradeableTokenStorage.CallOpts)
+}
+
+// Version is a free data retrieval call binding the contract method 0x54fd4d50.
+//
+// Solidity: function version() constant returns(string)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageCallerSession) Version() (string, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.Version(&_OwnedUpgradeableTokenStorage.CallOpts)
 }
 
 // AddOwner is a paid mutator transaction binding the contract method 0x7065cb48.
 //
 // Solidity: function addOwner(_newOwner address) returns()
-func (_OwnedTokenStorage *OwnedTokenStorageTransactor) AddOwner(opts *bind.TransactOpts, _newOwner common.Address) (*types.Transaction, error) {
-	return _OwnedTokenStorage.contract.Transact(opts, "addOwner", _newOwner)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageTransactor) AddOwner(opts *bind.TransactOpts, _newOwner common.Address) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.contract.Transact(opts, "addOwner", _newOwner)
 }
 
 // AddOwner is a paid mutator transaction binding the contract method 0x7065cb48.
 //
 // Solidity: function addOwner(_newOwner address) returns()
-func (_OwnedTokenStorage *OwnedTokenStorageSession) AddOwner(_newOwner common.Address) (*types.Transaction, error) {
-	return _OwnedTokenStorage.Contract.AddOwner(&_OwnedTokenStorage.TransactOpts, _newOwner)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageSession) AddOwner(_newOwner common.Address) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.AddOwner(&_OwnedUpgradeableTokenStorage.TransactOpts, _newOwner)
 }
 
 // AddOwner is a paid mutator transaction binding the contract method 0x7065cb48.
 //
 // Solidity: function addOwner(_newOwner address) returns()
-func (_OwnedTokenStorage *OwnedTokenStorageTransactorSession) AddOwner(_newOwner common.Address) (*types.Transaction, error) {
-	return _OwnedTokenStorage.Contract.AddOwner(&_OwnedTokenStorage.TransactOpts, _newOwner)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageTransactorSession) AddOwner(_newOwner common.Address) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.AddOwner(&_OwnedUpgradeableTokenStorage.TransactOpts, _newOwner)
 }
 
 // RemoveOwner is a paid mutator transaction binding the contract method 0x173825d9.
 //
 // Solidity: function removeOwner(_toRemove address) returns()
-func (_OwnedTokenStorage *OwnedTokenStorageTransactor) RemoveOwner(opts *bind.TransactOpts, _toRemove common.Address) (*types.Transaction, error) {
-	return _OwnedTokenStorage.contract.Transact(opts, "removeOwner", _toRemove)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageTransactor) RemoveOwner(opts *bind.TransactOpts, _toRemove common.Address) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.contract.Transact(opts, "removeOwner", _toRemove)
 }
 
 // RemoveOwner is a paid mutator transaction binding the contract method 0x173825d9.
 //
 // Solidity: function removeOwner(_toRemove address) returns()
-func (_OwnedTokenStorage *OwnedTokenStorageSession) RemoveOwner(_toRemove common.Address) (*types.Transaction, error) {
-	return _OwnedTokenStorage.Contract.RemoveOwner(&_OwnedTokenStorage.TransactOpts, _toRemove)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageSession) RemoveOwner(_toRemove common.Address) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.RemoveOwner(&_OwnedUpgradeableTokenStorage.TransactOpts, _toRemove)
 }
 
 // RemoveOwner is a paid mutator transaction binding the contract method 0x173825d9.
 //
 // Solidity: function removeOwner(_toRemove address) returns()
-func (_OwnedTokenStorage *OwnedTokenStorageTransactorSession) RemoveOwner(_toRemove common.Address) (*types.Transaction, error) {
-	return _OwnedTokenStorage.Contract.RemoveOwner(&_OwnedTokenStorage.TransactOpts, _toRemove)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageTransactorSession) RemoveOwner(_toRemove common.Address) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.RemoveOwner(&_OwnedUpgradeableTokenStorage.TransactOpts, _toRemove)
 }
 
-// OwnedTokenStorageAddedOwnerIterator is returned from FilterAddedOwner and is used to iterate over the raw logs and unpacked data for AddedOwner events raised by the OwnedTokenStorage contract.
-type OwnedTokenStorageAddedOwnerIterator struct {
-	Event *OwnedTokenStorageAddedOwner // Event containing the contract specifics and raw log
+// UpgradeTo is a paid mutator transaction binding the contract method 0x5a8b1a9f.
+//
+// Solidity: function upgradeTo(_version string, _implementation address) returns()
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageTransactor) UpgradeTo(opts *bind.TransactOpts, _version string, _implementation common.Address) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.contract.Transact(opts, "upgradeTo", _version, _implementation)
+}
+
+// UpgradeTo is a paid mutator transaction binding the contract method 0x5a8b1a9f.
+//
+// Solidity: function upgradeTo(_version string, _implementation address) returns()
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageSession) UpgradeTo(_version string, _implementation common.Address) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.UpgradeTo(&_OwnedUpgradeableTokenStorage.TransactOpts, _version, _implementation)
+}
+
+// UpgradeTo is a paid mutator transaction binding the contract method 0x5a8b1a9f.
+//
+// Solidity: function upgradeTo(_version string, _implementation address) returns()
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageTransactorSession) UpgradeTo(_version string, _implementation common.Address) (*types.Transaction, error) {
+	return _OwnedUpgradeableTokenStorage.Contract.UpgradeTo(&_OwnedUpgradeableTokenStorage.TransactOpts, _version, _implementation)
+}
+
+// OwnedUpgradeableTokenStorageAddedOwnerIterator is returned from FilterAddedOwner and is used to iterate over the raw logs and unpacked data for AddedOwner events raised by the OwnedUpgradeableTokenStorage contract.
+type OwnedUpgradeableTokenStorageAddedOwnerIterator struct {
+	Event *OwnedUpgradeableTokenStorageAddedOwner // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -693,7 +766,7 @@ type OwnedTokenStorageAddedOwnerIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *OwnedTokenStorageAddedOwnerIterator) Next() bool {
+func (it *OwnedUpgradeableTokenStorageAddedOwnerIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -702,7 +775,7 @@ func (it *OwnedTokenStorageAddedOwnerIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(OwnedTokenStorageAddedOwner)
+			it.Event = new(OwnedUpgradeableTokenStorageAddedOwner)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -717,7 +790,7 @@ func (it *OwnedTokenStorageAddedOwnerIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(OwnedTokenStorageAddedOwner)
+		it.Event = new(OwnedUpgradeableTokenStorageAddedOwner)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -733,19 +806,19 @@ func (it *OwnedTokenStorageAddedOwnerIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *OwnedTokenStorageAddedOwnerIterator) Error() error {
+func (it *OwnedUpgradeableTokenStorageAddedOwnerIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *OwnedTokenStorageAddedOwnerIterator) Close() error {
+func (it *OwnedUpgradeableTokenStorageAddedOwnerIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// OwnedTokenStorageAddedOwner represents a AddedOwner event raised by the OwnedTokenStorage contract.
-type OwnedTokenStorageAddedOwner struct {
+// OwnedUpgradeableTokenStorageAddedOwner represents a AddedOwner event raised by the OwnedUpgradeableTokenStorage contract.
+type OwnedUpgradeableTokenStorageAddedOwner struct {
 	NewOwner common.Address
 	Raw      types.Log // Blockchain specific contextual infos
 }
@@ -753,21 +826,21 @@ type OwnedTokenStorageAddedOwner struct {
 // FilterAddedOwner is a free log retrieval operation binding the contract event 0x9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea26.
 //
 // Solidity: e AddedOwner(newOwner address)
-func (_OwnedTokenStorage *OwnedTokenStorageFilterer) FilterAddedOwner(opts *bind.FilterOpts) (*OwnedTokenStorageAddedOwnerIterator, error) {
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageFilterer) FilterAddedOwner(opts *bind.FilterOpts) (*OwnedUpgradeableTokenStorageAddedOwnerIterator, error) {
 
-	logs, sub, err := _OwnedTokenStorage.contract.FilterLogs(opts, "AddedOwner")
+	logs, sub, err := _OwnedUpgradeableTokenStorage.contract.FilterLogs(opts, "AddedOwner")
 	if err != nil {
 		return nil, err
 	}
-	return &OwnedTokenStorageAddedOwnerIterator{contract: _OwnedTokenStorage.contract, event: "AddedOwner", logs: logs, sub: sub}, nil
+	return &OwnedUpgradeableTokenStorageAddedOwnerIterator{contract: _OwnedUpgradeableTokenStorage.contract, event: "AddedOwner", logs: logs, sub: sub}, nil
 }
 
 // WatchAddedOwner is a free log subscription operation binding the contract event 0x9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea26.
 //
 // Solidity: e AddedOwner(newOwner address)
-func (_OwnedTokenStorage *OwnedTokenStorageFilterer) WatchAddedOwner(opts *bind.WatchOpts, sink chan<- *OwnedTokenStorageAddedOwner) (event.Subscription, error) {
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageFilterer) WatchAddedOwner(opts *bind.WatchOpts, sink chan<- *OwnedUpgradeableTokenStorageAddedOwner) (event.Subscription, error) {
 
-	logs, sub, err := _OwnedTokenStorage.contract.WatchLogs(opts, "AddedOwner")
+	logs, sub, err := _OwnedUpgradeableTokenStorage.contract.WatchLogs(opts, "AddedOwner")
 	if err != nil {
 		return nil, err
 	}
@@ -777,8 +850,8 @@ func (_OwnedTokenStorage *OwnedTokenStorageFilterer) WatchAddedOwner(opts *bind.
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(OwnedTokenStorageAddedOwner)
-				if err := _OwnedTokenStorage.contract.UnpackLog(event, "AddedOwner", log); err != nil {
+				event := new(OwnedUpgradeableTokenStorageAddedOwner)
+				if err := _OwnedUpgradeableTokenStorage.contract.UnpackLog(event, "AddedOwner", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -799,9 +872,9 @@ func (_OwnedTokenStorage *OwnedTokenStorageFilterer) WatchAddedOwner(opts *bind.
 	}), nil
 }
 
-// OwnedTokenStorageRemovedOwnerIterator is returned from FilterRemovedOwner and is used to iterate over the raw logs and unpacked data for RemovedOwner events raised by the OwnedTokenStorage contract.
-type OwnedTokenStorageRemovedOwnerIterator struct {
-	Event *OwnedTokenStorageRemovedOwner // Event containing the contract specifics and raw log
+// OwnedUpgradeableTokenStorageRemovedOwnerIterator is returned from FilterRemovedOwner and is used to iterate over the raw logs and unpacked data for RemovedOwner events raised by the OwnedUpgradeableTokenStorage contract.
+type OwnedUpgradeableTokenStorageRemovedOwnerIterator struct {
+	Event *OwnedUpgradeableTokenStorageRemovedOwner // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -815,7 +888,7 @@ type OwnedTokenStorageRemovedOwnerIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *OwnedTokenStorageRemovedOwnerIterator) Next() bool {
+func (it *OwnedUpgradeableTokenStorageRemovedOwnerIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -824,7 +897,7 @@ func (it *OwnedTokenStorageRemovedOwnerIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(OwnedTokenStorageRemovedOwner)
+			it.Event = new(OwnedUpgradeableTokenStorageRemovedOwner)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -839,7 +912,7 @@ func (it *OwnedTokenStorageRemovedOwnerIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(OwnedTokenStorageRemovedOwner)
+		it.Event = new(OwnedUpgradeableTokenStorageRemovedOwner)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -855,19 +928,19 @@ func (it *OwnedTokenStorageRemovedOwnerIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *OwnedTokenStorageRemovedOwnerIterator) Error() error {
+func (it *OwnedUpgradeableTokenStorageRemovedOwnerIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *OwnedTokenStorageRemovedOwnerIterator) Close() error {
+func (it *OwnedUpgradeableTokenStorageRemovedOwnerIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// OwnedTokenStorageRemovedOwner represents a RemovedOwner event raised by the OwnedTokenStorage contract.
-type OwnedTokenStorageRemovedOwner struct {
+// OwnedUpgradeableTokenStorageRemovedOwner represents a RemovedOwner event raised by the OwnedUpgradeableTokenStorage contract.
+type OwnedUpgradeableTokenStorageRemovedOwner struct {
 	RemovedOwner common.Address
 	Raw          types.Log // Blockchain specific contextual infos
 }
@@ -875,21 +948,21 @@ type OwnedTokenStorageRemovedOwner struct {
 // FilterRemovedOwner is a free log retrieval operation binding the contract event 0xf8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf.
 //
 // Solidity: e RemovedOwner(removedOwner address)
-func (_OwnedTokenStorage *OwnedTokenStorageFilterer) FilterRemovedOwner(opts *bind.FilterOpts) (*OwnedTokenStorageRemovedOwnerIterator, error) {
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageFilterer) FilterRemovedOwner(opts *bind.FilterOpts) (*OwnedUpgradeableTokenStorageRemovedOwnerIterator, error) {
 
-	logs, sub, err := _OwnedTokenStorage.contract.FilterLogs(opts, "RemovedOwner")
+	logs, sub, err := _OwnedUpgradeableTokenStorage.contract.FilterLogs(opts, "RemovedOwner")
 	if err != nil {
 		return nil, err
 	}
-	return &OwnedTokenStorageRemovedOwnerIterator{contract: _OwnedTokenStorage.contract, event: "RemovedOwner", logs: logs, sub: sub}, nil
+	return &OwnedUpgradeableTokenStorageRemovedOwnerIterator{contract: _OwnedUpgradeableTokenStorage.contract, event: "RemovedOwner", logs: logs, sub: sub}, nil
 }
 
 // WatchRemovedOwner is a free log subscription operation binding the contract event 0xf8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf.
 //
 // Solidity: e RemovedOwner(removedOwner address)
-func (_OwnedTokenStorage *OwnedTokenStorageFilterer) WatchRemovedOwner(opts *bind.WatchOpts, sink chan<- *OwnedTokenStorageRemovedOwner) (event.Subscription, error) {
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageFilterer) WatchRemovedOwner(opts *bind.WatchOpts, sink chan<- *OwnedUpgradeableTokenStorageRemovedOwner) (event.Subscription, error) {
 
-	logs, sub, err := _OwnedTokenStorage.contract.WatchLogs(opts, "RemovedOwner")
+	logs, sub, err := _OwnedUpgradeableTokenStorage.contract.WatchLogs(opts, "RemovedOwner")
 	if err != nil {
 		return nil, err
 	}
@@ -899,8 +972,149 @@ func (_OwnedTokenStorage *OwnedTokenStorageFilterer) WatchRemovedOwner(opts *bin
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(OwnedTokenStorageRemovedOwner)
-				if err := _OwnedTokenStorage.contract.UnpackLog(event, "RemovedOwner", log); err != nil {
+				event := new(OwnedUpgradeableTokenStorageRemovedOwner)
+				if err := _OwnedUpgradeableTokenStorage.contract.UnpackLog(event, "RemovedOwner", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// OwnedUpgradeableTokenStorageUpgradedIterator is returned from FilterUpgraded and is used to iterate over the raw logs and unpacked data for Upgraded events raised by the OwnedUpgradeableTokenStorage contract.
+type OwnedUpgradeableTokenStorageUpgradedIterator struct {
+	Event *OwnedUpgradeableTokenStorageUpgraded // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *OwnedUpgradeableTokenStorageUpgradedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(OwnedUpgradeableTokenStorageUpgraded)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(OwnedUpgradeableTokenStorageUpgraded)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *OwnedUpgradeableTokenStorageUpgradedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *OwnedUpgradeableTokenStorageUpgradedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// OwnedUpgradeableTokenStorageUpgraded represents a Upgraded event raised by the OwnedUpgradeableTokenStorage contract.
+type OwnedUpgradeableTokenStorageUpgraded struct {
+	Version        common.Hash
+	Implementation common.Address
+	Raw            types.Log // Blockchain specific contextual infos
+}
+
+// FilterUpgraded is a free log retrieval operation binding the contract event 0x8e05e0e35ff592971ca8b477d4285a33a61ded208d644042667b78693a472f5e.
+//
+// Solidity: e Upgraded(version indexed string, implementation indexed address)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageFilterer) FilterUpgraded(opts *bind.FilterOpts, version []string, implementation []common.Address) (*OwnedUpgradeableTokenStorageUpgradedIterator, error) {
+
+	var versionRule []interface{}
+	for _, versionItem := range version {
+		versionRule = append(versionRule, versionItem)
+	}
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _OwnedUpgradeableTokenStorage.contract.FilterLogs(opts, "Upgraded", versionRule, implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return &OwnedUpgradeableTokenStorageUpgradedIterator{contract: _OwnedUpgradeableTokenStorage.contract, event: "Upgraded", logs: logs, sub: sub}, nil
+}
+
+// WatchUpgraded is a free log subscription operation binding the contract event 0x8e05e0e35ff592971ca8b477d4285a33a61ded208d644042667b78693a472f5e.
+//
+// Solidity: e Upgraded(version indexed string, implementation indexed address)
+func (_OwnedUpgradeableTokenStorage *OwnedUpgradeableTokenStorageFilterer) WatchUpgraded(opts *bind.WatchOpts, sink chan<- *OwnedUpgradeableTokenStorageUpgraded, version []string, implementation []common.Address) (event.Subscription, error) {
+
+	var versionRule []interface{}
+	for _, versionItem := range version {
+		versionRule = append(versionRule, versionItem)
+	}
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _OwnedUpgradeableTokenStorage.contract.WatchLogs(opts, "Upgraded", versionRule, implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(OwnedUpgradeableTokenStorageUpgraded)
+				if err := _OwnedUpgradeableTokenStorage.contract.UnpackLog(event, "Upgraded", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -925,7 +1139,7 @@ func (_OwnedTokenStorage *OwnedTokenStorageFilterer) WatchRemovedOwner(opts *bin
 const SafeMathABI = "[]"
 
 // SafeMathBin is the compiled bytecode used for deploying new contracts.
-const SafeMathBin = `0x604c602c600b82828239805160001a60731460008114601c57601e565bfe5b5030600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea165627a7a72305820e9c30c701aa55547539049ce5993fd232f4838f74349d0980276d05fdf6414830029`
+const SafeMathBin = `0x604c602c600b82828239805160001a60731460008114601c57601e565bfe5b5030600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea165627a7a72305820ecaa9d7b56c4d8ee8f00d93e22699129feb66bb09af0138a37d5ab270291906c0029`
 
 // DeploySafeMath deploys a new Ethereum contract, binding an instance of SafeMath to it.
 func DeploySafeMath(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *SafeMath, error) {
@@ -1086,7 +1300,7 @@ func (_SafeMath *SafeMathTransactorRaw) Transact(opts *bind.TransactOpts, method
 const StorageABI = "[]"
 
 // StorageBin is the compiled bytecode used for deploying new contracts.
-const StorageBin = `0x6080604052348015600f57600080fd5b50603580601d6000396000f3fe6080604052600080fdfea165627a7a72305820de3af130e6b28988bc95f8627c87721d624affc25874186b432ab8d21f4d71490029`
+const StorageBin = `0x6080604052348015600f57600080fd5b50603580601d6000396000f3fe6080604052600080fdfea165627a7a723058200a4063cf49c8aa13aa8e579fb4ed958fd0d9d28b3f5c61b2e26e65c15dc7ddc60029`
 
 // DeployStorage deploys a new Ethereum contract, binding an instance of Storage to it.
 func DeployStorage(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Storage, error) {
@@ -1244,10 +1458,10 @@ func (_Storage *StorageTransactorRaw) Transact(opts *bind.TransactOpts, method s
 }
 
 // TTFT20ABI is the input ABI used to generate the binding from.
-const TTFT20ABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_toRemove\",\"type\":\"address\"}],\"name\":\"removeOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"from\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"name\":\"\",\"type\":\"uint8\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"registerWithdrawalAddress\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"addOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"tokenOwner\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"name\":\"balance\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"tokenOwner\",\"type\":\"address\"},{\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"name\":\"remaining\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"receiver\",\"type\":\"address\"},{\"name\":\"tokens\",\"type\":\"uint256\"},{\"name\":\"txid\",\"type\":\"string\"}],\"name\":\"mintTokens\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"tokenOwner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"RegisterWithdrawalAddress\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"tokens\",\"type\":\"uint256\"},{\"indexed\":true,\"name\":\"txid\",\"type\":\"string\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"AddedOwner\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"removedOwner\",\"type\":\"address\"}],\"name\":\"RemovedOwner\",\"type\":\"event\"}]"
+const TTFT20ABI = "[{\"constant\":true,\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"spender\",\"type\":\"address\"},{\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_toRemove\",\"type\":\"address\"}],\"name\":\"removeOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"from\",\"type\":\"address\"},{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"name\":\"\",\"type\":\"uint8\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"registerWithdrawalAddress\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_version\",\"type\":\"string\"},{\"name\":\"_implementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"addOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"tokenOwner\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"name\":\"balance\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"to\",\"type\":\"address\"},{\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"name\":\"success\",\"type\":\"bool\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[{\"name\":\"tokenOwner\",\"type\":\"address\"},{\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"name\":\"remaining\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"receiver\",\"type\":\"address\"},{\"name\":\"tokens\",\"type\":\"uint256\"},{\"name\":\"txid\",\"type\":\"string\"}],\"name\":\"mintTokens\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"tokenOwner\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"RegisterWithdrawalAddress\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"tokens\",\"type\":\"uint256\"},{\"indexed\":true,\"name\":\"txid\",\"type\":\"string\"}],\"name\":\"Mint\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"name\":\"receiver\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"tokens\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"version\",\"type\":\"string\"},{\"indexed\":true,\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"AddedOwner\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"removedOwner\",\"type\":\"address\"}],\"name\":\"RemovedOwner\",\"type\":\"event\"}]"
 
 // TTFT20Bin is the compiled bytecode used for deploying new contracts.
-const TTFT20Bin = `0x60c0604052600660809081527f545446543230000000000000000000000000000000000000000000000000000060a0526200004390640100000000620000e4810204565b60408051808201909152601981527f5454465420455243323020726570726573656e746174696f6e0000000000000060208201526200008b9064010000000062000159810204565b6012620000a181640100000000620001cb810204565b620f424060ff8216600a0a02620000c18164010000000062000240810204565b5050620000dd33620002b2640100000000026401000000009004565b506200042f565b620001566040516020018080602001828103825260068152602001807f73796d626f6c0000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208262000332640100000000026401000000009004565b50565b620001566040516020018080602001828103825260048152602001807f6e616d6500000000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208262000332640100000000026401000000009004565b620001566040516020018080602001828103825260088152602001807f646563696d616c73000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208260ff1662000358640100000000026401000000009004565b6200015660405160200180806020018281038252600b8152602001807f746f74616c537570706c79000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208262000358640100000000026401000000009004565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906200032d9060016401000000006200036a810204565b919050565b6000828152600160209081526040909120825162000353928401906200038a565b505050565b60009182526020829052604090912055565b600091825260046020526040909120805460ff1916911515919091179055565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f10620003cd57805160ff1916838001178555620003fd565b82800160010185558215620003fd579182015b82811115620003fd578251825591602001919060010190620003e0565b506200040b9291506200040f565b5090565b6200042c91905b808211156200040b576000815560010162000416565b90565b6113a3806200043f6000396000f3fe6080604052600436106100c45763ffffffff7c010000000000000000000000000000000000000000000000000000000060003504166306fdde0381146100c9578063095ea7b314610153578063173825d9146101a057806318160ddd146101d557806323b872dd146101fc578063313ce5671461023f57806334ca6a711461026a5780637065cb481461029d57806370a08231146102d057806395d89b4114610303578063a9059cbb14610318578063dd62ed3e14610351578063e67524a31461038c575b600080fd5b3480156100d557600080fd5b506100de610454565b6040805160208082528351818301528351919283929083019185019080838360005b83811015610118578181015183820152602001610100565b50505050905090810190601f1680156101455780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b34801561015f57600080fd5b5061018c6004803603604081101561017657600080fd5b50600160a060020a038135169060200135610463565b604080519115158252519081900360200190f35b3480156101ac57600080fd5b506101d3600480360360208110156101c357600080fd5b5035600160a060020a03166104ba565b005b3480156101e157600080fd5b506101ea610542565b60408051918252519081900360200190f35b34801561020857600080fd5b5061018c6004803603606081101561021f57600080fd5b50600160a060020a03813581169160208101359091169060400135610565565b34801561024b57600080fd5b50610254610666565b6040805160ff9092168252519081900360200190f35b34801561027657600080fd5b506101d36004803603602081101561028d57600080fd5b5035600160a060020a0316610670565b3480156102a957600080fd5b506101d3600480360360208110156102c057600080fd5b5035600160a060020a0316610727565b3480156102dc57600080fd5b506101ea600480360360208110156102f357600080fd5b5035600160a060020a0316610799565b34801561030f57600080fd5b506100de6107ac565b34801561032457600080fd5b5061018c6004803603604081101561033b57600080fd5b50600160a060020a0381351690602001356107b6565b34801561035d57600080fd5b506101ea6004803603604081101561037457600080fd5b50600160a060020a0381358116916020013516610877565b34801561039857600080fd5b506101d3600480360360608110156103af57600080fd5b600160a060020a03823516916020810135918101906060810160408201356401000000008111156103df57600080fd5b8201836020820111156103f157600080fd5b8035906020019184600183028401116401000000008311171561041357600080fd5b91908080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525092955061088a945050505050565b606061045e6109c7565b905090565b6000610470338484610a22565b604080518381529051600160a060020a0385169133917f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b9259181900360200190a35060015b92915050565b6104c333610aa0565b15156104ce57600080fd5b600160a060020a03811615156104e357600080fd5b600160a060020a0381163314156104f957600080fd5b61050281610b0e565b5060408051600160a060020a038316815290517ff8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf9181900360200190a150565b600061045e6105516000610b7c565b610559610bea565b9063ffffffff610c4c16565b600061057f843361057a856105598933610c61565b610a22565b610595846105908461055988610b7c565b610cdc565b61059e83610d4c565b156105f35782600160a060020a031684600160a060020a03167f9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb846040518082815260200191505060405180910390a361065c565b610610836105908461060487610b7c565b9063ffffffff610e0116565b82600160a060020a031684600160a060020a03167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef846040518082815260200191505060405180910390a35b5060019392505050565b600061045e610e11565b61067933610aa0565b151561068457600080fd5b61068d81610e73565b600061069882610b7c565b905060008111156106ef576106ae826000610cdc565b604080518281529051600160a060020a0384169182917f9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb9181900360200190a35b604051600160a060020a038316907f77bc19082a31daad021d73c26bb4f6e74100a41c98099405e92a9323d133e60290600090a25050565b61073033610aa0565b151561073b57600080fd5b600160a060020a038116151561075057600080fd5b61075981610f1f565b5060408051600160a060020a038316815290517f9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea269181900360200190a150565b60006107a482610b7c565b90505b919050565b606061045e610f8f565b60006107c9336105908461055933610b7c565b6107d283610d4c565b1561081c57604080518381529051600160a060020a0385169133917f9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb9181900360200190a361086e565b61082d836105908461060487610b7c565b604080518381529051600160a060020a0385169133917fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360200190a35b50600192915050565b60006108838383610c61565b9392505050565b61089333610aa0565b151561089e57600080fd5b6108a781610fea565b1561091357604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601f60248201527f544654207472616e736163746f6e20494420616c7265616479206b6e6f776e00604482015290519081900360640190fd5b61091c81611128565b61092d836105908461060487610b7c565b806040518082805190602001908083835b6020831061095d5780518252601f19909201916020918201910161093e565b51815160209384036101000a6000190180199092169116179052604080519290940182900382208883529351939550600160a060020a03891694507f85a66b9141978db9980f7e0ce3b468cebf4f7999f32b23091c5c03e798b1ba7a9391829003019150a3505050565b6040805160208082018190526004828401527f6e616d65000000000000000000000000000000000000000000000000000000006060838101919091528351808403820181526080909301909352815191012061045e90611266565b60408051600160a060020a03808616828401528416606080830191909152602080830191909152600760808301527f616c6c6f7765640000000000000000000000000000000000000000000000000060a0808401919091528351808403909101815260c09092019092528051910120610a9b9082611306565b505050565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906107a490611318565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906107a79061132d565b60408051600160a060020a038316818301526020808201839052600760608301527f62616c616e6365000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906107a490611345565b600061045e60405160200180806020018281038252600b8152602001807f746f74616c537570706c7900000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120611345565b600082821115610c5b57600080fd5b50900390565b60408051600160a060020a03808516828401528316606080830191909152602080830191909152600760808301527f616c6c6f7765640000000000000000000000000000000000000000000000000060a0808401919091528351808403909101815260c0909201909252805191012060009061088390611345565b60408051600160a060020a038416818301526020808201839052600760608301527f62616c616e6365000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120610d489082611306565b5050565b60006107a48260405160200180806020018060200184600160a060020a0316600160a060020a03168152602001838103835260078152602001807f61646472657373000000000000000000000000000000000000000000000000008152506020018381038252600a8152602001807f7769746864726177616c00000000000000000000000000000000000000000000815250602001935050505060405160208183030381529060405280519060200120611318565b818101828110156104b457600080fd5b600061045e6040516020018080602001828103825260088152602001807f646563696d616c7300000000000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120611345565b60408051600160a060020a038316606080830191909152602080830191909152600760808301527f616464726573730000000000000000000000000000000000000000000000000060a08084019190915282840152600a60c08301527f7769746864726177616c0000000000000000000000000000000000000000000060e080840191909152835180840390910181526101009092019092528051910120610f1c906001611357565b50565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906107a7906001611357565b6040805160208082018190526006828401527f73796d626f6c00000000000000000000000000000000000000000000000000006060838101919091528351808403820181526080909301909352815191012061045e90611266565b60006107a4826040516020018080602001806020018060200180602001858103855260048152602001807f6d696e74000000000000000000000000000000000000000000000000000000008152506020018581038452600b8152602001807f7472616e73616374696f6e000000000000000000000000000000000000000000815250602001858103835260028152602001807f6964000000000000000000000000000000000000000000000000000000000000815250602001858103825286818151815260200191508051906020019080838360005b838110156110d85781810151838201526020016110c0565b50505050905090810190601f1680156111055780820380516001836020036101000a031916815260200191505b509550505050505060405160208183030381529060405280519060200120611318565b610f1c816040516020018080602001806020018060200180602001858103855260048152602001807f6d696e74000000000000000000000000000000000000000000000000000000008152506020018581038452600b8152602001807f7472616e73616374696f6e000000000000000000000000000000000000000000815250602001858103835260028152602001807f6964000000000000000000000000000000000000000000000000000000000000815250602001858103825286818151815260200191508051906020019080838360005b838110156112145781810151838201526020016111fc565b50505050905090810190601f1680156112415780820380516001836020036101000a031916815260200191505b5095505050505050604051602081830303815290604052805190602001206001611357565b60008181526001602081815260409283902080548451600294821615610100026000190190911693909304601f810183900483028401830190945283835260609390918301828280156112fa5780601f106112cf576101008083540402835291602001916112fa565b820191906000526020600020905b8154815290600101906020018083116112dd57829003601f168201915b50505050509050919050565b60009182526020829052604090912055565b60009081526004602052604090205460ff1690565b6000908152600460205260409020805460ff19169055565b60009081526020819052604090205490565b600091825260046020526040909120805460ff191691151591909117905556fea165627a7a723058208e471f913aff6639e16ee4f26ca52888fd6ecc35bc30a38570f731c46e7ae78e0029`
+const TTFT20Bin = `0x60c0604052600560809081527f544654323000000000000000000000000000000000000000000000000000000060a0526200004390640100000000620000e6810204565b60408051808201909152601881527f54465420455243323020726570726573656e746174696f6e000000000000000060208201526200008b906401000000006200015b810204565b6009620000a181640100000000620001cd810204565b64174876e80060ff8216600a0a02620000c38164010000000062000242810204565b5050620000df33620002b4640100000000026401000000009004565b5062000431565b620001586040516020018080602001828103825260068152602001807f73796d626f6c0000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208262000334640100000000026401000000009004565b50565b620001586040516020018080602001828103825260048152602001807f6e616d6500000000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208262000334640100000000026401000000009004565b620001586040516020018080602001828103825260088152602001807f646563696d616c73000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208260ff166200035a640100000000026401000000009004565b6200015860405160200180806020018281038252600b8152602001807f746f74616c537570706c7900000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826200035a640100000000026401000000009004565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a090920190925280519101206000906200032f9060016401000000006200036c810204565b919050565b6000828152600160209081526040909120825162000355928401906200038c565b505050565b60009182526020829052604090912055565b600091825260046020526040909120805460ff1916911515919091179055565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f10620003cf57805160ff1916838001178555620003ff565b82800160010185558215620003ff579182015b82811115620003ff578251825591602001919060010190620003e2565b506200040d92915062000411565b5090565b6200042e91905b808211156200040d576000815560010162000418565b90565b6118f580620004416000396000f3fe608060405260043610610110576000357c0100000000000000000000000000000000000000000000000000000000900480635a8b1a9f116100a757806395d89b411161007657806395d89b4114610453578063a9059cbb14610468578063dd62ed3e146104a1578063e67524a3146104dc57610110565b80635a8b1a9f146102fe5780635c60da1b146103bc5780637065cb48146103ed57806370a082311461042057610110565b806323b872dd116100e357806323b872dd14610248578063313ce5671461028b57806334ca6a71146102b657806354fd4d50146102e957610110565b806306fdde0314610115578063095ea7b31461019f578063173825d9146101ec57806318160ddd14610221575b600080fd5b34801561012157600080fd5b5061012a6105a4565b6040805160208082528351818301528351919283929083019185019080838360005b8381101561016457818101518382015260200161014c565b50505050905090810190601f1680156101915780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b3480156101ab57600080fd5b506101d8600480360360408110156101c257600080fd5b50600160a060020a0381351690602001356105b4565b604080519115158252519081900360200190f35b3480156101f857600080fd5b5061021f6004803603602081101561020f57600080fd5b5035600160a060020a031661060b565b005b34801561022d57600080fd5b50610236610693565b60408051918252519081900360200190f35b34801561025457600080fd5b506101d86004803603606081101561026b57600080fd5b50600160a060020a038135811691602081013590911690604001356106b6565b34801561029757600080fd5b506102a06107b7565b6040805160ff9092168252519081900360200190f35b3480156102c257600080fd5b5061021f600480360360208110156102d957600080fd5b5035600160a060020a03166107c1565b3480156102f557600080fd5b5061012a6108d7565b34801561030a57600080fd5b5061021f6004803603604081101561032157600080fd5b81019060208101813564010000000081111561033c57600080fd5b82018360208201111561034e57600080fd5b8035906020019184600183028401116401000000008311171561037057600080fd5b91908080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525092955050509035600160a060020a031691506108e19050565b3480156103c857600080fd5b506103d16109be565b60408051600160a060020a039092168252519081900360200190f35b3480156103f957600080fd5b5061021f6004803603602081101561041057600080fd5b5035600160a060020a03166109c8565b34801561042c57600080fd5b506102366004803603602081101561044357600080fd5b5035600160a060020a0316610a3a565b34801561045f57600080fd5b5061012a610a4d565b34801561047457600080fd5b506101d86004803603604081101561048b57600080fd5b50600160a060020a038135169060200135610a57565b3480156104ad57600080fd5b50610236600480360360408110156104c457600080fd5b50600160a060020a0381358116916020013516610b18565b3480156104e857600080fd5b5061021f600480360360608110156104ff57600080fd5b600160a060020a038235169160208101359181019060608101604082013564010000000081111561052f57600080fd5b82018360208201111561054157600080fd5b8035906020019184600183028401116401000000008311171561056357600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550610b2b945050505050565b60606105ae610c68565b90505b90565b60006105c1338484610cc3565b604080518381529051600160a060020a0385169133917f8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b9259181900360200190a35060015b92915050565b61061433610d41565b151561061f57600080fd5b600160a060020a038116151561063457600080fd5b600160a060020a03811633141561064a57600080fd5b61065381610daf565b5060408051600160a060020a038316815290517ff8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf9181900360200190a150565b60006105ae6106a26000610e1d565b6106aa610e8b565b9063ffffffff610eed16565b60006106d084336106cb856106aa8933610f02565b610cc3565b6106e6846106e1846106aa88610e1d565b610f7d565b6106ef83610fed565b156107445782600160a060020a031684600160a060020a03167f9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb846040518082815260200191505060405180910390a36107ad565b610761836106e18461075587610e1d565b9063ffffffff6110a216565b82600160a060020a031684600160a060020a03167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef846040518082815260200191505060405180910390a35b5060019392505050565b60006105ae6110b2565b6107ca33610d41565b15156107d557600080fd5b6107de81610fed565b15610834576040517f08c379a00000000000000000000000000000000000000000000000000000000081526004018080602001828103825260258152602001806118a56025913960400191505060405180910390fd5b61083d81611114565b600061084882610e1d565b9050600081111561089f5761085e826000610f7d565b604080518281529051600160a060020a0384169182917f9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb9181900360200190a35b604051600160a060020a038316907f77bc19082a31daad021d73c26bb4f6e74100a41c98099405e92a9323d133e60290600090a25050565b60606105ae6111c0565b6108ea33610d41565b15156108f557600080fd5b80600160a060020a031661090761121b565b600160a060020a0316141561091b57600080fd5b6109248261127d565b61092d816112de565b80600160a060020a0316826040518082805190602001908083835b602083106109675780518252601f199092019160209182019101610948565b5181516020939093036101000a60001901801990911692169190911790526040519201829003822093507f8e05e0e35ff592971ca8b477d4285a33a61ded208d644042667b78693a472f5e92506000919050a35050565b60006105ae61121b565b6109d133610d41565b15156109dc57600080fd5b600160a060020a03811615156109f157600080fd5b6109fa8161133f565b5060408051600160a060020a038316815290517f9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea269181900360200190a150565b6000610a4582610e1d565b90505b919050565b60606105ae6113af565b6000610a6a336106e1846106aa33610e1d565b610a7383610fed565b15610abd57604080518381529051600160a060020a0385169133917f9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb9181900360200190a3610b0f565b610ace836106e18461075587610e1d565b604080518381529051600160a060020a0385169133917fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef9181900360200190a35b50600192915050565b6000610b248383610f02565b9392505050565b610b3433610d41565b1515610b3f57600080fd5b610b488161140a565b15610bb457604080517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601f60248201527f544654207472616e736163746f6e20494420616c7265616479206b6e6f776e00604482015290519081900360640190fd5b610bbd81611548565b610bce836106e18461075587610e1d565b806040518082805190602001908083835b60208310610bfe5780518252601f199092019160209182019101610bdf565b51815160209384036101000a6000190180199092169116179052604080519290940182900382208883529351939550600160a060020a03891694507f85a66b9141978db9980f7e0ce3b468cebf4f7999f32b23091c5c03e798b1ba7a9391829003019150a3505050565b6040805160208082018190526004828401527f6e616d6500000000000000000000000000000000000000000000000000000000606083810191909152835180840382018152608090930190935281519101206105ae90611686565b60408051600160a060020a03808616828401528416606080830191909152602080830191909152600760808301527f616c6c6f7765640000000000000000000000000000000000000000000000000060a0808401919091528351808403909101815260c09092019092528051910120610d3c9082611726565b505050565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610a4590611738565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610a489061174d565b60408051600160a060020a038316818301526020808201839052600760608301527f62616c616e6365000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610a4590611765565b60006105ae60405160200180806020018281038252600b8152602001807f746f74616c537570706c7900000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120611765565b600082821115610efc57600080fd5b50900390565b60408051600160a060020a03808516828401528316606080830191909152602080830191909152600760808301527f616c6c6f7765640000000000000000000000000000000000000000000000000060a0808401919091528351808403909101815260c09092019092528051910120600090610b2490611765565b60408051600160a060020a038416818301526020808201839052600760608301527f62616c616e6365000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120610fe99082611726565b5050565b6000610a458260405160200180806020018060200184600160a060020a0316600160a060020a03168152602001838103835260078152602001807f61646472657373000000000000000000000000000000000000000000000000008152506020018381038252600a8152602001807f7769746864726177616c00000000000000000000000000000000000000000000815250602001935050505060405160208183030381529060405280519060200120611738565b8181018281101561060557600080fd5b60006105ae6040516020018080602001828103825260088152602001807f646563696d616c7300000000000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120611765565b60408051600160a060020a038316606080830191909152602080830191909152600760808301527f616464726573730000000000000000000000000000000000000000000000000060a08084019190915282840152600a60c08301527f7769746864726177616c0000000000000000000000000000000000000000000060e0808401919091528351808403909101815261010090920190925280519101206111bd906001611777565b50565b6040805160208082018190526007828401527f76657273696f6e00000000000000000000000000000000000000000000000000606083810191909152835180840382018152608090930190935281519101206105ae90611686565b60006105ae60405160200180806020018281038252600e8152602001807f696d706c656d656e746174696f6e00000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120611797565b6111bd6040516020018080602001828103825260078152602001807f76657273696f6e0000000000000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826117b2565b6111bd60405160200180806020018281038252600e8152602001807f696d706c656d656e746174696f6e00000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826117d1565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610a48906001611777565b6040805160208082018190526006828401527f73796d626f6c0000000000000000000000000000000000000000000000000000606083810191909152835180840382018152608090930190935281519101206105ae90611686565b6000610a45826040516020018080602001806020018060200180602001858103855260048152602001807f6d696e74000000000000000000000000000000000000000000000000000000008152506020018581038452600b8152602001807f7472616e73616374696f6e000000000000000000000000000000000000000000815250602001858103835260028152602001807f6964000000000000000000000000000000000000000000000000000000000000815250602001858103825286818151815260200191508051906020019080838360005b838110156114f85781810151838201526020016114e0565b50505050905090810190601f1680156115255780820380516001836020036101000a031916815260200191505b509550505050505060405160208183030381529060405280519060200120611738565b6111bd816040516020018080602001806020018060200180602001858103855260048152602001807f6d696e74000000000000000000000000000000000000000000000000000000008152506020018581038452600b8152602001807f7472616e73616374696f6e000000000000000000000000000000000000000000815250602001858103835260028152602001807f6964000000000000000000000000000000000000000000000000000000000000815250602001858103825286818151815260200191508051906020019080838360005b8381101561163457818101518382015260200161161c565b50505050905090810190601f1680156116615780820380516001836020036101000a031916815260200191505b5095505050505050604051602081830303815290604052805190602001206001611777565b60008181526001602081815260409283902080548451600294821615610100026000190190911693909304601f8101839004830284018301909452838352606093909183018282801561171a5780601f106116ef5761010080835404028352916020019161171a565b820191906000526020600020905b8154815290600101906020018083116116fd57829003601f168201915b50505050509050919050565b60009182526020829052604090912055565b60009081526004602052604090205460ff1690565b6000908152600460205260409020805460ff19169055565b60009081526020819052604090205490565b600091825260046020526040909120805460ff1916911515919091179055565b600090815260026020526040902054600160a060020a031690565b60008281526001602090815260409091208251610d3c9284019061180c565b600091825260026020526040909120805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a03909216919091179055565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f1061184d57805160ff191683800117855561187a565b8280016001018555821561187a579182015b8281111561187a57825182559160200191906001019061185f565b5061188692915061188a565b5090565b6105b191905b80821115611886576000815560010161189056fe5769746864726177616c206164647265737320616c72656164792072656967737465726564a165627a7a72305820028e801d0d8761318bd70521c4bbb0fa96e664c82883af7cbd78781c4eaeded50029`
 
 // DeployTTFT20 deploys a new Ethereum contract, binding an instance of TTFT20 to it.
 func DeployTTFT20(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *TTFT20, error) {
@@ -1482,6 +1696,32 @@ func (_TTFT20 *TTFT20CallerSession) Decimals() (uint8, error) {
 	return _TTFT20.Contract.Decimals(&_TTFT20.CallOpts)
 }
 
+// Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
+//
+// Solidity: function implementation() constant returns(address)
+func (_TTFT20 *TTFT20Caller) Implementation(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _TTFT20.contract.Call(opts, out, "implementation")
+	return *ret0, err
+}
+
+// Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
+//
+// Solidity: function implementation() constant returns(address)
+func (_TTFT20 *TTFT20Session) Implementation() (common.Address, error) {
+	return _TTFT20.Contract.Implementation(&_TTFT20.CallOpts)
+}
+
+// Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
+//
+// Solidity: function implementation() constant returns(address)
+func (_TTFT20 *TTFT20CallerSession) Implementation() (common.Address, error) {
+	return _TTFT20.Contract.Implementation(&_TTFT20.CallOpts)
+}
+
 // Name is a free data retrieval call binding the contract method 0x06fdde03.
 //
 // Solidity: function name() constant returns(string)
@@ -1558,6 +1798,32 @@ func (_TTFT20 *TTFT20Session) TotalSupply() (*big.Int, error) {
 // Solidity: function totalSupply() constant returns(uint256)
 func (_TTFT20 *TTFT20CallerSession) TotalSupply() (*big.Int, error) {
 	return _TTFT20.Contract.TotalSupply(&_TTFT20.CallOpts)
+}
+
+// Version is a free data retrieval call binding the contract method 0x54fd4d50.
+//
+// Solidity: function version() constant returns(string)
+func (_TTFT20 *TTFT20Caller) Version(opts *bind.CallOpts) (string, error) {
+	var (
+		ret0 = new(string)
+	)
+	out := ret0
+	err := _TTFT20.contract.Call(opts, out, "version")
+	return *ret0, err
+}
+
+// Version is a free data retrieval call binding the contract method 0x54fd4d50.
+//
+// Solidity: function version() constant returns(string)
+func (_TTFT20 *TTFT20Session) Version() (string, error) {
+	return _TTFT20.Contract.Version(&_TTFT20.CallOpts)
+}
+
+// Version is a free data retrieval call binding the contract method 0x54fd4d50.
+//
+// Solidity: function version() constant returns(string)
+func (_TTFT20 *TTFT20CallerSession) Version() (string, error) {
+	return _TTFT20.Contract.Version(&_TTFT20.CallOpts)
 }
 
 // AddOwner is a paid mutator transaction binding the contract method 0x7065cb48.
@@ -1705,6 +1971,27 @@ func (_TTFT20 *TTFT20Session) TransferFrom(from common.Address, to common.Addres
 // Solidity: function transferFrom(from address, to address, tokens uint256) returns(success bool)
 func (_TTFT20 *TTFT20TransactorSession) TransferFrom(from common.Address, to common.Address, tokens *big.Int) (*types.Transaction, error) {
 	return _TTFT20.Contract.TransferFrom(&_TTFT20.TransactOpts, from, to, tokens)
+}
+
+// UpgradeTo is a paid mutator transaction binding the contract method 0x5a8b1a9f.
+//
+// Solidity: function upgradeTo(_version string, _implementation address) returns()
+func (_TTFT20 *TTFT20Transactor) UpgradeTo(opts *bind.TransactOpts, _version string, _implementation common.Address) (*types.Transaction, error) {
+	return _TTFT20.contract.Transact(opts, "upgradeTo", _version, _implementation)
+}
+
+// UpgradeTo is a paid mutator transaction binding the contract method 0x5a8b1a9f.
+//
+// Solidity: function upgradeTo(_version string, _implementation address) returns()
+func (_TTFT20 *TTFT20Session) UpgradeTo(_version string, _implementation common.Address) (*types.Transaction, error) {
+	return _TTFT20.Contract.UpgradeTo(&_TTFT20.TransactOpts, _version, _implementation)
+}
+
+// UpgradeTo is a paid mutator transaction binding the contract method 0x5a8b1a9f.
+//
+// Solidity: function upgradeTo(_version string, _implementation address) returns()
+func (_TTFT20 *TTFT20TransactorSession) UpgradeTo(_version string, _implementation common.Address) (*types.Transaction, error) {
+	return _TTFT20.Contract.UpgradeTo(&_TTFT20.TransactOpts, _version, _implementation)
 }
 
 // TTFT20AddedOwnerIterator is returned from FilterAddedOwner and is used to iterate over the raw logs and unpacked data for AddedOwner events raised by the TTFT20 contract.
@@ -2511,6 +2798,147 @@ func (_TTFT20 *TTFT20Filterer) WatchTransfer(opts *bind.WatchOpts, sink chan<- *
 	}), nil
 }
 
+// TTFT20UpgradedIterator is returned from FilterUpgraded and is used to iterate over the raw logs and unpacked data for Upgraded events raised by the TTFT20 contract.
+type TTFT20UpgradedIterator struct {
+	Event *TTFT20Upgraded // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *TTFT20UpgradedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(TTFT20Upgraded)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(TTFT20Upgraded)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *TTFT20UpgradedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *TTFT20UpgradedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// TTFT20Upgraded represents a Upgraded event raised by the TTFT20 contract.
+type TTFT20Upgraded struct {
+	Version        common.Hash
+	Implementation common.Address
+	Raw            types.Log // Blockchain specific contextual infos
+}
+
+// FilterUpgraded is a free log retrieval operation binding the contract event 0x8e05e0e35ff592971ca8b477d4285a33a61ded208d644042667b78693a472f5e.
+//
+// Solidity: e Upgraded(version indexed string, implementation indexed address)
+func (_TTFT20 *TTFT20Filterer) FilterUpgraded(opts *bind.FilterOpts, version []string, implementation []common.Address) (*TTFT20UpgradedIterator, error) {
+
+	var versionRule []interface{}
+	for _, versionItem := range version {
+		versionRule = append(versionRule, versionItem)
+	}
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _TTFT20.contract.FilterLogs(opts, "Upgraded", versionRule, implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return &TTFT20UpgradedIterator{contract: _TTFT20.contract, event: "Upgraded", logs: logs, sub: sub}, nil
+}
+
+// WatchUpgraded is a free log subscription operation binding the contract event 0x8e05e0e35ff592971ca8b477d4285a33a61ded208d644042667b78693a472f5e.
+//
+// Solidity: e Upgraded(version indexed string, implementation indexed address)
+func (_TTFT20 *TTFT20Filterer) WatchUpgraded(opts *bind.WatchOpts, sink chan<- *TTFT20Upgraded, version []string, implementation []common.Address) (event.Subscription, error) {
+
+	var versionRule []interface{}
+	for _, versionItem := range version {
+		versionRule = append(versionRule, versionItem)
+	}
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _TTFT20.contract.WatchLogs(opts, "Upgraded", versionRule, implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(TTFT20Upgraded)
+				if err := _TTFT20.contract.UnpackLog(event, "Upgraded", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
 // TTFT20WithdrawIterator is returned from FilterWithdraw and is used to iterate over the raw logs and unpacked data for Withdraw events raised by the TTFT20 contract.
 type TTFT20WithdrawIterator struct {
 	Event *TTFT20Withdraw // Event containing the contract specifics and raw log
@@ -2657,7 +3085,7 @@ func (_TTFT20 *TTFT20Filterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *
 const TokenStorageABI = "[{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"}]"
 
 // TokenStorageBin is the compiled bytecode used for deploying new contracts.
-const TokenStorageBin = `0x608060405234801561001057600080fd5b5060408051808201909152600681527f54544654323000000000000000000000000000000000000000000000000000006020820152610057906401000000006100d6810204565b60408051808201909152601981527f5454465420455243323020726570726573656e746174696f6e00000000000000602082015261009d90640100000000610149810204565b60126100b1816401000000006101b9810204565b620f424060ff8216600a0a026100cf8164010000000061022c810204565b505061036d565b6101466040516020018080602001828103825260068152602001807f73796d626f6c0000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208261029c640100000000026401000000009004565b50565b6101466040516020018080602001828103825260048152602001807f6e616d6500000000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208261029c640100000000026401000000009004565b6101466040516020018080602001828103825260088152602001807f646563696d616c73000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208260ff166102c0640100000000026401000000009004565b61014660405160200180806020018281038252600b8152602001807f746f74616c537570706c7900000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826102c0640100000000026401000000009004565b600082815260016020908152604090912082516102bb928401906102d2565b505050565b60009182526020829052604090912055565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f1061031357805160ff1916838001178555610340565b82800160010185558215610340579182015b82811115610340578251825591602001919060010190610325565b5061034c929150610350565b5090565b61036a91905b8082111561034c5760008155600101610356565b90565b60358061037b6000396000f3fe6080604052600080fdfea165627a7a72305820f3a729435cb97d47612c35ac105071011e6b3671be7a6fdf12d61e5b60f574b50029`
+const TokenStorageBin = `0x608060405234801561001057600080fd5b5060408051808201909152600581527f54465432300000000000000000000000000000000000000000000000000000006020820152610057906401000000006100d8810204565b60408051808201909152601881527f54465420455243323020726570726573656e746174696f6e0000000000000000602082015261009d9064010000000061014b810204565b60096100b1816401000000006101bb810204565b64174876e80060ff8216600a0a026100d18164010000000061022e810204565b505061036f565b6101486040516020018080602001828103825260068152602001807f73796d626f6c0000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208261029e640100000000026401000000009004565b50565b6101486040516020018080602001828103825260048152602001807f6e616d6500000000000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208261029e640100000000026401000000009004565b6101486040516020018080602001828103825260088152602001807f646563696d616c73000000000000000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001208260ff166102c2640100000000026401000000009004565b61014860405160200180806020018281038252600b8152602001807f746f74616c537570706c7900000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826102c2640100000000026401000000009004565b600082815260016020908152604090912082516102bd928401906102d4565b505050565b60009182526020829052604090912055565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f1061031557805160ff1916838001178555610342565b82800160010185558215610342579182015b82811115610342578251825591602001919060010190610327565b5061034e929150610352565b5090565b61036c91905b8082111561034e5760008155600101610358565b90565b60358061037d6000396000f3fe6080604052600080fdfea165627a7a723058207819d4c19af911fd47a889c964245f1c0cdbf7490c1af26f9152cb152a89ab2d0029`
 
 // DeployTokenStorage deploys a new Ethereum contract, binding an instance of TokenStorage to it.
 func DeployTokenStorage(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *TokenStorage, error) {
@@ -2812,4 +3240,665 @@ func (_TokenStorage *TokenStorageTransactorRaw) Transfer(opts *bind.TransactOpts
 // Transact invokes the (paid) contract method with params as input values.
 func (_TokenStorage *TokenStorageTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _TokenStorage.Contract.contract.Transact(opts, method, params...)
+}
+
+// UpgradeableABI is the input ABI used to generate the binding from.
+const UpgradeableABI = "[{\"constant\":false,\"inputs\":[{\"name\":\"_toRemove\",\"type\":\"address\"}],\"name\":\"removeOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"name\":\"\",\"type\":\"string\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_version\",\"type\":\"string\"},{\"name\":\"_implementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"name\":\"\",\"type\":\"address\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"_newOwner\",\"type\":\"address\"}],\"name\":\"addOwner\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"version\",\"type\":\"string\"},{\"indexed\":true,\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"AddedOwner\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"name\":\"removedOwner\",\"type\":\"address\"}],\"name\":\"RemovedOwner\",\"type\":\"event\"}]"
+
+// UpgradeableBin is the compiled bytecode used for deploying new contracts.
+const UpgradeableBin = `0x60806040526100163364010000000061001c810204565b506100ba565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a0909201909252805191012060009061009590600164010000000061009a810204565b919050565b600091825260046020526040909120805460ff1916911515919091179055565b61090a806100c96000396000f3fe608060405234801561001057600080fd5b5060043610610073577c01000000000000000000000000000000000000000000000000000000006000350463173825d9811461007857806354fd4d50146100a05780635a8b1a9f1461011d5780635c60da1b146101ce5780637065cb48146101f2575b600080fd5b61009e6004803603602081101561008e57600080fd5b5035600160a060020a0316610218565b005b6100a86102a0565b6040805160208082528351818301528351919283929083019185019080838360005b838110156100e25781810151838201526020016100ca565b50505050905090810190601f16801561010f5780820380516001836020036101000a031916815260200191505b509250505060405180910390f35b61009e6004803603604081101561013357600080fd5b81019060208101813564010000000081111561014e57600080fd5b82018360208201111561016057600080fd5b8035906020019184600183028401116401000000008311171561018257600080fd5b91908080601f01602080910402602001604051908101604052809392919081815260200183838082843760009201919091525092955050509035600160a060020a031691506102b09050565b6101d661038d565b60408051600160a060020a039092168252519081900360200190f35b61009e6004803603602081101561020857600080fd5b5035600160a060020a0316610397565b61022133610409565b151561022c57600080fd5b600160a060020a038116151561024157600080fd5b600160a060020a03811633141561025757600080fd5b6102608161047f565b5060408051600160a060020a038316815290517ff8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf9181900360200190a150565b60606102aa6104ed565b90505b90565b6102b933610409565b15156102c457600080fd5b80600160a060020a03166102d6610548565b600160a060020a031614156102ea57600080fd5b6102f3826105aa565b6102fc8161060e565b80600160a060020a0316826040518082805190602001908083835b602083106103365780518252601f199092019160209182019101610317565b5181516020939093036101000a60001901801990911692169190911790526040519201829003822093507f8e05e0e35ff592971ca8b477d4285a33a61ded208d644042667b78693a472f5e92506000919050a35050565b60006102aa610548565b6103a033610409565b15156103ab57600080fd5b600160a060020a03811615156103c057600080fd5b6103c98161066f565b5060408051600160a060020a038316815290517f9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea269181900360200190a150565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a09092019092528051910120600090610477906106df565b90505b919050565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a0909201909252805191012060009061047a906106f4565b6040805160208082018190526007828401527f76657273696f6e00000000000000000000000000000000000000000000000000606083810191909152835180840382018152608090930190935281519101206102aa9061070c565b60006102aa60405160200180806020018281038252600e8152602001807f696d706c656d656e746174696f6e000000000000000000000000000000000000815250602001915050604051602081830303815290604052805190602001206107ac565b61060b6040516020018080602001828103825260078152602001807f76657273696f6e0000000000000000000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826107c7565b50565b61060b60405160200180806020018281038252600e8152602001807f696d706c656d656e746174696f6e00000000000000000000000000000000000081525060200191505060405160208183030381529060405280519060200120826107eb565b60408051600160a060020a038316818301526020808201839052600560608301527f6f776e65720000000000000000000000000000000000000000000000000000006080808401919091528351808403909101815260a0909201909252805191012060009061047a906001610826565b60009081526004602052604090205460ff1690565b6000908152600460205260409020805460ff19169055565b60008181526001602081815260409283902080548451600294821615610100026000190190911693909304601f810183900483028401830190945283835260609390918301828280156107a05780601f10610775576101008083540402835291602001916107a0565b820191906000526020600020905b81548152906001019060200180831161078357829003601f168201915b50505050509050919050565b600090815260026020526040902054600160a060020a031690565b600082815260016020908152604090912082516107e692840190610846565b505050565b600091825260026020526040909120805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a03909216919091179055565b600091825260046020526040909120805460ff1916911515919091179055565b828054600181600116156101000203166002900490600052602060002090601f016020900481019282601f1061088757805160ff19168380011785556108b4565b828001600101855582156108b4579182015b828111156108b4578251825591602001919060010190610899565b506108c09291506108c4565b5090565b6102ad91905b808211156108c057600081556001016108ca56fea165627a7a7230582049da410e41d198395b25aa08265eff615c57bcc3633492e23a090bdd4a78c4320029`
+
+// DeployUpgradeable deploys a new Ethereum contract, binding an instance of Upgradeable to it.
+func DeployUpgradeable(auth *bind.TransactOpts, backend bind.ContractBackend) (common.Address, *types.Transaction, *Upgradeable, error) {
+	parsed, err := abi.JSON(strings.NewReader(UpgradeableABI))
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	address, tx, contract, err := bind.DeployContract(auth, parsed, common.FromHex(UpgradeableBin), backend)
+	if err != nil {
+		return common.Address{}, nil, nil, err
+	}
+	return address, tx, &Upgradeable{UpgradeableCaller: UpgradeableCaller{contract: contract}, UpgradeableTransactor: UpgradeableTransactor{contract: contract}, UpgradeableFilterer: UpgradeableFilterer{contract: contract}}, nil
+}
+
+// Upgradeable is an auto generated Go binding around an Ethereum contract.
+type Upgradeable struct {
+	UpgradeableCaller     // Read-only binding to the contract
+	UpgradeableTransactor // Write-only binding to the contract
+	UpgradeableFilterer   // Log filterer for contract events
+}
+
+// UpgradeableCaller is an auto generated read-only Go binding around an Ethereum contract.
+type UpgradeableCaller struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// UpgradeableTransactor is an auto generated write-only Go binding around an Ethereum contract.
+type UpgradeableTransactor struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// UpgradeableFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type UpgradeableFilterer struct {
+	contract *bind.BoundContract // Generic contract wrapper for the low level calls
+}
+
+// UpgradeableSession is an auto generated Go binding around an Ethereum contract,
+// with pre-set call and transact options.
+type UpgradeableSession struct {
+	Contract     *Upgradeable      // Generic contract binding to set the session for
+	CallOpts     bind.CallOpts     // Call options to use throughout this session
+	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
+}
+
+// UpgradeableCallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// with pre-set call options.
+type UpgradeableCallerSession struct {
+	Contract *UpgradeableCaller // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts      // Call options to use throughout this session
+}
+
+// UpgradeableTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// with pre-set transact options.
+type UpgradeableTransactorSession struct {
+	Contract     *UpgradeableTransactor // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts      // Transaction auth options to use throughout this session
+}
+
+// UpgradeableRaw is an auto generated low-level Go binding around an Ethereum contract.
+type UpgradeableRaw struct {
+	Contract *Upgradeable // Generic contract binding to access the raw methods on
+}
+
+// UpgradeableCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type UpgradeableCallerRaw struct {
+	Contract *UpgradeableCaller // Generic read-only contract binding to access the raw methods on
+}
+
+// UpgradeableTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type UpgradeableTransactorRaw struct {
+	Contract *UpgradeableTransactor // Generic write-only contract binding to access the raw methods on
+}
+
+// NewUpgradeable creates a new instance of Upgradeable, bound to a specific deployed contract.
+func NewUpgradeable(address common.Address, backend bind.ContractBackend) (*Upgradeable, error) {
+	contract, err := bindUpgradeable(address, backend, backend, backend)
+	if err != nil {
+		return nil, err
+	}
+	return &Upgradeable{UpgradeableCaller: UpgradeableCaller{contract: contract}, UpgradeableTransactor: UpgradeableTransactor{contract: contract}, UpgradeableFilterer: UpgradeableFilterer{contract: contract}}, nil
+}
+
+// NewUpgradeableCaller creates a new read-only instance of Upgradeable, bound to a specific deployed contract.
+func NewUpgradeableCaller(address common.Address, caller bind.ContractCaller) (*UpgradeableCaller, error) {
+	contract, err := bindUpgradeable(address, caller, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &UpgradeableCaller{contract: contract}, nil
+}
+
+// NewUpgradeableTransactor creates a new write-only instance of Upgradeable, bound to a specific deployed contract.
+func NewUpgradeableTransactor(address common.Address, transactor bind.ContractTransactor) (*UpgradeableTransactor, error) {
+	contract, err := bindUpgradeable(address, nil, transactor, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &UpgradeableTransactor{contract: contract}, nil
+}
+
+// NewUpgradeableFilterer creates a new log filterer instance of Upgradeable, bound to a specific deployed contract.
+func NewUpgradeableFilterer(address common.Address, filterer bind.ContractFilterer) (*UpgradeableFilterer, error) {
+	contract, err := bindUpgradeable(address, nil, nil, filterer)
+	if err != nil {
+		return nil, err
+	}
+	return &UpgradeableFilterer{contract: contract}, nil
+}
+
+// bindUpgradeable binds a generic wrapper to an already deployed contract.
+func bindUpgradeable(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(UpgradeableABI))
+	if err != nil {
+		return nil, err
+	}
+	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_Upgradeable *UpgradeableRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _Upgradeable.Contract.UpgradeableCaller.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_Upgradeable *UpgradeableRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Upgradeable.Contract.UpgradeableTransactor.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_Upgradeable *UpgradeableRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _Upgradeable.Contract.UpgradeableTransactor.contract.Transact(opts, method, params...)
+}
+
+// Call invokes the (constant) contract method with params as input values and
+// sets the output to result. The result type might be a single field for simple
+// returns, a slice of interfaces for anonymous returns and a struct for named
+// returns.
+func (_Upgradeable *UpgradeableCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+	return _Upgradeable.Contract.contract.Call(opts, result, method, params...)
+}
+
+// Transfer initiates a plain transaction to move funds to the contract, calling
+// its default method if one is available.
+func (_Upgradeable *UpgradeableTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Upgradeable.Contract.contract.Transfer(opts)
+}
+
+// Transact invokes the (paid) contract method with params as input values.
+func (_Upgradeable *UpgradeableTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _Upgradeable.Contract.contract.Transact(opts, method, params...)
+}
+
+// Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
+//
+// Solidity: function implementation() constant returns(address)
+func (_Upgradeable *UpgradeableCaller) Implementation(opts *bind.CallOpts) (common.Address, error) {
+	var (
+		ret0 = new(common.Address)
+	)
+	out := ret0
+	err := _Upgradeable.contract.Call(opts, out, "implementation")
+	return *ret0, err
+}
+
+// Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
+//
+// Solidity: function implementation() constant returns(address)
+func (_Upgradeable *UpgradeableSession) Implementation() (common.Address, error) {
+	return _Upgradeable.Contract.Implementation(&_Upgradeable.CallOpts)
+}
+
+// Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
+//
+// Solidity: function implementation() constant returns(address)
+func (_Upgradeable *UpgradeableCallerSession) Implementation() (common.Address, error) {
+	return _Upgradeable.Contract.Implementation(&_Upgradeable.CallOpts)
+}
+
+// Version is a free data retrieval call binding the contract method 0x54fd4d50.
+//
+// Solidity: function version() constant returns(string)
+func (_Upgradeable *UpgradeableCaller) Version(opts *bind.CallOpts) (string, error) {
+	var (
+		ret0 = new(string)
+	)
+	out := ret0
+	err := _Upgradeable.contract.Call(opts, out, "version")
+	return *ret0, err
+}
+
+// Version is a free data retrieval call binding the contract method 0x54fd4d50.
+//
+// Solidity: function version() constant returns(string)
+func (_Upgradeable *UpgradeableSession) Version() (string, error) {
+	return _Upgradeable.Contract.Version(&_Upgradeable.CallOpts)
+}
+
+// Version is a free data retrieval call binding the contract method 0x54fd4d50.
+//
+// Solidity: function version() constant returns(string)
+func (_Upgradeable *UpgradeableCallerSession) Version() (string, error) {
+	return _Upgradeable.Contract.Version(&_Upgradeable.CallOpts)
+}
+
+// AddOwner is a paid mutator transaction binding the contract method 0x7065cb48.
+//
+// Solidity: function addOwner(_newOwner address) returns()
+func (_Upgradeable *UpgradeableTransactor) AddOwner(opts *bind.TransactOpts, _newOwner common.Address) (*types.Transaction, error) {
+	return _Upgradeable.contract.Transact(opts, "addOwner", _newOwner)
+}
+
+// AddOwner is a paid mutator transaction binding the contract method 0x7065cb48.
+//
+// Solidity: function addOwner(_newOwner address) returns()
+func (_Upgradeable *UpgradeableSession) AddOwner(_newOwner common.Address) (*types.Transaction, error) {
+	return _Upgradeable.Contract.AddOwner(&_Upgradeable.TransactOpts, _newOwner)
+}
+
+// AddOwner is a paid mutator transaction binding the contract method 0x7065cb48.
+//
+// Solidity: function addOwner(_newOwner address) returns()
+func (_Upgradeable *UpgradeableTransactorSession) AddOwner(_newOwner common.Address) (*types.Transaction, error) {
+	return _Upgradeable.Contract.AddOwner(&_Upgradeable.TransactOpts, _newOwner)
+}
+
+// RemoveOwner is a paid mutator transaction binding the contract method 0x173825d9.
+//
+// Solidity: function removeOwner(_toRemove address) returns()
+func (_Upgradeable *UpgradeableTransactor) RemoveOwner(opts *bind.TransactOpts, _toRemove common.Address) (*types.Transaction, error) {
+	return _Upgradeable.contract.Transact(opts, "removeOwner", _toRemove)
+}
+
+// RemoveOwner is a paid mutator transaction binding the contract method 0x173825d9.
+//
+// Solidity: function removeOwner(_toRemove address) returns()
+func (_Upgradeable *UpgradeableSession) RemoveOwner(_toRemove common.Address) (*types.Transaction, error) {
+	return _Upgradeable.Contract.RemoveOwner(&_Upgradeable.TransactOpts, _toRemove)
+}
+
+// RemoveOwner is a paid mutator transaction binding the contract method 0x173825d9.
+//
+// Solidity: function removeOwner(_toRemove address) returns()
+func (_Upgradeable *UpgradeableTransactorSession) RemoveOwner(_toRemove common.Address) (*types.Transaction, error) {
+	return _Upgradeable.Contract.RemoveOwner(&_Upgradeable.TransactOpts, _toRemove)
+}
+
+// UpgradeTo is a paid mutator transaction binding the contract method 0x5a8b1a9f.
+//
+// Solidity: function upgradeTo(_version string, _implementation address) returns()
+func (_Upgradeable *UpgradeableTransactor) UpgradeTo(opts *bind.TransactOpts, _version string, _implementation common.Address) (*types.Transaction, error) {
+	return _Upgradeable.contract.Transact(opts, "upgradeTo", _version, _implementation)
+}
+
+// UpgradeTo is a paid mutator transaction binding the contract method 0x5a8b1a9f.
+//
+// Solidity: function upgradeTo(_version string, _implementation address) returns()
+func (_Upgradeable *UpgradeableSession) UpgradeTo(_version string, _implementation common.Address) (*types.Transaction, error) {
+	return _Upgradeable.Contract.UpgradeTo(&_Upgradeable.TransactOpts, _version, _implementation)
+}
+
+// UpgradeTo is a paid mutator transaction binding the contract method 0x5a8b1a9f.
+//
+// Solidity: function upgradeTo(_version string, _implementation address) returns()
+func (_Upgradeable *UpgradeableTransactorSession) UpgradeTo(_version string, _implementation common.Address) (*types.Transaction, error) {
+	return _Upgradeable.Contract.UpgradeTo(&_Upgradeable.TransactOpts, _version, _implementation)
+}
+
+// UpgradeableAddedOwnerIterator is returned from FilterAddedOwner and is used to iterate over the raw logs and unpacked data for AddedOwner events raised by the Upgradeable contract.
+type UpgradeableAddedOwnerIterator struct {
+	Event *UpgradeableAddedOwner // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *UpgradeableAddedOwnerIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(UpgradeableAddedOwner)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(UpgradeableAddedOwner)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *UpgradeableAddedOwnerIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *UpgradeableAddedOwnerIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// UpgradeableAddedOwner represents a AddedOwner event raised by the Upgradeable contract.
+type UpgradeableAddedOwner struct {
+	NewOwner common.Address
+	Raw      types.Log // Blockchain specific contextual infos
+}
+
+// FilterAddedOwner is a free log retrieval operation binding the contract event 0x9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea26.
+//
+// Solidity: e AddedOwner(newOwner address)
+func (_Upgradeable *UpgradeableFilterer) FilterAddedOwner(opts *bind.FilterOpts) (*UpgradeableAddedOwnerIterator, error) {
+
+	logs, sub, err := _Upgradeable.contract.FilterLogs(opts, "AddedOwner")
+	if err != nil {
+		return nil, err
+	}
+	return &UpgradeableAddedOwnerIterator{contract: _Upgradeable.contract, event: "AddedOwner", logs: logs, sub: sub}, nil
+}
+
+// WatchAddedOwner is a free log subscription operation binding the contract event 0x9465fa0c962cc76958e6373a993326400c1c94f8be2fe3a952adfa7f60b2ea26.
+//
+// Solidity: e AddedOwner(newOwner address)
+func (_Upgradeable *UpgradeableFilterer) WatchAddedOwner(opts *bind.WatchOpts, sink chan<- *UpgradeableAddedOwner) (event.Subscription, error) {
+
+	logs, sub, err := _Upgradeable.contract.WatchLogs(opts, "AddedOwner")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(UpgradeableAddedOwner)
+				if err := _Upgradeable.contract.UnpackLog(event, "AddedOwner", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// UpgradeableRemovedOwnerIterator is returned from FilterRemovedOwner and is used to iterate over the raw logs and unpacked data for RemovedOwner events raised by the Upgradeable contract.
+type UpgradeableRemovedOwnerIterator struct {
+	Event *UpgradeableRemovedOwner // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *UpgradeableRemovedOwnerIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(UpgradeableRemovedOwner)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(UpgradeableRemovedOwner)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *UpgradeableRemovedOwnerIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *UpgradeableRemovedOwnerIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// UpgradeableRemovedOwner represents a RemovedOwner event raised by the Upgradeable contract.
+type UpgradeableRemovedOwner struct {
+	RemovedOwner common.Address
+	Raw          types.Log // Blockchain specific contextual infos
+}
+
+// FilterRemovedOwner is a free log retrieval operation binding the contract event 0xf8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf.
+//
+// Solidity: e RemovedOwner(removedOwner address)
+func (_Upgradeable *UpgradeableFilterer) FilterRemovedOwner(opts *bind.FilterOpts) (*UpgradeableRemovedOwnerIterator, error) {
+
+	logs, sub, err := _Upgradeable.contract.FilterLogs(opts, "RemovedOwner")
+	if err != nil {
+		return nil, err
+	}
+	return &UpgradeableRemovedOwnerIterator{contract: _Upgradeable.contract, event: "RemovedOwner", logs: logs, sub: sub}, nil
+}
+
+// WatchRemovedOwner is a free log subscription operation binding the contract event 0xf8d49fc529812e9a7c5c50e69c20f0dccc0db8fa95c98bc58cc9a4f1c1299eaf.
+//
+// Solidity: e RemovedOwner(removedOwner address)
+func (_Upgradeable *UpgradeableFilterer) WatchRemovedOwner(opts *bind.WatchOpts, sink chan<- *UpgradeableRemovedOwner) (event.Subscription, error) {
+
+	logs, sub, err := _Upgradeable.contract.WatchLogs(opts, "RemovedOwner")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(UpgradeableRemovedOwner)
+				if err := _Upgradeable.contract.UnpackLog(event, "RemovedOwner", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// UpgradeableUpgradedIterator is returned from FilterUpgraded and is used to iterate over the raw logs and unpacked data for Upgraded events raised by the Upgradeable contract.
+type UpgradeableUpgradedIterator struct {
+	Event *UpgradeableUpgraded // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *UpgradeableUpgradedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(UpgradeableUpgraded)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(UpgradeableUpgraded)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *UpgradeableUpgradedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *UpgradeableUpgradedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// UpgradeableUpgraded represents a Upgraded event raised by the Upgradeable contract.
+type UpgradeableUpgraded struct {
+	Version        common.Hash
+	Implementation common.Address
+	Raw            types.Log // Blockchain specific contextual infos
+}
+
+// FilterUpgraded is a free log retrieval operation binding the contract event 0x8e05e0e35ff592971ca8b477d4285a33a61ded208d644042667b78693a472f5e.
+//
+// Solidity: e Upgraded(version indexed string, implementation indexed address)
+func (_Upgradeable *UpgradeableFilterer) FilterUpgraded(opts *bind.FilterOpts, version []string, implementation []common.Address) (*UpgradeableUpgradedIterator, error) {
+
+	var versionRule []interface{}
+	for _, versionItem := range version {
+		versionRule = append(versionRule, versionItem)
+	}
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _Upgradeable.contract.FilterLogs(opts, "Upgraded", versionRule, implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return &UpgradeableUpgradedIterator{contract: _Upgradeable.contract, event: "Upgraded", logs: logs, sub: sub}, nil
+}
+
+// WatchUpgraded is a free log subscription operation binding the contract event 0x8e05e0e35ff592971ca8b477d4285a33a61ded208d644042667b78693a472f5e.
+//
+// Solidity: e Upgraded(version indexed string, implementation indexed address)
+func (_Upgradeable *UpgradeableFilterer) WatchUpgraded(opts *bind.WatchOpts, sink chan<- *UpgradeableUpgraded, version []string, implementation []common.Address) (event.Subscription, error) {
+
+	var versionRule []interface{}
+	for _, versionItem := range version {
+		versionRule = append(versionRule, versionItem)
+	}
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _Upgradeable.contract.WatchLogs(opts, "Upgraded", versionRule, implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(UpgradeableUpgraded)
+				if err := _Upgradeable.contract.UnpackLog(event, "Upgraded", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
 }
