@@ -3,31 +3,16 @@ package erc20
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
-	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth"
-	"github.com/ethereum/go-ethereum/eth/downloader"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/ethstats"
-	"github.com/ethereum/go-ethereum/les"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/node"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/p2p/nat"
-	"github.com/ethereum/go-ethereum/params"
 
 	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
-
 	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20/contract"
 )
 
@@ -44,10 +29,8 @@ var (
 // the bridge needs to use the bindings of the implementation contract, but the address of the proxy.
 type bridgeContract struct {
 	networkConfig tfeth.NetworkConfiguration // Ethereum network
-	stack         *node.Node                 // Ethereum protocol stack
-	client        *ethclient.Client          // Client connection to the Ethereum chain
-	keystore      *keystore.KeyStore         // Keystore containing the signing info
-	account       accounts.Account           // Account funding the bridge requests
+
+	lc *LightClient
 
 	filter     *contract.TTFT20Filterer
 	transactor *contract.TTFT20Transactor
@@ -64,7 +47,6 @@ type bridgeContract struct {
 
 func (bridge *bridgeContract) GetContractAdress() common.Address {
 	return bridge.networkConfig.ContractAddress
-
 }
 
 func newBridgeContract(networkName string, port int, accountJSON, accountPass string, datadir string) (*bridgeContract, error) {
@@ -74,107 +56,43 @@ func newBridgeContract(networkName string, port int, accountJSON, accountPass st
 		return nil, err
 	}
 
-	// load bootstrap enodes
-	enodes, err := networkConfig.GetBootnodes()
+	bootstrapNodes, err := networkConfig.GetBootnodes()
 	if err != nil {
 		return nil, err
 	}
-
-	// separate saved data per network
-	datadir = filepath.Join(datadir, networkName)
-
-	// create keystore
-	ks, err := tfeth.InitializeKeystore(datadir, accountJSON, accountPass)
-	if err != nil {
-		return nil, err
-	}
-
-	// Assemble the raw devp2p protocol stack
-	stack, err := node.New(&node.Config{
-		Name:    "chain",
-		Version: params.VersionWithMeta,
-		DataDir: datadir,
-		P2P: p2p.Config{
-			NAT:              nat.Any(),
-			NoDiscovery:      true,
-			DiscoveryV5:      true,
-			ListenAddr:       fmt.Sprintf(":%d", port),
-			MaxPeers:         25,
-			BootstrapNodesV5: enodes,
-		},
+	lc, err := NewLightClient(LightClientConfig{
+		Port:           port,
+		DataDir:        datadir,
+		BootstrapNodes: bootstrapNodes,
+		NetworkName:    networkConfig.NetworkName,
+		NetworkID:      networkConfig.NetworkID,
+		GenesisBlock:   networkConfig.GenesisBlock,
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	// Assemble the Ethereum light client protocol
-	if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-		cfg := eth.DefaultConfig
-		cfg.Ethash.DatasetDir = filepath.Join(datadir, "ethash")
-		cfg.SyncMode = downloader.LightSync
-		cfg.NetworkId = networkConfig.NetworkID
-		cfg.Genesis = networkConfig.GenesisBlock
-		return les.New(ctx, &cfg)
-	}); err != nil {
-		return nil, err
-	}
-
-	stats := "" // Todo: should this stay in here?
-	// Assemble the ethstats monitoring and reporting service'
-	if stats != "" {
-		if err := stack.Register(func(ctx *node.ServiceContext) (node.Service, error) {
-			var serv *les.LightEthereum
-			ctx.Service(&serv)
-			return ethstats.New(stats, nil, serv)
-		}); err != nil {
-			return nil, err
-		}
-	}
-
-	// Boot up the client and ensure it connects to bootnodes
-	if err := stack.Start(); err != nil {
-		return nil, err
-	}
-
-	for _, boot := range enodes {
-		old, err := enode.ParseV4(boot.String())
-		if err != nil {
-			stack.Server().AddPeer(old)
-		}
-	}
-
-	// Attach to the client and retrieve any interesting metadata
-	api, err := stack.Attach()
-	if err != nil {
-		stack.Stop()
-		return nil, err
-	}
-
-	// create a client for the stack
-	client := ethclient.NewClient(api)
-
-	filter, err := contract.NewTTFT20Filterer(networkConfig.ContractAddress, client)
+	err = lc.LoadAccount(accountJSON, accountPass)
 	if err != nil {
 		return nil, err
 	}
 
-	transactor, err := contract.NewTTFT20Transactor(networkConfig.ContractAddress, client)
+	filter, err := contract.NewTTFT20Filterer(networkConfig.ContractAddress, lc.Client)
 	if err != nil {
 		return nil, err
 	}
 
-	caller, err := contract.NewTTFT20Caller(networkConfig.ContractAddress, client)
+	transactor, err := contract.NewTTFT20Transactor(networkConfig.ContractAddress, lc.Client)
+	if err != nil {
+		return nil, err
+	}
+
+	caller, err := contract.NewTTFT20Caller(networkConfig.ContractAddress, lc.Client)
 	if err != nil {
 		return nil, err
 	}
 
 	return &bridgeContract{
-		networkConfig: networkConfig,
-		stack:         stack,
-		client:        client,
-		keystore:      ks,
-		account:       ks.Accounts()[0],
-
+		lc:         lc,
 		filter:     filter,
 		transactor: transactor,
 		caller:     caller,
@@ -183,7 +101,7 @@ func newBridgeContract(networkName string, port int, accountJSON, accountPass st
 
 // close terminates the Ethereum connection and tears down the stack.
 func (bridge *bridgeContract) close() error {
-	return bridge.stack.Stop()
+	return bridge.lc.Close()
 }
 
 // refresh attempts to retrieve the latest header from the chain and extract the
@@ -195,7 +113,7 @@ func (bridge *bridgeContract) refresh(head *types.Header) error {
 	// If no header was specified, use the current chain head
 	var err error
 	if head == nil {
-		if head, err = bridge.client.HeaderByNumber(ctx, nil); err != nil {
+		if head, err = bridge.lc.HeaderByNumber(ctx, nil); err != nil {
 			return err
 		}
 	}
@@ -205,10 +123,10 @@ func (bridge *bridgeContract) refresh(head *types.Header) error {
 		price   *big.Int
 		balance *big.Int
 	)
-	if price, err = bridge.client.SuggestGasPrice(ctx); err != nil {
+	if price, err = bridge.lc.SuggestGasPrice(ctx); err != nil {
 		return err
 	}
-	if balance, err = bridge.client.BalanceAt(ctx, bridge.account.Address, head.Number); err != nil {
+	if balance, err = bridge.lc.AccountBalanceAt(ctx, head.Number); err != nil {
 		return err
 	}
 	// Everything succeeded, update the cached stats
@@ -224,7 +142,7 @@ func (bridge *bridgeContract) loop() {
 	// channel to receive head updates from client on
 	heads := make(chan *types.Header, 16)
 	// subscribe to head upates
-	sub, err := bridge.client.SubscribeNewHead(context.Background(), heads)
+	sub, err := bridge.lc.SubscribeNewHead(context.Background(), heads)
 	if err != nil {
 		log.Error("Failed to subscribe to head events", "err", err)
 	}
@@ -344,10 +262,18 @@ func (bridge *bridgeContract) transferFunds(recipient common.Address, amount *bi
 	if amount == nil {
 		return errors.New("invalid amount")
 	}
+	accountAddress, err := bridge.lc.AccountAddress()
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	opts := &bind.TransactOpts{Context: ctx, From: bridge.account.Address, Signer: bridge.getSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
-	_, err := bridge.transactor.Transfer(opts, recipient, amount)
+	opts := &bind.TransactOpts{
+		Context: ctx, From: accountAddress,
+		Signer: bridge.getSignerFunc(),
+		Value:  nil, Nonce: nil, GasLimit: 0, GasPrice: nil,
+	}
+	_, err = bridge.transactor.Transfer(opts, recipient, amount)
 	if err != nil {
 		return err
 	}
@@ -360,10 +286,18 @@ func (bridge *bridgeContract) mint(receiver common.Address, amount *big.Int, txI
 	if amount == nil {
 		return errors.New("invalid amount")
 	}
+	accountAddress, err := bridge.lc.AccountAddress()
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	opts := &bind.TransactOpts{Context: ctx, From: bridge.account.Address, Signer: bridge.getSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
-	_, err := bridge.transactor.MintTokens(opts, receiver, amount, txID)
+	opts := &bind.TransactOpts{
+		Context: ctx, From: accountAddress,
+		Signer: bridge.getSignerFunc(),
+		Value:  nil, Nonce: nil, GasLimit: 0, GasPrice: nil,
+	}
+	_, err = bridge.transactor.MintTokens(opts, receiver, amount, txID)
 	if err != nil {
 		return err
 	}
@@ -372,10 +306,18 @@ func (bridge *bridgeContract) mint(receiver common.Address, amount *big.Int, txI
 
 func (bridge *bridgeContract) registerWithdrawalAddress(address common.Address) error {
 	log.Info("Calling register withdrawel address function in contract")
+	accountAddress, err := bridge.lc.AccountAddress()
+	if err != nil {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	opts := &bind.TransactOpts{Context: ctx, From: bridge.account.Address, Signer: bridge.getSignerFunc(), Value: nil, Nonce: nil, GasLimit: 0, GasPrice: nil}
-	_, err := bridge.transactor.RegisterWithdrawalAddress(opts, address)
+	opts := &bind.TransactOpts{
+		Context: ctx, From: accountAddress,
+		Signer: bridge.getSignerFunc(),
+		Value:  nil, Nonce: nil, GasLimit: 0, GasPrice: nil,
+	}
+	_, err = bridge.transactor.RegisterWithdrawalAddress(opts, address)
 	if err != nil {
 		return err
 	}
@@ -384,10 +326,14 @@ func (bridge *bridgeContract) registerWithdrawalAddress(address common.Address) 
 
 func (bridge *bridgeContract) getSignerFunc() bind.SignerFn {
 	return func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
-		if address != bridge.account.Address {
+		accountAddress, err := bridge.lc.AccountAddress()
+		if err != nil {
+			return nil, err
+		}
+		if address != accountAddress {
 			return nil, errors.New("not authorized to sign this account")
 		}
 		networkID := int64(bridge.networkConfig.NetworkID)
-		return bridge.keystore.SignTx(bridge.account, tx, big.NewInt(networkID))
+		return bridge.lc.SignTx(tx, big.NewInt(networkID))
 	}
 }
