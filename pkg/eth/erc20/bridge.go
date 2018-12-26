@@ -75,11 +75,11 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 			we := <-withdrawChan
 			uh, found, err := txdb.GetTFTAddressForERC20Address(tfchaintypes.ERC20Address(we.receiver))
 			if err != nil {
-				log.Error("Retireving TFT address for registered ERC20 address errored: ", err)
+				log.Error(fmt.Sprintf("Retrieving TFT address for registered ERC20 address %v errored: %v", we.receiver, err))
 				return
 			}
 			if !found {
-				log.Error("Failed to retrieve TFT address for registered ERC20 Withdrawal address")
+				log.Error(fmt.Sprintf("Failed to retrieve TFT address for registered ERC20 Withdrawal address %v", we.receiver))
 				return
 			}
 
