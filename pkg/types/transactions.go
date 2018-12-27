@@ -90,7 +90,7 @@ type TFChainReadDB interface {
 
 // RegisterTransactionTypesForStandardNetwork registers he transaction controllers
 // for all transaction versions supported on the standard network.
-func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.Currency, cfg config.DaemonNetworkConfig) {
+func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, erc20TxValidator ERC20TransactionValidator, oneCoin types.Currency, cfg config.DaemonNetworkConfig) {
 	const (
 		secondsInOneDay                         = 86400 + config.StandardNetworkBlockFrequency // round up
 		daysFromStartOfBlockchainUntil2ndOfJuly = 74
@@ -137,6 +137,7 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.
 		Registry:             db,
 		OneCoin:              oneCoin,
 		BridgeFeePoolAddress: cfg.ERC20FeePoolAddress,
+		TxValidator:          erc20TxValidator,
 	})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry:             db,
@@ -147,7 +148,7 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, oneCoin types.
 
 // RegisterTransactionTypesForTestNetwork registers he transaction controllers
 // for all transaction versions supported on the test network.
-func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Currency, cfg config.DaemonNetworkConfig) {
+func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, erc20TxValidator ERC20TransactionValidator, oneCoin types.Currency, cfg config.DaemonNetworkConfig) {
 	const (
 		secondsInOneDay                         = 86400 + config.TestNetworkBlockFrequency // round up
 		daysFromStartOfBlockchainUntil2ndOfJuly = 90
@@ -194,6 +195,7 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Curr
 		Registry:             db,
 		OneCoin:              oneCoin,
 		BridgeFeePoolAddress: cfg.ERC20FeePoolAddress,
+		TxValidator:          erc20TxValidator,
 	})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry:             db,
@@ -204,7 +206,7 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, oneCoin types.Curr
 
 // RegisterTransactionTypesForDevNetwork registers he transaction controllers
 // for all transaction versions supported on the dev network.
-func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Currency, cfg config.DaemonNetworkConfig) {
+func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, erc20TxValidator ERC20TransactionValidator, oneCoin types.Currency, cfg config.DaemonNetworkConfig) {
 	// overwrite rivine-defined transaction versions
 	types.RegisterTransactionVersion(types.TransactionVersionZero, LegacyTransactionController{
 		LegacyTransactionController:    types.LegacyTransactionController{},
@@ -245,6 +247,7 @@ func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, oneCoin types.Curre
 		Registry:             db,
 		OneCoin:              oneCoin,
 		BridgeFeePoolAddress: cfg.ERC20FeePoolAddress,
+		TxValidator:          erc20TxValidator,
 	})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry:             db,
@@ -3108,7 +3111,23 @@ type (
 		GetERC20AddressForTFTAddress(types.UnlockHash) (ERC20Address, bool, error)
 		GetTFTTransactionIDForERC20TransactionID(ERC20TransactionID) (types.TransactionID, bool, error)
 	}
+
+	// ERC20TransactionValidator is the validation API used by the ERC20 CoinCreation Tx Controller,
+	// in order to validate the attached ERC20 Tx. Use the NopERC20TransactionValidator if no such validation is required.
+	ERC20TransactionValidator interface {
+		ValidateWithdrawTx(txID ERC20TransactionID, expectedAddress ERC20Address, expecedAmount types.Currency) error
+	}
 )
+
+// NopERC20TransactionValidator provides a NOP-implementation of the ERC20TransactionValidator interface,
+// allowing you to disable any extra validation on ERC20 Transactions.
+type NopERC20TransactionValidator struct{}
+
+// ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx,
+// returning nil for every call.
+func (nop NopERC20TransactionValidator) ValidateWithdrawTx(ERC20TransactionID, ERC20Address, types.Currency) error {
+	return nil
+}
 
 type (
 	// ERC20ConvertTransaction defines the Transaction (with version 0xD1)
@@ -3713,6 +3732,7 @@ type (
 		Registry             ERC20Registry
 		OneCoin              types.Currency
 		BridgeFeePoolAddress types.UnlockHash
+		TxValidator          ERC20TransactionValidator
 	}
 )
 
@@ -3814,8 +3834,12 @@ func (etctc ERC20CoinCreationTransactionController) ValidateTransaction(t types.
 		return fmt.Errorf("invalid ERC20 CoinCreation Tx: Address %v is not registered as an ERC20 withdrawal address", etctx.Address)
 	}
 
-	// TODO: optionally validate the transaction ID on the ERC20 side using its ERC20 TxID
-	//       https://github.com/threefoldfoundation/tfchain/issues/224
+	// validate the ERC20 Tx using the used Validator
+	erc20Address := ERC20AddressFromUnlockHash(etctx.Address)
+	err = etctc.TxValidator.ValidateWithdrawTx(etctx.TransactionID, erc20Address, etctx.Value)
+	if err != nil {
+		return fmt.Errorf("invalid ERC20 CoinCreation Tx: invalid attached ERC20 Tx: %v", err)
+	}
 
 	return nil
 }

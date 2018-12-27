@@ -9,10 +9,10 @@ import (
 	"github.com/threefoldtech/rivine/pkg/cli"
 	"github.com/threefoldtech/rivine/pkg/daemon"
 
-	"github.com/threefoldtech/rivine/modules"
-	"github.com/threefoldtech/rivine/pkg/client"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/types"
+	"github.com/threefoldtech/rivine/modules"
+	"github.com/threefoldtech/rivine/pkg/client"
 )
 
 func main() {
@@ -31,6 +31,9 @@ func main() {
 	createExplorerSubCmds(cliClient)
 	createWalletSubCmds(cliClient)
 
+	// no ERC20-Tx Validation is done on client-side
+	nopERC20TxValidator := types.NopERC20TransactionValidator{}
+
 	// define preRun function
 	cliClient.PreRunE = func(cfg *client.Config) (*client.Config, error) {
 		if cfg == nil {
@@ -47,7 +50,7 @@ func main() {
 
 			// Register the transaction controllers for all transaction versions
 			// supported on the standard network
-			types.RegisterTransactionTypesForStandardNetwork(txDBReader, cfg.CurrencyUnits.OneCoin, networkConfig)
+			types.RegisterTransactionTypesForStandardNetwork(txDBReader, nopERC20TxValidator, cfg.CurrencyUnits.OneCoin, networkConfig)
 			// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 			// until the blockchain reached a height of 42000 blocks.
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
@@ -62,7 +65,7 @@ func main() {
 
 			// Register the transaction controllers for all transaction versions
 			// supported on the test network
-			types.RegisterTransactionTypesForTestNetwork(txDBReader, cfg.CurrencyUnits.OneCoin, networkConfig)
+			types.RegisterTransactionTypesForTestNetwork(txDBReader, nopERC20TxValidator, cfg.CurrencyUnits.OneCoin, networkConfig)
 			// Use our custom MultiSignatureCondition, just for testing purposes
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
@@ -74,7 +77,7 @@ func main() {
 
 			// Register the transaction controllers for all transaction versions
 			// supported on the dev network
-			types.RegisterTransactionTypesForDevNetwork(txDBReader, cfg.CurrencyUnits.OneCoin, networkConfig)
+			types.RegisterTransactionTypesForDevNetwork(txDBReader, nopERC20TxValidator, cfg.CurrencyUnits.OneCoin, networkConfig)
 			// Use our custom MultiSignatureCondition, just for testing purposes
 			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 

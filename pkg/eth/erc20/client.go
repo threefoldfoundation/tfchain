@@ -178,16 +178,16 @@ func (lc *LightClient) Close() error {
 }
 
 // FetchTransaction fetches a transaction from a remote peer using its block hash and tx index (within that block).
-func (lc *LightClient) FetchTransaction(ctx context.Context, blockHash common.Hash, txIndex int) (*types.Transaction, error) {
+func (lc *LightClient) FetchTransaction(ctx context.Context, blockHash common.Hash, txHash common.Hash) (*types.Transaction, error) {
 	block, err := lc.lesc.ApiBackend.GetBlock(ctx, blockHash)
 	if err != nil {
 		return nil, err
 	}
-	txs := block.Transactions()
-	if len(txs) <= txIndex {
-		return nil, errors.New("returned block has not enough transactions")
+	tx := block.Transaction(txHash)
+	if tx == nil {
+		return nil, errors.New("transaction could not be found")
 	}
-	return txs[txIndex], nil
+	return tx, nil
 }
 
 // LoadAccount loads an account into this light client,

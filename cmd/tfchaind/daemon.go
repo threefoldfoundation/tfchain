@@ -22,7 +22,7 @@ import (
 	"github.com/threefoldtech/rivine/pkg/daemon"
 )
 
-func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) error {
+func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet, infuraAPIKey string) error {
 	// Print a startup message.
 	fmt.Println("Loading...")
 	loadStart := time.Now()
@@ -50,10 +50,16 @@ func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet) 
 	// router to register all endpoints to
 	router := httprouter.New()
 
+	// create the ERC20 Tx Validator, used to validate the ERC20 Coin Creation Transactions
+	erc20TxValidator, err := setupERC20TransactionValidator(cfg.BlockchainInfo.NetworkName, infuraAPIKey)
+	if err != nil {
+		return fmt.Errorf("failed to create ERC20 Transaction validator: %v", err)
+	}
+
 	// create and validate network config, and the transactionDB as well
 	// txdb is on index 0, as it is not manually loaded
 	printModuleIsLoading("(auto) transaction db")
-	networkCfg, txdb, err := setupNetwork(cfg)
+	networkCfg, txdb, err := setupNetwork(cfg, erc20TxValidator)
 	if err != nil {
 		return fmt.Errorf("failed to create network config: %v", err)
 	}
