@@ -1153,7 +1153,9 @@ function appendV209Transaction(infoBody, explorerTransaction, confirmed) {
 	appendStat(conversionTable, 'ERC20 Transaction ID', explorerTransaction.rawtransaction.data.txid)
 
 	if (confirmed) {
-		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent);
+		var explorerBlock = fetchHashInfo(explorerTransaction.parent).block;
+
+		var payouts = getTransactionFeesAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
 		if (payouts != null) {
 			// In a loop, add a new table for each miner payout.
 			appendStatTableTitle(infoBody, 'Transaction Fee Payout');
@@ -1164,6 +1166,21 @@ function appendV209Transaction(infoBody, explorerTransaction, confirmed) {
 				doms = appendStat(table, 'Payout Address', '');
 				linkHash(doms[2], payouts[i].unlockhash);
 				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue) + ' of a total payout of ' + readableCoins(payouts[i].value));
+				infoBody.appendChild(table);
+			}
+		}
+
+		payouts = getSingleCustomFeeAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
+		if (payouts != null) {
+			// In a loop, add a new table for each ERC20 Bridge fee payout.
+			appendStatTableTitle(infoBody, 'ERC20 Bridge Fee Payout');
+			for (var i = 0; i < payouts.length; i++) {
+				var table = createStatsTable();
+				var doms = appendStat(table, 'ID', '');
+				linkHash(doms[2], payouts[i].id);
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], payouts[i].unlockhash);
+				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue));
 				infoBody.appendChild(table);
 			}
 		}

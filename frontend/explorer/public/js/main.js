@@ -292,6 +292,13 @@ function getCustomMinerPayoutSourceInfoArrayForTransaction(explorerTx) {
 				'txid': explorerTx.id,
 			}
 		];
+	case 209:
+		return [
+			{
+				'desc': 'ERC20 Bridge Fee Payout',
+				'txid': explorerTx.id,
+			}
+		];
 	case 210:
 		return [
 			{

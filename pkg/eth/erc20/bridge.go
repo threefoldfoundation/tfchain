@@ -89,9 +89,16 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 			// calculate the amount of tokens we need to hand out
 			erc20Tokens := big.NewInt(0).Div(we.amount, erc20Precision)
 			tfTokens := big.NewInt(0).Mul(erc20Tokens, tftPrecision)
-			tx.Value = types.NewCurrency(tfTokens)
+
+			// define the bridgeFee, txFee
+			tx.TransactionFee = chainCts.MinimumTransactionFee
+			tx.BridgeFee = chainCts.CurrencyUnits.OneCoin.Mul64(tfchaintypes.HardcodedERC20BridgeFeeOneCoinMultiplier)
+
+			// define the value, which is the value withdrawn minus the fees
+			tx.Value = types.NewCurrency(tfTokens).Sub(tx.TransactionFee).Sub(tx.BridgeFee)
+
+			// fill in the other info
 			tx.TransactionID = tfchaintypes.ERC20TransactionID(we.txHash)
-			tx.TransactionFee = types.NewCurrency(OneToken)
 			if err := tp.AcceptTransactionSet([]types.Transaction{tx.Transaction()}); err != nil {
 				log.Error("Failed to push ERC20 -> TFT transaction", "err", err)
 				return
