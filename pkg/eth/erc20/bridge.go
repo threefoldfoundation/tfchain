@@ -98,7 +98,8 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 			tx.Value = types.NewCurrency(tfTokens).Sub(tx.TransactionFee).Sub(tx.BridgeFee)
 
 			// fill in the other info
-			tx.TransactionID = tfchaintypes.ERC20TransactionID(we.txHash)
+			tx.TransactionID = tfchaintypes.ERC20Hash(we.txHash)
+			tx.BlockID = tfchaintypes.ERC20Hash(we.blockHash)
 			if err := tp.AcceptTransactionSet([]types.Transaction{tx.Transaction()}); err != nil {
 				log.Error("Failed to push ERC20 -> TFT transaction", "err", err)
 				return
