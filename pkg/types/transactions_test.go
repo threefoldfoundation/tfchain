@@ -74,7 +74,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForStandardNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForStandardNetwork(nil, NopERC20TransactionValidator{}, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "standard", validationConstants)
 	constants = config.GetTestnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -82,7 +82,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForTestNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForTestNetwork(nil, NopERC20TransactionValidator{}, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "test", validationConstants)
 	constants = config.GetDevnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -90,7 +90,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForDevNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForDevNetwork(nil, NopERC20TransactionValidator{}, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "dev", validationConstants)
 }
 
