@@ -360,7 +360,7 @@ func (txdb *TransactionDB) GetTFTAddressForERC20Address(addr types.ERC20Address)
 
 // GetTFTTransactionIDForERC20TransactionID returns the mapped TFT TransactionID for the given ERC20 TransactionID,
 // iff the ERC20 TransactionID has been used to fund an ERC20 CoinCreation Tx and has been registered as such, a nil TransactionID is returned otherwise.
-func (txdb *TransactionDB) GetTFTTransactionIDForERC20TransactionID(id types.ERC20TransactionID) (txid rivinetypes.TransactionID, found bool, err error) {
+func (txdb *TransactionDB) GetTFTTransactionIDForERC20TransactionID(id types.ERC20Hash) (txid rivinetypes.TransactionID, found bool, err error) {
 	err = txdb.db.View(func(tx *bolt.Tx) (err error) {
 		txid, found, err = getTfchainTransactionIDForERC20TransactionID(tx, id)
 		return
@@ -1670,7 +1670,7 @@ func getTFTAddressForERC20Address(tx *bolt.Tx, addr types.ERC20Address) (rivinet
 	return uh, true, nil
 }
 
-func applyERC20TransactionID(tx *bolt.Tx, erc20id types.ERC20TransactionID, tftid rivinetypes.TransactionID) error {
+func applyERC20TransactionID(tx *bolt.Tx, erc20id types.ERC20Hash, tftid rivinetypes.TransactionID) error {
 	bucket := tx.Bucket(bucketERC20TransactionIDs)
 	if bucket == nil {
 		return errors.New("corrupt transaction DB: ERC20 TransactionIDs bucket does not exist")
@@ -1681,7 +1681,7 @@ func applyERC20TransactionID(tx *bolt.Tx, erc20id types.ERC20TransactionID, tfti
 	}
 	return nil
 }
-func revertERC20TransactionID(tx *bolt.Tx, id types.ERC20TransactionID) error {
+func revertERC20TransactionID(tx *bolt.Tx, id types.ERC20Hash) error {
 	bucket := tx.Bucket(bucketERC20TransactionIDs)
 	if bucket == nil {
 		return errors.New("corrupt transaction DB: ERC20 TransactionIDs bucket does not exist")
@@ -1692,7 +1692,7 @@ func revertERC20TransactionID(tx *bolt.Tx, id types.ERC20TransactionID) error {
 	}
 	return nil
 }
-func getTfchainTransactionIDForERC20TransactionID(tx *bolt.Tx, id types.ERC20TransactionID) (rivinetypes.TransactionID, bool, error) {
+func getTfchainTransactionIDForERC20TransactionID(tx *bolt.Tx, id types.ERC20Hash) (rivinetypes.TransactionID, bool, error) {
 	bucket := tx.Bucket(bucketERC20TransactionIDs)
 	if bucket == nil {
 		return rivinetypes.TransactionID{}, false, errors.New("corrupt transaction DB: ERC20 TransactionIDs bucket does not exist")

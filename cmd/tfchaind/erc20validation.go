@@ -54,7 +54,7 @@ func NewERC20NodeValidator(network, apiKey string) (*ERC20NodeValidator, error) 
 }
 
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx
-func (ev *ERC20NodeValidator) ValidateWithdrawTx(txID tftypes.ERC20TransactionID, expectedAddress tftypes.ERC20Address, expecedAmount types.Currency) error {
+func (ev *ERC20NodeValidator) ValidateWithdrawTx(_, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expecedAmount types.Currency) error {
 	// Get the transaction
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()

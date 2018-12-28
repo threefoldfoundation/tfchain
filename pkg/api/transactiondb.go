@@ -40,8 +40,8 @@ type (
 
 	// TransactionDBGetERC20TransactionID contains the requested info found for the given ERC20 TransactionID.
 	TransactionDBGetERC20TransactionID struct {
-		ERC20TransaxtionID   tftypes.ERC20TransactionID `json:"er20txid"`
-		TfchainTransactionID types.TransactionID        `json:"tfttxid"`
+		ERC20TransaxtionID   tftypes.ERC20Hash   `json:"er20txid"`
+		TfchainTransactionID types.TransactionID `json:"tfttxid"`
 	}
 )
 
@@ -226,7 +226,7 @@ func NewTransactionDBGetERC20RelatedAddressHandler(txdb *persist.TransactionDB) 
 func NewTransactionDBGetERC20TransactionID(txdb *persist.TransactionDB) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		txidStr := ps.ByName("txid")
-		var txid tftypes.ERC20TransactionID
+		var txid tftypes.ERC20Hash
 		err := txid.LoadString(txidStr)
 		if err != nil {
 			api.WriteError(w, api.Error{Message: fmt.Sprintf("invalid ERC20 TransactionID given: %v", err)}, http.StatusBadRequest)

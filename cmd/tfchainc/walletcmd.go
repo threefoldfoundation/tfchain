@@ -127,7 +127,7 @@ is printed to the STDOUT.
 		}
 
 		sendERC20FundsClaimCmd = &cobra.Command{
-			Use:   "erc20fundsclaim tft_address amount erc20_txid",
+			Use:   "erc20fundsclaim tft_address amount erc20_blockid erc20_txid",
 			Short: "Convert ERC20 funds to TFT",
 			Run:   rivinecli.Wrap(walletSubCmds.sendERC20FundsClaim),
 		}
@@ -636,7 +636,7 @@ func (walletSubCmds *walletSubCmds) sendERC20Funds(hexAddress, strAmount string)
 	}
 }
 
-func (walletSubCmds *walletSubCmds) sendERC20FundsClaim(hexAddress, strAmount, hexTransctionID string) {
+func (walletSubCmds *walletSubCmds) sendERC20FundsClaim(hexAddress, strAmount, hexBlockID, hexTransctionID string) {
 	// load TFT address
 	var address rivinetypes.UnlockHash
 	err := address.LoadString(hexAddress)
@@ -651,8 +651,15 @@ func (walletSubCmds *walletSubCmds) sendERC20FundsClaim(hexAddress, strAmount, h
 		cli.DieWithError("failed to parse coin (TFT) string", err)
 		return
 	}
+	// load ERC20 BlockID
+	var blockID types.ERC20Hash
+	err = blockID.LoadString(hexBlockID)
+	if err != nil {
+		cli.DieWithError("failed to parse hex-encoded ERC20 BlockID", err)
+		return
+	}
 	// load ERC20 TransactionID
-	var transactionID types.ERC20TransactionID
+	var transactionID types.ERC20Hash
 	err = transactionID.LoadString(hexTransctionID)
 	if err != nil {
 		cli.DieWithError("failed to parse hex-encoded ERC20 TransactionID", err)
@@ -669,6 +676,7 @@ func (walletSubCmds *walletSubCmds) sendERC20FundsClaim(hexAddress, strAmount, h
 		Value:          value,
 		TransactionFee: txFee,
 		BridgeFee:      bridgeFee,
+		BlockID:        blockID,
 		TransactionID:  transactionID,
 	}
 	rtx := tx.Transaction()

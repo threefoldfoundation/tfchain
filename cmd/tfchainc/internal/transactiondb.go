@@ -155,7 +155,7 @@ func (cli *TransactionDBClient) GetERC20AddressForTFTAddress(uh rivinetypes.Unlo
 }
 
 // GetTFTTransactionIDForERC20TransactionID implements types.ERC20Registry.GetTFTTransactionIDForERC20TransactionID
-func (cli *TransactionDBClient) GetTFTTransactionIDForERC20TransactionID(txid types.ERC20TransactionID) (rivinetypes.TransactionID, bool, error) {
+func (cli *TransactionDBClient) GetTFTTransactionIDForERC20TransactionID(txid types.ERC20Hash) (rivinetypes.TransactionID, bool, error) {
 	var result api.TransactionDBGetERC20TransactionID
 	err := cli.client.GetAPI(fmt.Sprintf("%s/erc20/transactions/%s", cli.rootEndpoint, txid.String()), &result)
 	if err != nil {

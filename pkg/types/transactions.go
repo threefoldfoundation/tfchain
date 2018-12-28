@@ -3109,13 +3109,13 @@ type (
 	// ERC20Registry defines the public READ API expected from an ERC20 Read-Only registry.
 	ERC20Registry interface {
 		GetERC20AddressForTFTAddress(types.UnlockHash) (ERC20Address, bool, error)
-		GetTFTTransactionIDForERC20TransactionID(ERC20TransactionID) (types.TransactionID, bool, error)
+		GetTFTTransactionIDForERC20TransactionID(ERC20Hash) (types.TransactionID, bool, error)
 	}
 
 	// ERC20TransactionValidator is the validation API used by the ERC20 CoinCreation Tx Controller,
 	// in order to validate the attached ERC20 Tx. Use the NopERC20TransactionValidator if no such validation is required.
 	ERC20TransactionValidator interface {
-		ValidateWithdrawTx(txID ERC20TransactionID, expectedAddress ERC20Address, expecedAmount types.Currency) error
+		ValidateWithdrawTx(blockID, txID ERC20Hash, expectedAddress ERC20Address, expecedAmount types.Currency) error
 	}
 )
 
@@ -3125,7 +3125,7 @@ type NopERC20TransactionValidator struct{}
 
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx,
 // returning nil for every call.
-func (nop NopERC20TransactionValidator) ValidateWithdrawTx(ERC20TransactionID, ERC20Address, types.Currency) error {
+func (nop NopERC20TransactionValidator) ValidateWithdrawTx(ERC20Hash, ERC20Hash, ERC20Address, types.Currency) error {
 	return nil
 }
 
@@ -3505,49 +3505,49 @@ func (etctc ERC20ConvertTransactionController) EncodeTransactionIDInput(w io.Wri
 	return rivbin.NewEncoder(w).EncodeAll(SpecifierERC20ConvertTransaction, etctx)
 }
 
-// ERC20TransactionIDLength defines the length of the fixed-sized ERC20 TransactionID type explicitly.
-const ERC20TransactionIDLength = 32
+// ERC20HashLength defines the length of the fixed-sized ERC20 Hash type explicitly,
+// used for Transaction and Block hashes alike.
+const ERC20HashLength = 32
 
-// ERC20TransactionID defines an ERC20 TransactionID as a fixed-sized byte array of length 32,
-// and can be used to register an ERC20 Transaction in the tfchain blockchain.
-type ERC20TransactionID [ERC20TransactionIDLength]byte
+// ERC20Hash defines an ERC20 Hash as a fixed-sized byte array of length 32.
+type ERC20Hash [ERC20HashLength]byte
 
 // String returns this TransactionID as a string.
-func (txid ERC20TransactionID) String() string {
-	return hex.EncodeToString(txid[:])
+func (eh ERC20Hash) String() string {
+	return hex.EncodeToString(eh[:])
 }
 
 // LoadString loads this TransactionID from a hex-encoded string of length 40.
-func (txid *ERC20TransactionID) LoadString(str string) error {
-	if len(str) != ERC20TransactionIDLength*2 {
-		return errors.New("passed string cannot be loaded as an ERC20 TransactionID: invalid length")
+func (eh *ERC20Hash) LoadString(str string) error {
+	if len(str) != ERC20HashLength*2 {
+		return errors.New("passed string cannot be loaded as an ERC20 Hash: invalid length")
 	}
-	n, err := hex.Decode(txid[:], []byte(str))
+	n, err := hex.Decode(eh[:], []byte(str))
 	if err != nil {
 		return err
 	}
-	if n != ERC20TransactionIDLength {
+	if n != ERC20HashLength {
 		return io.ErrShortWrite
 	}
 	return nil
 }
 
 // MarshalJSON implements json.Marshaler.MarshalJSON,
-// and returns this TransactionID as a hex-encoded JSON string.
-func (txid ERC20TransactionID) MarshalJSON() ([]byte, error) {
-	return json.Marshal(txid.String())
+// and returns this Hash as a hex-encoded JSON string.
+func (eh ERC20Hash) MarshalJSON() ([]byte, error) {
+	return json.Marshal(eh.String())
 }
 
 // UnmarshalJSON implements json.Unmarshaler.UnmarshalJSON,
 // and decodes the given byte slice as a hex-encoded JSON string into the
-// 20 bytes that make up this TransactionID.
-func (txid *ERC20TransactionID) UnmarshalJSON(b []byte) error {
+// 20 bytes that make up this Hash.
+func (eh *ERC20Hash) UnmarshalJSON(b []byte) error {
 	var str string
 	err := json.Unmarshal(b, &str)
 	if err != nil {
 		return err
 	}
-	return txid.LoadString(str)
+	return eh.LoadString(str)
 }
 
 const (
@@ -3576,13 +3576,18 @@ type (
 		// BridgeFee defines the fee paid towards the bridge creating the coins.
 		BridgeFee types.Currency `json:"bridgefee"`
 
+		// ERC20 BlockID (Sending ERC20 Funds to TFT) used as to identify
+		// the parent block of the source of this coin creation.
+		BlockID ERC20Hash `json:"blockid"`
+
 		// ERC20 TransactionID (Sending ERC20 Funds to TFT) used as the source of this coin creation.
-		TransactionID ERC20TransactionID `json:"txid"`
+		TransactionID ERC20Hash `json:"txid"`
 	}
 
 	// ERC20CoinCreationTransactionExtension defines the ERC20CoinCreationTransaction Extension Data
 	ERC20CoinCreationTransactionExtension struct {
-		TransactionID ERC20TransactionID
+		BlockID       ERC20Hash
+		TransactionID ERC20Hash
 		BridgeFee     types.Currency
 	}
 )
@@ -3650,6 +3655,7 @@ func ERC20CoinCreationTransactionFromTransactionData(txData types.TransactionDat
 		Value:          co.Value,
 		TransactionFee: txData.MinerFees[0],
 		BridgeFee:      extensionData.BridgeFee,
+		BlockID:        extensionData.BlockID,
 		TransactionID:  extensionData.TransactionID,
 	}, nil
 }
@@ -3666,6 +3672,7 @@ func (etctx *ERC20CoinCreationTransaction) TransactionData() types.TransactionDa
 		},
 		MinerFees: []types.Currency{etctx.TransactionFee},
 		Extension: &ERC20CoinCreationTransactionExtension{
+			BlockID:       etctx.BlockID,
 			TransactionID: etctx.TransactionID,
 			BridgeFee:     etctx.BridgeFee,
 		},
@@ -3685,6 +3692,7 @@ func (etctx *ERC20CoinCreationTransaction) Transaction() types.Transaction {
 		},
 		MinerFees: []types.Currency{etctx.TransactionFee},
 		Extension: &ERC20CoinCreationTransactionExtension{
+			BlockID:       etctx.BlockID,
 			TransactionID: etctx.TransactionID,
 			BridgeFee:     etctx.BridgeFee,
 		},
@@ -3710,6 +3718,7 @@ func (etctx ERC20CoinCreationTransaction) MarshalRivine(w io.Writer) error {
 		etctx.Value,
 		etctx.TransactionFee,
 		etctx.BridgeFee,
+		etctx.BlockID,
 		etctx.TransactionID,
 	)
 }
@@ -3721,6 +3730,7 @@ func (etctx *ERC20CoinCreationTransaction) UnmarshalRivine(r io.Reader) error {
 		&etctx.Value,
 		&etctx.TransactionFee,
 		&etctx.BridgeFee,
+		&etctx.BlockID,
 		&etctx.TransactionID,
 	)
 }
@@ -3836,7 +3846,7 @@ func (etctc ERC20CoinCreationTransactionController) ValidateTransaction(t types.
 
 	// validate the ERC20 Tx using the used Validator
 	erc20Address := ERC20AddressFromUnlockHash(etctx.Address)
-	err = etctc.TxValidator.ValidateWithdrawTx(etctx.TransactionID, erc20Address, etctx.Value)
+	err = etctc.TxValidator.ValidateWithdrawTx(etctx.BlockID, etctx.TransactionID, erc20Address, etctx.Value)
 	if err != nil {
 		return fmt.Errorf("invalid ERC20 CoinCreation Tx: invalid attached ERC20 Tx: %v", err)
 	}
@@ -3877,6 +3887,7 @@ func (etctc ERC20CoinCreationTransactionController) SignatureHash(t types.Transa
 		etctx.Address,
 		etctx.Value,
 		etctx.TransactionFee,
+		etctx.BlockID,
 		etctx.TransactionID, // this ID has to ensure the TxSig and Hash is unique per transaction
 	)
 

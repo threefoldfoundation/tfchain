@@ -2905,7 +2905,8 @@ func TestJSONExampleERC20CoinCreationTransaction(t *testing.T) {
 		"value": "100000000000",
 		"txfee": "1000000000",
 		"bridgefee": "50000000000",
-		"txid": "0000000000000000000000000000000000000000000000000000000000000000"
+		"blockid": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		"txid": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
 	}
 }`
 
@@ -2935,7 +2936,7 @@ func TestBinaryExampleERC20CoinCreationTransaction(t *testing.T) {
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{})
 	defer types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, nil)
 
-	const hexEncodedExample = `d101f68299b26a89efdb4351a61c3a062321d23edbc1399c8499947c1313375609ad0a174876e800083b9aca000a0ba43b74000000000000000000000000000000000000000000000000000000000000000000`
+	const hexEncodedExample = `d101f68299b26a89efdb4351a61c3a062321d23edbc1399c8499947c1313375609ad0a174876e800083b9aca000a0ba43b74000123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefabcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789`
 
 	b, err := hex.DecodeString(hexEncodedExample)
 	if err != nil {

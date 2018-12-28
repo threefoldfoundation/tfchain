@@ -662,6 +662,8 @@ the account as defined by the ERC20 Withdrawal address.
 		"value": "100000000000",
 		// Regular Transaction Fee
 		"txfee": "1000000000",
+		// ERC20 BlockID of the parent block of the paired ERC20 Transaction.
+		"blockid": "0000000000000000000000000000000000000000000000000000000000000000"
 		// ERC20 TransationID in which the matching ERC20-funds got burned,
 		// each transactionID can only be used once to fund a TFT coin exchange.
 		"txid": "0000000000000000000000000000000000000000000000000000000000000000"
@@ -701,6 +703,7 @@ blake2b_256_hash(RivineBinaryEncoding(
   - address: binary encoded unlock hash
   - value
   - txFee
+  - ERC20 BlockID: 32 bytes
   - ERC20 TransactionID: 32 bytes
 )) : 32 bytes fixed-size crypto hash
 ```
