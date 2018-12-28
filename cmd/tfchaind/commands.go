@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -23,7 +24,7 @@ type commands struct {
 	cfg           daemon.Config
 	moduleSetFlag daemon.ModuleSetFlag
 
-	infuraAPIKey string
+	erc20Cfg ERC20NodeValidatorConfig
 }
 
 func (cmds *commands) rootCommand(*cobra.Command, []string) {
@@ -55,7 +56,7 @@ func (cmds *commands) rootCommand(*cobra.Command, []string) {
 	cmds.cfg = daemon.ProcessConfig(cmds.cfg)
 
 	// run daemon
-	err = runDaemon(cmds.cfg, cmds.moduleSetFlag.ModuleIdentifiers(), cmds.infuraAPIKey)
+	err = runDaemon(cmds.cfg, cmds.moduleSetFlag.ModuleIdentifiers(), cmds.erc20Cfg)
 	if err != nil {
 		cli.DieWithError("daemon failed", err)
 	}
@@ -140,16 +141,13 @@ func setupNetwork(cfg daemon.Config, erc20TxValidator types.ERC20TransactionVali
 	}
 }
 
-func setupERC20TransactionValidator(networkName, apiKey string) (types.ERC20TransactionValidator, error) {
-	if apiKey == "" {
-		return types.NopERC20TransactionValidator{}, nil
-	}
-
-	ethNetwork := "rinkeby"
+func setupERC20TransactionValidator(rootDir, networkName string, erc20Cfg ERC20NodeValidatorConfig) (types.ERC20TransactionValidator, error) {
+	erc20Cfg.NetworkName = "rinkeby"
 	if networkName == config.NetworkNameStandard {
-		ethNetwork = "mainnet"
+		erc20Cfg.NetworkName = "mainnet"
 	}
-	return NewERC20NodeValidator(ethNetwork, apiKey)
+	erc20Cfg.DataDir = path.Join(rootDir, "leth")
+	return NewERC20NodeValidator(erc20Cfg)
 }
 
 func (cmds *commands) versionCommand(*cobra.Command, []string) {

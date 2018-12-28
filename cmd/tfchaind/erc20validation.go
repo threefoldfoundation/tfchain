@@ -2,15 +2,19 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/big"
+	"os"
+	"path"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/log"
+	"github.com/rivine/rivine/build"
+	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
+	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
 	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20/contract"
 	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 
@@ -26,44 +30,92 @@ import (
 // and contribute the client-side calls we care about as to be able to do it all from
 // a light client.
 type ERC20NodeValidator struct {
-	ec  *ethclient.Client
+	lc  *erc20.LightClient
 	abi abi.ABI
+}
+
+// ERC20NodeValidatorConfig is all info required to create a ERC20NodeValidator.
+// See the `ERC20NodeValidator` struct for more information.
+type ERC20NodeValidatorConfig struct {
+	Enabled     bool
+	NetworkName string
+	DataDir     string
+	Port        int
 }
 
 // NewERC20NodeValidator creates a new INFURA-based ERC20NodeValidator.
 // See the `ERC20NodeValidator` struct description for more information.
-func NewERC20NodeValidator(network, apiKey string) (*ERC20NodeValidator, error) {
+//
+// If the cfg.Enabled property is False the tfchain `NopERC20TransactionValidator` implementation
+// will be used and returned instead.
+func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig) (tftypes.ERC20TransactionValidator, error) {
+	if !cfg.Enabled {
+		return tftypes.NopERC20TransactionValidator{}, nil
+	}
+
+	// Create the persistent dir if it doesn't exist already
+	err := os.MkdirAll(cfg.DataDir, 0700)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while creating the persistent (data) dir: %v", err)
+	}
+
+	// Define the Ethereum Logger
+	ethLogFmtr := log.TerminalFormat(true)
+	ethLogFileHandler, err := log.FileHandler(path.Join(cfg.DataDir, "node.log"), ethLogFmtr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while ETH file-logger: %v", err)
+	}
+	ethLogLvl := log.LvlWarn
+	if build.DEBUG {
+		ethLogLvl = log.LvlDebug
+	}
+	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ethLogLvl), log.MultiHandler(ethLogFileHandler, log.StreamHandler(os.Stderr, ethLogFmtr))))
+
 	// parse the ERC20 smart contract
 	abi, err := abi.JSON(strings.NewReader(contract.TTFT20ABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while parsing contract ABI: %v", err)
 	}
 
-	// create the ethereum client using the INFURA endpoint,
-	// with the network and api-key filled into the relevant parts of the API URL.
-	endpoint := fmt.Sprintf("https://%s.infura.io/v3/%s", network, apiKey)
-	client, err := ethclient.Dial(endpoint)
+	// get the ETH network config
+	netcfg, err := tfeth.GetEthNetworkConfiguration(cfg.NetworkName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while dialing the INFURA API: %v", err)
+		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while fetching the ETH network config: %v", err)
+	}
+
+	// get the ETH bootstrap nodes
+	bootstrapNodes, err := netcfg.GetBootnodes()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while fetching the ETH bootstrap node info: %v", err)
+	}
+
+	// create the ethereum light client
+	lc, err := erc20.NewLightClient(erc20.LightClientConfig{
+		Port:           cfg.Port,
+		DataDir:        path.Join(cfg.DataDir, "lightnode"),
+		BootstrapNodes: bootstrapNodes,
+		NetworkID:      netcfg.NetworkID,
+		NetworkName:    netcfg.NetworkName,
+		GenesisBlock:   netcfg.GenesisBlock,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while creating the light client: %v", err)
 	}
 
 	return &ERC20NodeValidator{
-		ec:  client,
+		lc:  lc,
 		abi: abi,
 	}, nil
 }
 
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx
-func (ev *ERC20NodeValidator) ValidateWithdrawTx(_, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expecedAmount types.Currency) error {
+func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expecedAmount types.Currency) error {
 	// Get the transaction
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	tx, isPending, err := ev.ec.TransactionByHash(ctx, common.Hash(txID))
+	tx, err := ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
 	if err != nil {
 		return fmt.Errorf("failed to fetch ERC20 Tx: %v", err)
-	}
-	if isPending {
-		return errors.New("ERC20 Tx is still pending")
 	}
 
 	// Extract the data

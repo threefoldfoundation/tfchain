@@ -33,10 +33,16 @@ func main() {
 	// also add our modules as a flag
 	cmds.moduleSetFlag.RegisterFlag(root.Flags(), fmt.Sprintf("%s modules", os.Args[0]))
 
-	root.Flags().StringVar(
-		&cmds.infuraAPIKey,
-		"infura-key", "",
-		"a valid INFURA API Key to allow full ERC20 CoinCreation Transaction validation",
+	// eth flags
+	root.Flags().BoolVar(
+		&cmds.erc20Cfg.Enabled,
+		"ethvalidation", false,
+		"enable full validation of ERC20 validation, attaching this node in light-mode to the ETH network",
+	)
+	root.Flags().IntVar(
+		&cmds.erc20Cfg.Port,
+		"ethport", 3003,
+		"network port used by peers on the ETH network to connect to this node should ethvalidation be enabled",
 	)
 
 	// create the other commands
