@@ -69,7 +69,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		cmd.ChainConstants = config.GetStandardnetGenesis()
 		// Register the transaction controllers for all transaction versions
 		// supported on the standard network
-		tfchaintypes.RegisterTransactionTypesForStandardNetwork(cmd.transactionDB,
+		tfchaintypes.RegisterTransactionTypesForStandardNetwork(cmd.transactionDB, &tfchaintypes.NopERC20TransactionValidator{},
 			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetStandardDaemonNetworkConfig())
 		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
 		// until the blockchain reached a height of 42000 blocks.
@@ -88,7 +88,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		cmd.ChainConstants = config.GetTestnetGenesis()
 		// Register the transaction controllers for all transaction versions
 		// supported on the test network
-		tfchaintypes.RegisterTransactionTypesForTestNetwork(cmd.transactionDB,
+		tfchaintypes.RegisterTransactionTypesForTestNetwork(cmd.transactionDB, &tfchaintypes.NopERC20TransactionValidator{},
 			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetTestnetDaemonNetworkConfig())
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
@@ -106,7 +106,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		cmd.ChainConstants = config.GetDevnetGenesis()
 		// Register the transaction controllers for all transaction versions
 		// supported on the dev network
-		tfchaintypes.RegisterTransactionTypesForDevNetwork(cmd.transactionDB,
+		tfchaintypes.RegisterTransactionTypesForDevNetwork(cmd.transactionDB, &tfchaintypes.NopERC20TransactionValidator{},
 			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetDevnetDaemonNetworkConfig())
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)

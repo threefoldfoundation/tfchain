@@ -53,7 +53,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 
 	err = bridge.initPersist()
 	if err != nil {
-		return nil, errors.New("block creator persistence startup failed: " + err.Error())
+		return nil, errors.New("bridge persistence startup failed: " + err.Error())
 	}
 
 	bridge.buffer = newBlockBuffer(blockDelay)
@@ -69,7 +69,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 	go bridge.bridgeContract.subscribeRegisterWithdrawAddress()
 
 	withdrawChan := make(chan withdrawEvent)
-	go bridge.bridgeContract.subscribeWithdraw(withdrawChan)
+	go bridge.bridgeContract.subscribeWithdraw(withdrawChan, 3544963)
 	go func() {
 		for {
 			we := <-withdrawChan

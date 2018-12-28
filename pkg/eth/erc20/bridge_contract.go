@@ -210,19 +210,46 @@ func (bridge *bridgeContract) subscribeMint() error {
 }
 
 type withdrawEvent struct {
-	sender   common.Address
-	receiver common.Address
-	amount   *big.Int
-	txHash   common.Hash
+	sender    common.Address
+	receiver  common.Address
+	amount    *big.Int
+	txHash    common.Hash
+	blockHash common.Hash
 }
 
 // SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
 // and prints out info about any withdraw as it happened
-func (bridge *bridgeContract) subscribeWithdraw(wc chan<- withdrawEvent) error {
+func (bridge *bridgeContract) subscribeWithdraw(wc chan<- withdrawEvent, startHeight uint64) error {
 	sink := make(chan *contract.TTFT20Withdraw)
-	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
-	sub, err := bridge.filter.WatchWithdraw(opts, sink, nil, nil)
+	watchOpts := &bind.WatchOpts{Context: context.Background(), Start: nil}
+	filterOpts := &bind.FilterOpts{Context: context.Background(), Start: startHeight}
+	iterator, err := bridge.filter.FilterWithdraw(filterOpts, nil, nil)
 	if err != nil {
+		log.Error("Creating past watch event iterator failed", "err", err)
+		return err
+	}
+	for iterator.Next() {
+		withdraw := iterator.Event
+		if withdraw.Raw.Removed {
+			// ignore events which have been removed
+			continue
+		}
+		log.Info("Noticed past withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
+		wc <- withdrawEvent{
+			sender:    withdraw.From,
+			receiver:  withdraw.Receiver,
+			amount:    withdraw.Tokens,
+			txHash:    withdraw.Raw.TxHash,
+			blockHash: withdraw.Raw.BlockHash,
+		}
+	}
+	if iterator.Error() != nil {
+		log.Error("Retrieving past watch event failed", "err", err)
+		return err
+	}
+	sub, err := bridge.filter.WatchWithdraw(watchOpts, sink, nil, nil)
+	if err != nil {
+		log.Error("Subscribing to withdraw events failed", "err", err)
 		return err
 	}
 	defer sub.Unsubscribe()
@@ -231,8 +258,18 @@ func (bridge *bridgeContract) subscribeWithdraw(wc chan<- withdrawEvent) error {
 		case err = <-sub.Err():
 			return err
 		case withdraw := <-sink:
+			if withdraw.Raw.Removed {
+				// ignore removed events
+				continue
+			}
 			log.Info("Noticed withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
-			wc <- withdrawEvent{sender: withdraw.From, receiver: withdraw.Receiver, amount: withdraw.Tokens, txHash: withdraw.Raw.TxHash}
+			wc <- withdrawEvent{
+				sender:    withdraw.From,
+				receiver:  withdraw.Receiver,
+				amount:    withdraw.Tokens,
+				txHash:    withdraw.Raw.TxHash,
+				blockHash: withdraw.Raw.BlockHash,
+			}
 		}
 	}
 }

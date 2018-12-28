@@ -25,6 +25,7 @@ type (
 	persistence struct {
 		RecentChange modules.ConsensusChangeID
 		Height       types.BlockHeight
+		EthHeight    uint64
 	}
 )
 
