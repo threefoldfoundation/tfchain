@@ -3074,6 +3074,10 @@ func (address ERC20Address) String() string {
 
 // LoadString loads this ERC20Address from a hex-encoded string of length 40.
 func (address *ERC20Address) LoadString(str string) error {
+	if str == "" {
+		*address = ERC20Address{}
+		return nil
+	}
 	if len(str) != ERC20AddressLength*2 {
 		return errors.New("passed string cannot be loaded as an ERC20Address: invalid length")
 	}

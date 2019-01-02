@@ -109,7 +109,9 @@ func NewExplorerHashHandler(explorer modules.Explorer, tpool modules.Transaction
 					if err == nil {
 						err = errors.New("address not found")
 					}
-					log.Printf("error while fetching ERC20 address for TFT Address %v: %v", addr, err)
+					if build.DEBUG {
+						log.Printf("error while fetching ERC20 address for TFT Address %v: %v", addr, err)
+					}
 				}
 			}
 
