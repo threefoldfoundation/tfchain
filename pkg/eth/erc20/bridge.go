@@ -83,7 +83,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 	go bridge.bridgeContract.subscribeRegisterWithdrawAddress()
 
 	withdrawChan := make(chan withdrawEvent)
-	go bridge.bridgeContract.subscribeWithdraw(withdrawChan, 3544963)
+	go bridge.bridgeContract.subscribeWithdraw(withdrawChan, bridge.persist.EthHeight)
 	go func() {
 		txMap := make(map[tfchaintypes.ERC20Hash]withdrawEvent)
 		for {
@@ -147,6 +147,13 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 						// forget about our tx
 						delete(txMap, id)
 					}
+				}
+				// In theory this could underflow, but only on a network with less than 6 blocks. Mainnet is way passed that,
+				// and it seems unlikely that any testnet will be reset. Even then it's only dangerous for a couple of minutes at worst,
+				// whereas it would take us longer to redeploy our setup
+				bridge.persist.EthHeight = head.Number.Uint64() - blockDelay
+				if err := bridge.save(); err != nil {
+					log.Error("Failed to save bridge persistency", "err", err)
 				}
 			}
 		}
