@@ -137,7 +137,9 @@ func (bridge *bridgeContract) refresh(head *types.Header) error {
 	return nil
 }
 
-func (bridge *bridgeContract) loop() {
+// loop subscribes to new eth heads. If a new head is received, it is passed on the given channel,
+// after which the internal stats are updated if no update is already in progress
+func (bridge *bridgeContract) loop(ch chan<- *types.Header) {
 	log.Info("Subscribing to eth headers")
 	// channel to receive head updates from client on
 	heads := make(chan *types.Header, 16)
@@ -159,6 +161,7 @@ func (bridge *bridgeContract) loop() {
 		}
 	}()
 	for head := range heads {
+		ch <- head
 		select {
 		// only process new head if another isn't being processed yet
 		case update <- head:
@@ -210,11 +213,12 @@ func (bridge *bridgeContract) subscribeMint() error {
 }
 
 type withdrawEvent struct {
-	sender    common.Address
-	receiver  common.Address
-	amount    *big.Int
-	txHash    common.Hash
-	blockHash common.Hash
+	sender      common.Address
+	receiver    common.Address
+	amount      *big.Int
+	txHash      common.Hash
+	blockHash   common.Hash
+	blockHeight uint64
 }
 
 // SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
@@ -236,11 +240,12 @@ func (bridge *bridgeContract) subscribeWithdraw(wc chan<- withdrawEvent, startHe
 		}
 		log.Info("Noticed past withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
 		wc <- withdrawEvent{
-			sender:    withdraw.From,
-			receiver:  withdraw.Receiver,
-			amount:    withdraw.Tokens,
-			txHash:    withdraw.Raw.TxHash,
-			blockHash: withdraw.Raw.BlockHash,
+			sender:      withdraw.From,
+			receiver:    withdraw.Receiver,
+			amount:      withdraw.Tokens,
+			txHash:      withdraw.Raw.TxHash,
+			blockHash:   withdraw.Raw.BlockHash,
+			blockHeight: withdraw.Raw.BlockNumber,
 		}
 	}
 	if iterator.Error() != nil {
@@ -264,11 +269,12 @@ func (bridge *bridgeContract) subscribeWithdraw(wc chan<- withdrawEvent, startHe
 			}
 			log.Info("Noticed withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
 			wc <- withdrawEvent{
-				sender:    withdraw.From,
-				receiver:  withdraw.Receiver,
-				amount:    withdraw.Tokens,
-				txHash:    withdraw.Raw.TxHash,
-				blockHash: withdraw.Raw.BlockHash,
+				sender:      withdraw.From,
+				receiver:    withdraw.Receiver,
+				amount:      withdraw.Tokens,
+				txHash:      withdraw.Raw.TxHash,
+				blockHash:   withdraw.Raw.BlockHash,
+				blockHeight: withdraw.Raw.BlockNumber,
 			}
 		}
 	}

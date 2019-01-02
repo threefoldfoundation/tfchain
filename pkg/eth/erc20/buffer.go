@@ -5,12 +5,6 @@ import (
 	"github.com/threefoldtech/rivine/types"
 )
 
-const (
-	// blockDelay is the amount of blocks to wait before
-	// pushing tft transactions to the ethereum contract.
-	blockDelay = 6
-)
-
 type (
 	// blockBuffer holds an amount of blocks
 	blockBuffer struct {
