@@ -121,7 +121,7 @@ func (bridge *Bridge) Close() {
 
 var (
 	// 18 digit precision
-	erc20Precision = big.NewInt(0).Exp(big.NewInt(10), big.NewInt(18), nil)
+	erc20Precision = big.NewInt(0).Exp(big.NewInt(10), big.NewInt(9), nil)
 	// 9 digit precision
 	tftPrecision = big.NewInt(0).Exp(big.NewInt(10), big.NewInt(9), nil)
 )
