@@ -21,8 +21,11 @@ Faucets:
   1 test ETH/ day can be requested here
 
 ## Technical
+[Detailed  description of all erc20 related transactions](transactions.md#erc20-transactions)
 
-
+Transactions relevant for wallets supporting this functionality:
+- [Convert to erc20 transaction](/transactions.md#erc20-convert-transaction)
+- [Withdrawal address registration transaction](transactions.md#erc20-address-registration-transaction)
 
 
 The mobile wallet should be able to query the status of a withdrawal address registration through the explorer:
