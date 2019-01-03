@@ -59,17 +59,20 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig) (tftypes.ERC20Transacti
 		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while creating the persistent (data) dir: %v", err)
 	}
 
-	// Define the Ethereum Logger
+	// Define the Ethereum Logger,
+	// logging both to a file and the STDERR, with a lower verbosity for the latter.
 	ethLogFmtr := log.TerminalFormat(true)
 	ethLogFileHandler, err := log.FileHandler(path.Join(cfg.DataDir, "node.log"), ethLogFmtr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while ETH file-logger: %v", err)
 	}
-	ethLogLvl := log.LvlWarn
+	ethFileLogLvl, ethStreamLogLvl := log.LvlInfo, log.LvlWarn
 	if build.DEBUG {
-		ethLogLvl = log.LvlDebug
+		ethFileLogLvl, ethStreamLogLvl = log.LvlDebug, log.LvlInfo
 	}
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(ethLogLvl), log.MultiHandler(ethLogFileHandler, log.StreamHandler(os.Stderr, ethLogFmtr))))
+	log.Root().SetHandler(log.MultiHandler(
+		log.LvlFilterHandler(log.Lvl(ethFileLogLvl), ethLogFileHandler),
+		log.LvlFilterHandler(log.Lvl(ethStreamLogLvl), log.StreamHandler(os.Stderr, ethLogFmtr))))
 
 	// parse the ERC20 smart contract
 	abi, err := abi.JSON(strings.NewReader(contract.TTFT20ABI))
