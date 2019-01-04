@@ -12,11 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/rivine/rivine/build"
 	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
 	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
 	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20/contract"
 	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
+	"github.com/threefoldtech/rivine/build"
 
 	"github.com/threefoldtech/rivine/types"
 )
