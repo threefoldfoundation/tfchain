@@ -28,7 +28,7 @@ Transactions relevant for wallets supporting this functionality:
 - [Withdrawal address registration transaction](transactions.md#erc20-address-registration-transaction)
 - [The coin creation transaction](https://github.com/threefoldfoundation/tfchain/blob/bridge_tft_erc20/doc/transactions.md#erc20-coin-creation-transaction) is created by the bridge, a wallet only needs to be able to understand it to take the coinoutputs in to account to be able to spend them.
 
-The go code defining these transactions resides in [erc20transactions.go](../pkg/types/erc20transactions.go)
+The go code defining these transactions resides in [transactions_erc20.go](../pkg/types/transactions_erc20.go)
 
 The mobile wallet should be able to query the status of a withdrawal address registration through the explorer:
 - unregistered
