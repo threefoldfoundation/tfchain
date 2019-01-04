@@ -141,13 +141,13 @@ func setupNetwork(cfg daemon.Config, erc20TxValidator types.ERC20TransactionVali
 	}
 }
 
-func setupERC20TransactionValidator(rootDir, networkName string, erc20Cfg ERC20NodeValidatorConfig) (types.ERC20TransactionValidator, error) {
+func setupERC20TransactionValidator(rootDir, networkName string, erc20Cfg ERC20NodeValidatorConfig, cancel <-chan struct{}) (types.ERC20TransactionValidator, error) {
 	erc20Cfg.NetworkName = "rinkeby"
 	if networkName == config.NetworkNameStandard {
 		erc20Cfg.NetworkName = "mainnet"
 	}
 	erc20Cfg.DataDir = path.Join(rootDir, "leth")
-	return NewERC20NodeValidator(erc20Cfg)
+	return NewERC20NodeValidator(erc20Cfg, cancel)
 }
 
 func (cmds *commands) versionCommand(*cobra.Command, []string) {

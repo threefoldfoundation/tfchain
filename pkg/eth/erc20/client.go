@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -21,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/ethstats"
 	"github.com/ethereum/go-ethereum/les"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/discv5"
@@ -85,7 +87,7 @@ func (lccfg *LightClientConfig) validate() error {
 
 // NewLightClient creates a new light client that can be used to interact with the ETH network.
 // See `LightClient` for more information.
-func NewLightClient(lccfg LightClientConfig) (*LightClient, error) {
+func NewLightClient(lccfg LightClientConfig, cancel <-chan struct{}) (*LightClient, error) {
 	// validate the cfg, as to provide better error reporting for obvious errors
 	err := lccfg.validate()
 	if err != nil {
@@ -162,6 +164,31 @@ func NewLightClient(lccfg LightClientConfig) (*LightClient, error) {
 
 	// create a client for the stack
 	client := ethclient.NewClient(api)
+
+	// wait until (light) client is fully synced
+	downloader := lesc.Downloader()
+	for {
+		progress := downloader.Progress()
+		if progress.HighestBlock == 0 {
+			log.Info(
+				"LightClient's downloader needs to start to sync, waiting 10 seconds...",
+				"current_block", progress.CurrentBlock)
+		} else if downloader.Synchronising() {
+			log.Info(
+				"LightClient's downloader is still syncing, waiting 10 seconds...",
+				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock)
+		} else {
+			log.Info(
+				"LightClient's downloader is synced",
+				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock, "starting_block", progress.StartingBlock)
+			break
+		}
+		select {
+		case <-time.After(time.Second * 10):
+		case <-cancel:
+			return nil, errors.New("failed to create light client, call got cancelled")
+		}
+	}
 
 	// return created light client
 	return &LightClient{

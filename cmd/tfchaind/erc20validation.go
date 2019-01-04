@@ -48,7 +48,7 @@ type ERC20NodeValidatorConfig struct {
 //
 // If the cfg.Enabled property is False the tfchain `NopERC20TransactionValidator` implementation
 // will be used and returned instead.
-func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig) (tftypes.ERC20TransactionValidator, error) {
+func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig, cancel <-chan struct{}) (tftypes.ERC20TransactionValidator, error) {
 	if !cfg.Enabled {
 		return tftypes.NopERC20TransactionValidator{}, nil
 	}
@@ -100,7 +100,7 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig) (tftypes.ERC20Transacti
 		NetworkID:      netcfg.NetworkID,
 		NetworkName:    netcfg.NetworkName,
 		GenesisBlock:   netcfg.GenesisBlock,
-	})
+	}, cancel)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while creating the light client: %v", err)
 	}
