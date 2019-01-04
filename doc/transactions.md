@@ -745,6 +745,8 @@ linked to the TFT address generated with the attached public key.
 			}
 		}],
 		// Optional Refund CoinOutput
+		// This the same as when sending 5tft  in a regular transaction but your inputssum up to say 100,
+		// you also add an output of 95 to your own address then
 		"refundcoinoutput": {
 			"value": "99999999000000000",
 			"condition": {

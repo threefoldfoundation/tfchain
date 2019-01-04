@@ -24,8 +24,9 @@ Faucets:
 [Detailed  description of all erc20 related transactions](transactions.md#erc20-transactions)
 
 Transactions relevant for wallets supporting this functionality:
-- [Convert to erc20 transaction](/transactions.md#erc20-convert-transaction)
+- [Convert to erc20 transaction](transactions.md#erc20-convert-transaction)
 - [Withdrawal address registration transaction](transactions.md#erc20-address-registration-transaction)
+- [The coin creation transaction](https://github.com/threefoldfoundation/tfchain/blob/bridge_tft_erc20/doc/transactions.md#erc20-coin-creation-transaction) is created by the bridge, a wallet only needs to be able to understand it to take the coinoutputs in to account to be able to spend them.
 
 The go code defining these transactions resides in [erc20transactions.go](../pkg/types/erc20transactions.go)
 
