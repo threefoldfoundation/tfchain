@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -185,7 +184,6 @@ func NewExplorerHashHandler(explorer modules.Explorer, cs modules.ConsensusSet, 
 						ERC20Address: erc20Address,
 					}
 					// If not unconfirmed, ensure to add the confirmation height
-					fmt.Println(erc20AddressUnconfirmed, txns)
 					if !erc20AddressUnconfirmed {
 						curHeight := cs.Height()
 						regHeight := curHeight
