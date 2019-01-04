@@ -25,11 +25,11 @@ contract Owned is Storage {
         return getBool(keccak256(abi.encode("owner",_caller)));
     }
 
-    function _addOwner(address _newOwner) internal returns (bool) {
+    function _addOwner(address _newOwner) internal {
         setBool(keccak256(abi.encode("owner", _newOwner)), true);
     }
 
-    function _deleteOwner(address _owner) internal returns (bool) {
+    function _deleteOwner(address _owner) internal {
         deleteBool(keccak256(abi.encode("owner", _owner)));
     }
 

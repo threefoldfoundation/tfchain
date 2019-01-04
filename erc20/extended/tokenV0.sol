@@ -160,7 +160,7 @@ contract TTFT20 is OwnedUpgradeableTokenStorage {
     // -----------------------------------------------------------------------
     function registerWithdrawalAddress(address addr) public onlyOwner {
         // prevent double registration of withdrawal addresses
-        require(!_isWithdrawalAddress(addr), "Withdrawal address already reigstered");
+        require(!_isWithdrawalAddress(addr), "Withdrawal address already registered");
         _setWithdrawalAddress(addr);
         uint _balance = getBalance(addr);
         if (_balance > 0) {

@@ -9,7 +9,7 @@ contract Proxy is TokenStorage {
         // directly get the implementation contract address from the storage. This way we don't need to depend
         // on the upgradeable contract
         address _impl = getAddress(keccak256(abi.encode("implementation")));
-        require(_impl != address(0));
+        require(_impl != address(0), "The implementation address can't be the zero address");
         bytes memory data = msg.data;
 
         assembly {
@@ -28,5 +28,8 @@ contract Proxy is TokenStorage {
         // TODO: Set correct address
         setAddress(keccak256(abi.encode("implementation")), address(0));
         setString(keccak256(abi.encode("version")),"0");
+
+        // set initial owner
+        setBool(keccak256(abi.encode("owner", msg.sender)), true);
     }
 }
