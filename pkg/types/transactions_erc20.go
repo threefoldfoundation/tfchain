@@ -1192,13 +1192,14 @@ type (
 var (
 	// ensure at compile time that ERC20AddressRegistrationTransactionController
 	// implements the desired interfaces
-	_ types.TransactionController              = ERC20AddressRegistrationTransactionController{}
-	_ types.TransactionValidator               = ERC20AddressRegistrationTransactionController{}
-	_ types.BlockStakeOutputValidator          = ERC20AddressRegistrationTransactionController{}
-	_ types.TransactionSignatureHasher         = ERC20AddressRegistrationTransactionController{}
-	_ types.TransactionExtensionSigner         = ERC20AddressRegistrationTransactionController{}
-	_ types.TransactionIDEncoder               = ERC20AddressRegistrationTransactionController{}
-	_ types.TransactionCustomMinerPayoutGetter = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionController                = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionValidator                 = ERC20AddressRegistrationTransactionController{}
+	_ types.BlockStakeOutputValidator            = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionSignatureHasher           = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionExtensionSigner           = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionIDEncoder                 = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionCustomMinerPayoutGetter   = ERC20AddressRegistrationTransactionController{}
+	_ types.TransactionCommonExtensionDataGetter = ERC20AddressRegistrationTransactionController{}
 )
 
 // EncodeTransactionData implements TransactionController.EncodeTransactionData
@@ -1437,4 +1438,18 @@ func (eartc ERC20AddressRegistrationTransactionController) EncodeTransactionIDIn
 		return fmt.Errorf("failed to convert txData to a ERC20AddressRegistration: %v", err)
 	}
 	return rivbin.NewEncoder(w).EncodeAll(SpecifierERC20AddressRegistrationTransaction, eartx)
+}
+
+// GetCommonExtensionData implements TransactionCommonExtensionDataGetter.GetCommonExtensionData
+func (eartc ERC20AddressRegistrationTransactionController) GetCommonExtensionData(extension interface{}) (types.CommonTransactionExtensionData, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid ERC20AddressRegistrationTransactionExtension
+	eartxExtension, ok := extension.(*ERC20AddressRegistrationTransactionExtension)
+	if !ok {
+		return types.CommonTransactionExtensionData{}, errors.New("invalid extension data for a ERC20 AddressRegistration Transaction")
+	}
+	return types.CommonTransactionExtensionData{
+		UnlockConditions: []types.UnlockConditionProxy{
+			types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(eartxExtension.PublicKey))),
+		},
+	}, nil
 }

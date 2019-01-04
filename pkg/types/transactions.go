@@ -323,13 +323,14 @@ var (
 
 	// ensure at compile time that MinterDefinitionTransactionController
 	// implements the desired interfaces
-	_ types.TransactionController      = MinterDefinitionTransactionController{}
-	_ types.TransactionExtensionSigner = MinterDefinitionTransactionController{}
-	_ types.TransactionValidator       = MinterDefinitionTransactionController{}
-	_ types.CoinOutputValidator        = MinterDefinitionTransactionController{}
-	_ types.BlockStakeOutputValidator  = MinterDefinitionTransactionController{}
-	_ types.TransactionSignatureHasher = MinterDefinitionTransactionController{}
-	_ types.TransactionIDEncoder       = MinterDefinitionTransactionController{}
+	_ types.TransactionController                = MinterDefinitionTransactionController{}
+	_ types.TransactionExtensionSigner           = MinterDefinitionTransactionController{}
+	_ types.TransactionValidator                 = MinterDefinitionTransactionController{}
+	_ types.CoinOutputValidator                  = MinterDefinitionTransactionController{}
+	_ types.BlockStakeOutputValidator            = MinterDefinitionTransactionController{}
+	_ types.TransactionSignatureHasher           = MinterDefinitionTransactionController{}
+	_ types.TransactionIDEncoder                 = MinterDefinitionTransactionController{}
+	_ types.TransactionCommonExtensionDataGetter = MinterDefinitionTransactionController{}
 )
 
 // DefaultTransactionController
@@ -751,6 +752,17 @@ func (mdtc MinterDefinitionTransactionController) EncodeTransactionIDInput(w io.
 		return fmt.Errorf("failed to convert txData to a MinterDefinitionTx: %v", err)
 	}
 	return siabin.NewEncoder(w).EncodeAll(SpecifierMintDefinitionTransaction, mdtx)
+}
+
+// GetCommonExtensionData implements TransactionCommonExtensionDataGetter.GetCommonExtensionData
+func (mdtc MinterDefinitionTransactionController) GetCommonExtensionData(extension interface{}) (types.CommonTransactionExtensionData, error) {
+	mdext, ok := extension.(*MinterDefinitionTransactionExtension)
+	if !ok {
+		return types.CommonTransactionExtensionData{}, errors.New("invalid extension data for a MinterDefinitionTx")
+	}
+	return types.CommonTransactionExtensionData{
+		UnlockConditions: []types.UnlockConditionProxy{mdext.MintCondition},
+	}, nil
 }
 
 type (
@@ -2223,13 +2235,14 @@ type (
 var (
 	// ensure at compile time that BotRegistrationTransactionController
 	// implements the desired interfaces
-	_ types.TransactionController              = BotRegistrationTransactionController{}
-	_ types.TransactionExtensionSigner         = BotRegistrationTransactionController{}
-	_ types.TransactionValidator               = BotRegistrationTransactionController{}
-	_ types.BlockStakeOutputValidator          = BotRegistrationTransactionController{}
-	_ types.TransactionSignatureHasher         = BotRegistrationTransactionController{}
-	_ types.TransactionIDEncoder               = BotRegistrationTransactionController{}
-	_ types.TransactionCustomMinerPayoutGetter = BotRegistrationTransactionController{}
+	_ types.TransactionController                = BotRegistrationTransactionController{}
+	_ types.TransactionExtensionSigner           = BotRegistrationTransactionController{}
+	_ types.TransactionValidator                 = BotRegistrationTransactionController{}
+	_ types.BlockStakeOutputValidator            = BotRegistrationTransactionController{}
+	_ types.TransactionSignatureHasher           = BotRegistrationTransactionController{}
+	_ types.TransactionIDEncoder                 = BotRegistrationTransactionController{}
+	_ types.TransactionCustomMinerPayoutGetter   = BotRegistrationTransactionController{}
+	_ types.TransactionCommonExtensionDataGetter = BotRegistrationTransactionController{}
 )
 
 // EncodeTransactionData implements TransactionController.EncodeTransactionData
@@ -2456,6 +2469,20 @@ func (brtc BotRegistrationTransactionController) GetCustomMinerPayouts(extension
 		{
 			Value:      brtxExtension.RequiredBotFee(brtc.OneCoin),
 			UnlockHash: brtc.RegistryPoolAddress,
+		},
+	}, nil
+}
+
+// GetCommonExtensionData implements TransactionCommonExtensionDataGetter.GetCommonExtensionData
+func (brtc BotRegistrationTransactionController) GetCommonExtensionData(extension interface{}) (types.CommonTransactionExtensionData, error) {
+	// (tx) extension (data) is expected to be a pointer to a valid BotRegistrationTransactionExtension
+	brtxExtension, ok := extension.(*BotRegistrationTransactionExtension)
+	if !ok {
+		return types.CommonTransactionExtensionData{}, errors.New("invalid extension data for a Bot Registration Transaction")
+	}
+	return types.CommonTransactionExtensionData{
+		UnlockConditions: []types.UnlockConditionProxy{
+			types.NewCondition(types.NewUnlockHashCondition(types.NewPubKeyUnlockHash(brtxExtension.Identification.PublicKey))),
 		},
 	}, nil
 }
