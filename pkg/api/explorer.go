@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -26,8 +27,9 @@ type ExplorerHashGET struct {
 
 // ExplorerHashERC20Info contains all ERC20 related info as part of an UnlockHash-typed ExplorerHashGET request.
 type ExplorerHashERC20Info struct {
-	TFTAddress   rtypes.UnlockHash  `json:"tftaddress,omitempty"`
-	ERC20Address types.ERC20Address `json:"erc20address,omitempty"`
+	TFTAddress    rtypes.UnlockHash  `json:"tftaddress,omitempty"`
+	ERC20Address  types.ERC20Address `json:"erc20address,omitempty"`
+	Confirmations uint64             `json:"confirmations"`
 }
 
 // RegisterExplorerHTTPHandlers registers the (tfchain-specific) handlers for all Explorer HTTP endpoints.
@@ -67,17 +69,18 @@ func RegisterExplorerHTTPHandlers(router rapi.Router, cs modules.ConsensusSet, e
 
 	// tfchain rivine-overwritten endpoints
 
-	router.GET("/explorer/hashes/:hash", NewExplorerHashHandler(explorer, tpool, txdb))
+	router.GET("/explorer/hashes/:hash", NewExplorerHashHandler(explorer, cs, tpool, txdb))
 }
 
 // NewExplorerHashHandler creates a handler to handle GET requests to /explorer/hash/:hash.
-func NewExplorerHashHandler(explorer modules.Explorer, tpool modules.TransactionPool, txdb *persist.TransactionDB) httprouter.Handle {
+func NewExplorerHashHandler(explorer modules.Explorer, cs modules.ConsensusSet, tpool modules.TransactionPool, txdb *persist.TransactionDB) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
 		// Scan the hash as a hash. If that fails, try scanning the hash as an
 		// address.
 		hash, err := rapi.ScanHash(ps.ByName("hash"))
 		if err != nil {
 			var erc20Address types.ERC20Address
+			var erc20AddressUnconfirmed bool
 
 			hstr := ps.ByName("hash")
 			addr, err := rapi.ScanAddress(hstr)
@@ -97,21 +100,44 @@ func NewExplorerHashHandler(explorer modules.Explorer, tpool modules.Transaction
 
 				// get the TFT address using the ERC20 address
 				addr, found, err = txdb.GetTFTAddressForERC20Address(erc20Address)
-				if err != nil || !found {
-					rapi.WriteError(w, rapi.Error{Message: "invalid ERC20 address: address not found"}, http.StatusBadRequest)
+				if err != nil {
+					rapi.WriteError(w, rapi.Error{Message: "invalid ERC20 address: " + err.Error()}, http.StatusBadRequest)
 					return
+				}
+				if !found && tpool != nil {
+					addr, found, err = getERC20AddressRegInfoFromTxPool(tpool, erc20Address)
+					if err == nil && !found {
+						err = errors.New("address not found")
+					}
+					if err != nil {
+						rapi.WriteError(w, rapi.Error{Message: "invalid ERC20 address: " + err.Error()}, http.StatusBadRequest)
+						return
+					}
+					erc20AddressUnconfirmed = true
 				}
 			} else {
 				// try to get the ERC20 Address
 				// ignore error: is not critical
 				erc20Address, found, err = txdb.GetERC20AddressForTFTAddress(addr)
-				if err != nil || !found {
-					if err == nil {
-						err = errors.New("address not found")
-					}
+				if err != nil {
 					if build.DEBUG {
 						log.Printf("error while fetching ERC20 address for TFT Address %v: %v", addr, err)
 					}
+					erc20AddressUnconfirmed = true
+				} else if !found {
+					// try to find it in the TxPool if possible
+					err = nil
+					if tpool != nil {
+						erc20Address = types.ERC20AddressFromUnlockHash(addr)
+						_, found, err = getERC20AddressRegInfoFromTxPool(tpool, erc20Address)
+					}
+					if err == nil && !found {
+						err = errors.New("address not found")
+					}
+					if err != nil && build.DEBUG {
+						log.Printf("error while fetching ERC20 address for TFT Address %v: %v", addr, err)
+					}
+					erc20AddressUnconfirmed = true
 				}
 			}
 
@@ -157,6 +183,25 @@ func NewExplorerHashHandler(explorer modules.Explorer, tpool modules.Transaction
 					resp.ERC20Info = &ExplorerHashERC20Info{
 						TFTAddress:   addr,
 						ERC20Address: erc20Address,
+					}
+					// If not unconfirmed, ensure to add the confirmation height
+					fmt.Println(erc20AddressUnconfirmed, txns)
+					if !erc20AddressUnconfirmed {
+						curHeight := cs.Height()
+						regHeight := curHeight
+						for _, txn := range txns {
+							if txn.RawTransaction.Version != types.TransactionVersionERC20AddressRegistration {
+								continue
+							}
+							regtxn, _ := types.ERC20AddressRegistrationTransactionFromTransaction(txn.RawTransaction)
+							if types.ERC20AddressFromUnlockHash(rtypes.NewPubKeyUnlockHash(regtxn.PublicKey)) == erc20Address {
+								regHeight = txn.Height
+								break
+							}
+						}
+						if curHeight >= regHeight {
+							resp.ERC20Info.Confirmations = uint64((curHeight - regHeight) + 1)
+						}
 					}
 				}
 				rapi.WriteJSON(w, resp)
@@ -258,6 +303,23 @@ func NewExplorerHashHandler(explorer modules.Explorer, tpool modules.Transaction
 		// Hash not found, return an error.
 		rapi.WriteError(w, rapi.Error{Message: "unrecognized hash used as input to /explorer/hash"}, http.StatusBadRequest)
 	}
+}
+
+func getERC20AddressRegInfoFromTxPool(tpool modules.TransactionPool, erc20Addr types.ERC20Address) (rtypes.UnlockHash, bool, error) {
+	for _, txn := range tpool.TransactionList() {
+		if txn.Version != types.TransactionVersionERC20AddressRegistration {
+			continue
+		}
+		regtxn, err := types.ERC20AddressRegistrationTransactionFromTransaction(txn)
+		if err != nil {
+			return rtypes.UnlockHash{}, false, err
+		}
+		uh := rtypes.NewPubKeyUnlockHash(regtxn.PublicKey)
+		if types.ERC20AddressFromUnlockHash(uh) == erc20Addr {
+			return uh, true, nil
+		}
+	}
+	return rtypes.UnlockHash{}, false, nil
 }
 
 // getUnconfirmedTransactions returns a list of all transactions which are unconfirmed and related to the given unlock hash from the transactionpool

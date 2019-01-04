@@ -2140,6 +2140,11 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 		appendStatTableTitle(domParent, "Linked ERC20 Wallet");
 		var erc20WalletTable = createStatsTable();
 		appendStat(erc20WalletTable, 'ERC20 Address', explorerHash.erc20info.erc20address);
+		if (!explorerHash.erc20info.confirmations) {
+			appendStat(erc20WalletTable, 'ERC20 Address Confirmations', 'unconfirmed');
+		} else {
+			appendStat(erc20WalletTable, 'ERC20 Address Confirmations', explorerHash.erc20info.confirmations);
+		}
 		domParent.appendChild(erc20WalletTable);
 	}
 
