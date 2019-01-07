@@ -55,8 +55,7 @@ test-coverage-web: test-coverage
 # for all windows, linux and mac, 64-bit only,
 # using the standard Golang toolchain.
 xc:
-	docker build -t tfchainbuilder -f DockerBuilder .
-	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchainbuilder
+	bash release.sh
 
 docker-minimal: xc
 	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(version)-linux-amd64/cmd .
@@ -76,8 +75,7 @@ release-images: get_hub_jwt docker-minimal
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/ubuntu-16.04-tfchain-$(dockerVersion).flist/link/ubuntu-16.04-tfchain.flist"
 
 xc-edge:
-	docker build -t tfchainbuilderedge -f DockerBuilderEdge .
-	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchainbuilderedge
+	bash release.sh edge
 
 docker-minimal-edge: xc-edge
 	docker build -t tfchain/tfchain:$(dockerVersionEdge) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(dockerVersionEdge)-linux-amd64/cmd .
