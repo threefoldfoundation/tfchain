@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"path/filepath"
 	"sync"
 	"time"
@@ -122,16 +121,12 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 						tx := tfchaintypes.ERC20CoinCreationTransaction{}
 						tx.Address = uh
 
-						// calculate the amount of tokens we need to hand out
-						erc20Tokens := big.NewInt(0).Div(we.amount, erc20Precision)
-						tfTokens := big.NewInt(0).Mul(erc20Tokens, tftPrecision)
-
 						// define the bridgeFee, txFee
 						tx.TransactionFee = chainCts.MinimumTransactionFee
 						tx.BridgeFee = chainCts.CurrencyUnits.OneCoin.Mul64(tfchaintypes.HardcodedERC20BridgeFeeOneCoinMultiplier)
 
 						// define the value, which is the value withdrawn minus the fees
-						tx.Value = types.NewCurrency(tfTokens).Sub(tx.TransactionFee).Sub(tx.BridgeFee)
+						tx.Value = types.NewCurrency(we.amount).Sub(tx.TransactionFee).Sub(tx.BridgeFee)
 
 						// fill in the other info
 						tx.TransactionID = tfchaintypes.ERC20Hash(we.txHash)
@@ -189,17 +184,8 @@ func (bridge *Bridge) Close() {
 	bridge.cs.Unsubscribe(bridge)
 }
 
-var (
-	// 18 digit precision
-	erc20Precision = big.NewInt(0).Exp(big.NewInt(10), big.NewInt(9), nil)
-	// 9 digit precision
-	tftPrecision = big.NewInt(0).Exp(big.NewInt(10), big.NewInt(9), nil)
-)
-
 func (bridge *Bridge) mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
-	tfTokens := big.NewInt(0).Div(amount.Big(), tftPrecision)
-	erc20Tokens := big.NewInt(0).Mul(tfTokens, erc20Precision)
-	return bridge.bridgeContract.mint(common.Address(receiver), erc20Tokens, txID.String())
+	return bridge.bridgeContract.mint(common.Address(receiver), amount.Big(), txID.String())
 }
 
 func (bridge *Bridge) registerWithdrawalAddress(key types.PublicKey) error {
