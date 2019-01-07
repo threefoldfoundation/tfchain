@@ -3,5 +3,4 @@ dist/
 debug
 testnet/
 *.out
-erc20/basic/compiled
-erc20/extended/compiled
+erc20/contract/compiled

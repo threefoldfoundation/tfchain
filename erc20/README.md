@@ -1,21 +1,7 @@
 # erc20
 
-## Basic version
 
-Code is in the [basic](./basic) subdirectory.
-
-[a basic solidity contract](basic/basic_contract.sol), and [basic proxy contract](basic/proxy_contract.sol) +
-compiled files in the contract subdirectory.
-
-
-## Extended version
-
-Code is in the [extended](./extended) subdirectory
-
-This is a more advanced setup which separates the storage for the ERC20 token from the conctract logic. As such,
-the storage model can be reused by both the proxy and the implementations. Although there are multiple different
-contracts here, the only 2 which actually matter are the [basic token contract](./extended/basic_contract.sol) and
-the [token proxy](./extended/token_proxy.sol) contracts.
+The soldity code is in the [contract](./contract) subdirectory
 
 ## Proxy Contract setup
  
@@ -35,7 +21,7 @@ defined in the proxy as well, and the storage layout needs to be the same.
 
 ![contract hierarchy diagram](erc20_setup.svg)
 
-The two main contracts here are TokenProxy  and tokenV0..Vx
+The two main contracts here are Proxy and tokenV0..Vx
 
 **tokenV0..Vx** are the actual upgradeable implementations
 
@@ -60,16 +46,17 @@ There is only a single contract which actually defines a storage layout: `Storag
 their own storage requirements actually use getters and setters which access the storage. The storage structure is defined as a key-value store
 for all available primitive types. The key is defined as a `bytes32` type, in practice we use a `keccak256` hash.
 
+
+## Building
+
+A `compile.sh` script is present  in the contract folder to compile the contracts.
+
+The solidity compiler (`solc`) is required. :
+- Mac osx: `brew install solidity`  
+
 ### Deployment
 
 There are 2 main contracts which need to be deployed: `Proxy` and the actual token implementation (`TokenV0`). The token contract needs to be deployed first, so the `Proxy`
 constructor can set the initial address of said contract. After that, contract upgrades can be done by using the `upgradeTo` method which is inheritted by the actual Token. Once the
 `Proxy` has been deployed, new owners can also be added to it (also via proxied calls to the `Token` contract), who will be allowed to add other owners, change the `Token` contract,
 and call protected methods on said contract.
-
-## Building and deployment
-
-In both the basic and extended folders a `compile.sh` script is present to compile the contracts.
-
-The solidity compiler (`solc`) is required. :
-- Mac osx: `brew install solidity`  

@@ -21,6 +21,8 @@ Faucets:
   1 test ETH/ day can be requested here
 
 ## Technical
+[Explanation of the ethereum contract](../erc20/README.md)
+
 [Detailed  description of all erc20 related transactions](transactions.md#erc20-transactions)
 
 Transactions relevant for wallets supporting this functionality:
