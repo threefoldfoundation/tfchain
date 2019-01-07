@@ -14,6 +14,7 @@ import (
 
 	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
 	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20/contract"
+	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 )
 
 var (
@@ -317,14 +318,11 @@ func (bridge *bridgeContract) transferFunds(recipient common.Address, amount *bi
 		Value:  nil, Nonce: nil, GasLimit: 0, GasPrice: nil,
 	}
 	_, err = bridge.transactor.Transfer(opts, recipient, amount)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 //
-func (bridge *bridgeContract) mint(receiver common.Address, amount *big.Int, txID string) error {
+func (bridge *bridgeContract) mint(receiver tftypes.ERC20Address, amount *big.Int, txID string) error {
 	log.Info("Calling mint function in contract")
 	if amount == nil {
 		return errors.New("invalid amount")
@@ -340,15 +338,20 @@ func (bridge *bridgeContract) mint(receiver common.Address, amount *big.Int, txI
 		Signer: bridge.getSignerFunc(),
 		Value:  nil, Nonce: nil, GasLimit: 0, GasPrice: nil,
 	}
-	_, err = bridge.transactor.MintTokens(opts, receiver, amount, txID)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = bridge.transactor.MintTokens(opts, common.Address(receiver), amount, txID)
+	return err
 }
 
-func (bridge *bridgeContract) registerWithdrawalAddress(address common.Address) error {
-	log.Info("Calling register withdrawel address function in contract")
+func (bridge *bridgeContract) isMintTxID(txID string) (bool, error) {
+	log.Info("Calling isMintID")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+	opts := &bind.CallOpts{Context: ctx}
+	return bridge.caller.IsMintID(opts, txID)
+}
+
+func (bridge *bridgeContract) registerWithdrawalAddress(address tftypes.ERC20Address) error {
+	log.Info("Calling register withdrawal address function in contract")
 	accountAddress, err := bridge.lc.AccountAddress()
 	if err != nil {
 		return err
@@ -360,11 +363,16 @@ func (bridge *bridgeContract) registerWithdrawalAddress(address common.Address) 
 		Signer: bridge.getSignerFunc(),
 		Value:  nil, Nonce: nil, GasLimit: 0, GasPrice: nil,
 	}
-	_, err = bridge.transactor.RegisterWithdrawalAddress(opts, address)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = bridge.transactor.RegisterWithdrawalAddress(opts, common.Address(address))
+	return err
+}
+
+func (bridge *bridgeContract) isWithdrawalAddress(address tftypes.ERC20Address) (bool, error) {
+	log.Info("Calling isWithdrawalAddress function in contract")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+	opts := &bind.CallOpts{Context: ctx}
+	return bridge.caller.IsWithdrawalAddress(opts, common.Address(address))
 }
 
 func (bridge *bridgeContract) getSignerFunc() bind.SignerFn {

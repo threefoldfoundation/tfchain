@@ -185,11 +185,29 @@ func (bridge *Bridge) Close() {
 }
 
 func (bridge *Bridge) mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
-	return bridge.bridgeContract.mint(common.Address(receiver), amount.Big(), txID.String())
+	// check if we already know this ID
+	known, err := bridge.bridgeContract.isMintTxID(txID.String())
+	if err != nil {
+		return err
+	}
+	if known {
+		// we already know this withdrawal address, so ignore the transaction
+		return nil
+	}
+	return bridge.bridgeContract.mint(receiver, amount.Big(), txID.String())
 }
 
 func (bridge *Bridge) registerWithdrawalAddress(key types.PublicKey) error {
 	// convert public key to unlockhash to eth address
 	erc20addr := tfchaintypes.ERC20AddressFromUnlockHash(types.NewPubKeyUnlockHash(key))
-	return bridge.bridgeContract.registerWithdrawalAddress(common.Address(erc20addr))
+	// check if we already know this withdraw address
+	known, err := bridge.bridgeContract.isWithdrawalAddress(erc20addr)
+	if err != nil {
+		return err
+	}
+	if known {
+		// we already know this withdrawal address, so ignore the transaction
+		return nil
+	}
+	return bridge.bridgeContract.registerWithdrawalAddress(erc20addr)
 }
