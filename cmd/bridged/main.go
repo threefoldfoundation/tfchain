@@ -13,6 +13,7 @@ import (
 	"github.com/threefoldtech/rivine/modules/transactionpool"
 
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/threefoldfoundation/tfchain/pkg/cli"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
@@ -45,12 +46,6 @@ type Commands struct {
 
 	RootPersistentDir string
 	transactionDB     *persist.TransactionDB
-}
-
-func getDevnetBootstrapPeers() []modules.NetAddress {
-	return []modules.NetAddress{
-		"localhost:23112",
-	}
 }
 
 // Root represents the root (`bridged`) command,
@@ -111,7 +106,10 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
-		cmd.BootstrapPeers = getDevnetBootstrapPeers()
+		if len(cmd.BootstrapPeers) == 0 {
+			cmd.BootstrapPeers = config.GetDevnetBootstrapPeers()
+		}
+
 	default:
 		return fmt.Errorf(
 			"%q is an invalid network name, has to be one of {standard,testnet,devnet}",
@@ -298,6 +296,13 @@ func main() {
 		"network", "n",
 		cmd.BlockchainInfo.NetworkName,
 		"the name of the tfchain network to  connect to  {standard,testnet,devnet}",
+	)
+
+	cli.NetAddressArrayFlagVar(
+		cmdRoot.Flags(),
+		&cmd.BootstrapPeers,
+		"bootstrap-peers",
+		"overwrite the bootstrap peers to use, instead of using the default bootstrap peers",
 	)
 
 	// bridge flags

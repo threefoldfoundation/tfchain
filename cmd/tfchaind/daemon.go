@@ -25,7 +25,7 @@ import (
 	"github.com/threefoldtech/rivine/pkg/daemon"
 )
 
-func runDaemon(cfg daemon.Config, moduleIdentifiers daemon.ModuleIdentifierSet, erc20Cfg ERC20NodeValidatorConfig) error {
+func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifierSet, erc20Cfg ERC20NodeValidatorConfig) error {
 	// Print a startup message.
 	fmt.Println("Loading...")
 	loadStart := time.Now()
