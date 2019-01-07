@@ -30,10 +30,12 @@ Transactions relevant for wallets supporting this functionality:
 
 The go code defining these transactions resides in [transactions_erc20.go](../pkg/types/transactions_erc20.go)
 
-The mobile wallet should be able to query the status of a withdrawal address registration through the explorer:
-- unregistered
-- unconfirmed ( in tx pool)
-- confirming ( less than 6 blocks deep)
-- confirmed
+It is possible to query the status of a withdrawal address registration through the explorer by looking up the ERC20 address using the regular `/explorer/hashes/:hash` endpoint:
 
-This feature is still in development.
+* If an error is and/or no reply is returned, than the ERC20 can be seen as `unregistered`;
+* If a reply is returned than the `confirmations` child property from the `erc20info` root property has to be checked:
+   * if it is `0`, than the status can be seen as `unconfirmed` (still in Tx pool)
+   * Otherwise the value is `>=1`:
+       * `1` being just created, and thus the highest block is the block in which the address is created
+       * Should the App want, it can thus define a more refined status by checking this confirmations value against an arbitrary value (e.g. `6`) to differentiate for example between `confirming` and `confirmed`;
+
