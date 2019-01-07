@@ -10,9 +10,6 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/rivine/rivine/modules"
-	"github.com/rivine/rivine/modules/consensus"
-	"github.com/rivine/rivine/modules/gateway"
 	"github.com/threefoldtech/rivine/modules/transactionpool"
 
 	"github.com/ethereum/go-ethereum/log"
@@ -21,6 +18,11 @@ import (
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
 
 	"github.com/spf13/cobra"
+	tfchaintypes "github.com/threefoldfoundation/tfchain/pkg/types"
+	"github.com/threefoldtech/rivine/modules"
+	"github.com/threefoldtech/rivine/modules/consensus"
+	"github.com/threefoldtech/rivine/modules/gateway"
+	rivinetypes "github.com/threefoldtech/rivine/types"
 )
 
 // Commands defines the CLI Commands for the Bridge as well as its in-memory state.
@@ -329,13 +331,6 @@ func main() {
 		"ethereum-log-lvl", "e", 3,
 		"Log lvl for the ethereum logger",
 	)
-	NetAddressArrayFlagVar(
-		cmdRoot.Flags(),
-		&cmd.BootstrapPeers,
-		"bootstrap-peer",
-		"overwrite the bootstrap peers to use, instead of using the default bootstrap peer (requird for devnet)",
-	)
-	// Example for running on devnet ./bridged --network devnet --bootstrap-peer "localhost:23112" --bootstrap-peer "localhost:23113"
 
 	// execute logic
 	if err := cmdRoot.Execute(); err != nil {
