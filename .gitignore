@@ -4,3 +4,4 @@ debug
 testnet/
 *.out
 erc20/contract/compiled
+cmd/tfchaind/standard
