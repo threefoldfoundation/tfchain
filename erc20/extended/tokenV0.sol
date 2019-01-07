@@ -170,6 +170,20 @@ contract TTFT20 is OwnedUpgradeableTokenStorage {
         emit RegisterWithdrawalAddress(addr);
     }
 
+    // -----------------------------------------------------------------------
+    // Views to check if a withdrawal address or mint tx IDis already known.
+    // -----------------------------------------------------------------------
+    function  isWithdrawalAddress(address _addr) public view returns (bool) {
+        return _isWithdrawalAddress(_addr);
+    }
+
+    function isMintID(string memory _txid) public view returns (bool) {
+        return _isMintID(_txid);
+    }
+
+    // -----------------------------------------------------------------------
+    // Helper funcs for the eternal storage
+    // -----------------------------------------------------------------------
     function _setWithdrawalAddress(address _addr) internal {
         setBool(keccak256(abi.encode("address","withdrawal", _addr)), true);
     }
