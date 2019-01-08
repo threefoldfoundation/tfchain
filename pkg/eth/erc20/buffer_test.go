@@ -97,36 +97,3 @@ func Test_blockBuffer_rewindBlock(t *testing.T) {
 		})
 	}
 }
-
-// func Test_blockBuffer_pushBlock(t *testing.T) {
-// 	type fields struct {
-// 		blocks  []*bufferedBlock
-// 		current uint
-// 		size    uint
-// 	}
-// 	type args struct {
-// 		block types.Block
-// 		ccid  modules.ConsensusChangeID
-// 	}
-// 	tests := []struct {
-// 		name   string
-// 		fields fields
-// 		args   args
-// 		want   *bufferedBlock
-// 	}{
-// 		// TODO: Add test cases.
-
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			buf := &blockBuffer{
-// 				blocks:  tt.fields.blocks,
-// 				current: tt.fields.current,
-// 				size:    tt.fields.size,
-// 			}
-// 			if got := buf.pushBlock(tt.args.block, tt.args.ccid); !reflect.DeepEqual(got, tt.want) {
-// 				t.Errorf("blockBuffer.pushBlock() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
