@@ -93,10 +93,11 @@ func newBridgeContract(networkName string, port int, accountJSON, accountPass st
 	}
 
 	return &bridgeContract{
-		lc:         lc,
-		filter:     filter,
-		transactor: transactor,
-		caller:     caller,
+		networkConfig: networkConfig,
+		lc:            lc,
+		filter:        filter,
+		transactor:    transactor,
+		caller:        caller,
 	}, nil
 }
 
