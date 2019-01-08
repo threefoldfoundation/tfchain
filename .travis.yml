@@ -6,7 +6,8 @@ jobs:
       install:
         - go get -u github.com/gordonklaus/ineffassign
       script:
-        - make
+        - make install
+        - make install-noeth
         - make ineffassign
         - make test
     - stage: test
@@ -15,6 +16,7 @@ jobs:
       install:
         - go get -u github.com/gordonklaus/ineffassign
       script:
-        - make
+        - make install
+        - make install-noeth
         - make ineffassign
         - make test
