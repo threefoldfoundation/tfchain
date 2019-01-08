@@ -43,16 +43,7 @@ func main() {
 	)
 
 	// eth flags
-	root.Flags().BoolVar(
-		&cmds.erc20Cfg.Enabled,
-		"ethvalidation", false,
-		"enable full validation of ERC20 validation, attaching this node in light-mode to the ETH network",
-	)
-	root.Flags().IntVar(
-		&cmds.erc20Cfg.Port,
-		"ethport", 3003,
-		"network port used by peers on the ETH network to connect to this node should ethvalidation be enabled",
-	)
+	cmds.erc20Cfg.SetFlags(root.Flags())
 
 	// create the other commands
 	root.AddCommand(&cobra.Command{

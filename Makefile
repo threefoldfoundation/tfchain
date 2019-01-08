@@ -36,6 +36,15 @@ install:
 install-std:
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
+	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgebin) $(bridgepkgs)
+
+install-noeth:
+	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
+	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
+
+install-std-noeth:
+	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
+	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
 
 update:
 	git pull && git submodule update --recursive --remote
@@ -51,11 +60,12 @@ test-coverage:
 test-coverage-web: test-coverage
 	go tool cover -html=cover.out
 
-# xc builds and packages release binaries
-# for all windows, linux and mac, 64-bit only,
-# using the standard Golang toolchain.
+# xc for linux-amd64 and darwin-amd64 using xgo (docker)
 xc:
 	bash release.sh
+xc-noeth:
+	docker build -t tfchain_noeth_builder -f DockerBuilderNoEth .
+	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder
 
 docker-minimal: xc
 	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(version)-linux-amd64/cmd .
@@ -76,6 +86,9 @@ release-images: get_hub_jwt docker-minimal
 
 xc-edge:
 	bash release.sh edge
+xc-edge-noeth:
+	docker build -t tfchain_noeth_builder_edge -f DockerBuilderEdgeNoEth .
+	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder_edge
 
 docker-minimal-edge: xc-edge
 	docker build -t tfchain/tfchain:$(dockerVersionEdge) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(dockerVersionEdge)-linux-amd64/cmd .

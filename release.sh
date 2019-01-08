@@ -39,11 +39,11 @@ done
 for os in linux darwin; do
 	folder="release/tfchain-${version}-${os}-amd64"
 	rm -rf "$folder"
-	mkdir -p "$folder"
+	mkdir -p "$folder/cmd"
 
 	# copy binaries
 	for binary in $(ls "$tmpfolder" | grep "$os" | grep "amd64"); do
-		cp "${tmpfolder}/${binary}" "$folder"
+		cp "${tmpfolder}/${binary}" "$folder/cmd/$(echo "$binary" | cut -d- -f1)"
 	done
 
 	# copy other artifacts
@@ -52,9 +52,10 @@ for os in linux darwin; do
 	# go into the release directory
 	pushd release &> /dev/null
 	# zip
+	ziparchive="tfchain-${version}-${os}-amd64.zip"
+	rm -f "$ziparchive"
 	(
-		zip -rq "tfchain-${version}-${os}-amd64.zip" \
-			"tfchain-${version}-${os}-amd64"
+		zip -rq "$ziparchive" "tfchain-${version}-${os}-amd64"
 	)
 	# leave the release directory
 	popd &> /dev/null

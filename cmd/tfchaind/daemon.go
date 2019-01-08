@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethereum/go-ethereum/log"
 	"github.com/threefoldfoundation/tfchain/pkg/api"
 
 	"github.com/julienschmidt/httprouter"
@@ -278,7 +277,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 		srv.Close()
 	case <-ctx.Done():
 		fmt.Println("\rContext is done, quitting...")
-		log.Info("context is done, quitting...")
+		fmt.Println("context is done, quitting...")
 	}
 
 	cancel()
