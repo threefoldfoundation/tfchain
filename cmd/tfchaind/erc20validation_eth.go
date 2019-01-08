@@ -24,13 +24,8 @@ import (
 )
 
 // ERC20NodeValidator implements the ERC20TransactionValidator,
-// getting the transactions using the INFURA service.
-//
-// Goal is to move away from this ASAP and be able to fetch transactions using a Light client,
-// problem is however that the LES/v2 protocol is not implemented yet by default in go-ethereum,
-// it is however implemented server-side. So should we want, we can fork Ethereum,
-// and contribute the client-side calls we care about as to be able to do it all from
-// a light client.
+// getting the transactions using the LES/v2 protocol, see the
+// `github.com/threefoldfoundation/tfchain/pkg/eth` for more info.
 type ERC20NodeValidator struct {
 	lc  *erc20.LightClient
 	abi abi.ABI

@@ -1,4 +1,4 @@
-# erc20
+# ERC20
 
 
 The soldity code is in the [contract](./contract) subdirectory
@@ -30,14 +30,14 @@ This way , the address of the deployed TokenProxy never changes.
 
 helper contracts:
 + Storage defines the storage layout
-+ TokenStorage exposes storage helpers for the erc20 token (balances, allowances, ...). It also has the token constructor which sets some general variables (name, precision, ...)
++ TokenStorage exposes storage helpers for the ERC20 token (balances, allowances, ...). It also has the token constructor which sets some general variables (name, precision, ...)
 + Proxy provides the functionality to delegate any unknown method to an embedded contract address
-+ Owned alllows us to have the notion of "owners", and adds a modifier to methods which ensures that only addresses in the owner list can call them.
++ Owned allows us to have the notion of "owners", and adds a modifier to methods which ensures that only addresses in the owner list can call them.
 + Upgradeable adds the upgrade logic, and stores the address and version of the currently used token contract. Note that this contract is only extended from by the tokens,
     even though these do not use the upgrade logic themselves. This way the proxy does not need to be aware of the actual token upgrade logic, which allows the upgrade logic itself
     to be upgradeable.
 + OwnedUpgradeableTokenStorage extends from Upgradeable and TokenStorage. This includes all the required components
-  for the owned, upgradeable token. (No actual implementation, only inheritence)
+  for the owned, upgradeable token. (No actual implementation, only inheritance)
   The specific token contracts extend from OwnedTokenStorage, so they all have the same memory structure
 
 ### Important
@@ -46,17 +46,16 @@ There is only a single contract which actually defines a storage layout: `Storag
 their own storage requirements actually use getters and setters which access the storage. The storage structure is defined as a key-value store
 for all available primitive types. The key is defined as a `bytes32` type, in practice we use a `keccak256` hash.
 
-
 ## Building
 
 A `compile.sh` script is present  in the contract folder to compile the contracts.
 
-The solidity compiler (`solc`) is required. :
-- Mac osx: `brew install solidity`  
+The solidity compiler (`solc`) is required.
+Please read <https://solidity.readthedocs.io/en/v0.5.2/installing-solidity.html> to know how to install this compiler, should you not have installed it already.
 
 ### Deployment
 
-There are 2 main contracts which need to be deployed: `Proxy` and the actual token implementation (`TokenV0`). The token contract needs to be deployed first, so the `Proxy`
-constructor can set the initial address of said contract. After that, contract upgrades can be done by using the `upgradeTo` method which is inheritted by the actual Token. Once the
+There are two main contracts which need to be deployed: `Proxy` and the actual token implementation (`TokenV0`). The token contract needs to be deployed first, so the `Proxy`
+constructor can set the initial address of said contract. After that, contract upgrades can be done by using the `upgradeTo` method which is inherited by the actual Token. Once the
 `Proxy` has been deployed, new owners can also be added to it (also via proxied calls to the `Token` contract), who will be allowed to add other owners, change the `Token` contract,
 and call protected methods on said contract.

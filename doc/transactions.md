@@ -548,7 +548,7 @@ blake2b_256_hash(RivineBinaryEncoding(
 
 The composition, encoding and signing of the three different ERC20 transactions are fully explained in the following subchapters.
 
-> TODO: link to high-level description of the ERC20 support
+For a more high-level description and motivation about the ERC20 feature, please see [/doc/erc20.md](/doc/erc20.md).
 
 Please note that you might want to make sure that you're familiar with the Rivine binary encoding, used to encode ERC20 transactions.
 You can find more information about the Rivine binary encoding at <https://github.com/threefoldtech/rivine/blob/master/doc/encoding/RivineEncoding.md>.

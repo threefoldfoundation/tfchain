@@ -117,10 +117,6 @@ func (nop NopERC20TransactionValidator) ValidateWithdrawTx(ERC20Hash, ERC20Hash,
 type (
 	// ERC20ConvertTransaction defines the Transaction (with version 0xD1)
 	// used to convert TFT into ERC20 funds paid to the defined ERC20 address.
-	//
-	// NOTE: is it also required to store some confirmation with the ERC20 Tx ID?
-	//       and if so, would it be as a seperate (linked) Tx, or as some attached info
-	//       added to the parent block (somehow)?
 	ERC20ConvertTransaction struct {
 		// The address to send the TFT-converted tfchain ERC20 funds into.
 		Address ERC20Address `json:"address"`
