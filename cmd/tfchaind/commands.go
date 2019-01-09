@@ -154,9 +154,15 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator types.ERC20Transact
 }
 
 func setupERC20TransactionValidator(rootDir, networkName string, erc20Cfg ERC20NodeValidatorConfig, cancel <-chan struct{}) (types.ERC20TransactionValidator, error) {
-	erc20Cfg.NetworkName = "rinkeby"
-	if networkName == config.NetworkNameStandard {
-		erc20Cfg.NetworkName = "mainnet"
+	if erc20Cfg.NetworkName == "" {
+		switch networkName {
+		case config.NetworkNameStandard:
+			erc20Cfg.NetworkName = "mainnet"
+		case config.NetworkNameTest:
+			erc20Cfg.NetworkName = "ropsten"
+		default:
+			erc20Cfg.NetworkName = "rinkeby"
+		}
 	}
 	erc20Cfg.DataDir = path.Join(rootDir, "leth")
 	return NewERC20NodeValidator(erc20Cfg, cancel)

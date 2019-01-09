@@ -54,6 +54,8 @@ func newBridgeContract(networkName string, contractAddress string, port int, acc
 	// override contract address if it's provided
 	if contractAddress != "" {
 		networkConfig.ContractAddress = common.HexToAddress(contractAddress)
+		// TODO: validate ABI of contract,
+		//       see https://github.com/threefoldfoundation/tfchain/issues/261
 	}
 
 	bootstrapNodes, err := networkConfig.GetBootnodes()

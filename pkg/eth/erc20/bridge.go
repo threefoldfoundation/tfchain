@@ -181,11 +181,8 @@ func (bridge *Bridge) Close() error {
 	bridge.mut.Lock()
 	defer bridge.mut.Unlock()
 	err := bridge.bridgeContract.close()
-	if err != nil {
-		return err
-	}
 	bridge.cs.Unsubscribe(bridge)
-	return nil
+	return err
 }
 
 func (bridge *Bridge) mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {

@@ -123,7 +123,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		}
 
 		if cmd.EthNetworkName == "" {
-			// default to rinkeby network on main net
+			// default to rinkeby network on devnet
 			cmd.EthNetworkName = "rinkeby"
 		}
 
@@ -149,6 +149,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		if err != nil {
 			log.Error("Failed to create gateway module", "err", err)
 			cancel()
+			cmdErr = err
 			return
 		}
 		defer func() {
@@ -166,6 +167,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		if err != nil {
 			log.Error("Failed to create consensus module", "err", err)
 			cancel()
+			cmdErr = err
 			return
 		}
 		defer func() {
@@ -179,6 +181,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		if err != nil {
 			log.Error("Failed to subscribe transactionDB module to consensus module", "err", err)
 			cancel()
+			cmdErr = err
 			return
 		}
 		log.Info("loading transactionpool module (3/4)...")
@@ -186,6 +189,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		if err != nil {
 			log.Error("Failed to create txpool module", "err", err)
 			cancel()
+			cmdErr = err
 			return
 		}
 		defer func() {
@@ -203,6 +207,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		if err != nil {
 			log.Error("Failed to create bridge module", "err", err)
 			cancel()
+			cmdErr = err
 			return
 		}
 		defer func() {
@@ -332,7 +337,7 @@ func main() {
 	cmdRoot.Flags().StringVar(
 		&cmd.EthNetworkName,
 		"ethnetwork", "",
-		"The ethereum network, {main, rinkeby, ropsten}",
+		"The ethereum network, {main, rinkeby, ropsten}, defaults to the TFT-linked network",
 	)
 	cmdRoot.Flags().Uint16Var(
 		&cmd.EthPort,
