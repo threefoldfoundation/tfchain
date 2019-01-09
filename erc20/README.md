@@ -1,17 +1,17 @@
 # ERC20
 
 
-The soldity code is in the [contract](./contract) subdirectory
+The Solidity code is in the [contract](./contract) subdirectory
 
 ## Proxy Contract setup
  
-### motivation
+### Motivation
 
-Ethereum contracts are autonomous immutable code. Once deployed to the Ethereum blockchain though, they are essentially set in stone. This means that if a serious bug or issue appears and your contracts aren’t designed in a way that will allow them to be upgraded in your Dapp seamlessly, we're screwed.
+Ethereum contracts are autonomous immutable code. Once deployed to the Ethereum blockchain though, they are essentially set in stone. This means that if a serious bug or issue appears and your contracts aren’t designed in a way that will allow them to be upgraded in your ÐApp seamlessly, you're screwed.
 
-To  solve this we make two main design choices:
-- All main contracts must be upgradable
-- Have a flexible, yet simple way to store data permanently
+To solve this we made two crucial design choices:
+- All main contracts must be upgradable;
+- Have a flexible, yet simple way to store data permanently.
 
 ### Setup
 
@@ -48,7 +48,7 @@ for all available primitive types. The key is defined as a `bytes32` type, in pr
 
 ## Building
 
-A `compile.sh` script is present  in the contract folder to compile the contracts.
+A `compile.sh` script is present in the contract folder to compile the contracts.
 
 The solidity compiler (`solc`) is required.
 Please read <https://solidity.readthedocs.io/en/v0.5.2/installing-solidity.html> to know how to install this compiler, should you not have installed it already.
