@@ -6,7 +6,6 @@ import (
 
 //TestGetEthNetworkConfiguration is not an extensive test,as it would just duplicate  the constans defined in the networks file.
 func TestGetEthNetworkConfiguration(t *testing.T) {
-
 	testcases := []struct {
 		networkname string
 		networkID   uint64
@@ -38,5 +37,13 @@ func TestGetEthNetworkConfiguration(t *testing.T) {
 	_, err := GetEthNetworkConfiguration("foo")
 	if err == nil {
 		t.Error("An unexisting networkname should return an error")
+	}
+}
+
+func TestGetEthNetworkConfigurationInvalid(t *testing.T) {
+	cfg := NetworkConfiguration{bootnodes: []string{"foo"}}
+	nodes, err := cfg.GetBootnodes()
+	if err == nil {
+		t.Fatal("expected error, but received", nodes)
 	}
 }

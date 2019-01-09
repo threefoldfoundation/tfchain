@@ -61,6 +61,25 @@ func TestCompactTimestampLimits(t *testing.T) {
 	}
 }
 
+func TestCompactTimestampBelowNullpoint(t *testing.T) {
+	testCases := []CompactTimestamp{
+		0,
+		1,
+		CompactTimestampNullpoint - 1,
+	}
+	for idx, testCase := range testCases {
+		var cts CompactTimestamp
+		err := rivbin.Unmarshal(rivbin.Marshal(testCase), &cts)
+		if err != nil {
+			t.Error(idx, err)
+			continue
+		}
+		if cts != CompactTimestampNullpoint {
+			t.Error("unexpected compact time stamp:", idx, cts)
+		}
+	}
+}
+
 func TestCompactTimestampBinarySiaEncodingUnmarshalMarshalExample(t *testing.T) {
 	const hexStr = `7af905`
 	b, err := hex.DecodeString(hexStr)
