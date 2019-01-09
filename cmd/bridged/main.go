@@ -75,6 +75,11 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			cmd.BootstrapPeers = config.GetStandardnetBootstrapPeers()
 		}
 
+		if cmd.EthNetworkName == "" {
+			// default to main network on standard net
+			cmd.EthNetworkName = "main"
+		}
+
 	case config.NetworkNameTest:
 		cmd.transactionDB, cmdErr = persist.NewTransactionDB(cmd.rootPerDir(), config.GetTestnetGenesisMintCondition())
 		if cmdErr != nil {
@@ -93,6 +98,11 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			cmd.BootstrapPeers = config.GetTestnetBootstrapPeers()
 		}
 
+		if cmd.EthNetworkName == "" {
+			// default to ropsten network on testnet
+			cmd.EthNetworkName = "ropsten"
+		}
+
 	case config.NetworkNameDev:
 		cmd.transactionDB, cmdErr = persist.NewTransactionDB(cmd.rootPerDir(), config.GetDevnetGenesisMintCondition())
 		if cmdErr != nil {
@@ -109,6 +119,11 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		if len(cmd.BootstrapPeers) == 0 {
 			cmd.BootstrapPeers = config.GetDevnetBootstrapPeers()
+		}
+
+		if cmd.EthNetworkName == "" {
+			// default to rinkeby network on main net
+			cmd.EthNetworkName = "rinkeby"
 		}
 
 	default:
@@ -310,8 +325,8 @@ func main() {
 
 	cmdRoot.Flags().StringVar(
 		&cmd.EthNetworkName,
-		"ethnetwork", "main",
-		"The ethereum network, {main,rinkeby, ropsten}",
+		"ethnetwork", "",
+		"The ethereum network, {main, rinkeby, ropsten}",
 	)
 	cmdRoot.Flags().Uint16Var(
 		&cmd.EthPort,
