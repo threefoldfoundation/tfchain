@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	// blockDelay is the amount of blocks to wait before
+	// BlockDelay is the amount of blocks to wait before
 	// pushing tft transactions to the ethereum contract,
 	// and to push ethereum transactions to the TF chain
-	blockDelay = 6
+	BlockDelay = 6
 )
 
 // Bridge is a high lvl structure which listens on contract events and bridge-related
