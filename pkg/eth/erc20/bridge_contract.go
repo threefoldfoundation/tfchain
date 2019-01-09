@@ -18,11 +18,6 @@ import (
 )
 
 var (
-	// OneToken is the exact value of one token
-	OneToken = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-)
-
-var (
 	ether = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 )
 
