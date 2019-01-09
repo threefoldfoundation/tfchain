@@ -65,7 +65,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 		return nil, errors.New("bridge persistence startup failed: " + err.Error())
 	}
 
-	bridge.buffer = newBlockBuffer(blockDelay)
+	bridge.buffer = newBlockBuffer(BlockDelay)
 
 	err = cs.ConsensusSetSubscribe(bridge, bridge.persist.RecentChange, cancel)
 	if err != nil {
@@ -106,7 +106,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 			case head := <-heads:
 				for id := range txMap {
 					we := txMap[id]
-					if head.Number.Uint64() >= we.blockHeight+blockDelay {
+					if head.Number.Uint64() >= we.blockHeight+BlockDelay {
 						// we waited long enough, create transaction and push it
 						uh, found, err := txdb.GetTFTAddressForERC20Address(tfchaintypes.ERC20Address(we.receiver))
 						if err != nil {
@@ -144,7 +144,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 					}
 				}
 
-				bridge.persist.EthHeight = head.Number.Uint64() - blockDelay
+				bridge.persist.EthHeight = head.Number.Uint64() - BlockDelay
 				// Check for underflow
 				if bridge.persist.EthHeight > head.Number.Uint64() {
 					bridge.persist.EthHeight = 0
