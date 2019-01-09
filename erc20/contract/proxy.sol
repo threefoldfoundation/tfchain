@@ -26,7 +26,9 @@ contract Proxy is TokenStorage {
     constructor() public {
         //set initial contract address, needs to be hardcoded
         // TODO: Set correct address
-        setAddress(keccak256(abi.encode("implementation")), address(0));
+        address impl_addr = address(0);
+        require(impl_addr != address(0), "implementation address can not be the zero address");
+        setAddress(keccak256(abi.encode("implementation")), impl_addr);
         setString(keccak256(abi.encode("version")),"0");
 
         // set initial owner
