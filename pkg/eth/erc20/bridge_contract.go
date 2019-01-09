@@ -45,11 +45,15 @@ func (bridge *bridgeContract) GetContractAdress() common.Address {
 	return bridge.networkConfig.ContractAddress
 }
 
-func newBridgeContract(networkName string, port int, accountJSON, accountPass string, datadir string, cancel <-chan struct{}) (*bridgeContract, error) {
+func newBridgeContract(networkName string, contractAddress string, port int, accountJSON, accountPass string, datadir string, cancel <-chan struct{}) (*bridgeContract, error) {
 	// load correct network config
 	networkConfig, err := tfeth.GetEthNetworkConfiguration(networkName)
 	if err != nil {
 		return nil, err
+	}
+	// override contract address if it's provided
+	if contractAddress != "" {
+		networkConfig.ContractAddress = common.HexToAddress(contractAddress)
 	}
 
 	bootstrapNodes, err := networkConfig.GetBootnodes()

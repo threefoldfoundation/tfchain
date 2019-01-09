@@ -42,7 +42,8 @@ type Commands struct {
 	accJSON string
 	accPass string
 
-	EthLog int
+	EthLog          int
+	ContractAddress string
 
 	RootPersistentDir string
 	transactionDB     *persist.TransactionDB
@@ -188,7 +189,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		log.Info("loading bridged module (4/4)...")
 		bridged, err := erc20.NewBridge(
-			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.perDir("bridge"),
+			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.ContractAddress, cmd.perDir("bridge"),
 			cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
 		if err != nil {
 			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)
@@ -335,6 +336,12 @@ func main() {
 		&cmd.EthLog,
 		"ethereum-log-lvl", "e", 3,
 		"Log lvl for the ethereum logger",
+	)
+
+	cmdRoot.Flags().StringVar(
+		&cmd.ContractAddress,
+		"contract-address", "",
+		"Use a custom contract",
 	)
 
 	// execute logic

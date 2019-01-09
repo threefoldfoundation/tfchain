@@ -44,8 +44,8 @@ type Bridge struct {
 }
 
 // NewBridge creates a new Bridge.
-func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.TransactionPool, ethPort uint16, accountJSON, accountPass string, ethNetworkName string, datadir string, bcInfo types.BlockchainInfo, chainCts types.ChainConstants, cancel <-chan struct{}) (*Bridge, error) {
-	contract, err := newBridgeContract(ethNetworkName, int(ethPort), accountJSON, accountPass, filepath.Join(datadir, "eth"), cancel)
+func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.TransactionPool, ethPort uint16, accountJSON, accountPass string, ethNetworkName string, contractAddress string, datadir string, bcInfo types.BlockchainInfo, chainCts types.ChainConstants, cancel <-chan struct{}) (*Bridge, error) {
+	contract, err := newBridgeContract(ethNetworkName, contractAddress, int(ethPort), accountJSON, accountPass, filepath.Join(datadir, "eth"), cancel)
 	if err != nil {
 		return nil, err
 	}
