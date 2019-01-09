@@ -54,9 +54,9 @@ type Commands struct {
 // starting a bridged daemon instance, running until the user intervenes.
 func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(cmd.EthLog), log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
-	log.Info("starting bridged  0.1.0")
+	log.Info("starting bridge", "version", cmd.BlockchainInfo.ChainVersion.String())
 
-	log.Info("loading network config, registering types and loading rivine transaction db (0/3)...")
+	log.Info("loading network config, registering types and loading rivine transaction db (0/4)...")
 	switch cmd.BlockchainInfo.NetworkName {
 	case config.NetworkNameStandard:
 		cmd.transactionDB, cmdErr = persist.NewTransactionDB(cmd.rootPerDir(), config.GetStandardnetGenesisMintCondition())
@@ -147,8 +147,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			cmd.RPCaddr, true, cmd.perDir("gateway"),
 			cmd.BlockchainInfo, cmd.ChainConstants, cmd.BootstrapPeers)
 		if err != nil {
-			cmdErr = fmt.Errorf("failed to create gateway module: %v", err)
-			log.Error("[ERROR] ", cmdErr)
+			log.Error("Failed to create gateway module", "err", err)
 			cancel()
 			return
 		}
@@ -156,8 +155,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			log.Info("Closing gateway module...")
 			err := gateway.Close()
 			if err != nil {
-				cmdErr = err
-				log.Error("[ERROR] Closing gateway module resulted in an error: ", err)
+				log.Error("Failed to close gateway module", "err", err)
 			}
 		}()
 
@@ -166,8 +164,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			gateway, true, cmd.perDir("consensus"),
 			cmd.BlockchainInfo, cmd.ChainConstants)
 		if err != nil {
-			cmdErr = fmt.Errorf("failed to create consensus module: %v", err)
-			log.Error("[ERROR] ", cmdErr)
+			log.Error("Failed to create consensus module", "err", err)
 			cancel()
 			return
 		}
@@ -175,21 +172,18 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			log.Info("Closing consensus module...")
 			err := cs.Close()
 			if err != nil {
-				cmdErr = err
-				log.Error("[ERROR] Closing consensus module resulted in an error: ", err)
+				log.Error("Failed to close consensus module", "err", err)
 			}
 		}()
 		err = cmd.transactionDB.SubscribeToConsensusSet(cs)
 		if err != nil {
-			cmdErr = fmt.Errorf("failed to subscribe earlier created transactionDB to the consensus created just now: %v", err)
-			log.Error("[ERROR] ", cmdErr)
+			log.Error("Failed to subscribe transactionDB module to consensus module", "err", err)
 			cancel()
 			return
 		}
 		log.Info("loading transactionpool module (3/4)...")
 		tpool, err := transactionpool.New(cs, gateway, cmd.perDir("transactionpool"), cmd.BlockchainInfo, cmd.ChainConstants)
 		if err != nil {
-			cmdErr = fmt.Errorf("failed to create transactionpool module")
 			log.Error("Failed to create txpool module", "err", err)
 			cancel()
 			return
@@ -198,7 +192,6 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			log.Info("Closing transactionpool module...")
 			err := tpool.Close()
 			if err != nil {
-				cmdErr = err
 				log.Error("Failed to close the transactionpool module", "err", err)
 			}
 		}()
@@ -208,15 +201,16 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.ContractAddress, cmd.perDir("bridge"),
 			cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
 		if err != nil {
-			cmdErr = fmt.Errorf("failed to create bridged module: %v", err)
-			log.Error("[ERROR] ", cmdErr)
+			log.Error("Failed to create bridge module", "err", err)
 			cancel()
 			return
 		}
 		defer func() {
 			log.Info("closing bridged module...")
-			bridged.Close()
-
+			err := bridged.Close()
+			if err != nil {
+				log.Error("Failed to close bridge module", "err", err)
+			}
 		}()
 		log.Info("bridged is up and running...")
 

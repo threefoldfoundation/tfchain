@@ -177,11 +177,15 @@ func (bridge *Bridge) commitWithdrawTransaction(tx tfchaintypes.ERC20CoinCreatio
 }
 
 // Close bridge
-func (bridge *Bridge) Close() {
+func (bridge *Bridge) Close() error {
 	bridge.mut.Lock()
 	defer bridge.mut.Unlock()
-	bridge.bridgeContract.close()
+	err := bridge.bridgeContract.close()
+	if err != nil {
+		return err
+	}
 	bridge.cs.Unsubscribe(bridge)
+	return nil
 }
 
 func (bridge *Bridge) mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
