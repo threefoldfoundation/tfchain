@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/threefoldtech/rivine/modules/transactionpool"
@@ -255,15 +256,26 @@ func (cmd *Commands) perDir(module string) string {
 // Version represents the version (`bridged version`) command,
 // returning the version of the tool, dependencies and Go,
 // as well as the OS and Arch type.
-func (cmd *Commands) Version(_ *cobra.Command, args []string) {
-	fmt.Printf("Bridged version            1.2\n")
-	fmt.Printf("TFChain Daemon version  v%s\n", cmd.BlockchainInfo.ChainVersion.String())
-	fmt.Printf("Rivine protocol version v%s\n", cmd.BlockchainInfo.ProtocolVersion.String())
-	fmt.Println()
-	fmt.Printf("Go Version   v%s\n", runtime.Version()[2:])
-	fmt.Printf("GOOS         %s\n", runtime.GOOS)
-	fmt.Printf("GOARCH       %s\n", runtime.GOARCH)
+func (cmd *Commands) Version(_ *cobra.Command, _ []string) {
+	var postfix string
+	switch cmd.BlockchainInfo.NetworkName {
+	case "devnet":
+		postfix = "-dev"
+	case "testnet":
+		postfix = "-testing"
+	case "standard": // ""
+	default:
+		postfix = "-???"
+	}
+	fmt.Printf("%s Bridge Daemon v%s%s\n",
+		strings.Title(cmd.BlockchainInfo.Name),
+		cmd.BlockchainInfo.ChainVersion.String(), postfix)
+	fmt.Println("Rivine Protocol v" + cmd.BlockchainInfo.ProtocolVersion.String())
 
+	fmt.Println()
+	fmt.Printf("Go Version   v%s\r\n", runtime.Version()[2:])
+	fmt.Printf("GOOS         %s\r\n", runtime.GOOS)
+	fmt.Printf("GOARCH       %s\r\n", runtime.GOARCH)
 }
 
 func main() {
