@@ -1,3 +1,4 @@
 release/
 dist/
 *.out
+cmd/tfchaind/testnet

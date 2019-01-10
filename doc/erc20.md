@@ -10,6 +10,8 @@ For the reverse, a receiving address needs to be published on the TFT chain firs
 a block creator node will include the coin creation transaction to a block. Every node can run a validator to only accept valid TFT20 to TFT transactions.
 This allows a user to easily convert TFT to TFT20 and back, making the process to transfer TFT to an exchange that supports TFT20 and back almost seamless.
 
+The reason for the registration of withdrawal adresses is that an ethereum adress is just 20 bytes, the contract would not be able to see the difference between a transfer and a withdrawal if withdrawing from an exchange without this.
+Also, there is no free choice of ethereum address since it would be possible to steal someone else's token otherwise and requiring an ethereum private key and signature would only complicate things a lot.
 ### demo/test exchange wallet
 
 [A small web application is available that mimics the balance page of an exchange for demo, test and development purposes](examples/erc20_monitor).
