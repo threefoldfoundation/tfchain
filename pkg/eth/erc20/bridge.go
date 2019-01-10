@@ -121,12 +121,11 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 						tx := tfchaintypes.ERC20CoinCreationTransaction{}
 						tx.Address = uh
 
-						// define the bridgeFee, txFee
+						// define the txFee
 						tx.TransactionFee = chainCts.MinimumTransactionFee
-						tx.BridgeFee = chainCts.CurrencyUnits.OneCoin.Mul64(tfchaintypes.HardcodedERC20BridgeFeeOneCoinMultiplier)
 
 						// define the value, which is the value withdrawn minus the fees
-						tx.Value = types.NewCurrency(we.amount).Sub(tx.TransactionFee).Sub(tx.BridgeFee)
+						tx.Value = types.NewCurrency(we.amount).Sub(tx.TransactionFee)
 
 						// fill in the other info
 						tx.TransactionID = tfchaintypes.ERC20Hash(we.txHash)

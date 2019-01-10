@@ -667,15 +667,13 @@ func (walletSubCmds *walletSubCmds) sendERC20FundsClaim(hexAddress, strAmount, h
 	}
 
 	txFee := walletSubCmds.cli.Config.MinimumTransactionFee
-	bridgeFee := walletSubCmds.cli.Config.CurrencyUnits.OneCoin.Mul64(types.HardcodedERC20BridgeFeeOneCoinMultiplier)
-	value := amount.Sub(txFee).Sub(bridgeFee)
+	value := amount.Sub(txFee)
 
 	// create the ERC20 CoinCreation Tx
 	tx := types.ERC20CoinCreationTransaction{
 		Address:        address,
 		Value:          value,
 		TransactionFee: txFee,
-		BridgeFee:      bridgeFee,
 		BlockID:        blockID,
 		TransactionID:  transactionID,
 	}

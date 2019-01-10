@@ -1169,21 +1169,6 @@ function appendV209Transaction(infoBody, explorerTransaction, confirmed) {
 				infoBody.appendChild(table);
 			}
 		}
-
-		payouts = getSingleCustomFeeAsFeePayouts(explorerTransaction.id, explorerTransaction.parent, explorerBlock);
-		if (payouts != null) {
-			// In a loop, add a new table for each ERC20 Bridge fee payout.
-			appendStatTableTitle(infoBody, 'ERC20 Bridge Fee Payout');
-			for (var i = 0; i < payouts.length; i++) {
-				var table = createStatsTable();
-				var doms = appendStat(table, 'ID', '');
-				linkHash(doms[2], payouts[i].id);
-				doms = appendStat(table, 'Payout Address', '');
-				linkHash(doms[2], payouts[i].unlockhash);
-				appendStat(table, 'Value', readableCoins(payouts[i].paidvalue));
-				infoBody.appendChild(table);
-			}
-		}
 	}
 }
 

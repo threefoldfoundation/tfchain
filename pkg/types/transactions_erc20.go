@@ -531,13 +531,6 @@ func (eh *ERC20Hash) UnmarshalJSON(b []byte) error {
 	return eh.LoadString(str)
 }
 
-const (
-	// HardcodedERC20BridgeFeeOneCoinMultiplier defines the hardcoded multiplier
-	// (to be multiplied with the OneCoin Currency Value of the network), that defines the constant (hardcoded)
-	// Bridge Fee to be paid to the Bridge Creating the Coins that have been transferred from the ERC20 network.
-	HardcodedERC20BridgeFeeOneCoinMultiplier = 5
-)
-
 type (
 	// ERC20CoinCreationTransaction defines the Transaction (with version 0xD1)
 	// used to convert ERC20 funds into TFT (the reverse of the ERC20ConvertTransaction).
@@ -554,9 +547,6 @@ type (
 		// TransactionFee defines the regular Tx fee.
 		TransactionFee types.Currency `json:"txfee"`
 
-		// BridgeFee defines the fee paid towards the bridge creating the coins.
-		BridgeFee types.Currency `json:"bridgefee"`
-
 		// ERC20 BlockID (Sending ERC20 Funds to TFT) used as to identify
 		// the parent block of the source of this coin creation.
 		BlockID ERC20Hash `json:"blockid"`
@@ -569,7 +559,6 @@ type (
 	ERC20CoinCreationTransactionExtension struct {
 		BlockID       ERC20Hash
 		TransactionID ERC20Hash
-		BridgeFee     types.Currency
 	}
 )
 
@@ -635,7 +624,6 @@ func ERC20CoinCreationTransactionFromTransactionData(txData types.TransactionDat
 		Address:        co.Condition.UnlockHash(),
 		Value:          co.Value,
 		TransactionFee: txData.MinerFees[0],
-		BridgeFee:      extensionData.BridgeFee,
 		BlockID:        extensionData.BlockID,
 		TransactionID:  extensionData.TransactionID,
 	}, nil
@@ -655,7 +643,6 @@ func (etctx *ERC20CoinCreationTransaction) TransactionData() types.TransactionDa
 		Extension: &ERC20CoinCreationTransactionExtension{
 			BlockID:       etctx.BlockID,
 			TransactionID: etctx.TransactionID,
-			BridgeFee:     etctx.BridgeFee,
 		},
 	}
 }
@@ -675,7 +662,6 @@ func (etctx *ERC20CoinCreationTransaction) Transaction() types.Transaction {
 		Extension: &ERC20CoinCreationTransactionExtension{
 			BlockID:       etctx.BlockID,
 			TransactionID: etctx.TransactionID,
-			BridgeFee:     etctx.BridgeFee,
 		},
 	}
 }
@@ -698,7 +684,6 @@ func (etctx ERC20CoinCreationTransaction) MarshalRivine(w io.Writer) error {
 		etctx.Address,
 		etctx.Value,
 		etctx.TransactionFee,
-		etctx.BridgeFee,
 		etctx.BlockID,
 		etctx.TransactionID,
 	)
@@ -710,7 +695,6 @@ func (etctx *ERC20CoinCreationTransaction) UnmarshalRivine(r io.Reader) error {
 		&etctx.Address,
 		&etctx.Value,
 		&etctx.TransactionFee,
-		&etctx.BridgeFee,
 		&etctx.BlockID,
 		&etctx.TransactionID,
 	)
@@ -720,23 +704,21 @@ type (
 	// ERC20CoinCreationTransactionController defines a tfchain-specific transaction controller,
 	// for a transaction type reserved at type 0xD1. It allows the conversion of ERC20-funds to TFT.
 	ERC20CoinCreationTransactionController struct {
-		Registry             ERC20Registry
-		OneCoin              types.Currency
-		BridgeFeePoolAddress types.UnlockHash
-		TxValidator          ERC20TransactionValidator
+		Registry    ERC20Registry
+		OneCoin     types.Currency
+		TxValidator ERC20TransactionValidator
 	}
 )
 
 // ensure at compile time that CoinCreationTransactionController
 // implements the desired interfaces
 var (
-	_ types.TransactionController              = ERC20CoinCreationTransactionController{}
-	_ types.TransactionValidator               = ERC20CoinCreationTransactionController{}
-	_ types.CoinOutputValidator                = ERC20CoinCreationTransactionController{}
-	_ types.BlockStakeOutputValidator          = ERC20CoinCreationTransactionController{}
-	_ types.TransactionSignatureHasher         = ERC20CoinCreationTransactionController{}
-	_ types.TransactionIDEncoder               = ERC20CoinCreationTransactionController{}
-	_ types.TransactionCustomMinerPayoutGetter = ERC20CoinCreationTransactionController{}
+	_ types.TransactionController      = ERC20CoinCreationTransactionController{}
+	_ types.TransactionValidator       = ERC20CoinCreationTransactionController{}
+	_ types.CoinOutputValidator        = ERC20CoinCreationTransactionController{}
+	_ types.BlockStakeOutputValidator  = ERC20CoinCreationTransactionController{}
+	_ types.TransactionSignatureHasher = ERC20CoinCreationTransactionController{}
+	_ types.TransactionIDEncoder       = ERC20CoinCreationTransactionController{}
 )
 
 // EncodeTransactionData implements TransactionController.EncodeTransactionData
@@ -789,10 +771,6 @@ func (etctc ERC20CoinCreationTransactionController) ValidateTransaction(t types.
 	etctx, err := ERC20CoinCreationTransactionFromTransaction(t)
 	if err != nil {
 		return fmt.Errorf("failed to use Tx as a ERC20 CoinCreation Tx: %v", err)
-	}
-	// validate the bridge fee
-	if etctx.BridgeFee.Cmp(etctc.OneCoin.Mul64(HardcodedERC20BridgeFeeOneCoinMultiplier)) != 0 {
-		return errors.New("invalid ERC20 Bridge fee")
 	}
 	// check if the miner fee has the required minimum miner fee
 	if etctx.TransactionFee.Cmp(constants.MinimumMinerFee) == -1 {
@@ -884,21 +862,6 @@ func (etctc ERC20CoinCreationTransactionController) EncodeTransactionIDInput(w i
 		return fmt.Errorf("failed to convert txData to a ERC20 CoinCreation Tx: %v", err)
 	}
 	return siabin.NewEncoder(w).EncodeAll(SpecifierERC20CoinCreationTransaction, cctx)
-}
-
-// GetCustomMinerPayouts implements TransactionCustomMinerPayoutGetter.GetCustomMinerPayouts
-func (etctc ERC20CoinCreationTransactionController) GetCustomMinerPayouts(extension interface{}) ([]types.MinerPayout, error) {
-	// (tx) extension (data) is expected to be a pointer to a valid ERC20CoinCreationTransactionExtension
-	cctxExtension, ok := extension.(*ERC20CoinCreationTransactionExtension)
-	if !ok {
-		return nil, errors.New("invalid extension data for a ERC20 CoinCreation Transaction")
-	}
-	return []types.MinerPayout{
-		{
-			Value:      cctxExtension.BridgeFee,
-			UnlockHash: etctc.BridgeFeePoolAddress,
-		},
-	}, nil
 }
 
 const (

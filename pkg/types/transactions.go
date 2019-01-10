@@ -117,10 +117,9 @@ func RegisterTransactionTypesForStandardNetwork(db TFChainReadDB, erc20TxValidat
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{
-		Registry:             db,
-		OneCoin:              oneCoin,
-		BridgeFeePoolAddress: cfg.ERC20FeePoolAddress,
-		TxValidator:          erc20TxValidator,
+		Registry:    db,
+		OneCoin:     oneCoin,
+		TxValidator: erc20TxValidator,
 	})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry:             db,
@@ -175,10 +174,9 @@ func RegisterTransactionTypesForTestNetwork(db TFChainReadDB, erc20TxValidator E
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{
-		Registry:             db,
-		OneCoin:              oneCoin,
-		BridgeFeePoolAddress: cfg.ERC20FeePoolAddress,
-		TxValidator:          erc20TxValidator,
+		Registry:    db,
+		OneCoin:     oneCoin,
+		TxValidator: erc20TxValidator,
 	})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry:             db,
@@ -227,10 +225,9 @@ func RegisterTransactionTypesForDevNetwork(db TFChainReadDB, erc20TxValidator ER
 
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
 	types.RegisterTransactionVersion(TransactionVersionERC20CoinCreation, ERC20CoinCreationTransactionController{
-		Registry:             db,
-		OneCoin:              oneCoin,
-		BridgeFeePoolAddress: cfg.ERC20FeePoolAddress,
-		TxValidator:          erc20TxValidator,
+		Registry:    db,
+		OneCoin:     oneCoin,
+		TxValidator: erc20TxValidator,
 	})
 	types.RegisterTransactionVersion(TransactionVersionERC20AddressRegistration, ERC20AddressRegistrationTransactionController{
 		Registry:             db,
