@@ -205,16 +205,25 @@ func (lc *LightClient) Close() error {
 }
 
 // FetchTransaction fetches a transaction from a remote peer using its block hash and tx index (within that block).
-func (lc *LightClient) FetchTransaction(ctx context.Context, blockHash common.Hash, txHash common.Hash) (*types.Transaction, error) {
+// Together with a found transactions it also returns the confirmations available for that Tx.
+func (lc *LightClient) FetchTransaction(ctx context.Context, blockHash common.Hash, txHash common.Hash) (*types.Transaction, uint64, error) {
 	block, err := lc.lesc.ApiBackend.GetBlock(ctx, blockHash)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+	chainHeight := lc.lesc.Downloader().Progress().HighestBlock
+	blockHeight := block.Header().Number.Uint64()
+	if blockHeight > chainHeight {
+		return nil, 0, fmt.Errorf(
+			"Tx %q is in block %d while the known chain height is only %d",
+			txHash.String(), blockHeight, chainHeight)
 	}
 	tx := block.Transaction(txHash)
 	if tx == nil {
-		return nil, errors.New("transaction could not be found")
+		return nil, 0, errors.New("transaction could not be found")
 	}
-	return tx, nil
+	confirmations := (chainHeight - blockHeight) + 1
+	return tx, confirmations, nil
 }
 
 // LoadAccount loads an account into this light client,

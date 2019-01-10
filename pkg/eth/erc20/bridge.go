@@ -164,7 +164,7 @@ func (bridge *Bridge) commitWithdrawTransaction(tx tfchaintypes.ERC20CoinCreatio
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 	// verify that the transaction is still present in the block (no forks occurred)
-	_, err := bridge.bridgeContract.lc.FetchTransaction(ctx, common.Hash(tx.BlockID), common.Hash(tx.TransactionID))
+	_, _, err := bridge.bridgeContract.lc.FetchTransaction(ctx, common.Hash(tx.BlockID), common.Hash(tx.TransactionID))
 	if err != nil {
 		return err
 	}

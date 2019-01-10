@@ -23,6 +23,12 @@ import (
 	"github.com/threefoldtech/rivine/types"
 )
 
+const (
+	// MinimumERC20CoinCreationConfirmationsRequired defines the amount of minimum confirmations required,
+	// in order for the ERC20 Node validator to accept a CoinCreation Tx, backed by an ERC20 Tx.
+	MinimumERC20CoinCreationConfirmationsRequired = 25
+)
+
 // ERC20NodeValidator implements the ERC20TransactionValidator,
 // getting the transactions using the LES/v2 protocol, see the
 // `github.com/threefoldfoundation/tfchain/pkg/eth` for more info.
@@ -104,9 +110,14 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 	// Get the transaction
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	tx, err := ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
+	tx, confirmations, err := ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
 	if err != nil {
 		return fmt.Errorf("failed to fetch ERC20 Tx: %v", err)
+	}
+
+	// Validate we have sufficient amount of confirmations available
+	if confirmations < MinimumERC20CoinCreationConfirmationsRequired {
+		return fmt.Errorf("invalid ERC20 Tx: insufficient block confirmations: %d", confirmations)
 	}
 
 	// Extract the data
