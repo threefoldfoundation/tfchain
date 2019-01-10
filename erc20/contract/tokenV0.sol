@@ -41,7 +41,6 @@ contract TTFT20 is OwnedUpgradeableTokenStorage {
     // Burn tokens in a withdrawal
     event Withdraw(address indexed from, address indexed receiver, uint tokens);
 
-
     // name, symbol and decimals getters are optional per the ERC20 spec. Normally auto generated from public variables
     // but that is obviously not going to work for us
 
@@ -73,6 +72,13 @@ contract TTFT20 is OwnedUpgradeableTokenStorage {
         return getBalance(tokenOwner);
     }
 
+    // shouldwithdraw verifies if a target has enough tokens after the edition of the new tokens
+    // to pay the tft transaction fee
+    function shouldWithdraw(address target, uint to_add) private returns (bool) {
+        // 0.1 TFT cost
+        return getBalance(target).add(to_add) > 10**uint(getDecimals() - 1);
+    }
+
 
     // ------------------------------------------------------------------------
     // Transfer the balance from token owner's account to `to` account
@@ -81,7 +87,7 @@ contract TTFT20 is OwnedUpgradeableTokenStorage {
     // ------------------------------------------------------------------------
     function transfer(address to, uint tokens) public returns (bool success) {
         setBalance(msg.sender, getBalance(msg.sender).sub(tokens));
-        if (_isWithdrawalAddress(to)) {
+        if (_isWithdrawalAddress(to) && shouldWithdraw(to, tokens)) {
             emit Withdraw(msg.sender, to, tokens);
         } else {
             setBalance(to, getBalance(to).add(tokens));
@@ -118,7 +124,7 @@ contract TTFT20 is OwnedUpgradeableTokenStorage {
     function transferFrom(address from, address to, uint tokens) public returns (bool success) {
         setAllowed(from, msg.sender, getAllowed(from, msg.sender).sub(tokens));
         setBalance(from, getBalance(from).sub(tokens));
-        if (_isWithdrawalAddress(to)) {
+        if (_isWithdrawalAddress(to) && shouldWithdraw(to, tokens)) {
             emit Withdraw(from, to, tokens);
         } else {
             setBalance(to, getBalance(to).add(tokens));
@@ -163,7 +169,7 @@ contract TTFT20 is OwnedUpgradeableTokenStorage {
         require(!_isWithdrawalAddress(addr), "Withdrawal address already registered");
         _setWithdrawalAddress(addr);
         uint _balance = getBalance(addr);
-        if (_balance > 0) {
+        if (shouldWithdraw(addr, 0)) {
             setBalance(addr, 0);
             emit Withdraw(addr, addr, _balance);
         }
