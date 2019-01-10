@@ -18,10 +18,12 @@ import (
 )
 
 const (
-	// BlockDelay is the amount of blocks to wait before
-	// pushing tft transactions to the ethereum contract,
-	// and to push ethereum transactions to the TF chain
-	BlockDelay = 6
+	// TFTBlockDelay is the amount of blocks to wait before
+	// pushing tft transactions to the ethereum contract
+	TFTBlockDelay = 6
+	// EthBlockDelay is the amount of blocks to wait before
+	// pushing eth transaction to the tfchain network
+	EthBlockDelay = 30
 )
 
 // Bridge is a high lvl structure which listens on contract events and bridge-related
@@ -65,7 +67,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 		return nil, errors.New("bridge persistence startup failed: " + err.Error())
 	}
 
-	bridge.buffer = newBlockBuffer(BlockDelay)
+	bridge.buffer = newBlockBuffer(TFTBlockDelay)
 
 	err = cs.ConsensusSetSubscribe(bridge, bridge.persist.RecentChange, cancel)
 	if err != nil {
@@ -106,7 +108,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 			case head := <-heads:
 				for id := range txMap {
 					we := txMap[id]
-					if head.Number.Uint64() >= we.blockHeight+BlockDelay {
+					if head.Number.Uint64() >= we.blockHeight+EthBlockDelay {
 						// we waited long enough, create transaction and push it
 						uh, found, err := txdb.GetTFTAddressForERC20Address(tfchaintypes.ERC20Address(we.receiver))
 						if err != nil {
@@ -143,7 +145,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 					}
 				}
 
-				bridge.persist.EthHeight = head.Number.Uint64() - BlockDelay
+				bridge.persist.EthHeight = head.Number.Uint64() - EthBlockDelay
 				// Check for underflow
 				if bridge.persist.EthHeight > head.Number.Uint64() {
 					bridge.persist.EthHeight = 0
