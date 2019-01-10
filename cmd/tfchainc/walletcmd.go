@@ -160,12 +160,12 @@ using the unlocked wallet from the tfchain daemon.
 
 	// register flags
 
-	createMinterDefinitionTxCmd.Flags().Var(
-		&walletSubCmds.minterDefinitionTxCfg.Data, "data",
+	createMinterDefinitionTxCmd.Flags().StringVar(
+		&walletSubCmds.minterDefinitionTxCfg.Description, "description", "",
 		"optionally add a description to describe the reasons of transfer of minting power, added as arbitrary data")
 
-	createCoinCreationTxCmd.Flags().Var(
-		&walletSubCmds.coinCreationTxCfg.Data, "data",
+	createCoinCreationTxCmd.Flags().StringVar(
+		&walletSubCmds.coinCreationTxCfg.Description, "description", "",
 		"optionally add a description to describe the origins of the coin creation, added as arbitrary data")
 
 	internal.NetworkAddressArrayFlagVar(
@@ -247,10 +247,10 @@ using the unlocked wallet from the tfchain daemon.
 type walletSubCmds struct {
 	cli                   *rivinecli.CommandLineClient
 	minterDefinitionTxCfg struct {
-		Data cli.ArbitraryDataFlag
+		Description string
 	}
 	coinCreationTxCfg struct {
-		Data cli.ArbitraryDataFlag
+		Description string
 	}
 
 	sendBotRegistrationTxCfg struct {
@@ -306,9 +306,11 @@ func (walletSubCmds *walletSubCmds) createMinterDefinitionTxCmd(cmd *cobra.Comma
 		cli.Die(err)
 	}
 
-	// if data is given, use it as arbitrary data
-	tx.ArbitraryData.Data = walletSubCmds.minterDefinitionTxCfg.Data.Data
-	tx.ArbitraryData.Type = walletSubCmds.minterDefinitionTxCfg.Data.DataType
+	// if a description is given, use it as arbitrary data
+	if n := len(walletSubCmds.minterDefinitionTxCfg.Description); n > 0 {
+		tx.ArbitraryData = make([]byte, n)
+		copy(tx.ArbitraryData[:], walletSubCmds.minterDefinitionTxCfg.Description[:])
+	}
 
 	// encode the transaction as a JSON-encoded string and print it to the STDOUT
 	json.NewEncoder(os.Stdout).Encode(tx.Transaction())
@@ -334,8 +336,10 @@ func (walletSubCmds *walletSubCmds) createCoinCreationTxCmd(cmd *cobra.Command, 
 		Nonce:     types.RandomTransactionNonce(),
 		MinerFees: []rivinetypes.Currency{walletSubCmds.cli.Config.MinimumTransactionFee},
 	}
-	tx.ArbitraryData.Data = walletSubCmds.coinCreationTxCfg.Data.Data
-	tx.ArbitraryData.Type = walletSubCmds.coinCreationTxCfg.Data.DataType
+	if n := len(walletSubCmds.coinCreationTxCfg.Description); n > 0 {
+		tx.ArbitraryData = make([]byte, n)
+		copy(tx.ArbitraryData[:], walletSubCmds.coinCreationTxCfg.Description[:])
+	}
 	for _, pair := range pairs {
 		tx.CoinOutputs = append(tx.CoinOutputs, rivinetypes.CoinOutput{
 			Value:     pair.Value,

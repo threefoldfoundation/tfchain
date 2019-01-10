@@ -184,7 +184,7 @@ func ERC20ConvertTransactionFromTransactionData(txData types.TransactionData) (E
 		return ERC20ConvertTransaction{}, errors.New("no block stake inputs/outputs are allowed in an ERC20 Convert Transaction")
 	}
 	// no arbitrary data is allowed
-	if len(txData.ArbitraryData.Data) > 0 {
+	if len(txData.ArbitraryData) > 0 {
 		return ERC20ConvertTransaction{}, errors.New("no arbitrary data is allowed in an ERC20 Convert Transaction")
 	}
 	// validate that the coin outputs is within the expected range
@@ -602,7 +602,7 @@ func ERC20CoinCreationTransactionFromTransactionData(txData types.TransactionDat
 		return ERC20CoinCreationTransaction{}, errors.New("no block stake inputs/outputs are allowed in an ERC20 CoinCreation Transaction")
 	}
 	// no arbitrary data is allowed
-	if len(txData.ArbitraryData.Data) > 0 {
+	if len(txData.ArbitraryData) > 0 {
 		return ERC20CoinCreationTransaction{}, errors.New("no arbitrary data is allowed in an ERC20 CoinCreation Transaction")
 	}
 	// validate that we only have one coin output
@@ -977,7 +977,7 @@ func ERC20AddressRegistrationTransactionFromTransactionData(txData types.Transac
 		return ERC20AddressRegistrationTransaction{}, errors.New("no block stake inputs/outputs are allowed in an ERC20 Address Registration Transaction")
 	}
 	// no arbitrary data is allowed
-	if len(txData.ArbitraryData.Data) > 0 {
+	if len(txData.ArbitraryData) > 0 {
 		return ERC20AddressRegistrationTransaction{}, errors.New("no arbitrary data is allowed in an ERC20 Address Registration Transaction")
 	}
 	// validate that the coin outputs is within the expected range

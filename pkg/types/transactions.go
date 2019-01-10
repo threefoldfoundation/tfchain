@@ -458,11 +458,7 @@ func (cctc CoinCreationTransactionController) ValidateTransaction(t types.Transa
 	}
 
 	// validate the rest of the content
-	err = types.ArbitraryDataFits(cctx.ArbitraryData.Data, constants.ArbitraryDataSizeLimit)
-	if err != nil {
-		return
-	}
-	err = cctx.ArbitraryData.Validate()
+	err = types.ArbitraryDataFits(cctx.ArbitraryData, constants.ArbitraryDataSizeLimit)
 	if err != nil {
 		return
 	}
@@ -650,11 +646,7 @@ func (mdtc MinterDefinitionTransactionController) ValidateTransaction(t types.Tr
 	}
 
 	// validate the rest of the content
-	err = types.ArbitraryDataFits(mdtx.ArbitraryData.Data, constants.ArbitraryDataSizeLimit)
-	if err != nil {
-		return
-	}
-	err = mdtx.ArbitraryData.Validate()
+	err = types.ArbitraryDataFits(mdtx.ArbitraryData, constants.ArbitraryDataSizeLimit)
 	if err != nil {
 		return
 	}
@@ -768,20 +760,20 @@ type (
 	// (so without having to spend previously unspend coin outputs, see: coin inputs).
 	CoinCreationTransaction struct {
 		// Nonce used to ensure the uniqueness of a CoinCreationTransaction's ID and signature.
-		Nonce TransactionNonce
+		Nonce TransactionNonce `json:"nonce"`
 		// MintFulfillment defines the fulfillment which is used in order to
 		// fulfill the globally defined MintCondition.
-		MintFulfillment types.UnlockFulfillmentProxy
+		MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
 		// CoinOutputs defines the coin outputs,
 		// which contain the freshly created coins, adding to the total pool of coins
 		// available in the tfchain network.
-		CoinOutputs []types.CoinOutput
+		CoinOutputs []types.CoinOutput `json:"coinoutputs"`
 		// Minerfees, a fee paid for this coin creation transaction.
-		MinerFees []types.Currency
+		MinerFees []types.Currency `json:"minerfees"`
 		// ArbitraryData can be used for any purpose,
 		// but is mostly to be used in order to define the reason/origins
 		// of the coin creation.
-		ArbitraryData types.ArbitraryData
+		ArbitraryData []byte `json:"arbitrarydata,omitempty"`
 	}
 	// CoinCreationTransactionExtension defines the CoinCreationTx Extension Data
 	CoinCreationTransactionExtension struct {
@@ -869,75 +861,28 @@ func (cctx *CoinCreationTransaction) Transaction() types.Transaction {
 	}
 }
 
-type jsonCoinCreationTransaction struct {
-	// Nonce used to ensure the uniqueness of a CoinCreationTransaction's ID and signature.
-	Nonce TransactionNonce `json:"nonce"`
-	// MintFulfillment defines the fulfillment which is used in order to
-	// fulfill the globally defined MintCondition.
-	MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
-	// CoinOutputs defines the coin outputs,
-	// which contain the freshly created coins, adding to the total pool of coins
-	// available in the tfchain network.
-	CoinOutputs []types.CoinOutput `json:"coinoutputs"`
-	// Minerfees, a fee paid for this coin creation transaction.
-	MinerFees []types.Currency `json:"minerfees"`
-	// ArbitraryData can be used for any purpose,
-	// but is mostly to be used in order to define the reason/origins
-	// of the coin creation.
-	ArbitraryData     []byte                  `json:"arbitrarydata,omitempty"`
-	ArbitraryDataType types.ArbitraryDataType `json:"arbitrarydatatype,omitempty"`
-}
-
-// MarshalJSON implements json.Marshaler.MarshalJSON
-func (cctx CoinCreationTransaction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(jsonCoinCreationTransaction{
-		Nonce:             cctx.Nonce,
-		MintFulfillment:   cctx.MintFulfillment,
-		CoinOutputs:       cctx.CoinOutputs,
-		MinerFees:         cctx.MinerFees,
-		ArbitraryData:     cctx.ArbitraryData.Data,
-		ArbitraryDataType: cctx.ArbitraryData.Type,
-	})
-}
-
-// UnmarshalJSON implements json.Unmarshaler.UnmarshalJSON
-func (cctx *CoinCreationTransaction) UnmarshalJSON(b []byte) error {
-	var jcctx jsonCoinCreationTransaction
-	err := json.Unmarshal(b, &jcctx)
-	if err != nil {
-		return err
-	}
-	cctx.Nonce = jcctx.Nonce
-	cctx.MintFulfillment = jcctx.MintFulfillment
-	cctx.CoinOutputs = jcctx.CoinOutputs
-	cctx.MinerFees = jcctx.MinerFees
-	cctx.ArbitraryData.Data = jcctx.ArbitraryData
-	cctx.ArbitraryData.Type = jcctx.ArbitraryDataType
-	return nil
-}
-
 type (
 	// MinterDefinitionTransaction is to be created only by the defined Coin Minters,
 	// as a medium in order to transfer minting powers.
 	MinterDefinitionTransaction struct {
 		// Nonce used to ensure the uniqueness of a MinterDefinitionTransaction's ID and signature.
-		Nonce TransactionNonce
+		Nonce TransactionNonce `json:"nonce"`
 		// MintFulfillment defines the fulfillment which is used in order to
 		// fulfill the globally defined MintCondition.
-		MintFulfillment types.UnlockFulfillmentProxy
+		MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
 		// MintCondition defines a new condition that defines who become(s) the new minter(s),
 		// and thus defines who can create coins as well as update who is/are the current minter(s)
 		//
 		// UnlockHash (unlockhash type 1) and MultiSigConditions are allowed,
 		// as well as TimeLocked conditions which have UnlockHash- and MultiSigConditions as
 		// internal condition.
-		MintCondition types.UnlockConditionProxy
+		MintCondition types.UnlockConditionProxy `json:"mintcondition"`
 		// Minerfees, a fee paid for this minter definition transaction.
-		MinerFees []types.Currency
+		MinerFees []types.Currency `json:"minerfees"`
 		// ArbitraryData can be used for any purpose,
 		// but is mostly to be used in order to define the reason/origins
 		// of the transfer of minting power.
-		ArbitraryData types.ArbitraryData
+		ArbitraryData []byte `json:"arbitrarydata,omitempty"`
 	}
 	// MinterDefinitionTransactionExtension defines the MinterDefinitionTx Extension Data
 	MinterDefinitionTransactionExtension struct {
@@ -1026,56 +971,6 @@ func (cctx *MinterDefinitionTransaction) Transaction() types.Transaction {
 			MintCondition:   cctx.MintCondition,
 		},
 	}
-}
-
-type jsonMinterDefinitionTransaction struct {
-	// Nonce used to ensure the uniqueness of a MinterDefinitionTransaction's ID and signature.
-	Nonce TransactionNonce `json:"nonce"`
-	// MintFulfillment defines the fulfillment which is used in order to
-	// fulfill the globally defined MintCondition.
-	MintFulfillment types.UnlockFulfillmentProxy `json:"mintfulfillment"`
-	// MintCondition defines a new condition that defines who become(s) the new minter(s),
-	// and thus defines who can create coins as well as update who is/are the current minter(s)
-	//
-	// UnlockHash (unlockhash type 1) and MultiSigConditions are allowed,
-	// as well as TimeLocked conditions which have UnlockHash- and MultiSigConditions as
-	// internal condition.
-	MintCondition types.UnlockConditionProxy `json:"mintcondition"`
-	// Minerfees, a fee paid for this minter definition transaction.
-	MinerFees []types.Currency `json:"minerfees"`
-	// ArbitraryData can be used for any purpose,
-	// but is mostly to be used in order to define the reason/origins
-	// of the transfer of minting power.
-	ArbitraryData     []byte                  `json:"arbitrarydata,omitempty"`
-	ArbitraryDataType types.ArbitraryDataType `json:"arbitrarydatatype,omitempty"`
-}
-
-// MarshalJSON implements json.Marshaler.MarshalJSON
-func (cctx MinterDefinitionTransaction) MarshalJSON() ([]byte, error) {
-	return json.Marshal(jsonMinterDefinitionTransaction{
-		Nonce:             cctx.Nonce,
-		MintFulfillment:   cctx.MintFulfillment,
-		MintCondition:     cctx.MintCondition,
-		MinerFees:         cctx.MinerFees,
-		ArbitraryData:     cctx.ArbitraryData.Data,
-		ArbitraryDataType: cctx.ArbitraryData.Type,
-	})
-}
-
-// UnmarshalJSON implements json.Unmarshaler.UnmarshalJSON
-func (cctx *MinterDefinitionTransaction) UnmarshalJSON(b []byte) error {
-	var jcctx jsonMinterDefinitionTransaction
-	err := json.Unmarshal(b, &jcctx)
-	if err != nil {
-		return err
-	}
-	cctx.Nonce = jcctx.Nonce
-	cctx.MintFulfillment = jcctx.MintFulfillment
-	cctx.MintCondition = jcctx.MintCondition
-	cctx.MinerFees = jcctx.MinerFees
-	cctx.ArbitraryData.Data = jcctx.ArbitraryData
-	cctx.ArbitraryData.Type = jcctx.ArbitraryDataType
-	return nil
 }
 
 // 3bot Multiplier fees that have to be multiplied with the OneCoin definition,
@@ -2981,7 +2876,7 @@ func validateBotInMemoryTransactionDataRequirements(txData types.TransactionData
 		return errors.New("no block stake inputs/outputs are allowed in a Bot Transaction")
 	}
 	// no arbitrary data is allowed
-	if len(txData.ArbitraryData.Data) > 0 {
+	if len(txData.ArbitraryData) > 0 {
 		return errors.New("no arbitrary data is allowed in a Bot Transaction")
 	}
 	// validate that the coin outputs is within the expected range
