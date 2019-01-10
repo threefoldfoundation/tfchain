@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -2318,6 +2319,30 @@ func TestComputeMonthlyBotFees(t *testing.T) {
 		if !fee.Equals(testCase.ExpectedFee) {
 			t.Error(idx, testCase.NrOfMonths, "unexpected result", fee, "!=", testCase.ExpectedFee)
 		}
+	}
+}
+
+// Test to ensure that the initial bot reg tx binary format is no longer valid when decoding.
+func TestOutdatedBotRegisterationTransactionBinaryFormat(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
+
+	b, err := hex.DecodeString(`90e1113833626f742e7a6169626f6e2e62651a746633626f742e7a6169626f6e040000000000000005f5e1000201c4de6f0b9dbac6e9a398c313378733b98da930ab4accb403efc24c5267bb1a0180000000000000006564323535313900000000000000000020000000000000009e095c02584a5b042dfcf679837c88be924c40c95f173fe24d96852f6fd8c1934000000000000000b0f127cd3d85bf81fe354738deeaad6f8e570ecdb84a4ad435d24e4340718668fe22d0cdf3779e82257a85de18499755a35ac104240d47523940d244fc43140605000000000000005c98c4690001210000000000000001e9e4ab0970a899d02588d002cecb67ff942c81737501ddefe8aaf14bbdf722790172ebed8fd8b75fce87485ebe7184cf28b838d9e9ff55bbb23b8508f60fdede9edd0388c935f463a4d58f0c2e961aef54f69ca09c2ecff3a962bfebbae19648bf813cfd7b6830260ba9d464b8bbe11a064426bcd5f93675c72c67ddfedf15c404`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tx types.Transaction
+	err = siabin.Unmarshal(b, &tx)
+	if err == nil {
+		t.Fatal("expected error, but managed to unmarshal Tx:", tx)
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "could not decode type types.Transaction") {
+		t.Fatal("unexpected error, expected type-decode error, but received:", err)
 	}
 }
 
