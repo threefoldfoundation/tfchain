@@ -215,11 +215,11 @@ func (lc *LightClient) FetchTransaction(ctx context.Context, blockHash common.Ha
 	if err != nil {
 		return nil, 0, err
 	}
-	chainHeight := lc.lesc.Downloader().Progress().HighestBlock
+	chainHeight := lc.lesc.Downloader().Progress().CurrentBlock
 	blockHeight := block.Header().Number.Uint64()
 	if blockHeight > chainHeight {
 		return nil, 0, fmt.Errorf(
-			"Tx %q is in block %d while the known chain height is only %d",
+			"Tx %q is in block %d while the current chain height is only %d",
 			txHash.String(), blockHeight, chainHeight)
 	}
 	tx := block.Transaction(txHash)
