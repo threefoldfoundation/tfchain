@@ -106,6 +106,7 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 
 			// If we get a new head, check every withdraw we have to see if it has matured
 			case head := <-heads:
+				bridge.mut.Lock()
 				for id := range txMap {
 					we := txMap[id]
 					if head.Number.Uint64() >= we.blockHeight+EthBlockDelay {
@@ -153,6 +154,8 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 				if err := bridge.save(); err != nil {
 					log.Error("Failed to save bridge persistency", "err", err)
 				}
+
+				bridge.mut.Unlock()
 			}
 		}
 	}()
