@@ -54,7 +54,7 @@ var ethNetworkConfigurations = map[string]NetworkConfiguration{
 		4,
 		"rinkeby",
 		core.DefaultRinkebyGenesisBlock(),
-		common.HexToAddress("0xa99000aD598cdF135A23A10BFAb8a239AbC412a3"),
+		common.HexToAddress("0x3bb58ffA340861b2Bac19c8b18262375F68c0AA5"),
 		params.RinkebyBootnodes,
 	},
 }

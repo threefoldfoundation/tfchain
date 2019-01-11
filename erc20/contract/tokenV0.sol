@@ -74,7 +74,7 @@ contract TTFT20 is OwnedUpgradeableTokenStorage {
 
     // shouldwithdraw verifies if a target has enough tokens after the edition of the new tokens
     // to pay the tft transaction fee
-    function shouldWithdraw(address target, uint to_add) private returns (bool) {
+    function shouldWithdraw(address target, uint to_add) private view returns (bool) {
         // 0.1 TFT cost
         return getBalance(target).add(to_add) > 10**uint(getDecimals() - 1);
     }
