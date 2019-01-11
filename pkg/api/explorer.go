@@ -136,6 +136,9 @@ func NewExplorerHashHandler(explorer modules.Explorer, cs modules.ConsensusSet, 
 					if err != nil && build.DEBUG {
 						log.Printf("error while fetching ERC20 address for TFT Address %v: %v", addr, err)
 					}
+					if !found {
+						erc20Address = types.ERC20Address{}
+					}
 					erc20AddressUnconfirmed = true
 				}
 			}
