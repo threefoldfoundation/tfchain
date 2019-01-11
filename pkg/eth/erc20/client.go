@@ -215,7 +215,7 @@ func (lc *LightClient) FetchTransaction(ctx context.Context, blockHash common.Ha
 	if err != nil {
 		return nil, 0, err
 	}
-	chainHeight := lc.lesc.Downloader().Progress().CurrentBlock
+	chainHeight := lc.lesc.BlockChain().CurrentHeader().Number.Uint64()
 	blockHeight := block.Header().Number.Uint64()
 	if blockHeight > chainHeight {
 		return nil, 0, fmt.Errorf(
