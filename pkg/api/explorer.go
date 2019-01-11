@@ -85,7 +85,7 @@ func NewExplorerHashHandler(explorer modules.Explorer, cs modules.ConsensusSet, 
 			addr, err := rapi.ScanAddress(hstr)
 			var found bool
 			if err != nil {
-				if len(hstr) != types.ERC20AddressLength*2 {
+				if !types.IsERC20Address(hstr) {
 					rapi.WriteError(w, rapi.Error{Message: err.Error()}, http.StatusBadRequest)
 					return
 				}

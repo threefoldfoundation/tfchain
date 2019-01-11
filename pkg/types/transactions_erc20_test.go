@@ -10,6 +10,157 @@ import (
 	"github.com/threefoldtech/rivine/types"
 )
 
+func TestERC20AddressStringLoading_valid(t *testing.T) {
+	validTestCases := []struct {
+		Inputs        []string
+		ExpectedBytes []byte
+	}{
+		{
+			[]string{
+				``,
+			},
+			[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			[]string{
+				`0102030405060708090001020304050607080900`,
+				`0x0102030405060708090001020304050607080900`,
+				`0X0102030405060708090001020304050607080900`,
+			},
+			[]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0},
+		},
+		{
+			[]string{
+				`a1020304050607080900010203040506070809FF`,
+				`0xa1020304050607080900010203040506070809FF`,
+				`0Xa1020304050607080900010203040506070809FF`,
+				`A1020304050607080900010203040506070809ff`,
+				`0xa1020304050607080900010203040506070809fF`,
+				`0XA1020304050607080900010203040506070809Ff`,
+			},
+			[]byte{161, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 255},
+		},
+	}
+	for idx, validTestCase := range validTestCases {
+		for udx, input := range validTestCase.Inputs {
+			if input != "" && !IsERC20Address(input) {
+				t.Error(idx, udx, "IsERC20Address returned false, while expected it to be true", input)
+			}
+			var addr ERC20Address
+			err := addr.LoadString(input)
+			if err != nil {
+				t.Error("LoadString Error", idx, udx, err)
+				continue
+			}
+			if !bytes.Equal(addr[:], validTestCase.ExpectedBytes[:]) {
+				t.Error("unexpected addr", addr[:], "!=", validTestCase.ExpectedBytes[:])
+			}
+		}
+	}
+}
+
+func TestERC20AddressStringLoading_invalid(t *testing.T) {
+	invalidTestCases := []string{
+		// invalid lengths
+		`0`,
+		`0x`,
+		`0X`,
+		`010203040506070809000102030405060708090`,
+		`0x010203040506070809000102030405060708090`,
+		`0x010203040506070809000102`,
+		`010203040506070809000102`,
+		// invalid char
+		`dXA1020304050607080900010203040506070809Ff`,
+		`0yA1020304050607080900010203040506070809Ff`,
+		`0xG1020304050607080900010203040506070809Ff`,
+		`010203040506070809000102030405060708090N`,
+	}
+	for idx, invalidTestCase := range invalidTestCases {
+		if IsERC20Address(invalidTestCase) {
+			t.Error(idx, "IsERC20Address returned true, while expected it to be false", invalidTestCase)
+		}
+		var addr ERC20Address
+		err := addr.LoadString(invalidTestCase)
+		if err == nil {
+			t.Error(idx, "loaded invalid test case succesfully:", addr)
+		}
+	}
+}
+
+func TestERC20HashStringLoading_valid(t *testing.T) {
+	validTestCases := []struct {
+		Inputs        []string
+		ExpectedBytes []byte
+	}{
+		{
+			[]string{
+				``,
+			},
+			[]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			[]string{
+				`0102030405060708090001020304050607080900010203040506070809000102`,
+				`0x0102030405060708090001020304050607080900010203040506070809000102`,
+				`0X0102030405060708090001020304050607080900010203040506070809000102`,
+			},
+			[]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2},
+		},
+		{
+			[]string{
+				`a1020304050607080900010203040506070809000102030405060708090001ff`,
+				`0xA1020304050607080900010203040506070809000102030405060708090001fF`,
+				`0XA1020304050607080900010203040506070809000102030405060708090001FF`,
+			},
+			[]byte{161, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 255},
+		},
+	}
+	for idx, validTestCase := range validTestCases {
+		for udx, input := range validTestCase.Inputs {
+			if input != "" && !IsERC20Hash(input) {
+				t.Error(idx, udx, "IsERC20Hash returned false, while expected it to be true", input)
+			}
+			var hash ERC20Hash
+			err := hash.LoadString(input)
+			if err != nil {
+				t.Error("LoadString Error", idx, udx, err)
+				continue
+			}
+			if !bytes.Equal(hash[:], validTestCase.ExpectedBytes[:]) {
+				t.Error("unexpected hash", hash[:], "!=", validTestCase.ExpectedBytes[:])
+			}
+		}
+	}
+}
+
+func TestERC20HashStringLoading_invalid(t *testing.T) {
+	invalidTestCases := []string{
+		// invalid lengths
+		`0`,
+		`0x`,
+		`0X`,
+		`010203040506070809000102030405060708090001020304050607080900010`,
+		`0102030405060708090001020304050607080900`,
+		`0x0102030405060708090001020304050607`,
+		`0x010203040506070809000102`,
+		// invalid char
+		`dX010203040506070809000102030405060708090001020304050607080900010`,
+		`0y010203040506070809000102030405060708090001020304050607080900010`,
+		`0xG10203040506070809000102030405060708090001020304050607080900010`,
+		`0x01020304050607080900010203040506070809000102030405060708090001N`,
+	}
+	for idx, invalidTestCase := range invalidTestCases {
+		if IsERC20Hash(invalidTestCase) {
+			t.Error(idx, "IsERC20Hash returned true, while expected it to be false", invalidTestCase)
+		}
+		var hash ERC20Hash
+		err := hash.LoadString(invalidTestCase)
+		if err == nil {
+			t.Error(idx, "loaded invalid test case succesfully:", hash)
+		}
+	}
+}
+
 func TestJSONExampleERC20ConvertTransaction(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionERC20Conversion, ERC20ConvertTransactionController{})
@@ -18,7 +169,7 @@ func TestJSONExampleERC20ConvertTransaction(t *testing.T) {
 	const jsonEncodedExample = `{
 	"version": 208,
 	"data": {
-		"address": "0123456789012345678901234567890123456789",
+		"address": "0x0123456789012345678901234567890123456789",
 		"value": "200000000000",
 		"txfee": "1000000000",
 		"coininputs": [{
@@ -99,8 +250,8 @@ func TestJSONExampleERC20CoinCreationTransaction(t *testing.T) {
 		"address": "01f68299b26a89efdb4351a61c3a062321d23edbc1399c8499947c1313375609adbbcd3977363c",
 		"value": "100000000000",
 		"txfee": "1000000000",
-		"blockid": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-		"txid": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+		"blockid": "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+		"txid": "0xabcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
 	}
 }`
 
@@ -159,7 +310,7 @@ func TestJSONExampleERC20AddressRegistrationTransaction(t *testing.T) {
 	"data": {
 		"pubkey": "ed25519:a271b9d4c1258f070e1e8d95250e6d29f683649829c2227564edd5ddeb75819d",
 		"tftaddress": "01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f",
-		"erc20address": "828de486adc50aa52dab52a2ec284bcac75be211",
+		"erc20address": "0x828de486adc50aa52dab52a2ec284bcac75be211",
 		"signature": "fe13823a96928a573f20a63f3b8d3cde08c506fa535d458120fdaa5f1c78f6939c81bf91e53393130fbfee32ff4e9cb6022f14ae7750d126a7b6c0202c674b02",
 		"regfee": "10000000000",
 		"txfee": "1000000000",

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldtech/rivine/crypto"
@@ -44,13 +45,36 @@ var (
 // ERC20AddressLength defines the length of the fixed-sized ERC20Address type explicitly.
 const ERC20AddressLength = 20
 
+// trimERC20HexPrefix is a utility function to trim the optional 0x/0X prefix,
+// that is common to be added to hex-encoded ERC20 hashes.
+func trimERC20HexPrefix(str string) string {
+	if len(str) < 2 {
+		return str
+	}
+	if str[0] == '0' && (str[1] == 'x' || str[1] == 'X') {
+		return str[2:]
+	}
+	return str
+}
+
+const erc20HexStr = "^(0[xX])?[0-9a-fA-F]{%d}$"
+
+var (
+	reERC20Addr = regexp.MustCompile(fmt.Sprintf(erc20HexStr, ERC20AddressLength*2))
+)
+
+// IsERC20Address returns true if the given string represents an ERC20 Address.
+func IsERC20Address(str string) bool {
+	return reERC20Addr.MatchString(str)
+}
+
 // ERC20Address defines an ERC20 address as a fixed-sized byte array of length 20,
 // and is used in order to be able to convert TFT into tradeable tfchain ERC20 funds.
 type ERC20Address [ERC20AddressLength]byte
 
 // String returns this ERC20Address as a string.
 func (address ERC20Address) String() string {
-	return hex.EncodeToString(address[:])
+	return "0x" + hex.EncodeToString(address[:])
 }
 
 // LoadString loads this ERC20Address from a hex-encoded string of length 40.
@@ -59,6 +83,7 @@ func (address *ERC20Address) LoadString(str string) error {
 		*address = ERC20Address{}
 		return nil
 	}
+	str = trimERC20HexPrefix(str)
 	if len(str) != ERC20AddressLength*2 {
 		return errors.New("passed string cannot be loaded as an ERC20Address: invalid length")
 	}
@@ -490,16 +515,30 @@ func (etctc ERC20ConvertTransactionController) EncodeTransactionIDInput(w io.Wri
 // used for Transaction and Block hashes alike.
 const ERC20HashLength = 32
 
+var (
+	reERC20Hash = regexp.MustCompile(fmt.Sprintf(erc20HexStr, ERC20HashLength*2))
+)
+
+// IsERC20Hash returns true if the given string represents an ERC20 Hash.
+func IsERC20Hash(str string) bool {
+	return reERC20Hash.MatchString(str)
+}
+
 // ERC20Hash defines an ERC20 Hash as a fixed-sized byte array of length 32.
 type ERC20Hash [ERC20HashLength]byte
 
 // String returns this TransactionID as a string.
 func (eh ERC20Hash) String() string {
-	return hex.EncodeToString(eh[:])
+	return "0x" + hex.EncodeToString(eh[:])
 }
 
-// LoadString loads this TransactionID from a hex-encoded string of length 40.
+// LoadString loads this TransactionID from a hex-encoded string of length 64.
 func (eh *ERC20Hash) LoadString(str string) error {
+	if str == "" {
+		*eh = ERC20Hash{}
+		return nil
+	}
+	str = trimERC20HexPrefix(str)
 	if len(str) != ERC20HashLength*2 {
 		return errors.New("passed string cannot be loaded as an ERC20 Hash: invalid length")
 	}
@@ -521,7 +560,7 @@ func (eh ERC20Hash) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler.UnmarshalJSON,
 // and decodes the given byte slice as a hex-encoded JSON string into the
-// 20 bytes that make up this Hash.
+// 32 bytes that make up this Hash.
 func (eh *ERC20Hash) UnmarshalJSON(b []byte) error {
 	var str string
 	err := json.Unmarshal(b, &str)

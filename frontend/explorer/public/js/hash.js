@@ -2443,7 +2443,7 @@ function populateHashPage(hash, explorerHash, hashTypeStr) {
 		appendTransactionStatistics(infoBody, explorerHash.transaction, explorerHash.unconfirmed!==true);
 		appendRawTransaction(infoBody, explorerHash.transaction.rawtransaction);
 	} else if (hashType === "unlockhash") {
-		if (hash != null && hash.length == 40) {
+		if (hash != null && hash.length == 40 || hash.length == 42) {
 			// if an ERC20 address was looked up, show the linked TFT wallet
 			if (explorerHash != null && explorerHash.erc20info != null && explorerHash.erc20info.tftaddress != null) {
 				hash = explorerHash.erc20info.tftaddress;
@@ -2794,7 +2794,7 @@ function buildHashPage() {
 	var hash = parseHashQuery();
 	var explorerHash = fetchHashInfo(hash);
 	if (explorerHash == 'error') { // if an error occurs: check the different scenarios
-		if (hash != null && hash.length == 64) {
+		if (hash != null && hash.length == 64 || hash.length == 66) {
 			// try to interpret it as a TFT20 TransactionID
 			resp = getERC20Transaction(hash);
 			if (resp != null) {

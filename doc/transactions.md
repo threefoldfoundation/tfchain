@@ -568,7 +568,7 @@ defined by this transaction as well.
 	"version": 208,
 	"data": {
 		// Required ERC20-valid address, fixed length of 20 bytes
-		"address": "0123456789012345678901234567890123456789",
+		"address": "0x0123456789012345678901234567890123456789",
 		// Required value of TFT to be burned towards funding the ERC20 funds,
 		// note that at least 1000 TFT is required, but more can be burned as well,
 		// the more TFT the more ERC20 funds you'll get, with the exact value as defined by market
@@ -663,10 +663,10 @@ the account as defined by the ERC20 Withdrawal address.
 		// Regular Transaction Fee
 		"txfee": "1000000000",
 		// ERC20 BlockID of the parent block of the paired ERC20 Transaction.
-		"blockid": "0000000000000000000000000000000000000000000000000000000000000000"
+		"blockid": "0x0000000000000000000000000000000000000000000000000000000000000000"
 		// ERC20 TransationID in which the matching ERC20-funds got burned,
 		// each transactionID can only be used once to fund a TFT coin exchange.
-		"txid": "0000000000000000000000000000000000000000000000000000000000000000"
+		"txid": "0x0000000000000000000000000000000000000000000000000000000000000000"
 	}
 }
 ```
@@ -726,7 +726,7 @@ linked to the TFT address generated with the attached public key.
 		// the TFT address (optionally attached in the JSON format only) generated from the attached public key
 		"tftaddress": "01b49da2ff193f46ee0fc684d7a6121a8b8e324144dffc7327471a4da79f1730960edcb2ce737f",
 		// the ERC20 address (optionally attached in the JSON format only) generated from the attached public key
-		"erc20address": "828de486adc50aa52dab52a2ec284bcac75be211",
+		"erc20address": "0x828de486adc50aa52dab52a2ec284bcac75be211",
 		// signature to proof the ownership of the attached public key
 		"signature": "fe13823a96928a573f20a63f3b8d3cde08c506fa535d458120fdaa5f1c78f6939c81bf91e53393130fbfee32ff4e9cb6022f14ae7750d126a7b6c0202c674b02",
 		// Registration Fee (hardcoded and required at 10 TFT)
