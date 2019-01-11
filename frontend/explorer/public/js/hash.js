@@ -1103,6 +1103,7 @@ function appendV209Transaction(infoBody, explorerTransaction, confirmed) {
 	}
 	appendStat(conversionTable, 'value', readableCoins(explorerTransaction.rawtransaction.data.value))
 	appendStat(conversionTable, 'ERC20 Transaction ID', explorerTransaction.rawtransaction.data.txid)
+	appendStat(conversionTable, 'ERC20 Block ID', explorerTransaction.rawtransaction.data.blockid)
 
 	if (confirmed) {
 		var explorerBlock = fetchHashInfo(explorerTransaction.parent).block;
