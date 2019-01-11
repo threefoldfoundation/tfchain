@@ -173,6 +173,7 @@ func (bridge *bridgeContract) loop(ch chan<- *types.Header) {
 			log.Debug("Ignoring current head, update already in progress")
 		}
 	}
+	log.Error("Bridge state update loop ended")
 }
 
 // SubscribeTransfers subscribes to new Transfer events on the given contract. This call blocks
