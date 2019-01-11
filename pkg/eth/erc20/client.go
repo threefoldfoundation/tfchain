@@ -104,7 +104,7 @@ func NewLightClient(lccfg LightClientConfig, cancel <-chan struct{}) (*LightClie
 		DataDir: datadir,
 		P2P: p2p.Config{
 			NAT:              nat.Any(),
-			NoDiscovery:      true,
+			NoDiscovery:      false,
 			DiscoveryV5:      true,
 			ListenAddr:       fmt.Sprintf(":%d", lccfg.Port),
 			MaxPeers:         25,
