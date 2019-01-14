@@ -12,6 +12,12 @@ else
 	full_version="${version}-${commit}"
 fi
 
+ARCHIVE=false
+if [ "$1" = "archive" ]; then
+	ARCHIVE=true
+	shift # remove element from arguments
+fi
+
 # Overide the file names to edge version, keep full version at the git commit since
 # that is the expected format
 if [ "$1" = "edge" ]; then
@@ -34,18 +40,20 @@ for os in darwin linux; do
 
 	done
 
-	# add other artifacts
-	cp -r doc LICENSE README.md "$folder"
-	# go into the release directory
-	pushd release &> /dev/null
-	# zip
-	(
-		zip -rq "tfchain-noeth-${version}-${os}-amd64.zip" \
-			"tfchain-noeth-${version}-${os}-amd64"
-	)
-	# leave the release directory
-	popd &> /dev/null
+	if [ "$ARCHIVE" = true ] ; then
+		# add other artifacts
+		cp -r doc LICENSE README.md "$folder"
+		# go into the release directory
+		pushd release &> /dev/null
+		# zip
+		(
+			zip -rq "tfchain-noeth-${version}-${os}-amd64.zip" \
+				"tfchain-noeth-${version}-${os}-amd64"
+		)
+		# leave the release directory
+		popd &> /dev/null
 
-	# clean up workspace dir
-	rm -rf "$folder"
+		# clean up workspace dir
+		rm -rf "$folder"
+	fi
 done

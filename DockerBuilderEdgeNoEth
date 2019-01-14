@@ -1,9 +1,0 @@
-FROM golang:1.11
-MAINTAINER threefoldfoundation
-
-ENV CGO_ENABLED 0
-WORKDIR /go/src/github.com/threefoldfoundation/tfchain
-
-RUN apt-get update && apt-get install -y zip
-
-ENTRYPOINT ./release_noeth.sh edge
