@@ -6,4 +6,5 @@ WORKDIR /go/src/github.com/threefoldfoundation/tfchain
 
 RUN apt-get update && apt-get install -y zip
 
-ENTRYPOINT ./release_noeth.sh
+ENTRYPOINT ["./release_noeth.sh"]
+CMD []

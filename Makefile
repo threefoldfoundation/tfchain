@@ -67,8 +67,21 @@ xc-noeth:
 	docker build -t tfchain_noeth_builder -f DockerBuilderNoEth .
 	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder
 
-docker-minimal: xc
-	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(version)-linux-amd64/cmd .
+xc-archive:
+	bash release.sh archive
+xc-archive-noeth:
+	docker build -t tfchain_noeth_builder -f DockerBuilderNoEth .
+	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder archive
+
+docker-minimal:
+	bash release.sh linux
+	$(eval TEMPDIR = $(shell mktemp -d))
+	mkdir -p $(TEMPDIR)/dist/linux
+	for binary in tfchainc tfchaind bridged ; do \
+		cp release/tfchain-xc.tmp/$$binary-$(version)-linux-amd64 $(TEMPDIR)/dist/linux/$$binary ; \
+	done
+	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal $(TEMPDIR)
+	rm -rf $(TEMPDIR) release/tfchain-xc.tmp
 
 # Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
 release-images: get_hub_jwt docker-minimal
@@ -87,11 +100,24 @@ release-images: get_hub_jwt docker-minimal
 xc-edge:
 	bash release.sh edge
 xc-edge-noeth:
-	docker build -t tfchain_noeth_builder_edge -f DockerBuilderEdgeNoEth .
-	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder_edge
+	docker build -t tfchain_noeth_builder_edge -f DockerBuilderNoEth  .
+	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder_edge edge
 
-docker-minimal-edge: xc-edge
-	docker build -t tfchain/tfchain:$(dockerVersionEdge) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(dockerVersionEdge)-linux-amd64/cmd .
+xc-archive-edge:
+	bash release.sh archive edge	
+xc-archive-edge-noeth:
+	docker build -t tfchain_noeth_builder_edge -f DockerBuilderNoEth .
+	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder_edge archive edge
+
+docker-minimal-edge:
+	bash release.sh edge linux
+	$(eval TEMPDIR = $(shell mktemp -d))
+	mkdir -p $(TEMPDIR)/dist/linux
+	for binary in tfchainc tfchaind bridged ; do \
+		cp release/tfchain-xc.tmp/$$binary-edge-linux-amd64 $(TEMPDIR)/dist/linux/$$binary ; \
+	done
+	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal $(TEMPDIR)
+	rm -rf $(TEMPDIR) release/tfchain-xc.tmp
 
 # Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
 release-images-edge: get_hub_jwt docker-minimal-edge
