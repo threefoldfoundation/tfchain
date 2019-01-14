@@ -46,8 +46,7 @@ var ethNetworkConfigurations = map[string]NetworkConfiguration{
 		3,
 		"ropsten",
 		core.DefaultTestnetGenesisBlock(),
-		//Todo: replace with actual address
-		common.HexToAddress("0x21826CC49B92029553af86F4e7A62C427E61e53a"),
+		common.HexToAddress("0xb821227dBa4Ef9585D31aa494406FD5E47a3db37"),
 		params.TestnetBootnodes,
 	},
 	"rinkeby": NetworkConfiguration{
