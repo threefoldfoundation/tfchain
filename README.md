@@ -148,12 +148,9 @@ carbon boss inject cover mountain fetch fiber fit tornado cloth wing dinosaur pr
 Should you want to do this with the provided `tfchainc` wallet you would have to do following steps:
 
 ```
+$ tfchainc wallet recover   # give passphrase and devnet seed
 $ tfchainc wallet unlock    # give passphrase
-$ tfchainc wallet load seed # give passphrase and above mnemonic
-$ fchainc wallet addresses # reload all our default addresses again
-$ tfchainc stop # stops the tfchaind daemon and than manually restart it again
-$ tfchainc wallet unlock    # give passphrase
-$ tfchainc wallet  # should show that you have 100M coins and 3K block stakes
+$ tfchainc wallet           # should show that you have 100M coins and 3K block stakes
 Wallet status:
 Encrypted, Unlocked
 Confirmed Balance:   100000000 TFT
@@ -165,6 +162,16 @@ Should you use another wallet/client, the steps might be different,
 which is fine as long as you use the menmonic given above as seed,
 as the genesis block stakes and coins are attached to that one.
 
+### Using multiple wallets on the same machine
+
+A single `tfchain` daemon doesn't allow multiple wallets for the time being.
+In order to have multiple wallets running on the same machine you therefore need
+to run multiple `tfchaind` daemons, with each daemon:
+  - using a unique persistent directory (either by starting each daemon from a different directory or
+    by explicitly setting it using the `--persistent-dir` flag);
+  - exposing itself using a unique port.
+These different can manually be connected to one another using the `tfchainc gateway connect localhost:[port]` command.
+
 ## technical information
 
 tfchain is using and build on top of [Rivine][rivine], a generic blockchain protocol, using Proof of Blockstake (PoB), rather than the also popular Proof of Work (PoW). It allows for custom blockchain implementations, hence tfchain is a custom implementation of the [Rivine][rivine] protocol.
@@ -172,6 +179,11 @@ tfchain is using and build on top of [Rivine][rivine], a generic blockchain prot
 This official (Golang) implementation is build using a vendored version of [the reference Golang implementation of Rivine][rivine].
 
 For in-depth technical information you can check the [Rivine][rivine] docs at [github.com/threefoldtech/rivine/tree/master/doc](https://github.com/threefoldtech/rivine/tree/master/doc). There are no technical docs in this repository, as all the technology lives and is developed within the [Rivine repository][rivine].
+
+### Bootstrapping
+
+For a node to be part of the network, it needs to connect to some other nodes in the network so that it can broadcast transactions/blocks and listen to new transactions/blocks. A node doesn't need to connect to every node in the network; instead, a node connects to a few other nodes. And these nodes connect to a few other nodes. In this way, the whole network is connected to each other.
+But how does a node find some other nodes in the network as there is no central server that everyone can connect to so as to exchange their information? Bootstrap nodes maintain a list of all nodes that are connected to them. When peers connect to the Tfchain network, they first connect to the Bootstrap nodes ,which share the lists of peers that have connected to them. The connecting peers then connect and synchronize with the sbared peers as well as the bootstrap nodes.
 
 ## troubleshooting
 
