@@ -129,6 +129,23 @@ Publish atomic swap (participation) transaction? [Y/N] Y
 published contract transaction
 OutputID: 15504a2eee64101ca04f4246bf9358db501397947a37b231454be66d1a3e5e7e
 TransactionID: 7c5d9694b153945cea505a850b4a694ad6c2cb33d0f8d49c0416988783345436
+
+ published contract transaction
+
+OutputID: 15504a2eee64101ca04f4246bf9358db501397947a37b231454be66d1a3e5e7e
+TransactionID: 7c5d9694b153945cea505a850b4a694ad6c2cb33d0f8d49c0416988783345436
+
+Contract Info:
+
+Contract address: 0202d7f00771cbaa0fa34481709004e953fa979881491f35b7de566e69579ba19114ec9b68d8bc
+Contract value: 567 TFT
+Receiver's address: 01ba82c45bc004a7a4a169c7daade3422c59158981044e4f341e7cea57a2852a36ea43e9fc25bb
+Sender's (contract creator) address: 0179fb6a617f52d60799fe610665b83b7372683201c06da24db54ad1878e5f1d8ff8c1b41ba3a2
+
+SecretHash: 8b445001958277e6372424625d31e649e32812eeb62eece03ff616a31ebd0f6b
+
+TimeLock: 1527747605 (2018-05-31 08:20:05 +0200 CEST)
+TimeLock reached in: 23h59m59.939846619s
 ``` 
 
 The above command will create a transaction with `567` TFT as the Output  value of the output (`15504a2eee64101ca04f4246bf9358db501397947a37b231454be66d1a3e5e7e`). The output can be claimed by Bobs address (`01ba82c45bc004a7a4a169c7daade3422c59158981044e4f341e7cea57a2852a36ea43e9fc25bb`)  and Bob will  to also have to provide the secret that hashes to the hashed secret `ed7c9cb48bf06db077641a09a0b7f7c3cc688760b771811fc0a0d07bdd3c6fa5`.
@@ -157,10 +174,10 @@ Secret Hash: 8b445001958277e6372424625d31e649e32812eeb62eece03ff616a31ebd0f6b
 TimeLock: 1527747605 (2018-05-31 08:20:05 +0200 CEST)
 TimeLock reached in: 23h52m36.117162779s
 
-Found Atomic Swap Contract is valid :)
+found Atomic Swap Contract is valid
 ```
 
-The audit also checks if that the given contract's output   has not already been spend.
+The audit also checks if that the given contract's output has not already been spend.
 
 ### redeem tokens
 
@@ -180,16 +197,15 @@ Secret: 9cddc24ba8e77d868c97e98374f4a2447aab114fa6f62a35d53f636c092f5257
 
 TimeLock: 1527747605 (2018-05-31 08:20:05 +0200 CEST)
 TimeLock reached in: 23h48m8.199200656s
-
 Publish atomic swap redeem transaction? [Y/N] Y
 
-Published atomic swap redeem transaction!
-Transaction ID: 1d4428d7651710c9630a3c150277fd24c504f8a30e0a9d338f04e819aeed48db
->   NOTE that this does NOT mean for 100% you'll have the money!
-> Due to potential forks, double spending, and any other possible issues your
-> redeem might be declined by the network. Please check the network
-> (e.g. using a public explorer node or your own full node) to ensure
-> your payment went through. If not, try to audit the contract (again).
+published atomic swap redeem transaction
+transaction ID: 1d4428d7651710c9630a3c150277fd24c504f8a30e0a9d338f04e819aeed48db
+ >   Note that this does not mean for 100% you'll have the money.
+ > Due to potential forks, double spending, and any other possible issues your
+ > redeem might be declined by the network. Please check the network
+ > (e.g. using a public explorer node or your own full node) to ensure
+ > your payment went through. If not, try to audit the contract (again).
 ```
 
 ### redeem bitcoins
