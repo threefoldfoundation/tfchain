@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 	"time"
 
@@ -74,7 +75,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForStandardNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForStandardNetwork(nil, NopERC20TransactionValidator{}, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "standard", validationConstants)
 	constants = config.GetTestnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -82,7 +83,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForTestNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForTestNetwork(nil, NopERC20TransactionValidator{}, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "test", validationConstants)
 	constants = config.GetDevnetGenesis()
 	validationConstants = types.TransactionValidationConstants{
@@ -90,7 +91,7 @@ func TestMinimumFeeValidationForTransactions(t *testing.T) {
 		ArbitraryDataSizeLimit: constants.ArbitraryDataSizeLimit,
 		MinimumMinerFee:        constants.MinimumTransactionFee,
 	}
-	RegisterTransactionTypesForDevNetwork(nil, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
+	RegisterTransactionTypesForDevNetwork(nil, NopERC20TransactionValidator{}, types.Currency{}, config.DaemonNetworkConfig{}) // no MintConditionGetter is required for this test
 	testMinimumFeeValidationForTransactions(t, "dev", validationConstants)
 }
 
@@ -551,7 +552,7 @@ func TestJSONUnmarshalSpecCoinCreationTransactionExample(t *testing.T) {
 			types.NewCurrency64(3000000),
 			types.NewCurrency64(1230000000),
 		},
-		ArbitraryData: types.ArbitraryData{Data: []byte("data")},
+		ArbitraryData: []byte("data"),
 	})
 }
 
@@ -648,7 +649,7 @@ func TestJSONUnmarshalSpecMinterDefinitionTransactionExample(t *testing.T) {
 			types.NewCurrency64(3000000),
 			types.NewCurrency64(1230000000),
 		},
-		ArbitraryData: types.ArbitraryData{Data: []byte("data")},
+		ArbitraryData: []byte("data"),
 	})
 }
 
@@ -683,12 +684,9 @@ func testCompareTwoCoinCreationTransactions(t *testing.T, i int, a, b CoinCreati
 		}
 	}
 	// compare arbitrary data
-	if bytes.Compare(a.ArbitraryData.Data, b.ArbitraryData.Data) != 0 {
+	if bytes.Compare(a.ArbitraryData, b.ArbitraryData) != 0 {
 		t.Error(i, "arbitrary not equal",
-			string(a.ArbitraryData.Data), "!=", string(b.ArbitraryData.Data))
-	}
-	if a.ArbitraryData.Type != b.ArbitraryData.Type {
-		t.Error(i, "arbitrary data type not equal", a.ArbitraryData.Type, "!=", b.ArbitraryData.Type)
+			string(a.ArbitraryData), "!=", string(b.ArbitraryData))
 	}
 }
 
@@ -773,7 +771,7 @@ var testCoinCreationTransactions = []CoinCreationTransaction{
 		// smallest tx fee
 		MinerFees: []types.Currency{config.GetTestnetGenesis().MinimumTransactionFee},
 		// with a message
-		ArbitraryData: types.ArbitraryData{Data: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70")},
+		ArbitraryData: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
 	},
 }
 
@@ -798,12 +796,9 @@ func testCompareTwoMinterDefinitionTransactions(t *testing.T, i int, a, b Minter
 		}
 	}
 	// compare arbitrary data
-	if bytes.Compare(a.ArbitraryData.Data, b.ArbitraryData.Data) != 0 {
+	if bytes.Compare(a.ArbitraryData, b.ArbitraryData) != 0 {
 		t.Error(i, "arbitrary not equal",
-			string(a.ArbitraryData.Data), "!=", string(b.ArbitraryData.Data))
-	}
-	if a.ArbitraryData.Type != b.ArbitraryData.Type {
-		t.Error(i, "arbitrary data type not equal", a.ArbitraryData.Type, "!=", b.ArbitraryData.Type)
+			string(a.ArbitraryData), "!=", string(b.ArbitraryData))
 	}
 }
 
@@ -865,7 +860,7 @@ var testMinterDefinitionTransactions = []MinterDefinitionTransaction{
 		// smallest tx fee
 		MinerFees: []types.Currency{config.GetTestnetGenesis().MinimumTransactionFee},
 		// with a message
-		ArbitraryData: types.ArbitraryData{Data: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70")},
+		ArbitraryData: []byte("2300202+e89843e4b8231a01ba18b254d530110364432aafab8206bea72e5a20eaa55f70"),
 	},
 }
 
@@ -1216,7 +1211,7 @@ func TestMinterDefinitionTransactionValidation(t *testing.T) {
 
 	// make the arbitrary data too big, should fail
 	origArbitraryData := tx.ArbitraryData
-	tx.ArbitraryData.Data = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
+	tx.ArbitraryData = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
 	resignTx("changed arbitrary data")
 	// should fail now
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
@@ -1731,7 +1726,7 @@ func TestCoinCreationTransactionValidation(t *testing.T) {
 
 	// make the arbitrary data too big, should fail
 	origArbitraryData := tx.ArbitraryData
-	tx.ArbitraryData.Data = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
+	tx.ArbitraryData = make([]byte, chainConstants.ArbitraryDataSizeLimit+1)
 	resignTx("changed arbitrary data")
 	// should fail now
 	err = tx.ValidateTransaction(validationCtx, txValidationConstants)
@@ -2321,12 +2316,35 @@ func TestComputeMonthlyBotFees(t *testing.T) {
 	}
 }
 
+// Test to ensure that the initial bot reg tx binary format is no longer valid when decoding.
+func TestOutdatedBotRegisterationTransactionBinaryFormat(t *testing.T) {
+	// define tfchain-specific transaction versions
+	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
+	})
+	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
+
+	b, err := hex.DecodeString(`90e1113833626f742e7a6169626f6e2e62651a746633626f742e7a6169626f6e040000000000000005f5e1000201c4de6f0b9dbac6e9a398c313378733b98da930ab4accb403efc24c5267bb1a0180000000000000006564323535313900000000000000000020000000000000009e095c02584a5b042dfcf679837c88be924c40c95f173fe24d96852f6fd8c1934000000000000000b0f127cd3d85bf81fe354738deeaad6f8e570ecdb84a4ad435d24e4340718668fe22d0cdf3779e82257a85de18499755a35ac104240d47523940d244fc43140605000000000000005c98c4690001210000000000000001e9e4ab0970a899d02588d002cecb67ff942c81737501ddefe8aaf14bbdf722790172ebed8fd8b75fce87485ebe7184cf28b838d9e9ff55bbb23b8508f60fdede9edd0388c935f463a4d58f0c2e961aef54f69ca09c2ecff3a962bfebbae19648bf813cfd7b6830260ba9d464b8bbe11a064426bcd5f93675c72c67ddfedf15c404`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tx types.Transaction
+	err = siabin.Unmarshal(b, &tx)
+	if err == nil {
+		t.Fatal("expected error, but managed to unmarshal Tx:", tx)
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "could not decode type types.Transaction") {
+		t.Fatal("unexpected error, expected type-decode error, but received:", err)
+	}
+}
+
 func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              nil,
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
@@ -2344,7 +2362,7 @@ func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	oTx := botRegistrationTx.Transaction(config.GetCurrencyUnits().OneCoin, types.UnlockConditionProxy{})
+	oTx := botRegistrationTx.Transaction(config.GetCurrencyUnits().OneCoin)
 	oID := oTx.ID()
 	oB := rivbin.Marshal(oTx)
 	if id != oID {
@@ -2358,9 +2376,8 @@ func TestBotRegistrationTransactionBinaryEncodingAndID(t *testing.T) {
 func TestBotRegistrationExtractedFromBlockConsensusDB(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              nil,
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
@@ -2400,9 +2417,8 @@ var cryptoKeyPair = types.KeyPair{
 func TestBotRegistrationTransactionUniqueSignatures(t *testing.T) {
 	// define tfchain-specific transaction versions
 	types.RegisterTransactionVersion(TransactionVersionBotRegistration, BotRegistrationTransactionController{
-		Registry:              nil,
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		Registry: nil,
+		OneCoin:  config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRegistration, nil)
 
@@ -2529,8 +2545,7 @@ func TestBotRecordUpdateTransactionUniqueSignatures(t *testing.T) {
 }`),
 			},
 		},
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		OneCoin: config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotRecordUpdate, nil)
 
@@ -2662,8 +2677,7 @@ func TestBotNameTransferTransactionUniqueSignatures(t *testing.T) {
 }`),
 			},
 		},
-		RegistryPoolCondition: types.UnlockConditionProxy{},
-		OneCoin:               config.GetCurrencyUnits().OneCoin,
+		OneCoin: config.GetCurrencyUnits().OneCoin,
 	})
 	defer types.RegisterTransactionVersion(TransactionVersionBotNameTransfer, nil)
 
@@ -2782,17 +2796,6 @@ func TestBotNameTransferTransactionUniqueSignatures(t *testing.T) {
 		}
 		signatures[signature] = struct{}{}
 	}
-}
-
-func TestBotRegistrationFees(t *testing.T) {
-	// TODO:
-	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
-}
-
-func TestBotUpdateFees(t *testing.T) {
-	// TODO:
-	//  - test (*BotRecordUpdateTransaction)::RequiredBotFee
-	//  - test (*BotNameTransferTransaction)::RequiredBotFee
 }
 
 type inMemoryBotRegistry struct {

@@ -360,6 +360,13 @@ func GetTestnetBootstrapPeers() []modules.NetAddress {
 	}
 }
 
+// GetDevnetBootstrapPeers sets the default devnet bootstrap node addresses
+func GetDevnetBootstrapPeers() []modules.NetAddress {
+	return []modules.NetAddress{
+		"localhost:23112",
+	}
+}
+
 func unlockHashFromHex(hstr string) (uh types.UnlockHash) {
 	err := uh.LoadString(hstr)
 	if err != nil {

@@ -281,6 +281,29 @@ function getBlockchainContext() {
 	};
 }
 
+function getCustomMinerPayoutSourceInfoArrayForTransaction(explorerTx) {
+	switch (explorerTx.rawtransaction.version) {
+	case 144:
+	case 145:
+	case 146:
+		return [
+			{
+				'desc': '3Bot Fee Payout',
+				'txid': explorerTx.id,
+			}
+		];
+	case 210:
+		return [
+			{
+				'desc': 'ERC20 Address Registration Fee Payout',
+				'txid': explorerTx.id,
+			}
+		];
+	default:
+		return [];
+	}
+}
+
 // appendBlockMinerPayouts fills out the css + tables that hold the miner
 // payouts of a block
 function appendBlockMinerPayouts(element, explorerBlock) {
@@ -291,15 +314,74 @@ function appendBlockMinerPayouts(element, explorerBlock) {
 	}
 
 	// In a loop, add a new table for each miner payout.
-	appendStatTableTitle(element, 'Block creator rewards');
-	for (var i = 0; i < explorerBlock.rawblock.minerpayouts.length; i++) {
-		var table = createStatsTable();
-		var doms = appendStat(table, 'ID', '');
-		linkHash(doms[2], explorerBlock.minerpayoutids[i]);
-		doms = appendStat(table, 'Payout Address', '');
-		linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
-		appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
-		element.appendChild(table);
+	appendStatTableTitle(element, 'Reward and Fee Payouts');
+	var txIndex = 0;
+	var i = 0;
+	for (; i < explorerBlock.rawblock.minerpayouts.length;) {
+		if (txIndex >= explorerBlock.transactions.length) {
+			// continue the rest using the old approach,
+			// as this might indicate we have an issue
+			for (; i < explorerBlock.rawblock.minerpayouts.length; i++) {
+				var table = createStatsTable();
+
+				var doms = appendStat(table, 'ID', '');
+				linkHash(doms[2], explorerBlock.minerpayoutids[i]);
+				doms = appendStat(table, 'Payout Address', '');
+				linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
+				appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
+
+				element.appendChild(table);
+			}
+			break;
+		}
+
+		if (i == 0 || i == 1) {
+			var table = createStatsTable();
+
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], explorerBlock.minerpayoutids[i]);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
+			appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
+			if (i == 0) {
+				appendStat(table, 'Source Description', 'Block Creator Reward (New Coins)');
+				txIndex++
+			} else {
+				doms = appendStat(table, 'Source Transaction Identifiers', '');
+				for(var u = txIndex; u < explorerBlock.transactions.length; u++) {
+					linkHash(doms[2], explorerBlock.transactions[u].id);
+					if (u < explorerBlock.transactions.length-1) {
+						doms[2].appendChild(document.createTextNode(', '));
+					}
+				}
+				appendStat(table, 'Source Description', 'All Transaction Fees Combined');
+			}
+
+			element.appendChild(table);
+
+			i++;
+			continue;
+		}
+
+		var payouts = getCustomMinerPayoutSourceInfoArrayForTransaction(explorerBlock.transactions[txIndex]);
+		for (var u = 0; u < payouts.length; u++) {
+			var table = createStatsTable();
+
+			var doms = appendStat(table, 'ID', '');
+			linkHash(doms[2], explorerBlock.minerpayoutids[i]);
+			doms = appendStat(table, 'Payout Address', '');
+			linkHash(doms[2], explorerBlock.rawblock.minerpayouts[i].unlockhash);
+			appendStat(table, 'Value', readableCoins(explorerBlock.rawblock.minerpayouts[i].value));
+			doms = appendStat(table, 'Source Transaction ID', '');
+			linkHash(doms[2], payouts[u].txid);
+			appendStat(table, 'Source Description', payouts[u].desc);
+
+			element.appendChild(table);
+
+			i++
+		}
+
+		txIndex++;
 	}
 }
 
@@ -326,9 +408,15 @@ function appendBlockTransactions(element, explorerBlock) {
 			&& explorerBlock.rawblock.transactions[i].data.coininputs.length > 0) {
 			appendStat(table, 'Coin Input Count', explorerBlock.rawblock.transactions[i].data.coininputs.length);
 		}
-		if (explorerBlock.rawblock.transactions[i].data.coinoutputs != null
-			&& explorerBlock.rawblock.transactions[i].data.coinoutputs.length > 0) {
-			appendStat(table, 'Coin Output Count', explorerBlock.rawblock.transactions[i].data.coinoutputs.length);
+		var coinoutputLength = 0;
+		if (explorerBlock.rawblock.transactions[i].data.coinoutputs != null) {
+			coinoutputLength += explorerBlock.rawblock.transactions[i].data.coinoutputs.length
+		}
+		if (explorerBlock.rawblock.transactions[i].data.refundcoinoutput != null) {
+			coinoutputLength += 1;
+		}
+		if (coinoutputLength > 0) {
+			appendStat(table, 'Coin Output Count', coinoutputLength);
 		}
 		if (explorerBlock.rawblock.transactions[i].data.blockstakeinputs != null
 			&& explorerBlock.rawblock.transactions[i].data.blockstakeinputs.length > 0) {
@@ -340,7 +428,7 @@ function appendBlockTransactions(element, explorerBlock) {
 		}
 		if (explorerBlock.rawblock.transactions[i].data.arbitrarydata != null
 			&& explorerBlock.rawblock.transactions[i].data.arbitrarydata.length > 0) {
-			appendStat(table, 'Arbitrary Data Byte Count', window.atob(explorerBlock.rawblock.transactions[i].data.arbitrarydata).length);
+			appendStat(table, 'Arbitrary Data Byte Count', explorerBlock.rawblock.transactions[i].data.arbitrarydata.length);
 		}
 		element.appendChild(table);
 	}
@@ -363,6 +451,13 @@ function txVersionName(version) {
 			return "3Bot Record Update";
 		case 146:
 			return "3Bot Name Transfer";
+
+		case 208:
+			return "TFT to ERC20 Transfer"
+		case 209:
+			return "ERC20 to TFT Transfer"
+		case 210:
+			return "ERC20 Address Registration"
 
 		default:
 			return "Unknown";
@@ -469,6 +564,16 @@ function getBotTransactions(id) {
 		return [];
 	}
 	return JSON.parse(request.responseText).ids;
+}
+
+function getERC20Transaction(id) {
+	var request = new XMLHttpRequest();
+	request.open('GET', '/explorer/erc20/transactions/' + id, false);
+	request.send();
+	if (request.status != 200) {
+		return null;
+	}
+	return JSON.parse(request.responseText);
 }
 
 //Changes the document title according to the network the page is running on

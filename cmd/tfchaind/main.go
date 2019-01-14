@@ -5,16 +5,17 @@ import (
 	"os"
 	"strings"
 
+	"github.com/spf13/cobra"
+	tfcli "github.com/threefoldfoundation/tfchain/pkg/cli"
+	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldtech/rivine/pkg/cli"
 	"github.com/threefoldtech/rivine/pkg/daemon"
-	"github.com/spf13/cobra"
-	"github.com/threefoldfoundation/tfchain/pkg/config"
 )
 
 func main() {
 	var cmds commands
 	// load default config to start with
-	cmds.cfg = daemon.DefaultConfig()
+	cmds.cfg.Config = daemon.DefaultConfig()
 	cmds.cfg.BlockchainInfo = config.GetBlockchainInfo()
 
 	// load default config flag
@@ -32,6 +33,17 @@ func main() {
 	cmds.cfg.RegisterAsFlags(root.Flags())
 	// also add our modules as a flag
 	cmds.moduleSetFlag.RegisterFlag(root.Flags(), fmt.Sprintf("%s modules", os.Args[0]))
+
+	// custom flags
+	tfcli.NetAddressArrayFlagVar(
+		root.Flags(),
+		&cmds.cfg.BootstrapPeers,
+		"bootstrap-peers",
+		"overwrite the bootstrap peers to use, instead of using the default bootstrap peers",
+	)
+
+	// eth flags
+	cmds.erc20Cfg.SetFlags(root.Flags())
 
 	// create the other commands
 	root.AddCommand(&cobra.Command{

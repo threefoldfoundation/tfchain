@@ -46,7 +46,7 @@ type (
 		BlockStakeInputs  []BlockStakeInput  `json:"blockstakeinputs,omitempty"`
 		BlockStakeOutputs []BlockStakeOutput `json:"blockstakeoutputs,omitempty"`
 		MinerFees         []Currency         `json:"minerfees"` // required
-		ArbitraryData     ArbitraryData      `json:"arbitrarydata,omitempty"`
+		ArbitraryData     []byte             `json:"arbitrarydata,omitempty"`
 
 		// Extension is an optional field that can be used,
 		// in order to attach non-standard state to a transaction.
@@ -125,6 +125,26 @@ type (
 		// any fulfillment (giving its condition as reference) that has to be signed.
 		SignExtension(extension interface{}, sign func(*UnlockFulfillmentProxy, UnlockConditionProxy, ...interface{}) error) (interface{}, error)
 	}
+
+	// TransactionCustomMinerPayoutGetter defines an interface for transactions which have
+	// custom MinerPayouts, stored in its extension data, that are not seen as regular Miner Fees.
+	TransactionCustomMinerPayoutGetter interface {
+		// GetCustomMinerPayouts allows a transaction controller to extract
+		// MinerPayouts orginating from the transaction's extension data,
+		// for any miner payouts to be added to the parent block,
+		// which is not considered as regular MinerFees
+		// (and thus is not simply defined in the Transaction's MinerFees property).
+		GetCustomMinerPayouts(extension interface{}) ([]MinerPayout, error)
+	}
+
+	// TransactionCommonExtensionDataGetter defines an interface for transactions which have
+	// common-understood data in the Extension data, allowing Rivine code to extract this generic extension data,
+	// without having to know about the actual format/structure of this Tx.
+	TransactionCommonExtensionDataGetter interface {
+		// GetCommonExtensionData allows a transaction controllor to extract
+		// the common-understood data from the Extension data for consumption by the callee.
+		GetCommonExtensionData(extension interface{}) (CommonTransactionExtensionData, error)
+	}
 )
 
 // RegisterTransactionVersion registers or unregisters a given transaction version,
@@ -150,49 +170,6 @@ var (
 var (
 	_RegisteredTransactionVersions = map[TransactionVersion]TransactionController{}
 )
-
-// a structure defining the JSON-structure of the TransactionData,
-// defined as to preserve compatibility with the existing JSON-structure,
-// prior to that the ArbitraryData received support for optional typing.
-type jsonTransactionData struct {
-	CoinInputs        []CoinInput        `json:"coininputs"` // required
-	CoinOutputs       []CoinOutput       `json:"coinoutputs,omitempty"`
-	BlockStakeInputs  []BlockStakeInput  `json:"blockstakeinputs,omitempty"`
-	BlockStakeOutputs []BlockStakeOutput `json:"blockstakeoutputs,omitempty"`
-	MinerFees         []Currency         `json:"minerfees"` // required
-	ArbitraryData     []byte             `json:"arbitrarydata,omitempty"`
-	ArbitraryDataType ArbitraryDataType  `json:"arbitrarydatatype,omitempty"`
-}
-
-// MarshalJSON implements json.Marshaler.MarshalJSON
-func (td TransactionData) MarshalJSON() ([]byte, error) {
-	return json.Marshal(jsonTransactionData{
-		CoinInputs:        td.CoinInputs,
-		CoinOutputs:       td.CoinOutputs,
-		BlockStakeInputs:  td.BlockStakeInputs,
-		BlockStakeOutputs: td.BlockStakeOutputs,
-		MinerFees:         td.MinerFees,
-		ArbitraryData:     td.ArbitraryData.Data,
-		ArbitraryDataType: td.ArbitraryData.Type,
-	})
-}
-
-// UnmarshalJSON implements json.Marshaler.UnmarshalJSON
-func (td *TransactionData) UnmarshalJSON(b []byte) error {
-	var jtd jsonTransactionData
-	err := json.Unmarshal(b, &jtd)
-	if err != nil {
-		return err
-	}
-	td.CoinInputs = jtd.CoinInputs
-	td.CoinOutputs = jtd.CoinOutputs
-	td.BlockStakeInputs = jtd.BlockStakeInputs
-	td.BlockStakeOutputs = jtd.BlockStakeOutputs
-	td.MinerFees = jtd.MinerFees
-	td.ArbitraryData.Data = jtd.ArbitraryData
-	td.ArbitraryData.Type = jtd.ArbitraryDataType
-	return nil
-}
 
 // MarshalSia implements siabin.SiaMarshaller.MarshalSia
 func (td TransactionData) MarshalSia(w io.Writer) error {

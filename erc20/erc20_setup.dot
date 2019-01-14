@@ -1,0 +1,24 @@
+digraph erc20_proxy_contracts {
+    rankdir = BT;
+
+    node [shape="box"];
+
+    outs [label="OwnedUpgradeableTokenStorage"];
+    up [label="Upgradeable"];
+    own [label="Owned"];
+    stg [label="Storage"];
+    tst [label="TokenStorage"];
+
+    node [fontname="times-bold"];
+
+    tv0 [label="TokenV0"];
+    tv1 [label="TokenV1"];
+    tvx [label="TokenVx"];
+    prx [label="Proxy"];
+
+    tv0 -> outs;
+    tv1 -> outs -> up -> own -> stg;
+    tvx -> outs;
+    outs -> tst;
+    prx -> tst -> stg;
+ }

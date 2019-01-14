@@ -51,7 +51,7 @@ go get -u github.com/threefoldfoundation/tfchain/cmd/... && \
     tfchaind &
 ```
 
-> tfchain supports Go 1.9 and above. Older versions of Golang may work but aren't supported.
+> tfchain supports Go 1.10 and above. Older versions of Golang may work but aren't supported.
 
 At this point (if all went right) you should have a tfchain daemon running in the background which is syncing with the test net. You can follow this syncing process using the CLI client: `tfchainc`.
 
@@ -77,6 +77,37 @@ cd $GOPATH/src/github.com/threefoldfoundation/tfchain && make update
 
 > NOTE that if you didn't execute `submodule update --init --recursive` when cloning this repo
 > `make update` will fail, as submodules have to initialized first.
+
+## tfchain cross compilation
+
+tfchain is developed and implemented using [Golang](http://golang.org), making it relatively easy
+to cross compile from one (host) platform to other platforms supported by the language.
+
+Since `v1.1.2` however, tfchain ships by default with go-ethereum support,
+packaging an extra binary (the TFT<->TFT20 `bridge` daemon) as well as an optional Ethereum-connected
+validator module in the `tfchain` daemon (opt-in using the `--eth-validation` flag). This brings
+some complexities as the `go-ethereum` dependency comes with some C dependencies,
+requiring you to build using CGO, and thus making cross complication not as easy as could be.
+
+Therefore tfchain uses, since `v1.1.2`, [XGO](https://github.com/karalabe/xgo) to cross-compile for
+edge and production releases (using the make `xc` and `xc-edge` targets). Should you be required
+to run these make targets yourself, you should fulfill the following requirements:
+
+- ensure you have Go.11 installed on your host machine;
+- ensure you have Docker (18.03.1 or higher) installed and running;
+- ensure you have `/usr/local/Cellar/python` to your shared folders of your Docker VM (on MacOS it has been reported this is an issue, on other platforms it is unclear if this really is a requirement);
+
+Once these requirements are fulfilled, you should be able to make edge and production release builds just as we do, using the make `xc` and `xc-edge` targets.
+
+In case you want to make edge/production release builds without Ethereum support, and thus only
+building `tfchainc` and `tfchaind`, the latter without the opt-in Ethereum validation, you can do so
+using the make `xc-noeth` and `xc-edge-noeth` targets.
+
+> Note Should you not want to make entire release archives,
+> but simply want to compile the binaries you can use the
+> make `install-noeth` (debug) or `install-std-noeth` targets.
+> These targets compile directly from your host machine and only
+> for your host platform.
 
 ## standard (net)
 

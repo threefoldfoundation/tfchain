@@ -81,6 +81,12 @@ func (e *Explorer) ProcessConsensusChange(cc modules.ConsensusChange) {
 					dbRemoveBlockStakeOutput(tx, sfoid)
 					unmapUnlockConditionHash(tx, sfo.Condition, txid)
 				}
+
+				// remove any common extension data, should the txn have it
+				exData, _ := txn.CommonExtensionData()
+				for _, condition := range exData.UnlockConditions {
+					unmapUnlockConditionHash(tx, condition, txid)
+				}
 			}
 
 			// remove the associated block facts
@@ -146,6 +152,12 @@ func (e *Explorer) ProcessConsensusChange(cc modules.ConsensusChange) {
 				for _, sfi := range txn.BlockStakeInputs {
 					dbAddBlockStakeOutputID(tx, sfi.ParentID, txid)
 					mapParentUnlockConditionHash(tx, sfi.ParentID, txid)
+				}
+
+				// add any common extension data, should the txn have it
+				exData, _ := txn.CommonExtensionData()
+				for _, condition := range exData.UnlockConditions {
+					mapUnlockConditionHash(tx, condition, txid)
 				}
 			}
 
@@ -258,7 +270,7 @@ func (e *Explorer) dbCalculateBlockFacts(tx *bolt.Tx, block types.Block) blockFa
 		bf.BlockStakeInputCount += uint64(len(txn.BlockStakeInputs))
 		bf.BlockStakeOutputCount += uint64(len(txn.BlockStakeOutputs))
 		bf.MinerFeeCount += uint64(len(txn.MinerFees))
-		if size := len(txn.ArbitraryData.Data); size > 0 {
+		if size := len(txn.ArbitraryData); size > 0 {
 			bf.ArbitraryDataTotalSize += uint64(size)
 			bf.ArbitraryDataCount++
 		}

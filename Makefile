@@ -2,8 +2,9 @@ all: install
 
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
+bridgepkgs = ./cmd/bridged
 faucetpkgs = ./frontend/tftfaucet
-testpkgs = ./pkg/types ./pkg/persist
+testpkgs = ./pkg/types ./pkg/persist ./pkg/eth ./pkg/cli
 pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
 
 version = $(shell git describe --abbrev=0)
@@ -25,14 +26,25 @@ ldflagsversion = -X $(configpkg).rawVersion=$(fullversion)
 stdoutput = $(GOPATH)/bin
 daemonbin = $(stdoutput)/tfchaind
 clientbin = $(stdoutput)/tfchainc
+bridgebin = $(stdoutput)/bridged
 
 install:
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
+	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(bridgebin) $(bridgepkgs)
 
 install-std:
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
+	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgebin) $(bridgepkgs)
+
+install-noeth:
+	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
+	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
+
+install-std-noeth:
+	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
+	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
 
 update:
 	git pull && git submodule update --recursive --remote
@@ -48,12 +60,12 @@ test-coverage:
 test-coverage-web: test-coverage
 	go tool cover -html=cover.out
 
-# xc builds and packages release binaries
-# for all windows, linux and mac, 64-bit only,
-# using the standard Golang toolchain.
+# xc for linux-amd64 and darwin-amd64 using xgo (docker)
 xc:
-	docker build -t tfchainbuilder -f DockerBuilder .
-	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchainbuilder
+	bash release.sh
+xc-noeth:
+	docker build -t tfchain_noeth_builder -f DockerBuilderNoEth .
+	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder
 
 docker-minimal: xc
 	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(version)-linux-amd64/cmd .
@@ -73,8 +85,10 @@ release-images: get_hub_jwt docker-minimal
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/ubuntu-16.04-tfchain-$(dockerVersion).flist/link/ubuntu-16.04-tfchain.flist"
 
 xc-edge:
-	docker build -t tfchainbuilderedge -f DockerBuilderEdge .
-	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchainbuilderedge
+	bash release.sh edge
+xc-edge-noeth:
+	docker build -t tfchain_noeth_builder_edge -f DockerBuilderEdgeNoEth .
+	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder_edge
 
 docker-minimal-edge: xc-edge
 	docker build -t tfchain/tfchain:$(dockerVersionEdge) -f DockerfileMinimal --build-arg binaries_location=release/tfchain-$(dockerVersionEdge)-linux-amd64/cmd .

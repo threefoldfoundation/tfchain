@@ -1,37 +1,17 @@
-# erc20
+# ERC20
 
-## Basic version
 
-Code is in the [basic](./basic) subdirectory.
-
-[a basic solidity contract](basic/basic_contract.sol), and [basic proxy contract](basic/proxy_contract.sol) +
-compiled files in the contract subdirectory.
-
-To recompile the contracts after changes, run
-
-```bash
-solc --bin -o ./basic/basic_contract basic/basic_contract.sol
-solc --bin -o ./basic/proxy_contract basic/proxy_contract.sol
-```
-
-## Extended version
-
-Code is in the [extended](./extended) subdirectory
-
-This is a more advanced setup which separates the storage for the ERC20 token from the conctract logic. As such,
-the storage model can be reused by both the proxy and the implementations. Although there are multiple different
-contracts here, the only 2 which actually matter are the [basic token contract](./extended/basic_contract.sol) and
-the [token proxy](./extended/token_proxy.sol) contracts.
+The Solidity code is in the [contract](./contract) subdirectory
 
 ## Proxy Contract setup
  
-### motivation
+### Motivation
 
-Ethereum contracts are autonomous immutable code. Once deployed to the Ethereum blockchain though, they are essentially set in stone. This means that if a serious bug or issue appears and your contracts aren’t designed in a way that will allow them to be upgraded in your Dapp seamlessly, we're screwed.
+Ethereum contracts are autonomous immutable code. Once deployed to the Ethereum blockchain though, they are essentially set in stone. This means that if a serious bug or issue appears and your contracts aren’t designed in a way that will allow them to be upgraded in your ÐApp seamlessly, you're screwed.
 
-To  solve this we make two main design choices:
-- All main contracts must be upgradable
-- Have a flexible, yet simple way to store data permanently
+To solve this we made two crucial design choices:
+- All main contracts must be upgradable;
+- Have a flexible, yet simple way to store data permanently.
 
 ### Setup
 
@@ -39,20 +19,43 @@ The problem with a contract proxy is that the proxy does not actually call the i
 it loads the function code and executes it in it's own storage space. This means that the storage needs to be
 defined in the proxy as well, and the storage layout needs to be the same.
 
-![](erc20_setup.svg)
+![contract hierarchy diagram](erc20_setup.svg)
 
-+ Proxy, UpgradeabilityProxy and UpgradeabilityStorage are generic contracts
-  + Proxy delegates any unknown method to an embedded contract address
-  + UpgradeabilityStorage is the contract storage holding the version and address of the actual token implementation
-  + UpgraeabilityProxy extends from both Proxy and UpgradeabilityStorage
-+ TokenStorage is the stoage for the erc20 token (balances, allowances, ...), which is immutable.
-+ TokenProxy extends from UpgradeabilityProxy and TokenStorage, it is the contract which will delegate calls to the
-  specific ERC20 contracts. (No actual implementation, only inheritence)
-+ UpgradeableTokenStorage extends from UpgradeabilityStorage and TokenStorage. This includes all the required components
-  for the upgraded token. (No actual implementation, only inheritence)
-+ The specific token contracts extend from UpgradeableTokenStorage, so they all have the same memory structure.
+The two main contracts here are Proxy and tokenV0..Vx
+
+**tokenV0..Vx** are the actual upgradeable implementations
+
+**Proxy** is the contract that will be called by the users. It delegates all calls to the current tokenV0..Vx implementation. The method are not defined here , every call it receives is delegated so if the implementation adds functionality, this contract does not have to be upgraded.
+This way , the address of the deployed TokenProxy never changes.
+
+helper contracts:
++ Storage defines the storage layout
++ TokenStorage exposes storage helpers for the ERC20 token (balances, allowances, ...). It also has the token constructor which sets some general variables (name, precision, ...)
++ Proxy provides the functionality to delegate any unknown method to an embedded contract address
++ Owned allows us to have the notion of "owners", and adds a modifier to methods which ensures that only addresses in the owner list can call them.
++ Upgradeable adds the upgrade logic, and stores the address and version of the currently used token contract. Note that this contract is only extended from by the tokens,
+    even though these do not use the upgrade logic themselves. This way the proxy does not need to be aware of the actual token upgrade logic, which allows the upgrade logic itself
+    to be upgradeable.
++ OwnedUpgradeableTokenStorage extends from Upgradeable and TokenStorage. This includes all the required components
+  for the owned, upgradeable token. (No actual implementation, only inheritance)
+  The specific token contracts extend from OwnedTokenStorage, so they all have the same memory structure
 
 ### Important
 
-Notice that inheritance order in TokenProxy needs to be the same as the one in UpgradeableTokenStorage, otherwise the memory layout will
-be different, causing the proxy to fail.
+There is only a single contract which actually defines a storage layout: `Storage`. All other contracts which inherit from this and have
+their own storage requirements actually use getters and setters which access the storage. The storage structure is defined as a key-value store
+for all available primitive types. The key is defined as a `bytes32` type, in practice we use a `keccak256` hash.
+
+## Building
+
+A `compile.sh` script is present in the contract folder to compile the contracts.
+
+The solidity compiler (`solc`) is required.
+Please read <https://solidity.readthedocs.io/en/v0.5.2/installing-solidity.html> to know how to install this compiler, should you not have installed it already.
+
+### Deployment
+
+There are two main contracts which need to be deployed: `Proxy` and the actual token implementation (`TokenV0`). The token contract needs to be deployed first, so the `Proxy`
+constructor can set the initial address of said contract. After that, contract upgrades can be done by using the `upgradeTo` method which is inherited by the actual Token. Once the
+`Proxy` has been deployed, new owners can also be added to it (also via proxied calls to the `Token` contract), who will be allowed to add other owners, change the `Token` contract,
+and call protected methods on said contract.

@@ -31,6 +31,18 @@ type (
 	TransactionDBGetBotTransactions struct {
 		Identifiers []types.TransactionID `json:"ids"`
 	}
+
+	// TransactionDBGetERC20RelatedAddress contains the requested ERC20-related addresses.
+	TransactionDBGetERC20RelatedAddress struct {
+		TFTAddress   types.UnlockHash     `json:"tftaddress"`
+		ERC20Address tftypes.ERC20Address `json:"erc20address"`
+	}
+
+	// TransactionDBGetERC20TransactionID contains the requested info found for the given ERC20 TransactionID.
+	TransactionDBGetERC20TransactionID struct {
+		ERC20TransaxtionID   tftypes.ERC20Hash   `json:"er20txid"`
+		TfchainTransactionID types.TransactionID `json:"tfttxid"`
+	}
 )
 
 // RegisterTransactionDBHTTPHandlers registers the handlers for all TransactionDB HTTP endpoints.
@@ -43,16 +55,14 @@ func RegisterTransactionDBHTTPHandlers(router api.Router, txdb *persist.Transact
 	}
 
 	router.GET("/consensus/mintcondition", NewTransactionDBGetActiveMintConditionHandler(txdb))
-	router.GET("/explorer/mintcondition", NewTransactionDBGetActiveMintConditionHandler(txdb))
 	router.GET("/consensus/mintcondition/:height", NewTransactionDBGetMintConditionAtHandler(txdb))
-	router.GET("/explorer/mintcondition/:height", NewTransactionDBGetMintConditionAtHandler(txdb))
 
 	router.GET("/consensus/3bot/:id", NewTransactionDBGetRecordForIDHandler(txdb))
-	router.GET("/explorer/3bot/:id", NewTransactionDBGetRecordForIDHandler(txdb))
 	router.GET("/consensus/whois/3bot/:name", NewTransactionDBGetRecordForNameHandler(txdb))
-	router.GET("/explorer/whois/3bot/:name", NewTransactionDBGetRecordForNameHandler(txdb))
 	router.GET("/consensus/3bot/:id/transactions", NewTransactionDBGetBotTransactionsHandler(txdb))
-	router.GET("/explorer/3bot/:id/transactions", NewTransactionDBGetBotTransactionsHandler(txdb))
+
+	router.GET("/consensus/erc20/addresses/:address", NewTransactionDBGetERC20RelatedAddressHandler(txdb))
+	router.GET("/consensus/erc20/transactions/:txid", NewTransactionDBGetERC20TransactionID(txdb))
 }
 
 // NewTransactionDBGetActiveMintConditionHandler creates a handler to handle the API calls to /transactiondb/mintcondition.
@@ -163,6 +173,79 @@ func NewTransactionDBGetBotTransactionsHandler(txdb *persist.TransactionDB) http
 		}
 		api.WriteJSON(w, TransactionDBGetBotTransactions{
 			Identifiers: ids,
+		})
+	}
+}
+
+// NewTransactionDBGetERC20RelatedAddressHandler creates a handler to handle the API calls to /transactiondb/erc20/addresses/:address.
+func NewTransactionDBGetERC20RelatedAddressHandler(txdb *persist.TransactionDB) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		addressStr := ps.ByName("address")
+
+		var (
+			err   error
+			found bool
+			resp  TransactionDBGetERC20RelatedAddress
+		)
+		if len(addressStr) == tftypes.ERC20AddressLength*2 {
+			err = resp.ERC20Address.LoadString(addressStr)
+			if err != nil {
+				api.WriteError(w, api.Error{Message: fmt.Sprintf("invalid ERC20 address given: %v", err)}, http.StatusBadRequest)
+				return
+			}
+			resp.TFTAddress, found, err = txdb.GetTFTAddressForERC20Address(resp.ERC20Address)
+			if err != nil {
+				api.WriteError(w, api.Error{Message: fmt.Sprintf("error while fetching TFT Address: %v", err)}, http.StatusInternalServerError)
+				return
+			}
+			if !found {
+				api.WriteError(w, api.Error{Message: "error while fetching TFT Address: address not found"}, http.StatusNoContent)
+				return
+			}
+		} else {
+			err = resp.TFTAddress.LoadString(addressStr)
+			if err != nil {
+				api.WriteError(w, api.Error{Message: fmt.Sprintf("invalid (TFT) address given: %v", err)}, http.StatusBadRequest)
+				return
+			}
+			resp.ERC20Address, found, err = txdb.GetERC20AddressForTFTAddress(resp.TFTAddress)
+			if err != nil {
+				api.WriteError(w, api.Error{Message: fmt.Sprintf("error while fetching ERC20 Address: %v", err)}, http.StatusInternalServerError)
+				return
+			}
+			if !found {
+				api.WriteError(w, api.Error{Message: "error while fetching ERC20 Address: address not found"}, http.StatusNoContent)
+				return
+			}
+		}
+		api.WriteJSON(w, resp)
+	}
+}
+
+// NewTransactionDBGetERC20TransactionID creates a handler to handle the API calls to /transactiondb/erc20/transactions/:txid.
+func NewTransactionDBGetERC20TransactionID(txdb *persist.TransactionDB) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		txidStr := ps.ByName("txid")
+		var txid tftypes.ERC20Hash
+		err := txid.LoadString(txidStr)
+		if err != nil {
+			api.WriteError(w, api.Error{Message: fmt.Sprintf("invalid ERC20 TransactionID given: %v", err)}, http.StatusBadRequest)
+			return
+		}
+
+		tfttxid, found, err := txdb.GetTFTTransactionIDForERC20TransactionID(txid)
+		if err != nil {
+			api.WriteError(w, api.Error{Message: fmt.Sprintf("error while fetching info linked to ERC20 TransactionID: %v", err)}, http.StatusInternalServerError)
+			return
+		}
+		if !found {
+			api.WriteError(w, api.Error{Message: "error while fetching info linked to ERC20 TransactionID: ID not found"}, http.StatusNoContent)
+			return
+		}
+
+		api.WriteJSON(w, TransactionDBGetERC20TransactionID{
+			ERC20TransaxtionID:   txid,
+			TfchainTransactionID: tfttxid,
 		})
 	}
 }

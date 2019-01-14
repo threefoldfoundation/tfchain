@@ -40,10 +40,184 @@
   revision = "1db44fa75fb1036c6d7be59a5793be4b1fb8a5ab"
 
 [[projects]]
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  revision = "e1e72e9de974bd926e5c56f83753fba2df402ce5"
+  version = "v1.3.0"
+
+[[projects]]
+  name = "github.com/allegro/bigcache"
+  packages = [
+    ".",
+    "queue"
+  ]
+  revision = "f31987a23e44c5121ef8c8b2f2ea2e8ffa37b068"
+  version = "v1.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/aristanetworks/goarista"
+  packages = ["monotime"]
+  revision = "332ede26fbf000b0af488b1836b53b44d2a7c46c"
+
+[[projects]]
   branch = "master"
   name = "github.com/bgentry/speakeasy"
   packages = ["."]
   revision = "4aabc24848ce5fd31929f7d1e4ea74d3709c14cd"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/btcsuite/btcd"
+  packages = ["btcec"]
+  revision = "7d2daa5bfef28c5e282571bc06416516936115ee"
+
+[[projects]]
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
+
+[[projects]]
+  name = "github.com/deckarep/golang-set"
+  packages = ["."]
+  revision = "cbaa98ba5575e67703b32b4b19f73c91f3c4159e"
+  version = "v1.7.1"
+
+[[projects]]
+  name = "github.com/edsrzf/mmap-go"
+  packages = ["."]
+  revision = "188cc3b666ba704534fa4f96e9e61f21f1e1ba7c"
+  version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/ethereum/go-ethereum"
+  packages = [
+    ".",
+    "accounts",
+    "accounts/abi",
+    "accounts/abi/bind",
+    "accounts/keystore",
+    "accounts/usbwallet",
+    "accounts/usbwallet/internal/trezor",
+    "common",
+    "common/bitutil",
+    "common/fdlimit",
+    "common/hexutil",
+    "common/math",
+    "common/mclock",
+    "common/prque",
+    "consensus",
+    "consensus/clique",
+    "consensus/ethash",
+    "consensus/misc",
+    "core",
+    "core/bloombits",
+    "core/rawdb",
+    "core/state",
+    "core/types",
+    "core/vm",
+    "crypto",
+    "crypto/bn256",
+    "crypto/bn256/cloudflare",
+    "crypto/bn256/google",
+    "crypto/ecies",
+    "crypto/secp256k1",
+    "crypto/sha3",
+    "eth",
+    "eth/downloader",
+    "eth/fetcher",
+    "eth/filters",
+    "eth/gasprice",
+    "eth/tracers",
+    "eth/tracers/internal/tracers",
+    "ethclient",
+    "ethdb",
+    "ethstats",
+    "event",
+    "internal/debug",
+    "internal/ethapi",
+    "les",
+    "les/flowcontrol",
+    "light",
+    "log",
+    "metrics",
+    "metrics/exp",
+    "miner",
+    "node",
+    "p2p",
+    "p2p/discover",
+    "p2p/discv5",
+    "p2p/enode",
+    "p2p/enr",
+    "p2p/nat",
+    "p2p/netutil",
+    "params",
+    "rlp",
+    "rpc",
+    "trie"
+  ]
+  revision = "24d727b6d6e2c0cde222fa12155c4a6db5caaf2e"
+  version = "v1.8.20"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/fjl/memsize"
+  packages = [
+    ".",
+    "memsizeui"
+  ]
+  revision = "2a09253e352a56f419bd88effab0483f52da4c7d"
+
+[[projects]]
+  name = "github.com/go-stack/stack"
+  packages = ["."]
+  revision = "2fee6af1a9795aafbe0253a0cfbdf668e1fb8a9a"
+  version = "v1.8.0"
+
+[[projects]]
+  name = "github.com/golang/protobuf"
+  packages = [
+    "proto",
+    "protoc-gen-go/descriptor"
+  ]
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
+
+[[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/hashicorp/golang-lru"
+  packages = [
+    ".",
+    "simplelru"
+  ]
+  revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
+  version = "v0.5.0"
+
+[[projects]]
+  name = "github.com/huin/goupnp"
+  packages = [
+    ".",
+    "dcps/internetgateway1",
+    "dcps/internetgateway2",
+    "httpu",
+    "scpd",
+    "soap",
+    "ssdp"
+  ]
+  revision = "656e61dfadd241c7cbdd22a023fa81ecb6860ea8"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/inconshreveable/mousetrap"
@@ -52,16 +226,64 @@
   version = "v1.0"
 
 [[projects]]
+  name = "github.com/jackpal/go-nat-pmp"
+  packages = ["."]
+  revision = "c9cfead9f2a36ddf3daa40ba269aa7f4bbba6b62"
+  version = "v1.0.1"
+
+[[projects]]
   name = "github.com/julienschmidt/httprouter"
   packages = ["."]
   revision = "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
   version = "v1.1"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/karalabe/hid"
+  packages = ["."]
+  revision = "d815e0c1a2e2082a287a2806bc90bc8fc7b276a9"
+
+[[projects]]
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
+  version = "v1.0.1"
+
+[[projects]]
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
+  version = "v0.0.4"
+
+[[projects]]
+  name = "github.com/nanmu42/etherscan-api"
+  packages = ["."]
+  revision = "28455ff3bacc508e8fb32b818b6d4bfd6eb95867"
+  version = "v1.0.4"
+
+[[projects]]
+  name = "github.com/pborman/uuid"
+  packages = ["."]
+  revision = "adf5a7427709b9deb95d29d3fa8a2bf9cfd388f1"
+  version = "v1.2"
+
+[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
   version = "v0.8.0"
+
+[[projects]]
+  name = "github.com/prometheus/prometheus"
+  packages = ["util/flock"]
+  revision = "85f23d82a045d103ea7f3c89a91fba4a93e6367a"
+  version = "v2.1.0"
 
 [[projects]]
   branch = "master"
@@ -76,6 +298,18 @@
   version = "v1.0.7"
 
 [[projects]]
+  name = "github.com/rjeczalik/notify"
+  packages = ["."]
+  revision = "69d839f37b13a8cb7a78366f7633a4071cb43be7"
+  version = "v0.9.2"
+
+[[projects]]
+  name = "github.com/rs/cors"
+  packages = ["."]
+  revision = "9a47f48565a795472d43519dd49aac781f3034fb"
+  version = "v1.6.0"
+
+[[projects]]
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "ef82de70bb3f60c65fb8eebacbb2d122ef517385"
@@ -86,6 +320,25 @@
   packages = ["."]
   revision = "583c0c0531f06d5278b7d917446061adc344b5cd"
   version = "v1.0.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/syndtr/goleveldb"
+  packages = [
+    "leveldb",
+    "leveldb/cache",
+    "leveldb/comparer",
+    "leveldb/errors",
+    "leveldb/filter",
+    "leveldb/iterator",
+    "leveldb/journal",
+    "leveldb/memdb",
+    "leveldb/opt",
+    "leveldb/storage",
+    "leveldb/table",
+    "leveldb/util"
+  ]
+  revision = "b001fa50d6b27f3f0bb175a87d0cb55426d0a0ae"
 
 [[projects]]
   branch = "master"
@@ -110,7 +363,7 @@
     "sync",
     "types"
   ]
-  revision = "b81c3437d849fcbe4e5127d9f5b83413b441e294"
+  revision = "1f5104c5d297a2cb3e61bfc18d329be8840e0727"
 
 [[projects]]
   branch = "master"
@@ -129,6 +382,9 @@
     "ed25519",
     "ed25519/internal/edwards25519",
     "pbkdf2",
+    "ripemd160",
+    "scrypt",
+    "ssh/terminal",
     "twofish"
   ]
   revision = "7f39a6fea4fe9364fb61e1def6a268a51b4f3a06"
@@ -139,7 +395,8 @@
   packages = [
     "html",
     "html/atom",
-    "html/charset"
+    "html/charset",
+    "websocket"
   ]
   revision = "922f4815f713f213882e8ef45e0d315b164d705c"
 
@@ -148,7 +405,8 @@
   name = "golang.org/x/sys"
   packages = [
     "cpu",
-    "unix"
+    "unix",
+    "windows"
   ]
   revision = "ad87a3a340fa7f3bed189293fbfa7a9b7e021ae1"
 
@@ -176,9 +434,27 @@
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/natefinch/npipe.v2"
+  packages = ["."]
+  revision = "c1b8fa8bdccecb0b8db834ee0b92fdbcfa606dd6"
+
+[[projects]]
+  branch = "v3"
+  name = "gopkg.in/olebedev/go-duktape.v3"
+  packages = ["."]
+  revision = "ccb656ba24c2a193e5650299767e2df1554725fd"
+
+[[projects]]
+  name = "gopkg.in/urfave/cli.v1"
+  packages = ["."]
+  revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
+  version = "v1.20.0"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c09c85660a16b8e974d0e837ad704706d0294a28b45adbcb8fffc9f64e0ecb06"
+  inputs-digest = "aea6553cbdb4f98f8ae9b5b08a81cc68f6ce189c153e952967b0623ea1b3cc23"
   solver-name = "gps-cdcl"
   solver-version = 1

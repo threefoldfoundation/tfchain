@@ -1,35 +1,121 @@
-<?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
-<!-- Created using Karbon, part of Calligra: http://www.calligra.org/karbon -->
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="595.277pt" height="841.891pt">
-<defs/>
-<g id="layer0">
-  <rect id="shape0" transform="translate(16.1964, 15.2171)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="77.74260966500pt" height="43.25390894596pt"/>
-  <rect id="shape1" transform="translate(142.064, 16.1964)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="240.50947317034pt" height="41.75066074602pt"/>
-  <rect id="shape2" transform="translate(503.887, 16.3805)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="159.80425320027pt" height="41.39255907840pt"/>
-  <rect id="shape3" transform="translate(335.948, 114.211)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="294.62090139205pt" height="43.91744896743pt"/>
-  <rect id="shape4" transform="translate(15.8424, 114.638)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="226.74927818957pt" height="44.33912087824pt"/>
-  <text id="shape5" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="14.57812500000pt" transform="translate(32.6526, 31.9252)"><tspan>Proxy</tspan></text>
-  <text id="shape0" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="translate(34.0983, 131.022)"><tspan>UpgradeabilityProxy</tspan></text>
-  <text id="shape01" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="translate(155.925, 31.1442)"><tspan>UpgradeabilityStorage</tspan></text>
-  <text id="shape02" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="translate(517.644, 30.8807)"><tspan>TokenStorage</tspan></text>
-  <text id="shape03" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="translate(353.563, 130.967)"><tspan>UpgradeableTokenStorage</tspan></text>
-  <rect id="shape6" transform="translate(16.5555, 226.74)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="168.64908017562pt" height="43.91744896743pt"/>
-  <text id="shape04" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="matrix(1.15881 0 0 1 36.9676 243.497)"><tspan>TokenProxy</tspan></text>
-  <rect id="shape7" transform="translate(337.166, 226.29)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="136.25632614854pt" height="43.91744896743pt"/>
-  <text id="shape05" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312500000pt" transform="matrix(1.20827 0 0 1 358.45 243.047)"><tspan x="0"  y="19.0039">TokenV0</tspan></text>
-  <rect id="shape8" transform="translate(534.222, 227.64)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" width="136.25632614854pt" height="43.91744896743pt"/>
-  <text id="shape06" fill="#000000" font-family="ComicSans" font-size="20.00000000000pt" x="0.00000000000pt" y="15.20312000000pt" transform="matrix(1.20827 0 0 1 555.506 244.397)"><tspan x="0"  y="19.0039">TokenV1</tspan></text>
-  <path id="shape9" transform="translate(45.4921, 69.3517)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
-  <path id="shape10" transform="translate(199.466, 69.3517)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
-  <path id="shape11" transform="translate(371.254, 69.0335)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
-  <path id="shape12" transform="translate(585.99, 69.0335)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 18.0696L0 18.0696L19.5648 0L39.1296 18.0696L25.4342 18.0696L25.4342 45.174L13.6954 45.174Z"/>
-  <path id="shape13" transform="translate(106.786, 170.062)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 22.5955L0 22.5955L19.5648 0L39.1296 22.5955L25.4342 22.5955L25.4342 56.4887L13.6954 56.4887Z"/>
-  <path id="shape14" transform="translate(402.82, 169.612)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 22.5955L0 22.5955L19.5648 0L39.1296 22.5955L25.4342 22.5955L25.4342 56.4887L13.6954 56.4887Z"/>
-  <path id="shape15" transform="translate(601.676, 169.612)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M13.6954 23.1353L0 23.1353L19.5648 0L39.1296 23.1353L25.4342 23.1353L25.4342 57.8384L13.6954 57.8384Z"/>
-  <path id="shape16" transform="translate(261.22, 306.031)" fill="#000000" d="M0 0L18.375 31.8264"/>
- </g><g id="New layer">
-  <path id="shape17" transform="translate(704.527, 26.1176)" fill="#ffffff" fill-opacity="0.00000000000" fill-rule="evenodd" stroke="#000000" stroke-width="1.25000000000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="2.00000000000" d="M12.7956 10.121L12.7956 0L0 14.4585L12.7956 28.917L12.7956 18.7961L31.9889 18.7961L31.9889 10.121Z"/>
-  <path id="shape18" transform="translate(124.494, 36.5646)" fill="none" stroke="#000000" stroke-width="1.41732529000" stroke-linecap="square" stroke-linejoin="miter" stroke-miterlimit="1.98425540600" d="M0.263987 247.757L0 282.089L612.582 282.65L612.009 0"/>
- </g>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.40.1 (20161225.0304)
+ -->
+<!-- Title: erc20_proxy_contracts Pages: 1 -->
+<svg width="306pt" height="332pt"
+ viewBox="0.00 0.00 305.97 332.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 328)">
+<title>erc20_proxy_contracts</title>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-328 301.9746,-328 301.9746,4 -4,4"/>
+<!-- outs -->
+<g id="node1" class="node">
+<title>outs</title>
+<polygon fill="none" stroke="#000000" points="277.5065,-108 72.4935,-108 72.4935,-72 277.5065,-72 277.5065,-108"/>
+<text text-anchor="middle" x="175" y="-85.8" font-family="Times,serif" font-size="14.00" fill="#000000">OwnedUpgradeableTokenStorage</text>
+</g>
+<!-- up -->
+<g id="node2" class="node">
+<title>up</title>
+<polygon fill="none" stroke="#000000" points="218.5189,-180 131.4811,-180 131.4811,-144 218.5189,-144 218.5189,-180"/>
+<text text-anchor="middle" x="175" y="-157.8" font-family="Times,serif" font-size="14.00" fill="#000000">Upgradeable</text>
+</g>
+<!-- outs&#45;&gt;up -->
+<g id="edge3" class="edge">
+<title>outs&#45;&gt;up</title>
+<path fill="none" stroke="#000000" d="M175,-108.1686C175,-115.869 175,-125.0257 175,-133.5834"/>
+<polygon fill="#000000" stroke="#000000" points="171.5001,-133.5867 175,-143.5867 178.5001,-133.5868 171.5001,-133.5867"/>
+</g>
+<!-- tst -->
+<g id="node5" class="node">
+<title>tst</title>
+<polygon fill="none" stroke="#000000" points="112.5548,-180 19.4452,-180 19.4452,-144 112.5548,-144 112.5548,-180"/>
+<text text-anchor="middle" x="66" y="-157.8" font-family="Times,serif" font-size="14.00" fill="#000000">TokenStorage</text>
+</g>
+<!-- outs&#45;&gt;tst -->
+<g id="edge7" class="edge">
+<title>outs&#45;&gt;tst</title>
+<path fill="none" stroke="#000000" d="M147.4947,-108.1686C133.682,-117.2926 116.7744,-128.461 101.9471,-138.2551"/>
+<polygon fill="#000000" stroke="#000000" points="99.9114,-135.4051 93.4965,-143.8372 103.7696,-141.2459 99.9114,-135.4051"/>
+</g>
+<!-- own -->
+<g id="node3" class="node">
+<title>own</title>
+<polygon fill="none" stroke="#000000" points="189.4363,-252 132.5637,-252 132.5637,-216 189.4363,-216 189.4363,-252"/>
+<text text-anchor="middle" x="161" y="-229.8" font-family="Times,serif" font-size="14.00" fill="#000000">Owned</text>
+</g>
+<!-- up&#45;&gt;own -->
+<g id="edge4" class="edge">
+<title>up&#45;&gt;own</title>
+<path fill="none" stroke="#000000" d="M171.4672,-180.1686C169.9699,-187.869 168.1895,-197.0257 166.5255,-205.5834"/>
+<polygon fill="#000000" stroke="#000000" points="163.0535,-205.1025 164.5804,-215.5867 169.9248,-206.4386 163.0535,-205.1025"/>
+</g>
+<!-- stg -->
+<g id="node4" class="node">
+<title>stg</title>
+<polygon fill="none" stroke="#000000" points="149.2661,-324 90.7339,-324 90.7339,-288 149.2661,-288 149.2661,-324"/>
+<text text-anchor="middle" x="120" y="-301.8" font-family="Times,serif" font-size="14.00" fill="#000000">Storage</text>
+</g>
+<!-- own&#45;&gt;stg -->
+<g id="edge5" class="edge">
+<title>own&#45;&gt;stg</title>
+<path fill="none" stroke="#000000" d="M150.654,-252.1686C146.0763,-260.2075 140.5948,-269.8334 135.5412,-278.7082"/>
+<polygon fill="#000000" stroke="#000000" points="132.3923,-277.1649 130.4853,-287.5867 138.4752,-280.6288 132.3923,-277.1649"/>
+</g>
+<!-- tst&#45;&gt;stg -->
+<g id="edge9" class="edge">
+<title>tst&#45;&gt;stg</title>
+<path fill="none" stroke="#000000" d="M72.8391,-180.2377C82.1308,-205.0154 98.8232,-249.5286 109.6523,-278.4061"/>
+<polygon fill="#000000" stroke="#000000" points="106.4279,-279.776 113.2164,-287.9104 112.9822,-277.3181 106.4279,-279.776"/>
+</g>
+<!-- tv0 -->
+<g id="node6" class="node">
+<title>tv0</title>
+<polygon fill="none" stroke="#000000" points="121.9492,-36 52.0508,-36 52.0508,0 121.9492,0 121.9492,-36"/>
+<text text-anchor="middle" x="87" y="-13.8" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#000000">TokenV0</text>
+</g>
+<!-- tv0&#45;&gt;outs -->
+<g id="edge1" class="edge">
+<title>tv0&#45;&gt;outs</title>
+<path fill="none" stroke="#000000" d="M109.2061,-36.1686C120.045,-45.0368 133.2444,-55.8363 144.9678,-65.4282"/>
+<polygon fill="#000000" stroke="#000000" points="142.845,-68.2136 152.801,-71.8372 147.2777,-62.7959 142.845,-68.2136"/>
+</g>
+<!-- tv1 -->
+<g id="node7" class="node">
+<title>tv1</title>
+<polygon fill="none" stroke="#000000" points="209.9492,-36 140.0508,-36 140.0508,0 209.9492,0 209.9492,-36"/>
+<text text-anchor="middle" x="175" y="-13.8" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#000000">TokenV1</text>
+</g>
+<!-- tv1&#45;&gt;outs -->
+<g id="edge2" class="edge">
+<title>tv1&#45;&gt;outs</title>
+<path fill="none" stroke="#000000" d="M175,-36.1686C175,-43.869 175,-53.0257 175,-61.5834"/>
+<polygon fill="#000000" stroke="#000000" points="171.5001,-61.5867 175,-71.5867 178.5001,-61.5868 171.5001,-61.5867"/>
+</g>
+<!-- tvx -->
+<g id="node8" class="node">
+<title>tvx</title>
+<polygon fill="none" stroke="#000000" points="297.9492,-36 228.0508,-36 228.0508,0 297.9492,0 297.9492,-36"/>
+<text text-anchor="middle" x="263" y="-13.8" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#000000">TokenVx</text>
+</g>
+<!-- tvx&#45;&gt;outs -->
+<g id="edge6" class="edge">
+<title>tvx&#45;&gt;outs</title>
+<path fill="none" stroke="#000000" d="M240.7939,-36.1686C229.955,-45.0368 216.7556,-55.8363 205.0322,-65.4282"/>
+<polygon fill="#000000" stroke="#000000" points="202.7223,-62.7959 197.199,-71.8372 207.155,-68.2136 202.7223,-62.7959"/>
+</g>
+<!-- prx -->
+<g id="node9" class="node">
+<title>prx</title>
+<polygon fill="none" stroke="#000000" points="54,-108 0,-108 0,-72 54,-72 54,-108"/>
+<text text-anchor="middle" x="27" y="-85.8" font-family="Times,serif" font-weight="bold" font-size="14.00" fill="#000000">Proxy</text>
+</g>
+<!-- prx&#45;&gt;tst -->
+<g id="edge8" class="edge">
+<title>prx&#45;&gt;tst</title>
+<path fill="none" stroke="#000000" d="M36.8413,-108.1686C41.1957,-116.2075 46.4098,-125.8334 51.2169,-134.7082"/>
+<polygon fill="#000000" stroke="#000000" points="48.1857,-136.4608 56.0261,-143.5867 54.3408,-133.1268 48.1857,-136.4608"/>
+</g>
+</g>
 </svg>

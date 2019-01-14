@@ -18,34 +18,51 @@ if [ "$1" = "edge" ]; then
 	version="edge"
 fi
 
-echo "building version ${version}"
+# ensure xgo is installed
+go get -u github.com/karalabe/xgo
 
-for os in darwin linux windows; do
-	echo Packaging ${os}...
-	# create workspace
+# Create temp work space
+tmpfolder="release/tfchain-xc.tmp"
+rm -rf "$tmpfolder"
+mkdir -p "$tmpfolder"
+
+# Compile binaries
+for pkg in ./cmd/tfchainc ./cmd/tfchaind ./cmd/bridged; do
+	xgo --go 1.11.x --targets='linux/amd64,darwin/amd64' \
+		-ldflags="-X ${package}/pkg/config.rawVersion=${full_version} -s -w" \
+		-out "$(basename $pkg)-$version" \
+		-dest "$tmpfolder" \
+		$pkg
+done
+
+# Create archives
+for os in linux darwin; do
 	folder="release/tfchain-${version}-${os}-amd64"
 	rm -rf "$folder"
-	mkdir -p "$folder"
-	# compile and sign binaries
-	for pkg in cmd/tfchainc cmd/tfchaind; do
-		bin=$pkg
-		if [ "$os" == "windows" ]; then
-			bin=${pkg}.exe
-		fi
-		GOOS=${os} go build -a \
-			-ldflags="-X ${package}/pkg/config.rawVersion=${full_version} -s -w" \
-			-o "${folder}/${bin}" "./${pkg}"
+	mkdir -p "$folder/cmd"
 
+	# copy binaries
+	for binary in $(ls "$tmpfolder" | grep "$os" | grep "amd64"); do
+		cp "${tmpfolder}/${binary}" "$folder/cmd/$(echo "$binary" | cut -d- -f1)"
 	done
-	# add other artifacts
+
+	# copy other artifacts
 	cp -r doc LICENSE README.md "$folder"
+
 	# go into the release directory
 	pushd release &> /dev/null
 	# zip
+	ziparchive="tfchain-${version}-${os}-amd64.zip"
+	rm -f "$ziparchive"
 	(
-		zip -rq "tfchain-${version}-${os}-amd64.zip" \
-			"tfchain-${version}-${os}-amd64"
+		zip -rq "$ziparchive" "tfchain-${version}-${os}-amd64"
 	)
 	# leave the release directory
 	popd &> /dev/null
+
+	# clean up workspace dir
+	rm -rf "$folder"
 done
+
+# all archives are ready clean up temp directory
+rm -rf "$tmpfolder"

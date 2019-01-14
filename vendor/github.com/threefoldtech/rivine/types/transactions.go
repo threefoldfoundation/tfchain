@@ -89,7 +89,7 @@ type (
 		BlockStakeInputs  []BlockStakeInput
 		BlockStakeOutputs []BlockStakeOutput
 		MinerFees         []Currency
-		ArbitraryData     ArbitraryData
+		ArbitraryData     []byte
 
 		// can adhere any (at once) of {TransactionDataEncoder, TransactionValidator, InputSigHasher},
 		// or simply be nil.
@@ -234,7 +234,48 @@ func (t Transaction) CoinOutputSum() (sum Currency) {
 		sum = sum.Add(fee)
 	}
 
+	// add any custom miner payouts
+	mps, _ := t.CustomMinerPayouts()
+	for _, mp := range mps {
+		sum = sum.Add(mp.Value)
+	}
+
 	return
+}
+
+// CustomMinerPayouts returns any miner payouts originating from this transaction,
+// that are not registered as regular MinerFees.
+func (t Transaction) CustomMinerPayouts() ([]MinerPayout, error) {
+	// get a controller registered or unknown controller
+	controller, exists := _RegisteredTransactionVersions[t.Version]
+	if !exists {
+		return nil, ErrUnknownTransactionType
+	}
+	if cmpGetter, ok := controller.(TransactionCustomMinerPayoutGetter); ok {
+		return cmpGetter.GetCustomMinerPayouts(t.Extension)
+	}
+	// nothing to do
+	return nil, nil
+}
+
+// CommonTransactionExtensionData collects the common-understood
+// Tx Extension data as a single struct.
+type CommonTransactionExtensionData struct {
+	UnlockConditions []UnlockConditionProxy
+}
+
+// CommonExtensionData returns the common-understood Extension data.
+func (t Transaction) CommonExtensionData() (CommonTransactionExtensionData, error) {
+	// get a controller registered or unknown controller
+	controller, exists := _RegisteredTransactionVersions[t.Version]
+	if !exists {
+		return CommonTransactionExtensionData{}, ErrUnknownTransactionType
+	}
+	if cedGetter, ok := controller.(TransactionCommonExtensionDataGetter); ok {
+		return cedGetter.GetCommonExtensionData(t.Extension)
+	}
+	// nothing to do
+	return CommonTransactionExtensionData{}, nil
 }
 
 // MarshalSia implements the siabin.SiaMarshaler interface.

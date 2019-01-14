@@ -1,6 +1,4 @@
 release/
 dist/
-debug
-testnet/
 *.out
-cmd/tfchaind/standard
+cmd/tfchaind/testnet

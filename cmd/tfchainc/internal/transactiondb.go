@@ -8,6 +8,7 @@ import (
 	"github.com/threefoldfoundation/tfchain/pkg/api"
 	"github.com/threefoldfoundation/tfchain/pkg/types"
 
+	rapi "github.com/threefoldtech/rivine/pkg/api"
 	"github.com/threefoldtech/rivine/pkg/client"
 	rivinetypes "github.com/threefoldtech/rivine/types"
 )
@@ -138,4 +139,30 @@ func (cli *TransactionDBClient) GetRecordForString(str string) (*types.BotRecord
 		return nil, errors.New("argument should be a valid BotID, BotName or PublicKey")
 	}
 	return cli.GetRecordForKey(publicKey)
+}
+
+// GetERC20AddressForTFTAddress implements types.ERC20Registry.GetERC20AddressForTFTAddress
+func (cli *TransactionDBClient) GetERC20AddressForTFTAddress(uh rivinetypes.UnlockHash) (types.ERC20Address, bool, error) {
+	var result api.TransactionDBGetERC20RelatedAddress
+	err := cli.client.GetAPI(fmt.Sprintf("%s/erc20/addresses/%s", cli.rootEndpoint, uh.String()), &result)
+	if err != nil {
+		if err == rapi.ErrStatusNotFound {
+			return types.ERC20Address{}, false, nil
+		}
+		return types.ERC20Address{}, false, fmt.Errorf("failed to get ERC20 Info for TFT address %s from daemon: %v", uh.String(), err)
+	}
+	return result.ERC20Address, true, nil
+}
+
+// GetTFTTransactionIDForERC20TransactionID implements types.ERC20Registry.GetTFTTransactionIDForERC20TransactionID
+func (cli *TransactionDBClient) GetTFTTransactionIDForERC20TransactionID(txid types.ERC20Hash) (rivinetypes.TransactionID, bool, error) {
+	var result api.TransactionDBGetERC20TransactionID
+	err := cli.client.GetAPI(fmt.Sprintf("%s/erc20/transactions/%s", cli.rootEndpoint, txid.String()), &result)
+	if err != nil {
+		if err == rapi.ErrStatusNotFound {
+			return rivinetypes.TransactionID{}, false, nil
+		}
+		return rivinetypes.TransactionID{}, false, fmt.Errorf("failed to get info linked to ERC20 Transaction ID %s from daemon: %v", txid.String(), err)
+	}
+	return result.TfchainTransactionID, true, nil
 }
