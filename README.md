@@ -183,7 +183,21 @@ For in-depth technical information you can check the [Rivine][rivine] docs at [g
 ### Bootstrapping
 
 For a node to be part of the network, it needs to connect to some other nodes in the network so that it can broadcast transactions/blocks and listen to new transactions/blocks. A node doesn't need to connect to every node in the network; instead, a node connects to a few other nodes. And these nodes connect to a few other nodes. In this way, the whole network is connected to each other.
-But how does a node find some other nodes in the network as there is no central server that everyone can connect to so as to exchange their information? Bootstrap nodes maintain a list of all nodes that are connected to them. When peers connect to the Tfchain network, they first connect to the Bootstrap nodes ,which share the lists of peers that have connected to them. The connecting peers then connect and synchronize with the sbared peers as well as the bootstrap nodes.
+But how does a node find some other nodes in the network as there is no central server that everyone can connect to so as to exchange their information? Bootstrap nodes maintain a list of all nodes that are connected to them. When peers connect to the Tfchain network, they first connect to the Bootstrap nodes ,which share the lists of peers that have connected to them. The connecting peers then connect and synchronize with the shared peers as well as the bootstrap nodes.
+
+By default bootstrapping is enabled. On top the functionality described in the previous paragraph it will also ensure the consensus starts with an initial phase, called the initial block download phase, IBD for short. It will remain in this phase, and block the daemon from starting fully, until it is either in sync or if no new block arrived within 10 minutes of the last received block. A block creator
+will not create any blocks while it is not in sync.
+
+Also by default there are bootstrap peers defined for all networks.
+
+| network | bootstrap peers |
+| - | - |
+| `standard` | bootstrap1.threefoldtoken.com:23112, bootstrap2.threefoldtoken.com:23112, bootstrap3.threefoldtoken.com:23112, bootstrap4.threefoldtoken.com:23112 |
+| `testnet` | bootstrap1.testnet.threefoldtoken.com:23112, bootstrap2.testnet.threefoldtoken.com:23112, bootstrap3.testnet.threefoldtoken.com:23112, bootstrap4.testnet.threefoldtoken.com:23112 |
+| `devnet` | localhost:23112 |
+
+When the `tfchaind` daemon starts with the `--no-bootstrap` flag it doesn't connect to any bootstrap peers, custom-defined or not.
+On top of that it will skip the IBD phase.
 
 ## troubleshooting
 
