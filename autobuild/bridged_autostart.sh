@@ -42,6 +42,5 @@ chmod +x $TFCHAIN_FLIST/bin/*
 cp $TFCHAIN_FLIST/bin/bridged  $BRIDGED_AUTOSTART_FLIST/bin/
 cp $BRIDGED_AUTOSTART_FILE $BRIDGED_AUTOSTART_FLIST/.startup.toml
 
-
 tar -czf "/tmp/archives/bridged_autostart.tar.gz" -C $BRIDGED_AUTOSTART_FLIST .
 
