@@ -42,6 +42,15 @@ Note that this minimal tfchain docker container is not really meant to be used f
 
 Even though the image for these containers is prebuilt available for you, should you wish to use a tfchain docker container from the hacked source code you can rebuilt those imagines using `docker-minimal`.
 
+In order to have an optimal experience for your containerized wallet,
+it is recommended that you use the `--plain` flags for the `wallet init` commands,
+which will store the seeds as plain text in the container FS, preventing the need for an STDIN.
+When creating a wallet with a recovered seed, using the `wallet recover` command, you can
+on top of that also use the `--seed` flag to pass the seed as a mnemonic directly into the daemon,
+such no STDIN is required. Make sure to use the `--plain` flag here as well in that case.
+
+The `wallet load seed` command supports both the `--plain` and `--seed` command as well.
+
 ### tfchain from source
 
 tfchain is developed and implemented using [Golang](http://golang.org). Using the golang toolchain it is very easy to download, update and install the tfchain binaries used to run a full node and interact with it:
