@@ -29,7 +29,6 @@ cp -ar /tfchain /root/go/src/github.com/threefoldfoundation/tfchain
 TFCHAIN=$GOPATH/src/github.com/threefoldfoundation/tfchain
 TFCHAIND=$TFCHAIN/cmd/tfchaind
 TFCHAINC=$TFCHAIN/cmd/tfchainc
-BRIDGED=$TFCHAIN/cmd/bridged
 TFCHAIN_AUTOSTART_FILE="$TFCHAIN/autobuild/startup_blockcreator.toml"
 
 pushd $TFCHAIND
@@ -38,10 +37,6 @@ popd
 
 pushd $TFCHAINC
 go build -ldflags "-linkmode external -s -w -extldflags -static" -o $TFCHAIN_FLIST/bin/tfchainc
-popd
-
-pushd $BRIDGED
-go build -ldflags "-linkmode external -s -w -extldflags -static" -o $TFCHAIN_FLIST/bin/bridged
 popd
 
 # make sure binary is executable

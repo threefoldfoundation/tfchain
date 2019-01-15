@@ -25,7 +25,6 @@ cp -ar /tfchain /root/go/src/github.com/threefoldfoundation/tfchain
 TFCHAIN=$GOPATH/src/github.com/threefoldfoundation/tfchain
 TFCHAIND=$TFCHAIN/cmd/tfchaind
 TFCHAINC=$TFCHAIN/cmd/tfchainc
-BRIDGED=$TFCHAIN/cmd/bridged
 
 
 pushd $TFCHAIND
@@ -36,12 +35,7 @@ pushd $TFCHAINC
 go build -ldflags "-linkmode external -s -w -extldflags -static" -o $TFCHAIN_FLIST/bin/tfchainc
 popd
 
-pushd $BRIDGED
-go build -ldflags "-linkmode external -s -w -extldflags -static" -o $TFCHAIN_FLIST/bin/bridged
-popd
-
 # make sure binary is executable
 chmod +x $TFCHAIN_FLIST/bin/*
-
 
 tar -czf "/tmp/archives/tfchain.tar.gz" -C $TFCHAIN_FLIST .
