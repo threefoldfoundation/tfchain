@@ -1,0 +1,45 @@
+[startup.tfchaind]
+name = "core.system"
+
+
+[startup.tfchaind.args[startup.tfchaind]
+name = "core.system"
+
+
+[startup.tfchaind.args]
+name = "/bin/tfchaind"
+# should use default values here?
+args = ["--rpc-addr={TFCHAIND_RPC_ADDR}", "--api-addr={TFCHAIND_APIADDR}", "--persistent-directory", "/mnt/data " , "--network={TFCHAIND_NETWORK}"]
+
+
+[startup.tfchainc]
+name = "core.system"
+after = ["tfchaind"]
+
+
+[startup.tfchainc.args]
+name = "/bin/tfchainc"
+args = []
+
+
+[startup.bridged]
+name = "core.system"
+
+[startup.bridged.args]
+name = "/bin/bridged"
+args = ["--rpc-addr={BRIDGED_RPC_ADDR}", "--ethnetwork={ETH_NETWORK}", "--ethport={ETH_PORT}", "--account-json={ETH_ACCOUNT_JSON}", "--account-password={ETH_ACCOUNT_PASSWORD}"]
+]
+name = "/bin/tfchaind"
+# should use default values here?
+args = ["--rpc-addr={TFCHAIND_RPC_ADDR}", "--api-addr={TFCHAIND_APIADDR}", "--persistent-directory", "/mnt/data " , "--network={TFCHAIND_NETWORK}"]
+
+
+[startup.tfchainc]
+name = "core.system"
+after = ["tfchaind"]
+
+
+[startup.tfchainc.args]
+name = "/bin/tfchainc"
+args = []
+

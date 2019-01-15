@@ -1,0 +1,6 @@
+[startup.bridged]
+name = "core.system"
+
+[startup.bridged.args]
+name = "/bin/bridged"
+args = ["--rpc-addr={BRIDGED_RPC_ADDR}", "--ethnetwork={ETH_NETWORK}", "--ethport={ETH_PORT}", "--account-json={ETH_ACCOUNT_JSON}", "--account-password={ETH_ACCOUNT_PASSWORD}"]
