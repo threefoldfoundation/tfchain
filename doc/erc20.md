@@ -34,16 +34,14 @@ Also, there is no free choice of ethereum address since it would be possible to 
 
 ### Ethereum test networks
 
-#### Rinkeby
+We use the ethereum ropsten testnetwork for our testnet, the contract is deployed at `0xb821227dBa4Ef9585D31aa494406FD5E47a3db37`.
+
+Rinkeby testnetwork is used during development.
 
 Faucets:
-- https://faucet.rinkeby.io
+-  rinkeby: https://faucet.rinkeby.io
   Requires a Twitter, Google+ or Facebook post.
-
-#### Ropsten
-
-Faucets:
-- https://faucet.ropsten.be 
+- ropsten: https://faucet.ropsten.be 
   1 test ETH/ day can be requested here
 
 ## Technical
