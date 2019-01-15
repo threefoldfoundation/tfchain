@@ -27,18 +27,18 @@ TFCHAINC=$TFCHAIN/cmd/tfchainc
 BRIDGED=$TFCHAIN/cmd/bridged
 
 pushd $TFCHAIND
-# go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
-go build -o $FLIST/bin/tfchaind
+go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin/tfchaind
+# go build -o $FLIST/bin/tfchaind
 popd
 
 pushd $TFCHAINC
-# go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
-go build -o $FLIST/bin/tfchainc
+go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin/tfchainc
+# go build -o $FLIST/bin/tfchainc
 popd
 
 pushd $BRIDGED
-# go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin
-go build -o $FLIST/bin/bridged
+go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FLIST/bin/bridged
+# go build -o $FLIST/bin/bridged
 popd
 # make sure binary is executable
 chmod +x $FLIST/bin/*
