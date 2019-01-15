@@ -7,13 +7,3 @@ name = "/bin/tfchaind"
 # should use default values here?
 args = ["--rpc-addr={TFCHAIND_RPC_ADDR}", "--api-addr={TFCHAIND_APIADDR}", "--persistent-directory", "/mnt/data " , "--network={TFCHAIND_NETWORK}", "--ethvalidation"]
 
-
-[startup.tfchainc]
-name = "core.system"
-after = ["tfchaind"]
-
-[startup.tfchainc.args]
-name = "/bin/tfchainc"
-args = []
-
-
