@@ -25,7 +25,7 @@ func TestGetEthNetworkConfiguration(t *testing.T) {
 		if testcase.networkID != conf.NetworkID {
 			t.Error(testcase.networkID, "!=", conf.NetworkID)
 		}
-		bootnodes, err := conf.GetBootnodes()
+		bootnodes, err := conf.GetBootnodes(nil)
 		if err != nil {
 			t.Error("error while getting BootNodes:", err)
 		}
@@ -42,8 +42,35 @@ func TestGetEthNetworkConfiguration(t *testing.T) {
 
 func TestGetEthNetworkConfigurationInvalid(t *testing.T) {
 	cfg := NetworkConfiguration{bootnodes: []string{"foo"}}
-	nodes, err := cfg.GetBootnodes()
+	nodes, err := cfg.GetBootnodes(nil)
 	if err == nil {
 		t.Fatal("expected error, but received", nodes)
+	}
+}
+func TestGetBootnodes(t *testing.T) {
+	conf, _ := GetEthNetworkConfiguration("ropsten")
+
+	bootnodes, err := conf.GetBootnodes(nil)
+	if err != nil {
+		t.Error("error while getting BootNodes:", err)
+	}
+	if len(bootnodes) == 0 {
+		t.Error("unexpected empty bootnodes list")
+	}
+
+	bootnodes, err = conf.GetBootnodes([]string{})
+	if err != nil {
+		t.Error("error while getting BootNodes:", err)
+	}
+	if len(bootnodes) == 0 {
+		t.Error("unexpected empty bootnodes list")
+	}
+
+	bootnodes, err = conf.GetBootnodes([]string{"enode://2b4ae2d7ece11acffa1ce1ceac14e55e68f0c43a5f35b58e89f55d6de7c06ab98777b85d7f1f15eb1f6de0c39e3f35a3917bf647abbdc22f65ea2c73056162ca@127.0.0.1:3003"})
+	if err != nil {
+		t.Error("error while getting BootNodes:", err)
+	}
+	if len(bootnodes) != 1 {
+		t.Error("unexpected empty bootnodes list")
 	}
 }

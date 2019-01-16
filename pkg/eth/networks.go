@@ -20,9 +20,13 @@ type NetworkConfiguration struct {
 }
 
 //GetBootnodes returns the bootnodes for the specific network as  slice of *discv5.Node
-func (config NetworkConfiguration) GetBootnodes() ([]*discv5.Node, error) {
+// The default bootnodes can be overridden by passing a non nil or empty bootnodes parameter
+func (config NetworkConfiguration) GetBootnodes(bootnodes []string) ([]*discv5.Node, error) {
+	if bootnodes == nil || len(bootnodes) == 0 {
+		bootnodes = config.bootnodes
+	}
 	var nodes []*discv5.Node
-	for _, boot := range config.bootnodes {
+	for _, boot := range bootnodes {
 		if url, err := discv5.ParseNode(boot); err == nil {
 			nodes = append(nodes, url)
 		} else {

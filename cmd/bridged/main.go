@@ -39,6 +39,9 @@ type Commands struct {
 	// eth port for light client
 	EthPort uint16
 
+	// eth bootnodes
+	EthBootNodes []string
+
 	// eth account flags
 	accJSON string
 	accPass string
@@ -202,7 +205,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		log.Info("loading bridged module (4/4)...")
 		bridged, err := erc20.NewBridge(
-			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.ContractAddress, cmd.perDir("bridge"),
+			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.EthBootNodes, cmd.ContractAddress, cmd.perDir("bridge"),
 			cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
 		if err != nil {
 			log.Error("Failed to create bridge module", "err", err)
@@ -309,7 +312,7 @@ func main() {
 		&cmd.RootPersistentDir,
 		"persistent-directory", "d",
 		"bridgedata",
-		"location of the root diretory used to store persistent data of the daemon of "+cmd.BlockchainInfo.Name,
+		"location of the root directory used to store persistent data of the daemon of "+cmd.BlockchainInfo.Name,
 	)
 	cmdRoot.Flags().StringVar(
 		&cmd.RPCaddr,
@@ -329,7 +332,7 @@ func main() {
 		cmdRoot.Flags(),
 		&cmd.BootstrapPeers,
 		"bootstrap-peers",
-		"overwrite the bootstrap peers to use, instead of using the default bootstrap peers",
+		"override the default tfchain bootstrap peers",
 	)
 
 	// bridge flags
@@ -343,6 +346,11 @@ func main() {
 		&cmd.EthPort,
 		"ethport", 3003,
 		"port for the ethereum deamon",
+	)
+	cmdRoot.Flags().StringSliceVar(
+		&cmd.EthBootNodes,
+		"ethbootnodes", nil,
+		"Override the default ethereum bootnodes, a comma seperated list of enode URLs (enode://pubkey1@ip1:port1)",
 	)
 
 	// bridge account

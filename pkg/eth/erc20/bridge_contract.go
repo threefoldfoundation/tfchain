@@ -45,7 +45,7 @@ func (bridge *bridgeContract) GetContractAdress() common.Address {
 	return bridge.networkConfig.ContractAddress
 }
 
-func newBridgeContract(networkName string, contractAddress string, port int, accountJSON, accountPass string, datadir string, cancel <-chan struct{}) (*bridgeContract, error) {
+func newBridgeContract(networkName string, bootnodes []string, contractAddress string, port int, accountJSON, accountPass string, datadir string, cancel <-chan struct{}) (*bridgeContract, error) {
 	// load correct network config
 	networkConfig, err := tfeth.GetEthNetworkConfiguration(networkName)
 	if err != nil {
@@ -58,7 +58,7 @@ func newBridgeContract(networkName string, contractAddress string, port int, acc
 		//       see https://github.com/threefoldfoundation/tfchain/issues/261
 	}
 
-	bootstrapNodes, err := networkConfig.GetBootnodes()
+	bootstrapNodes, err := networkConfig.GetBootnodes(bootnodes)
 	if err != nil {
 		return nil, err
 	}

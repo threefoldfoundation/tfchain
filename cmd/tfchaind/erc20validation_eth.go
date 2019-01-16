@@ -81,7 +81,7 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig, cancel <-chan struct{})
 	}
 
 	// get the ETH bootstrap nodes
-	bootstrapNodes, err := netcfg.GetBootnodes()
+	bootstrapNodes, err := netcfg.GetBootnodes(nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while fetching the ETH bootstrap node info: %v", err)
 	}
