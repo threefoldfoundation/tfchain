@@ -7,9 +7,12 @@ apt-get install git gcc wget -y
 # make output directory
 ARCHIVE=/tmp/archives
 TFCHAIN_FLIST=/tmp/tfchain
+BRIDGED_FLIST=/tmp/bridged_flist
+
 
 mkdir -p $ARCHIVE
 mkdir -p $TFCHAIN_FLIST/bin
+mkdir -p $BRIDGED_FLIST/bin
 
 # install go
 GOFILE=go1.11.linux-amd64.tar.gz
@@ -23,19 +26,17 @@ mkdir -p /root/go/src/github.com/threefoldfoundation
 cp -ar /tfchain /root/go/src/github.com/threefoldfoundation/tfchain
 
 TFCHAIN=$GOPATH/src/github.com/threefoldfoundation/tfchain
-TFCHAIND=$TFCHAIN/cmd/tfchaind
-TFCHAINC=$TFCHAIN/cmd/tfchainc
+BRIDGED=$TFCHAIN/cmd/bridged
 
 
-pushd $TFCHAIND
-go build -ldflags "-linkmode external -s -w -extldflags -static" -o $TFCHAIN_FLIST/bin/tfchaind
-popd
-
-pushd $TFCHAINC
-go build -ldflags "-linkmode external -s -w -extldflags -static" -o $TFCHAIN_FLIST/bin/tfchainc
+pushd $BRIDGED
+go build -ldflags "-linkmode external -s -w -extldflags -static" -o $TFCHAIN_FLIST/bin/bridged
 popd
 
 # make sure binary is executable
 chmod +x $TFCHAIN_FLIST/bin/*
 
-tar -czf "/tmp/archives/tfchain.tar.gz" -C $TFCHAIN_FLIST .
+cp $TFCHAIN_FLIST/bin/bridged  $BRIDGED_FLIST/bin/
+
+
+tar -czf "/tmp/archives/bridged.tar.gz" -C $BRIDGED_FLIST .
