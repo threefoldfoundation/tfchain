@@ -27,7 +27,6 @@ import (
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/p2p/discv5"
 	"github.com/ethereum/go-ethereum/p2p/enode"
-	"github.com/ethereum/go-ethereum/p2p/nat"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -103,7 +102,7 @@ func NewLightClient(lccfg LightClientConfig, cancel <-chan struct{}) (*LightClie
 		Version: params.VersionWithMeta,
 		DataDir: datadir,
 		P2P: p2p.Config{
-			NAT:              nat.Any(),
+			NAT:              nil,
 			NoDiscovery:      true,
 			DiscoveryV5:      true,
 			ListenAddr:       fmt.Sprintf(":%d", lccfg.Port),

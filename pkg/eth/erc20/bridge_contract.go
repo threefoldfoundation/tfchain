@@ -59,6 +59,7 @@ func newBridgeContract(networkName string, bootnodes []string, contractAddress s
 	}
 
 	bootstrapNodes, err := networkConfig.GetBootnodes(bootnodes)
+	log.Info("bootnodes", "nodes", bootstrapNodes)
 	if err != nil {
 		return nil, err
 	}
