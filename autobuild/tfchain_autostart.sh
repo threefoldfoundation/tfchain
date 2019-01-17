@@ -1,8 +1,8 @@
 #!/bin/bash
 set -ex
 
-apt-get update
-apt-get install git gcc wget -y
+# apt-get update
+# apt-get install git gcc wget -y
 
 # make output directory
 ARCHIVE=/tmp/archives
@@ -18,12 +18,12 @@ tar -C /usr/local -xzf $GOFILE
 mkdir -p /root/go
 export GOPATH=/root/go
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/go/bin
-
 mkdir -p /root/go/src/github.com/threefoldfoundation
 cp -ar /tfchain /root/go/src/github.com/threefoldfoundation/tfchain
 
 TFCHAIN=$GOPATH/src/github.com/threefoldfoundation/tfchain
 TFCHAIND=$TFCHAIN/cmd/tfchaind
+TFCHAINC=$TFCHAIN/cmd/tfchainc
 
 
 TFCHAIN_AUTOSTART_FILE="$TFCHAIN/autobuild/startup_blockcreator.toml"
