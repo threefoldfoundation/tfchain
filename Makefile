@@ -124,7 +124,7 @@ release-images-edge: get_hub_jwt docker-minimal-edge
 	docker push tfchain/tfchain:$(dockerVersionEdge)
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "image=tfchain/tfchain:$(dockerVersionEdge)" "https://hub.grid.tf/api/flist/me/docker"
 	# Merge the flist with ubuntu and nmap flist, so we have a tty file etc...
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-official-apps/ubuntu1604.flist\", \"tfchain/tfchain-tfchain-$(dockerVersionEdge).flist\", \"tf-official-apps/nmap.flist\"]" "https://hub.grid.tf/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersionEdge).flist"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-bootable/ubuntu:16.04.flist\", \"tfchain/tfchain-tfchain-$(dockerVersionEdge).flist\"]" "https://hub.grid.tf/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersionEdge).flist"
 
 explorer: release-dir embed-explorer-version
 	tar -C $(TEMPDIR)/frontend -czvf release/explorer-$(dockerVersion).tar.gz explorer
