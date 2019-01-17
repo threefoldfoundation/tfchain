@@ -1,6 +1,6 @@
 [startup.tfchaind]
 name = "core.system"
-
+protected = true
 
 [startup.tfchaind.args]
 name = "/bin/tfchaind"

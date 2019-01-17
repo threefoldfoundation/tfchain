@@ -1,5 +1,6 @@
 [startup.bridged]
 name = "core.system"
+protected = true
 
 [startup.bridged.args]
 name = "/bin/bridged"
