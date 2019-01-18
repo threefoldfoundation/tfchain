@@ -7,4 +7,5 @@ type ERC20NodeValidatorConfig struct {
 	NetworkName string
 	DataDir     string
 	Port        int
+	BootNodes   []string
 }
