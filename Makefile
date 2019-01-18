@@ -93,7 +93,7 @@ release-images: get_hub_jwt docker-minimal
 	# symlink the latest flist
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/tfchain-tfchain-$(dockerVersion).flist/link/tfchain-tfchain.flist"
 	# Merge the flist with ubuntu and nmap flist, so we have a tty file etc...
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-official-apps/ubuntu1604.flist\", \"tfchain/tfchain-tfchain-$(dockerVersion).flist\", \"tf-official-apps/nmap.flist\"]" "https://hub.grid.tf/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersion).flist"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-bootable/ubuntu:16.04.flist\", \"tfchain/tfchain-tfchain-$(dockerVersion).flist\"]" "https://hub.grid.tf/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersion).flist"
 	# And also link in a latest
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/ubuntu-16.04-tfchain-$(dockerVersion).flist/link/ubuntu-16.04-tfchain.flist"
 
@@ -116,7 +116,7 @@ docker-minimal-edge:
 	for binary in tfchainc tfchaind bridged ; do \
 		cp release/tfchain-xc.tmp/$$binary-edge-linux-amd64 $(TEMPDIR)/dist/linux/$$binary ; \
 	done
-	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal $(TEMPDIR)
+	docker build -t tfchain/tfchain:$(dockerVersionEdge) -f DockerfileMinimal $(TEMPDIR)
 	rm -rf $(TEMPDIR) release/tfchain-xc.tmp
 
 # Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
