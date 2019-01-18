@@ -73,7 +73,7 @@ xc-archive-noeth:
 	docker build -t tfchain_noeth_builder -f DockerBuilderNoEth .
 	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder archive
 
-docker-minimal:
+images-minimal:
 	bash release.sh linux
 	$(eval TEMPDIR = $(shell mktemp -d))
 	mkdir -p $(TEMPDIR)/dist/linux
@@ -81,19 +81,20 @@ docker-minimal:
 		cp release/tfchain-xc.tmp/$$binary-$(version)-linux-amd64 $(TEMPDIR)/dist/linux/$$binary ; \
 	done
 	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal $(TEMPDIR)
+	tar -C $(TEMPDIR)/dist/linux -czvf $(TEMPDIR)/tfchain-$(dockerVersion).tar.gz .
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@$(TEMPDIR)/tfchain-$(dockerVersion).tar.gz "https://hub.grid.tf/api/flist/me/upload"
 	rm -rf $(TEMPDIR) release/tfchain-xc.tmp
 
 # Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
-release-images: get_hub_jwt docker-minimal
+release-images: get_hub_jwt images-minimal
 	docker push tfchain/tfchain:$(dockerVersion)
 	# also create a latest
 	docker tag tfchain/tfchain:$(dockerVersion) tfchain/tfchain
 	docker push tfchain/tfchain:latest
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "image=tfchain/tfchain:$(dockerVersion)" "https://hub.grid.tf/api/flist/me/docker"
 	# symlink the latest flist
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/tfchain-tfchain-$(dockerVersion).flist/link/tfchain-tfchain.flist"
-	# Merge the flist with ubuntu and nmap flist, so we have a tty file etc...
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-bootable/ubuntu:16.04.flist\", \"tfchain/tfchain-tfchain-$(dockerVersion).flist\"]" "https://hub.grid.tf/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersion).flist"
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/tfchain-$(dockerVersion).flist/link/tfchain-tfchain.flist"
+	# Merge the flist with ubuntu flist, so we have a tty file etc...
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-bootable/ubuntu:16.04.flist\", \"tfchain/tfchain-$(dockerVersion).flist\"]" "https://hub.grid.tf/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersion).flist"
 	# And also link in a latest
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/ubuntu-16.04-tfchain-$(dockerVersion).flist/link/ubuntu-16.04-tfchain.flist"
 
@@ -109,7 +110,7 @@ xc-archive-edge-noeth:
 	docker build -t tfchain_noeth_builder_edge -f DockerBuilderNoEth .
 	docker run --rm -v $(shell pwd):/go/src/github.com/threefoldfoundation/tfchain tfchain_noeth_builder_edge archive edge
 
-docker-minimal-edge:
+images-minimal-edge: get_hub_jwt
 	bash release.sh edge linux
 	$(eval TEMPDIR = $(shell mktemp -d))
 	mkdir -p $(TEMPDIR)/dist/linux
@@ -117,14 +118,15 @@ docker-minimal-edge:
 		cp release/tfchain-xc.tmp/$$binary-edge-linux-amd64 $(TEMPDIR)/dist/linux/$$binary ; \
 	done
 	docker build -t tfchain/tfchain:$(dockerVersionEdge) -f DockerfileMinimal $(TEMPDIR)
+	tar -C $(TEMPDIR)/dist/linux -czvf $(TEMPDIR)/tfchain-edge.tar.gz .
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@$(TEMPDIR)/tfchain-edge.tar.gz "https://hub.grid.tf/api/flist/me/upload"
 	rm -rf $(TEMPDIR) release/tfchain-xc.tmp
 
 # Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
-release-images-edge: get_hub_jwt docker-minimal-edge
+release-images-edge: get_hub_jwt images-minimal-edge
 	docker push tfchain/tfchain:$(dockerVersionEdge)
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "image=tfchain/tfchain:$(dockerVersionEdge)" "https://hub.grid.tf/api/flist/me/docker"
-	# Merge the flist with ubuntu and nmap flist, so we have a tty file etc...
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-bootable/ubuntu:16.04.flist\", \"tfchain/tfchain-tfchain-$(dockerVersionEdge).flist\"]" "https://hub.grid.tf/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersionEdge).flist"
+	# Merge the flist with ubuntu flist, so we have a tty file etc...
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-bootable/ubuntu:16.04.flist\", \"tfchain/tfchain-$(dockerVersionEdge).flist\"]" "https://hub.grid.tf/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersionEdge).flist"
 
 explorer: release-dir embed-explorer-version
 	tar -C $(TEMPDIR)/frontend -czvf release/explorer-$(dockerVersion).tar.gz explorer
