@@ -1,0 +1,16 @@
+[startup.tfchaind]
+name = "core.system"
+protected = true
+
+[startup.tfchaind.args]
+name = "/bin/tfchaind"
+# should use default values here?
+args = ["--rpc-addr={TFCHAIND_RPC_ADDR}", "--api-addr={TFCHAIND_API_ADDR}", "--persistent-directory={TFCHAIND_DATA_DIR}" , "--network={TFCHAIND_NETWORK}", "--ethvalidation"]
+
+[startup.caddy]
+name = "core.system"
+protected = true
+
+[startup.caddy.args]
+name = "/bin/caddy"
+args = ["-conf", "/var/www/explorer/caddy/Caddyfile"]

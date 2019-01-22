@@ -1,0 +1,14 @@
+[startup.faucet]
+name = "core.system"
+
+[startup.faucet.args]
+name = "/bin/tftfaucet"
+args = ["-port={FAUCET_WEBSITE_PORT}", "-daemon-address={BLOCK_CREATOR_API_ADDR}"]
+
+[startup.caddy]
+name = "core.system"
+protected = true
+
+[startup.caddy.args]
+name = "/bin/caddy"
+args = ["-conf", "/Caddyfile"]
