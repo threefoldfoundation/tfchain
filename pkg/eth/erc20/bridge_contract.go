@@ -21,9 +21,9 @@ var (
 	ether = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
 )
 
-// bridgeContract exposes a higher lvl api for specific contract bindings. In case of proxy contracts,
+// BridgeContract exposes a higher lvl api for specific contract bindings. In case of proxy contracts,
 // the bridge needs to use the bindings of the implementation contract, but the address of the proxy.
-type bridgeContract struct {
+type BridgeContract struct {
 	networkConfig tfeth.NetworkConfiguration // Ethereum network
 
 	lc *LightClient
@@ -41,11 +41,11 @@ type bridgeContract struct {
 	lock sync.RWMutex // Lock protecting the bridge's internals
 }
 
-func (bridge *bridgeContract) GetContractAdress() common.Address {
+func (bridge *BridgeContract) GetContractAdress() common.Address {
 	return bridge.networkConfig.ContractAddress
 }
 
-func newBridgeContract(networkName string, bootnodes []string, contractAddress string, port int, accountJSON, accountPass string, datadir string, cancel <-chan struct{}) (*bridgeContract, error) {
+func NewBridgeContract(networkName string, bootnodes []string, contractAddress string, port int, accountJSON, accountPass string, datadir string, cancel <-chan struct{}) (*BridgeContract, error) {
 	// load correct network config
 	networkConfig, err := tfeth.GetEthNetworkConfiguration(networkName)
 	if err != nil {
@@ -94,7 +94,7 @@ func newBridgeContract(networkName string, bootnodes []string, contractAddress s
 		return nil, err
 	}
 
-	return &bridgeContract{
+	return &BridgeContract{
 		networkConfig: networkConfig,
 		lc:            lc,
 		filter:        filter,
@@ -104,13 +104,13 @@ func newBridgeContract(networkName string, bootnodes []string, contractAddress s
 }
 
 // close terminates the Ethereum connection and tears down the stack.
-func (bridge *bridgeContract) close() error {
+func (bridge *BridgeContract) Close() error {
 	return bridge.lc.Close()
 }
 
 // refresh attempts to retrieve the latest header from the chain and extract the
 // associated bridge balance and nonce for connectivity caching.
-func (bridge *bridgeContract) refresh(head *types.Header) error {
+func (bridge *BridgeContract) Refresh(head *types.Header) error {
 	// Ensure a state update does not run for too long
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -143,7 +143,7 @@ func (bridge *bridgeContract) refresh(head *types.Header) error {
 
 // loop subscribes to new eth heads. If a new head is received, it is passed on the given channel,
 // after which the internal stats are updated if no update is already in progress
-func (bridge *bridgeContract) loop(ch chan<- *types.Header) {
+func (bridge *BridgeContract) Loop(ch chan<- *types.Header) {
 	log.Info("Subscribing to eth headers")
 	// channel to receive head updates from client on
 	heads := make(chan *types.Header, 16)
@@ -158,7 +158,7 @@ func (bridge *bridgeContract) loop(ch chan<- *types.Header) {
 	go func() {
 		for head := range update {
 			// old heads should be ignored during a chain sync after some downtime
-			if err := bridge.refresh(head); err != nil {
+			if err := bridge.Refresh(head); err != nil {
 				log.Warn("Failed to update state", "block", head.Number, "err", err)
 			}
 			log.Debug("Internal stats updated", "block", head.Number, "account balance", bridge.balance, "gas price", bridge.price, "nonce", bridge.nonce)
@@ -179,7 +179,7 @@ func (bridge *bridgeContract) loop(ch chan<- *types.Header) {
 
 // SubscribeTransfers subscribes to new Transfer events on the given contract. This call blocks
 // and prints out info about any transfer as it happened
-func (bridge *bridgeContract) subscribeTransfers() error {
+func (bridge *BridgeContract) SubscribeTransfers() error {
 	sink := make(chan *contract.TTFT20Transfer)
 	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	sub, err := bridge.filter.WatchTransfer(opts, sink, nil, nil)
@@ -199,7 +199,7 @@ func (bridge *bridgeContract) subscribeTransfers() error {
 
 // SubscribeMint subscribes to new Mint events on the given contract. This call blocks
 // and prints out info about any mint as it happened
-func (bridge *bridgeContract) subscribeMint() error {
+func (bridge *BridgeContract) SubscribeMint() error {
 	sink := make(chan *contract.TTFT20Mint)
 	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	sub, err := bridge.filter.WatchMint(opts, sink, nil, nil)
@@ -228,7 +228,7 @@ type withdrawEvent struct {
 
 // SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
 // and prints out info about any withdraw as it happened
-func (bridge *bridgeContract) subscribeWithdraw(wc chan<- withdrawEvent, startHeight uint64) error {
+func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- withdrawEvent, startHeight uint64) error {
 	sink := make(chan *contract.TTFT20Withdraw)
 	watchOpts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	filterOpts := &bind.FilterOpts{Context: context.Background(), Start: startHeight}
@@ -287,7 +287,7 @@ func (bridge *bridgeContract) subscribeWithdraw(wc chan<- withdrawEvent, startHe
 
 // SubscribeRegisterWithdrawAddress subscribes to new RegisterWithdrawalAddress events on the given contract. This call blocks
 // and prints out info about any RegisterWithdrawalAddress event as it happened
-func (bridge *bridgeContract) subscribeRegisterWithdrawAddress() error {
+func (bridge *BridgeContract) SubscribeRegisterWithdrawAddress() error {
 	sink := make(chan *contract.TTFT20RegisterWithdrawalAddress)
 	opts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	sub, err := bridge.filter.WatchRegisterWithdrawalAddress(opts, sink, nil)
@@ -306,7 +306,7 @@ func (bridge *bridgeContract) subscribeRegisterWithdrawAddress() error {
 }
 
 // TransferFunds transfers funds from one address to another
-func (bridge *bridgeContract) transferFunds(recipient common.Address, amount *big.Int) error {
+func (bridge *BridgeContract) TransferFunds(recipient common.Address, amount *big.Int) error {
 	if amount == nil {
 		return errors.New("invalid amount")
 	}
@@ -326,7 +326,7 @@ func (bridge *bridgeContract) transferFunds(recipient common.Address, amount *bi
 }
 
 //
-func (bridge *bridgeContract) mint(receiver tftypes.ERC20Address, amount *big.Int, txID string) error {
+func (bridge *BridgeContract) Mint(receiver tftypes.ERC20Address, amount *big.Int, txID string) error {
 	log.Info("Calling mint function in contract")
 	if amount == nil {
 		return errors.New("invalid amount")
@@ -346,7 +346,7 @@ func (bridge *bridgeContract) mint(receiver tftypes.ERC20Address, amount *big.In
 	return err
 }
 
-func (bridge *bridgeContract) isMintTxID(txID string) (bool, error) {
+func (bridge *BridgeContract) IsMintTxID(txID string) (bool, error) {
 	log.Info("Calling isMintID")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
@@ -354,7 +354,7 @@ func (bridge *bridgeContract) isMintTxID(txID string) (bool, error) {
 	return bridge.caller.IsMintID(opts, txID)
 }
 
-func (bridge *bridgeContract) registerWithdrawalAddress(address tftypes.ERC20Address) error {
+func (bridge *BridgeContract) RegisterWithdrawalAddress(address tftypes.ERC20Address) error {
 	log.Info("Calling register withdrawal address function in contract")
 	accountAddress, err := bridge.lc.AccountAddress()
 	if err != nil {
@@ -371,7 +371,7 @@ func (bridge *bridgeContract) registerWithdrawalAddress(address tftypes.ERC20Add
 	return err
 }
 
-func (bridge *bridgeContract) isWithdrawalAddress(address tftypes.ERC20Address) (bool, error) {
+func (bridge *BridgeContract) IsWithdrawalAddress(address tftypes.ERC20Address) (bool, error) {
 	log.Info("Calling isWithdrawalAddress function in contract")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
@@ -379,7 +379,7 @@ func (bridge *bridgeContract) isWithdrawalAddress(address tftypes.ERC20Address) 
 	return bridge.caller.IsWithdrawalAddress(opts, common.Address(address))
 }
 
-func (bridge *bridgeContract) getSignerFunc() bind.SignerFn {
+func (bridge *BridgeContract) getSignerFunc() bind.SignerFn {
 	return func(signer types.Signer, address common.Address, tx *types.Transaction) (*types.Transaction, error) {
 		accountAddress, err := bridge.lc.AccountAddress()
 		if err != nil {

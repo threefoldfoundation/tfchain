@@ -40,14 +40,14 @@ type Bridge struct {
 	bcInfo   types.BlockchainInfo
 	chainCts types.ChainConstants
 
-	bridgeContract *bridgeContract
+	bridgeContract *BridgeContract
 
 	mut sync.Mutex
 }
 
 // NewBridge creates a new Bridge.
 func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.TransactionPool, ethPort uint16, accountJSON, accountPass string, ethNetworkName string, bootnodes []string, contractAddress string, datadir string, bcInfo types.BlockchainInfo, chainCts types.ChainConstants, cancel <-chan struct{}) (*Bridge, error) {
-	contract, err := newBridgeContract(ethNetworkName, bootnodes, contractAddress, int(ethPort), accountJSON, accountPass, filepath.Join(datadir, "eth"), cancel)
+	contract, err := NewBridgeContract(ethNetworkName, bootnodes, contractAddress, int(ethPort), accountJSON, accountPass, filepath.Join(datadir, "eth"), cancel)
 	if err != nil {
 		return nil, err
 	}
@@ -76,15 +76,15 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 
 	heads := make(chan *ethtypes.Header)
 
-	go bridge.bridgeContract.loop(heads)
+	go bridge.bridgeContract.Loop(heads)
 
 	// subscribing to these events is not needed for operational purposes, but might be nice to get some info
-	go bridge.bridgeContract.subscribeTransfers()
-	go bridge.bridgeContract.subscribeMint()
-	go bridge.bridgeContract.subscribeRegisterWithdrawAddress()
+	go bridge.bridgeContract.SubscribeTransfers()
+	go bridge.bridgeContract.SubscribeMint()
+	go bridge.bridgeContract.SubscribeRegisterWithdrawAddress()
 
 	withdrawChan := make(chan withdrawEvent)
-	go bridge.bridgeContract.subscribeWithdraw(withdrawChan, bridge.persist.EthHeight)
+	go bridge.bridgeContract.SubscribeWithdraw(withdrawChan, bridge.persist.EthHeight)
 	go func() {
 		txMap := make(map[tfchaintypes.ERC20Hash]withdrawEvent)
 		for {
@@ -184,14 +184,14 @@ func (bridge *Bridge) commitWithdrawTransaction(tx tfchaintypes.ERC20CoinCreatio
 func (bridge *Bridge) Close() error {
 	bridge.mut.Lock()
 	defer bridge.mut.Unlock()
-	err := bridge.bridgeContract.close()
+	err := bridge.bridgeContract.Close()
 	bridge.cs.Unsubscribe(bridge)
 	return err
 }
 
 func (bridge *Bridge) mint(receiver tfchaintypes.ERC20Address, amount types.Currency, txID types.TransactionID) error {
 	// check if we already know this ID
-	known, err := bridge.bridgeContract.isMintTxID(txID.String())
+	known, err := bridge.bridgeContract.IsMintTxID(txID.String())
 	if err != nil {
 		return err
 	}
@@ -199,14 +199,14 @@ func (bridge *Bridge) mint(receiver tfchaintypes.ERC20Address, amount types.Curr
 		// we already know this withdrawal address, so ignore the transaction
 		return nil
 	}
-	return bridge.bridgeContract.mint(receiver, amount.Big(), txID.String())
+	return bridge.bridgeContract.Mint(receiver, amount.Big(), txID.String())
 }
 
 func (bridge *Bridge) registerWithdrawalAddress(key types.PublicKey) error {
 	// convert public key to unlockhash to eth address
 	erc20addr := tfchaintypes.ERC20AddressFromUnlockHash(types.NewPubKeyUnlockHash(key))
 	// check if we already know this withdraw address
-	known, err := bridge.bridgeContract.isWithdrawalAddress(erc20addr)
+	known, err := bridge.bridgeContract.IsWithdrawalAddress(erc20addr)
 	if err != nil {
 		return err
 	}
@@ -214,5 +214,5 @@ func (bridge *Bridge) registerWithdrawalAddress(key types.PublicKey) error {
 		// we already know this withdrawal address, so ignore the transaction
 		return nil
 	}
-	return bridge.bridgeContract.registerWithdrawalAddress(erc20addr)
+	return bridge.bridgeContract.RegisterWithdrawalAddress(erc20addr)
 }
