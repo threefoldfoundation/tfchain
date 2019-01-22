@@ -396,3 +396,16 @@ func (bridge *BridgeContract) getSignerFunc() bind.SignerFn {
 		return bridge.lc.SignTx(tx, big.NewInt(networkID))
 	}
 }
+
+func (bridge *BridgeContract) TokenBalance(address common.Address) (*big.Int, error) {
+	log.Info("Calling TokenBalance function in contract")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+	opts := &bind.CallOpts{Context: ctx}
+	return bridge.caller.BalanceOf(opts, common.Address(address))
+}
+
+func (bridge *BridgeContract) EthBalance() (*big.Int, error) {
+	err := bridge.Refresh(nil) // force a refresh
+	return bridge.balance, err
+}
