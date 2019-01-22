@@ -108,6 +108,10 @@ func (bridge *BridgeContract) Close() error {
 	return bridge.lc.Close()
 }
 
+func (bridge *BridgeContract) AccountAddress() (common.Address, error) {
+	return bridge.lc.AccountAddress()
+}
+
 // refresh attempts to retrieve the latest header from the chain and extract the
 // associated bridge balance and nonce for connectivity caching.
 func (bridge *BridgeContract) Refresh(head *types.Header) error {
