@@ -1,0 +1,100 @@
+#app {
+    font-family: "Avenir", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+    color: #2c3e50;
+    margin-top: 60px;
+}
+
+h3 {
+    margin: 20px 0px;
+}
+.title {
+    align-self: flex-start;
+    padding: 0px 25px;
+}
+.token-balance {
+    display: flex;
+    flex: 1;
+    width: 80%;
+    justify-content: initial;
+    flex-direction: column;
+    padding-left: 25px;
+    margin: 25px 0px;
+}
+.container {
+    display: flex;
+    flex: 1;
+    flex-flow: row;
+    justify-content: space-between;
+    border: 2px solid darkcyan;
+    border-radius: 25px;
+    padding-right: 25px;
+    padding-left: 15px;
+    background-image: linear-gradient(to bottom right, lightblue, lightgreen);
+}
+.address-input-container {
+    align-self: center;
+    display: flex;
+}
+.address-input-container > * {
+    margin: 10px;
+}
+.address-input {
+    background-color: transparent;
+    border: 1px solid cornflowerblue;
+    border-radius: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
+    width: 300px;
+}
+.balance {
+    align-self: center;
+}
+
+#address {
+    font-weight: bold;
+}
+
+.withdraw-field {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+
+/************
+*   modal   *
+*************/
+.modal {
+    display: none;
+}
+
+/* Modal Header */
+.modal-header {
+    padding: 2px 16px;
+    background-color: lightgreen;
+    color: white;
+}
+  
+/* Modal Body */
+.modal-body {padding: 25px 16px;}
+
+/* Modal Content */
+.modal-content {
+    position: relative;
+    background-color: #fefefe;
+    margin: auto;
+    padding: 0;
+    border: 1px solid #888;
+    width: 80%;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+    animation-name: animatetop;
+    animation-duration: 0.4s
+}
+
+/* Add Animation */
+@keyframes animatetop {
+    from {top: -300px; opacity: 0}
+    to {top: 0; opacity: 1}
+}
