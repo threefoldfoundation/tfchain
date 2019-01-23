@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/light"
 	"github.com/ethereum/go-ethereum/log"
 
 	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
@@ -308,6 +309,14 @@ func (bridge *BridgeContract) SubscribeRegisterWithdrawAddress() error {
 
 // TransferFunds transfers funds from one address to another
 func (bridge *BridgeContract) TransferFunds(recipient common.Address, amount *big.Int) error {
+	err := bridge.transferFunds(recipient, amount)
+	for err == light.ErrNoPeers {
+		err = bridge.transferFunds(recipient, amount)
+	}
+	return err
+}
+
+func (bridge *BridgeContract) transferFunds(recipient common.Address, amount *big.Int) error {
 	if amount == nil {
 		return errors.New("invalid amount")
 	}
@@ -326,8 +335,15 @@ func (bridge *BridgeContract) TransferFunds(recipient common.Address, amount *bi
 	return err
 }
 
-//
 func (bridge *BridgeContract) Mint(receiver tftypes.ERC20Address, amount *big.Int, txID string) error {
+	err := bridge.mint(receiver, amount, txID)
+	for err == light.ErrNoPeers {
+		err = bridge.mint(receiver, amount, txID)
+	}
+	return err
+}
+
+func (bridge *BridgeContract) mint(receiver tftypes.ERC20Address, amount *big.Int, txID string) error {
 	log.Info("Calling mint function in contract")
 	if amount == nil {
 		return errors.New("invalid amount")
@@ -348,6 +364,14 @@ func (bridge *BridgeContract) Mint(receiver tftypes.ERC20Address, amount *big.In
 }
 
 func (bridge *BridgeContract) IsMintTxID(txID string) (bool, error) {
+	res, err := bridge.isMintTxID(txID)
+	for err == light.ErrNoPeers {
+		res, err = bridge.isMintTxID(txID)
+	}
+	return res, err
+}
+
+func (bridge *BridgeContract) isMintTxID(txID string) (bool, error) {
 	log.Info("Calling isMintID")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
@@ -356,6 +380,14 @@ func (bridge *BridgeContract) IsMintTxID(txID string) (bool, error) {
 }
 
 func (bridge *BridgeContract) RegisterWithdrawalAddress(address tftypes.ERC20Address) error {
+	err := bridge.registerWithdrawalAddress(address)
+	for err == light.ErrNoPeers {
+		err = bridge.registerWithdrawalAddress(address)
+	}
+	return err
+}
+
+func (bridge *BridgeContract) registerWithdrawalAddress(address tftypes.ERC20Address) error {
 	log.Info("Calling register withdrawal address function in contract")
 	accountAddress, err := bridge.lc.AccountAddress()
 	if err != nil {
@@ -373,6 +405,14 @@ func (bridge *BridgeContract) RegisterWithdrawalAddress(address tftypes.ERC20Add
 }
 
 func (bridge *BridgeContract) IsWithdrawalAddress(address tftypes.ERC20Address) (bool, error) {
+	success, err := bridge.isWithdrawalAddress(address)
+	for err == light.ErrNoPeers {
+		success, err = bridge.isWithdrawalAddress(address)
+	}
+	return success, err
+}
+
+func (bridge *BridgeContract) isWithdrawalAddress(address tftypes.ERC20Address) (bool, error) {
 	log.Info("Calling isWithdrawalAddress function in contract")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
