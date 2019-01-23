@@ -105,7 +105,7 @@ func NewLightClient(lccfg LightClientConfig, cancel <-chan struct{}) (*LightClie
 		DataDir: datadir,
 		P2P: p2p.Config{
 			NAT:              nil,
-			NoDiscovery:      true,
+			NoDiscovery:      false,
 			DiscoveryV5:      true,
 			ListenAddr:       fmt.Sprintf(":%d", lccfg.Port),
 			MaxPeers:         25,
@@ -173,7 +173,7 @@ func NewLightClient(lccfg LightClientConfig, cancel <-chan struct{}) (*LightClie
 		if progress.HighestBlock == 0 {
 			log.Debug(
 				"LightClient's downloader needs to start to sync, waiting 10 seconds...",
-				"current_block", progress.CurrentBlock)
+				"current_block", progress.CurrentBlock, "peers", stack.Server().Peers())
 		} else if downloader.Synchronising() || progress.CurrentBlock < progress.HighestBlock {
 			log.Debug(
 				"LightClient's downloader is still syncing, waiting 10 seconds...",
