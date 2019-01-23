@@ -222,7 +222,6 @@ func (bridge *BridgeContract) SubscribeMint() error {
 }
 
 type withdrawEvent struct {
-	sender      common.Address
 	receiver    common.Address
 	amount      *big.Int
 	txHash      common.Hash
@@ -236,7 +235,7 @@ func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- withdrawEvent, startHe
 	sink := make(chan *contract.TTFT20Withdraw)
 	watchOpts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	filterOpts := &bind.FilterOpts{Context: context.Background(), Start: startHeight}
-	iterator, err := bridge.filter.FilterWithdraw(filterOpts, nil, nil)
+	iterator, err := bridge.filter.FilterWithdraw(filterOpts, nil)
 	if err != nil {
 		log.Error("Creating past watch event iterator failed", "err", err)
 		return err
@@ -249,7 +248,6 @@ func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- withdrawEvent, startHe
 		}
 		log.Info("Noticed past withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
 		wc <- withdrawEvent{
-			sender:      withdraw.From,
 			receiver:    withdraw.Receiver,
 			amount:      withdraw.Tokens,
 			txHash:      withdraw.Raw.TxHash,
@@ -261,7 +259,7 @@ func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- withdrawEvent, startHe
 		log.Error("Retrieving past watch event failed", "err", err)
 		return err
 	}
-	sub, err := bridge.filter.WatchWithdraw(watchOpts, sink, nil, nil)
+	sub, err := bridge.filter.WatchWithdraw(watchOpts, sink, nil)
 	if err != nil {
 		log.Error("Subscribing to withdraw events failed", "err", err)
 		return err
@@ -278,7 +276,6 @@ func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- withdrawEvent, startHe
 			}
 			log.Info("Noticed withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
 			wc <- withdrawEvent{
-				sender:      withdraw.From,
 				receiver:    withdraw.Receiver,
 				amount:      withdraw.Tokens,
 				txHash:      withdraw.Raw.TxHash,
@@ -304,7 +301,7 @@ func (bridge *BridgeContract) SubscribeRegisterWithdrawAddress() error {
 		case err = <-sub.Err():
 			return err
 		case withdraw := <-sink:
-			log.Info("Noticed withadraw address registration event", "address", withdraw.Addr)
+			log.Info("Noticed withdraw address registration event", "address", withdraw.Addr)
 		}
 	}
 }
