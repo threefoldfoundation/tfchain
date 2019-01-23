@@ -30,7 +30,7 @@ Also, there is no free choice of ethereum address since it would be possible to 
 
 ### demo/test exchange wallet
 
-[A small web application is available that mimics the balance page of an exchange for demo, test and development purposes](examples/erc20_monitor).
+[A small web application is available that mimics the balance page of an exchange for demo, test and development purposes](examples/erc20_exchange_wallet).
 
 ### Ethereum test networks
 

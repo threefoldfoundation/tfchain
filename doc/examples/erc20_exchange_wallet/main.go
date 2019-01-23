@@ -223,8 +223,8 @@ func main() {
 	// bridge flags
 	cmdRoot.Flags().StringVar(
 		&cmd.EthNetworkName,
-		"ethnetwork", "",
-		"The ethereum network, {rinkeby, ropsten}, defaults to the TFT-linked network",
+		"ethnetwork", "ropsten",
+		"The ethereum network, {rinkeby, ropsten}",
 	)
 	cmdRoot.Flags().Uint16Var(
 		&cmd.EthPort,
