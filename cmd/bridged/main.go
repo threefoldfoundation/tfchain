@@ -56,7 +56,25 @@ type Commands struct {
 // Root represents the root (`bridged`) command,
 // starting a bridged daemon instance, running until the user intervenes.
 func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
-	log.Root().SetHandler(log.LvlFilterHandler(log.Lvl(cmd.EthLog), log.StreamHandler(os.Stderr, log.TerminalFormat(true))))
+
+	// Define the Ethereum Logger,
+	// logging both to a file and the STDERR, with a lower verbosity for the latter.
+	ethLogFmtr := log.TerminalFormat(true)
+	ethLogFileHandler, err := log.FileHandler(path.Join(cmd.perDir("bridge"), "bridge.log"), ethLogFmtr)
+	if err != nil {
+		return fmt.Errorf("failed to create bridge: error while ETH file-logger: %v", err)
+	}
+
+	termLogLvl := log.Lvl(cmd.EthLog)
+	fileLogLvl := termLogLvl
+	if fileLogLvl < log.LvlTrace {
+		fileLogLvl++
+	}
+
+	log.Root().SetHandler(log.MultiHandler(
+		log.LvlFilterHandler(log.Lvl(fileLogLvl), ethLogFileHandler),
+		log.LvlFilterHandler(log.Lvl(termLogLvl), log.StreamHandler(os.Stderr, ethLogFmtr))))
+
 	log.Info("starting bridge", "version", cmd.BlockchainInfo.ChainVersion.String())
 
 	log.Info("loading network config, registering types and loading rivine transaction db (0/4)...")

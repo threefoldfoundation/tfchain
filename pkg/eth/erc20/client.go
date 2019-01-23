@@ -169,15 +169,15 @@ func NewLightClient(lccfg LightClientConfig, cancel <-chan struct{}) (*LightClie
 	for {
 		progress := downloader.Progress()
 		if progress.HighestBlock == 0 {
-			log.Info(
+			log.Debug(
 				"LightClient's downloader needs to start to sync, waiting 10 seconds...",
 				"current_block", progress.CurrentBlock)
 		} else if downloader.Synchronising() || progress.CurrentBlock < progress.HighestBlock {
-			log.Info(
+			log.Debug(
 				"LightClient's downloader is still syncing, waiting 10 seconds...",
 				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock)
 		} else {
-			log.Info(
+			log.Debug(
 				"LightClient's downloader is synced",
 				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock, "starting_block", progress.StartingBlock)
 			break
