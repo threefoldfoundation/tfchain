@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/light"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 
@@ -280,4 +282,10 @@ func (lc *LightClient) AccountAddress() (common.Address, error) {
 	}
 	copy(addr[:], lc.account.account.Address[:])
 	return addr, nil
+}
+
+// IsNoPeerErr checks if an error is means an ethereum client could not execute
+// a call because it has no valid peers
+func IsNoPeerErr(err error) bool {
+	return err == light.ErrNoPeers
 }
