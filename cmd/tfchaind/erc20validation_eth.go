@@ -108,7 +108,16 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig, cancel <-chan struct{})
 }
 
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx
-func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expecedAmount types.Currency) error {
+func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expectedAmount types.Currency) error {
+	err := ev.validateWithdrawTx(blockID, txID, expectedAddress, expectedAmount)
+	// If we have no peers we can't verify and thus not continue syncing, so keep retrying
+	for erc20.IsNoPeerErr(err) {
+		err = ev.validateWithdrawTx(blockID, txID, expectedAddress, expectedAmount)
+	}
+	return err
+}
+
+func (ev *ERC20NodeValidator) validateWithdrawTx(blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expectedAmount types.Currency) error {
 	// Get the transaction
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
@@ -156,9 +165,9 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 
 	// validate if the amount of tokens withdrawn is correct
 	amount := types.NewCurrency(params.Tokens)
-	if amount.Equals(expecedAmount) {
+	if amount.Equals(expectedAmount) {
 		return fmt.Errorf("unexpected transferred TFT value %v: expected value %v",
-			amount.String(), expecedAmount.String())
+			amount.String(), expectedAmount.String())
 	}
 
 	// all is good, return nil to indicate this
