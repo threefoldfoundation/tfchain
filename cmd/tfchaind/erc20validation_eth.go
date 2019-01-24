@@ -109,19 +109,17 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig, cancel <-chan struct{})
 
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx
 func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expectedAmount types.Currency) error {
-	err := ev.validateWithdrawTx(blockID, txID, expectedAddress, expectedAmount)
-	// If we have no peers we can't verify and thus not continue syncing, so keep retrying
-	for erc20.IsNoPeerErr(err) {
-		err = ev.validateWithdrawTx(blockID, txID, expectedAddress, expectedAmount)
-	}
-	return err
-}
-
-func (ev *ERC20NodeValidator) validateWithdrawTx(blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expectedAmount types.Currency) error {
 	// Get the transaction
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 	tx, confirmations, err := ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
+	// If we have no peers we can't verify and thus not continue syncing, so keep retrying
+	for erc20.IsNoPeerErr(err) {
+		// wait 5 seconds before retrying
+		time.Sleep(time.Second * 5)
+		log.Debug("Retrying transaction fetch", "blockID", blockID, "txID", txID)
+		tx, confirmations, err = ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
+	}
 	if err != nil {
 		return fmt.Errorf("failed to fetch ERC20 Tx: %v", err)
 	}
