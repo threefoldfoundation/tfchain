@@ -187,7 +187,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) error {
 	mux.HandleFunc("/tokenbalance", de.GetTokenBalance)
 	mux.HandleFunc("/withdraw", de.Withdraw)
 
-	mux.Handle("/", http.FileServer(http.Dir("./rework/public")))
+	mux.Handle("/", http.FileServer(http.Dir("./public")))
 
 	server.Handler = mux
 
