@@ -59,10 +59,16 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 	// Define the Ethereum Logger,
 	// logging both to a file and the STDERR, with a lower verbosity for the latter.
-	ethLogFmtr := log.TerminalFormat(true)
-	ethLogFileHandler, err := log.FileHandler(path.Join(cmd.perDir("bridge"), "bridge.log"), ethLogFmtr)
+	logFileDir := cmd.perDir("bridge")
+	// Create the directory if it doesn't exist.
+	err := os.MkdirAll(logFileDir, 0700)
 	if err != nil {
-		return fmt.Errorf("failed to create bridge: error while ETH file-logger: %v", err)
+		return err
+	}
+	ethLogFmtr := log.TerminalFormat(true)
+	ethLogFileHandler, err := log.FileHandler(path.Join(logFileDir, "bridge.log"), ethLogFmtr)
+	if err != nil {
+		return fmt.Errorf("failed to create bridge: error while setting up ETH file-logger: %v", err)
 	}
 
 	termLogLvl := log.Lvl(cmd.EthLog)
