@@ -63,7 +63,16 @@ function withdrawTokens() {
     }
 
     var endpoint = "/withdraw"
-    POST(endpoint, data)
+    POST(endpoint, data).then(res => {
+        if (res["error"]) {
+            console.log("Failed to withdraw")
+            console.log(res["error"]);
+        } else {
+            console.log("Successfully withdrew tokens");
+            var modal = document.getElementById('withdraw-modal');
+            modal.style.display = "none";
+        }
+    });
 }
 
 function init() {
@@ -107,15 +116,12 @@ async function GET(url) {
     }
 
     return fetch(url, otherParam)
-        .then(data => {console.log(data); return data.json()})
+        .then(data => {return data.json()})
         .then(res => {return res})
         .catch(err => {console.error(err)})
 }
 
 async function POST(url, data) {
-    console.log(data)
-    console.log(JSON.stringify(data))
-
     const otherParam = {
         method: "POST",
         body: JSON.stringify(data),
@@ -128,14 +134,6 @@ async function POST(url, data) {
         .then(data => { 
             return data.json();
         })
-        .then(res => {
-            if (res["error"]) {
-                console.error(res["error"]);
-            } else {
-                return res
-            }
-        })
-        .catch(err => {console.error(err)})
 }
 
 window.onload = function() {

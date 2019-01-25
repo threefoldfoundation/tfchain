@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"net/http"
 	"os"
@@ -46,15 +45,17 @@ type demoExchange struct {
 	contract *erc20.BridgeContract
 }
 
+type ErrResponse struct {
+	Error string `json:"error"`
+}
+
 // GetAddress returns the loaded address of the demo exchange
 func (de *demoExchange) GetAddress(w http.ResponseWriter, r *http.Request) {
 	addr, err := de.contract.AccountAddress()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		res := struct {
-			Error error `json:"error"`
-		}{
-			Error: err,
+		res := ErrResponse{
+			Error: err.Error(),
 		}
 		json.NewEncoder(w).Encode(res)
 		return
@@ -74,10 +75,8 @@ func (de *demoExchange) GetBalance(w http.ResponseWriter, r *http.Request) {
 	balance, err := de.contract.EthBalance()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		res := struct {
-			Error error `json:"error"`
-		}{
-			Error: err,
+		res := ErrResponse{
+			Error: err.Error(),
 		}
 		json.NewEncoder(w).Encode(res)
 		return
@@ -97,10 +96,8 @@ func (de *demoExchange) GetTokenBalance(w http.ResponseWriter, r *http.Request) 
 	addr, err := de.contract.AccountAddress()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		res := struct {
-			Error error `json:"error"`
-		}{
-			Error: err,
+		res := ErrResponse{
+			Error: err.Error(),
 		}
 		json.NewEncoder(w).Encode(res)
 		return
@@ -109,10 +106,8 @@ func (de *demoExchange) GetTokenBalance(w http.ResponseWriter, r *http.Request) 
 	balance, err := de.contract.TokenBalance(addr)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		res := struct {
-			Error error `json:"error"`
-		}{
-			Error: err,
+		res := ErrResponse{
+			Error: err.Error(),
 		}
 		json.NewEncoder(w).Encode(res)
 		return
@@ -139,31 +134,31 @@ func (de *demoExchange) Withdraw(w http.ResponseWriter, r *http.Request) {
 		log.Info("Failed to decode withdraw body", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 
-		res := struct {
-			Error error `json:"error"`
-		}{
-			Error: err,
+		res := ErrResponse{
+			Error: err.Error(),
 		}
 		json.NewEncoder(w).Encode(res)
 		return
 	}
 
-	fmt.Println(body)
-
 	err = de.contract.TransferFunds(body.Address, body.Amount)
 	if err != nil {
 		log.Info("Failed to transfer tokens", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
-		res := struct {
-			Error error `json:"error"`
-		}{
-			Error: err,
+		res := ErrResponse{
+			Error: err.Error(),
 		}
 		json.NewEncoder(w).Encode(res)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+	res := struct {
+		Message string `json:"message"`
+	}{
+		Message: "Withdraw successfull",
+	}
+	json.NewEncoder(w).Encode(res)
 }
 
 // Root represents the root command,
