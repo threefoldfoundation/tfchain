@@ -783,8 +783,11 @@ func (walletSubCmds *walletSubCmds) sendERC20AddressRegistration(_ *cobra.Comman
 	case cli.EncodingTypeJSON:
 		encode = json.NewEncoder(os.Stdout).Encode
 	}
+	tftAddr := rivinetypes.NewPubKeyUnlockHash(pubkey)
 	err = encode(map[string]interface{}{
 		"transactionid": txID,
+		"tft_address":   tftAddr,
+		"erc20_address": types.ERC20AddressFromUnlockHash(tftAddr),
 	})
 	if err != nil {
 		cli.DieWithError("failed to encode result", err)
