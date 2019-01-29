@@ -623,20 +623,16 @@ func (walletSubCmds *walletSubCmds) sendERC20Funds(hexAddress, strAmount string)
 	}
 
 	// encode depending on the encoding flag
-	var encode func(interface{}) error
 	switch walletSubCmds.sendERC20FundsCfg.EncodingType {
 	case cli.EncodingTypeHuman:
-		e := json.NewEncoder(os.Stdout)
-		e.SetIndent("", "  ")
-		encode = e.Encode
+		fmt.Println("Transaction ID:", txID)
 	case cli.EncodingTypeJSON:
-		encode = json.NewEncoder(os.Stdout).Encode
-	}
-	err = encode(map[string]interface{}{
-		"transactionid": txID,
-	})
-	if err != nil {
-		cli.DieWithError("failed to encode result", err)
+		err = json.NewEncoder(os.Stdout).Encode(map[string]interface{}{
+			"transactionid": txID,
+		})
+		if err != nil {
+			cli.DieWithError("failed to encode result", err)
+		}
 	}
 }
 
@@ -694,20 +690,16 @@ func (walletSubCmds *walletSubCmds) sendERC20FundsClaim(hexAddress, strAmount, h
 	}
 
 	// encode depending on the encoding flag
-	var encode func(interface{}) error
 	switch walletSubCmds.sendERC20FundsCfg.EncodingType {
 	case cli.EncodingTypeHuman:
-		e := json.NewEncoder(os.Stdout)
-		e.SetIndent("", "  ")
-		encode = e.Encode
+		fmt.Println("TransactionID:", txID)
 	case cli.EncodingTypeJSON:
-		encode = json.NewEncoder(os.Stdout).Encode
-	}
-	err = encode(map[string]interface{}{
-		"transactionid": txID,
-	})
-	if err != nil {
-		cli.DieWithError("failed to encode result", err)
+		err = json.NewEncoder(os.Stdout).Encode(map[string]interface{}{
+			"transactionid": txID,
+		})
+		if err != nil {
+			cli.DieWithError("failed to encode result", err)
+		}
 	}
 }
 
@@ -774,23 +766,21 @@ func (walletSubCmds *walletSubCmds) sendERC20AddressRegistration(_ *cobra.Comman
 	}
 
 	// encode depending on the encoding flag
-	var encode func(interface{}) error
+	tftAddr := rivinetypes.NewPubKeyUnlockHash(pubkey)
 	switch walletSubCmds.sendERC20FundsCfg.EncodingType {
 	case cli.EncodingTypeHuman:
-		e := json.NewEncoder(os.Stdout)
-		e.SetIndent("", "  ")
-		encode = e.Encode
+		fmt.Println("Transaction ID:", txID)
+		fmt.Println("TFT address:   ", tftAddr)
+		fmt.Println("ERC20 address: ", types.ERC20AddressFromUnlockHash(tftAddr))
 	case cli.EncodingTypeJSON:
-		encode = json.NewEncoder(os.Stdout).Encode
-	}
-	tftAddr := rivinetypes.NewPubKeyUnlockHash(pubkey)
-	err = encode(map[string]interface{}{
-		"transactionid": txID,
-		"tft_address":   tftAddr,
-		"erc20_address": types.ERC20AddressFromUnlockHash(tftAddr),
-	})
-	if err != nil {
-		cli.DieWithError("failed to encode result", err)
+		err = json.NewEncoder(os.Stdout).Encode(map[string]interface{}{
+			"transactionid": txID,
+			"tft_address":   tftAddr,
+			"erc20_address": types.ERC20AddressFromUnlockHash(tftAddr),
+		})
+		if err != nil {
+			cli.DieWithError("failed to encode result", err)
+		}
 	}
 }
 
