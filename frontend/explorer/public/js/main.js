@@ -428,7 +428,7 @@ function appendBlockTransactions(element, explorerBlock) {
 		}
 		if (explorerBlock.rawblock.transactions[i].data.arbitrarydata != null
 			&& explorerBlock.rawblock.transactions[i].data.arbitrarydata.length > 0) {
-			appendStat(table, 'Arbitrary Data Byte Count', explorerBlock.rawblock.transactions[i].data.arbitrarydata.length);
+			appendStat(table, 'Arbitrary Data Byte Count', window.atob(explorerBlock.rawblock.transactions[i].data.arbitrarydata).length);
 		}
 		element.appendChild(table);
 	}
