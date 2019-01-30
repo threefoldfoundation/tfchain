@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/threefoldfoundation/tfchain/cmd/tfchainc/internal"
+	"github.com/threefoldtech/rivine/pkg/api"
 
 	"github.com/threefoldfoundation/tfchain/pkg/types"
 
@@ -142,6 +143,17 @@ using the unlocked wallet from the tfchain daemon.
 `,
 			Run: walletSubCmds.sendERC20AddressRegistration,
 		}
+
+		listERC20AddressesCmd = &cobra.Command{
+			Use:   "erc20addresses",
+			Short: "List all known ERC20 addresses for this wallet",
+			Long: `List all known ERC20 addresses for this wallet.
+
+An address is considered as owned by this wallet, if the public key used to derive the TFT address,
+from which the ERC20 address is then derived, is known by this wallet.`,
+
+			Run: walletSubCmds.listERC20AddressRegistrations,
+		}
 	)
 
 	// add commands as wallet sub commands
@@ -156,6 +168,10 @@ using the unlocked wallet from the tfchain daemon.
 		sendERC20FundsCmd,
 		sendERC20FundsClaimCmd,
 		sendERC20AddressRegistrationCmd,
+	)
+
+	client.WalletCmd.RootCmdList.AddCommand(
+		listERC20AddressesCmd,
 	)
 
 	// register flags
@@ -242,6 +258,10 @@ using the unlocked wallet from the tfchain daemon.
 	sendERC20AddressRegistrationCmd.Flags().Var(
 		cli.NewEncodingTypeFlag(0, &walletSubCmds.sendERC20AddressRegistrationCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
+
+	listERC20AddressesCmd.Flags().Var(
+		cli.NewEncodingTypeFlag(0, &walletSubCmds.listERC20AddressRegistrationsCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
+		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
 }
 
 type walletSubCmds struct {
@@ -282,6 +302,9 @@ type walletSubCmds struct {
 		EncodingType cli.EncodingType
 	}
 	sendERC20AddressRegistrationCfg struct {
+		EncodingType cli.EncodingType
+	}
+	listERC20AddressRegistrationsCfg struct {
 		EncodingType cli.EncodingType
 	}
 }
@@ -777,6 +800,49 @@ func (walletSubCmds *walletSubCmds) sendERC20AddressRegistration(_ *cobra.Comman
 			"transactionid": txID,
 			"tft_address":   tftAddr,
 			"erc20_address": types.ERC20AddressFromUnlockHash(tftAddr),
+		})
+		if err != nil {
+			cli.DieWithError("failed to encode result", err)
+		}
+	}
+}
+
+func (walletSubCmds *walletSubCmds) listERC20AddressRegistrations(_ *cobra.Command, args []string) {
+	// fetch all known addresses
+	addrs := new(api.WalletAddressesGET)
+	err := walletSubCmds.cli.GetAPI("/wallet/addresses", addrs)
+	if err != nil {
+		cli.DieWithError("Failed to fetch addresses:", err)
+	}
+
+	txDB := internal.NewTransactionDBConsensusClient(walletSubCmds.cli)
+	erc20Addresses := []types.ERC20Address{}
+	// for every address check if it has a known link
+	for _, addr := range addrs.Addresses {
+		erc20Addr, exists, err := txDB.GetERC20AddressForTFTAddress(addr)
+		if err != nil {
+			cli.DieWithError("Failed to verify if address is linked to a known erc20 withdraw address: ", err)
+		}
+		if !exists {
+			continue
+		}
+		erc20Addresses = append(erc20Addresses, erc20Addr)
+	}
+
+	switch walletSubCmds.sendERC20FundsCfg.EncodingType {
+	case cli.EncodingTypeHuman:
+		if len(erc20Addresses) > 0 {
+			fmt.Println("Known ERC20 withdrawal addresses:")
+			fmt.Println()
+			for _, address := range erc20Addresses {
+				fmt.Println("\t", address)
+			}
+		} else {
+			fmt.Println("No known ERC20 withdrawal addresses")
+		}
+	case cli.EncodingTypeJSON:
+		err = json.NewEncoder(os.Stdout).Encode(map[string]interface{}{
+			"erc20_withdraw_addresses": erc20Addresses,
 		})
 		if err != nil {
 			cli.DieWithError("failed to encode result", err)
