@@ -138,13 +138,14 @@ func (cmds *cmds) walletBalance(cmd *cobra.Command, args []string) error {
 	fmt.Println("Depending on the amount of addresses you have loaded, this may take a while")
 	fmt.Println("")
 
-	balance, err := w.GetBalance()
+	unlockedBalance, lockedBalance, err := w.GetBalance()
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Wallet balance:")
-	fmt.Println("\t", cc.ToCoinStringWithUnit(balance))
+	fmt.Println("Unlocked:\t", cc.ToCoinStringWithUnit(unlockedBalance))
+	fmt.Println("Locked:  \t", cc.ToCoinStringWithUnit(lockedBalance))
 	return nil
 }
 

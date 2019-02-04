@@ -3,6 +3,7 @@ package wallet
 import (
 	"crypto/rand"
 	"errors"
+	"time"
 
 	"github.com/threefoldtech/rivine/crypto"
 	"github.com/threefoldtech/rivine/modules"
@@ -24,6 +25,9 @@ type (
 		// name is the name of the wallet
 		name string
 	}
+
+	// SpendableOutputs maps CoinOutputID's to their corresponding actual output
+	SpendableOutputs map[types.CoinOutputID]types.CoinOutput
 
 	// spendableKey is the required information to spend an input associated with a key
 	spendableKey struct {
@@ -109,17 +113,18 @@ func Load(name string, backend Backend) (*Wallet, error) {
 	return w, nil
 }
 
-// GetBalance returns the current balance for the wallet
-func (w *Wallet) GetBalance() (types.Currency, error) {
+// GetBalance returns the current unlocked and locked balance for the wallet
+func (w *Wallet) GetBalance() (types.Currency, types.Currency, error) {
 	outputs, err := w.getUnspentCoinOutputs()
 	if err != nil {
-		return types.Currency{}, err
+		return types.Currency{}, types.Currency{}, err
 	}
 
-	return w.getBalance(outputs), nil
+	unlocked, locked, err := w.splitTimeLockedOutputs(outputs)
+	return w.getBalance(unlocked), w.getBalance(locked), err
 }
 
-func (w *Wallet) getBalance(outputs map[types.CoinOutputID]types.CoinOutput) types.Currency {
+func (w *Wallet) getBalance(outputs SpendableOutputs) types.Currency {
 	balance := types.NewCurrency64(0)
 	for _, uco := range outputs {
 		balance = balance.Add(uco.Value)
@@ -141,6 +146,12 @@ func (w *Wallet) TransferCoins(amount types.Currency, to types.UnlockHash, data 
 	}
 
 	outputs, err := w.getUnspentCoinOutputs()
+	if err != nil {
+		return err
+	}
+
+	// only continue with unlocked outputs
+	outputs, _, err = w.splitTimeLockedOutputs(outputs)
 	if err != nil {
 		return err
 	}
@@ -258,7 +269,7 @@ func (w *Wallet) LoadKeys(amount uint64) error {
 	return save(w)
 }
 
-func (w *Wallet) getUnspentCoinOutputs() (map[types.CoinOutputID]types.CoinOutput, error) {
+func (w *Wallet) getUnspentCoinOutputs() (SpendableOutputs, error) {
 	currentChainHeight, err := w.backend.CurrentHeight()
 	if err != nil {
 		return nil, err
@@ -269,10 +280,10 @@ func (w *Wallet) getUnspentCoinOutputs() (map[types.CoinOutputID]types.CoinOutpu
 		return nil, err
 	}
 
-	outputChan := make(chan map[types.CoinOutputID]types.CoinOutput)
+	outputChan := make(chan SpendableOutputs)
 	for address := range w.keys {
 		go func(addr types.UnlockHash) {
-			tempMap := make(map[types.CoinOutputID]types.CoinOutput)
+			tempMap := make(SpendableOutputs)
 
 			defer func() {
 				// always send the map
@@ -322,7 +333,7 @@ func (w *Wallet) getUnspentCoinOutputs() (map[types.CoinOutputID]types.CoinOutpu
 		}(address)
 	}
 
-	outputMap := make(map[types.CoinOutputID]types.CoinOutput)
+	outputMap := make(SpendableOutputs)
 	for i := 0; i < len(w.keys); i++ {
 		mp := <-outputChan
 		for key, value := range mp {
@@ -332,6 +343,29 @@ func (w *Wallet) getUnspentCoinOutputs() (map[types.CoinOutputID]types.CoinOutpu
 	close(outputChan)
 
 	return outputMap, nil
+}
+
+// splitTimeLockedOutputs separates a list of SpendableOutputs into a list of outputs which can be spent right now (no timelock or
+// timelock has passed), and outputs which are still timelocked
+func (w *Wallet) splitTimeLockedOutputs(outputs SpendableOutputs) (SpendableOutputs, SpendableOutputs, error) {
+	unlocked := make(SpendableOutputs)
+	locked := make(SpendableOutputs)
+
+	ctx, err := w.getFulfillableContextForLatestBlock()
+	if err != nil {
+		return unlocked, locked, err
+	}
+
+	// sort the outputs
+	for id, co := range outputs {
+		if co.Condition.Fulfillable(ctx) {
+			unlocked[id] = co
+		} else {
+			locked[id] = co
+		}
+	}
+
+	return unlocked, locked, nil
 }
 
 // generateKeys clears all existing keys and generates up to amount keys. If amount <= len(w.keys), no new keys will be generated
@@ -348,7 +382,7 @@ func (w *Wallet) generateKeys(amount uint64) {
 }
 
 // signTxn signs a transaction
-func (w *Wallet) signTxn(txn types.Transaction, usedOutputIDs map[types.CoinOutputID]types.CoinOutput) error {
+func (w *Wallet) signTxn(txn types.Transaction, usedOutputIDs SpendableOutputs) error {
 	// sign every coin input
 	for idx, input := range txn.CoinInputs {
 		// coinOutput has been checked during creation time, in the parent function,
@@ -369,6 +403,18 @@ func (w *Wallet) signTxn(txn types.Transaction, usedOutputIDs map[types.CoinOutp
 // Mnemonic returns the human readable form of the seed
 func (w *Wallet) Mnemonic() (string, error) {
 	return modules.NewMnemonic(w.seed)
+}
+
+func (w *Wallet) getFulfillableContextForLatestBlock() (types.FulfillableContext, error) {
+	height, err := w.backend.CurrentHeight()
+	if err != nil {
+		return types.FulfillableContext{}, nil
+	}
+	timestamp := time.Now()
+	return types.FulfillableContext{
+		BlockHeight: height,
+		BlockTime:   types.Timestamp(uint64(timestamp.Unix())),
+	}, nil
 }
 
 func generateSpendableKey(seed modules.Seed, index uint64) spendableKey {
