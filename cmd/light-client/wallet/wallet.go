@@ -251,6 +251,13 @@ func (w *Wallet) ListAddresses() []types.UnlockHash {
 	return addresses
 }
 
+// LoadKeys loads `amount` additional keys in the wallet and saves the wallet state
+func (w *Wallet) LoadKeys(amount uint64) error {
+	currentKeys := len(w.keys)
+	w.generateKeys(uint64(currentKeys) + amount)
+	return save(w)
+}
+
 func (w *Wallet) getUnspentCoinOutputs() (map[types.CoinOutputID]types.CoinOutput, error) {
 	currentChainHeight, err := w.backend.CurrentHeight()
 	if err != nil {
@@ -327,6 +334,7 @@ func (w *Wallet) getUnspentCoinOutputs() (map[types.CoinOutputID]types.CoinOutpu
 	return outputMap, nil
 }
 
+// generateKeys clears all existing keys and generates up to amount keys. If amount <= len(w.keys), no new keys will be generated
 func (w *Wallet) generateKeys(amount uint64) {
 	w.keys = make(map[types.UnlockHash]spendableKey)
 

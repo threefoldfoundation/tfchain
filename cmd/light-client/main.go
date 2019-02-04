@@ -107,8 +107,17 @@ you can load more addresses using the 'load' sub command`,
 		Args: cobra.NoArgs,
 	}
 
+	loadCmd := &cobra.Command{
+		Use:   "load",
+		Short: "Generate additional keys",
+		Long: `Generate additional keys. The index used to generate the keys is continued from the allready loaded keys. After loading the wallet
+persistent data is updated to reflect the additional keys, and they will be available for future use.`,
+		RunE: cmd.walletLoad,
+		Args: cobra.ExactArgs(1),
+	}
+
 	for _, walletCmd := range walletCmds {
-		walletCmd.AddCommand(seedCmd, txCmd, addressesCmd)
+		walletCmd.AddCommand(seedCmd, txCmd, addressesCmd, loadCmd)
 	}
 
 	rootCmd.Execute()

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/threefoldtech/rivine/pkg/client"
@@ -145,4 +146,20 @@ func (cmds *cmds) walletBalance(cmd *cobra.Command, args []string) error {
 	fmt.Println("Wallet balance:")
 	fmt.Println("\t", cc.ToCoinStringWithUnit(balance))
 	return nil
+}
+
+func (cmds *cmds) walletLoad(cmd *cobra.Command, args []string) error {
+	walletName := cmd.Parent().Name()
+
+	amount, err := strconv.ParseUint(args[0], 10, 64)
+	if err != nil {
+		return err
+	}
+
+	w, err := wallet.Load(walletName, nil)
+	if err != nil {
+		return err
+	}
+
+	return w.LoadKeys(amount)
 }
