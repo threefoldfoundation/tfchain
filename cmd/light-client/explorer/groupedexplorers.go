@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/threefoldfoundation/tfchain/pkg/config"
+	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/pkg/api"
@@ -38,7 +39,11 @@ func NewTestnetGroupedExplorer() *TestnetGroupedExplorer {
 	for _, url := range testnetUrls {
 		explorers = append(explorers, NewExplorer(url, "Rivine-Agent", ""))
 	}
-	return &TestnetGroupedExplorer{NewGroupedExplorer(explorers...)}
+	explorer := &TestnetGroupedExplorer{NewGroupedExplorer(explorers...)}
+	// This call doesn't return an error since it just loads hard coded constants
+	cts, _ := explorer.GetChainConstants()
+	tftypes.RegisterTransactionTypesForTestNetwork(nil, tftypes.NopERC20TransactionValidator{}, cts.OneCoin, config.GetTestnetDaemonNetworkConfig())
+	return explorer
 }
 
 // CheckAddress returns all interesting transactions and blocks related to a given unlockhash

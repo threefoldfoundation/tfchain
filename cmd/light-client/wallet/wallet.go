@@ -3,7 +3,6 @@ package wallet
 import (
 	"crypto/rand"
 	"errors"
-	"fmt"
 
 	"github.com/threefoldtech/rivine/crypto"
 	"github.com/threefoldtech/rivine/modules"
@@ -288,7 +287,6 @@ func (w *Wallet) getUnspentCoinOutputs() (map[types.CoinOutputID]types.CoinOutpu
 				}
 				for i, minerPayout := range block.RawBlock.MinerPayouts {
 					if minerPayout.UnlockHash == addr {
-						fmt.Println("found miner payout for this address")
 						tempMap[block.MinerPayoutIDs[i]] = types.CoinOutput{
 							Value: minerPayout.Value,
 							Condition: types.UnlockConditionProxy{
