@@ -4,8 +4,8 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"path"
 	"strings"
@@ -33,8 +33,9 @@ const (
 // getting the transactions using the LES/v2 protocol, see the
 // `github.com/threefoldfoundation/tfchain/pkg/eth` for more info.
 type ERC20NodeValidator struct {
-	lc  *erc20.LightClient
-	abi abi.ABI
+	contract *erc20.BridgeContract
+	lc       *erc20.LightClient
+	abi      abi.ABI
 }
 
 // NewERC20NodeValidator creates a new INFURA-based ERC20NodeValidator.
@@ -88,37 +89,55 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig, cancel <-chan struct{})
 		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while fetching the ETH bootstrap node info: %v", err)
 	}
 
-	// create the ethereum light client
-	lc, err := erc20.NewLightClient(erc20.LightClientConfig{
-		Port:           cfg.Port,
-		DataDir:        path.Join(cfg.DataDir, "lightnode"),
-		BootstrapNodes: bootstrapNodes,
-		NetworkID:      netcfg.NetworkID,
-		NetworkName:    netcfg.NetworkName,
-		GenesisBlock:   netcfg.GenesisBlock,
-	}, cancel)
+	contract, err := erc20.NewBridgeContract(netcfg.NetworkName, cfg.BootNodes, netcfg.ContractAddress.Hex(), cfg.Port, "", "", path.Join(cfg.DataDir, "lightnode"), cancel)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while creating the light client: %v", err)
+		return nil, err
 	}
-
 	return &ERC20NodeValidator{
-		lc:  lc,
-		abi: abi,
+		lc:       contract.LightClient(),
+		abi:      abi,
+		contract: contract,
 	}, nil
 }
 
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx
 func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expectedAmount types.Currency) error {
+	withdraws, err := ev.contract.GetPastWithdraws(0, nil)
+	if err != nil {
+		return err
+	}
+	found := false
+	for _, w := range withdraws {
+		// looks like we found our transaction
+		if w.TxHash() == common.Hash(txID) {
+			found = true
+			if common.Hash(blockID) != w.BlockHash() {
+				return fmt.Errorf("withdraw tx validation failed: invalid block ID. Want ID %s, got ID %s", w.BlockHash().String(), common.Hash(blockID).String())
+			}
+			if common.Address(expectedAddress) != w.Receiver() {
+				return fmt.Errorf("Withdraw tx validation failed: invalid receiving address. Want address %s, got address %s", w.Receiver().String(), common.Address(expectedAddress).String())
+			}
+			if expectedAmount.Cmp(types.NewCurrency(w.Amount())) != 0 {
+				return fmt.Errorf("Withdraw tx validation failed: invalid amount. Want %s, got %s", w.Amount().String(), expectedAmount.String())
+			}
+			// all event validations succeeded
+			break
+		}
+	}
+	if !found {
+		return errors.New("Withdraw tx validation failed: no matching withdraw event found - invalid tx ID")
+	}
+
 	// Get the transaction
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	tx, confirmations, err := ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
+	_, confirmations, err := ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
 	// If we have no peers we can't verify and thus not continue syncing, so keep retrying
 	for erc20.IsNoPeerErr(err) {
 		// wait 5 seconds before retrying
 		time.Sleep(time.Second * 5)
 		log.Debug("Retrying transaction fetch", "blockID", blockID, "txID", txID)
-		tx, confirmations, err = ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
+		_, confirmations, err = ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
 	}
 	if err != nil {
 		return fmt.Errorf("failed to fetch ERC20 Tx: %v", err)
@@ -127,45 +146,6 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 	// Validate we have sufficient amount of confirmations available
 	if confirmations < MinimumERC20CoinCreationConfirmationsRequired {
 		return fmt.Errorf("invalid ERC20 Tx: insufficient block confirmations: %d", confirmations)
-	}
-
-	// Extract the data
-	// (and as a necessary step also validate if the Tx and input are of the correct type)
-	txData := tx.Data()
-	if len(txData) <= 4 {
-		return fmt.Errorf("invalid ERC20 Tx: unexpected Tx data length: %v", len(txData))
-	}
-
-	// first 4 bytes contain the id, so let's get method using that ID
-	method, err := ev.abi.MethodById(txData[:4])
-	if err != nil {
-		return fmt.Errorf("invalid ERC20 Tx: failed to get method using its parsed id: %v", err)
-	}
-	if method.Name != "transfer" {
-		return fmt.Errorf("invalid ERC20 Tx: unexpected name for unpacked method ID: %s", method.Name)
-	}
-	// unpack the input into a struct we can work with
-	params := struct {
-		To     common.Address
-		Tokens *big.Int
-	}{}
-	err = method.Inputs.Unpack(&params, txData[4:])
-	if err != nil {
-		return fmt.Errorf("error while unpacking transfer ERC20 Tx %v input: %v", txID, err)
-	}
-
-	// validate if the address is correct
-	toAddress := params.To.String()
-	expectedToAddress := common.Address(expectedAddress).String()
-	if toAddress != expectedToAddress {
-		return fmt.Errorf("unexpected to address %v: expected address %v", toAddress, expectedToAddress)
-	}
-
-	// validate if the amount of tokens withdrawn is correct
-	amount := types.NewCurrency(params.Tokens)
-	if amount.Equals(expectedAmount) {
-		return fmt.Errorf("unexpected transferred TFT value %v: expected value %v",
-			amount.String(), expectedAmount.String())
 	}
 
 	// all is good, return nil to indicate this

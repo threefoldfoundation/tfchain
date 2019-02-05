@@ -83,10 +83,10 @@ func NewBridge(cs modules.ConsensusSet, txdb *persist.TransactionDB, tp modules.
 	go bridge.bridgeContract.SubscribeMint()
 	go bridge.bridgeContract.SubscribeRegisterWithdrawAddress()
 
-	withdrawChan := make(chan withdrawEvent)
+	withdrawChan := make(chan WithdrawEvent)
 	go bridge.bridgeContract.SubscribeWithdraw(withdrawChan, bridge.persist.EthHeight)
 	go func() {
-		txMap := make(map[tfchaintypes.ERC20Hash]withdrawEvent)
+		txMap := make(map[tfchaintypes.ERC20Hash]WithdrawEvent)
 		for {
 			select {
 			// Remember new withdraws

@@ -117,6 +117,11 @@ func (bridge *BridgeContract) AccountAddress() (common.Address, error) {
 	return bridge.lc.AccountAddress()
 }
 
+// LightClient returns the LightClient driving this bridge contract
+func (bridge *BridgeContract) LightClient() *LightClient {
+	return bridge.lc
+}
+
 // refresh attempts to retrieve the latest header from the chain and extract the
 // associated bridge balance and nonce for connectivity caching.
 func (bridge *BridgeContract) Refresh(head *types.Header) error {
@@ -226,7 +231,8 @@ func (bridge *BridgeContract) SubscribeMint() error {
 	}
 }
 
-type withdrawEvent struct {
+// WithdrawEvent holds relevant information about a withdraw event
+type WithdrawEvent struct {
 	receiver    common.Address
 	amount      *big.Int
 	txHash      common.Hash
@@ -234,35 +240,67 @@ type withdrawEvent struct {
 	blockHeight uint64
 }
 
-// SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
-// and prints out info about any withdraw as it happened
-func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- withdrawEvent, startHeight uint64) error {
-	sink := make(chan *contract.TTFT20Withdraw)
-	watchOpts := &bind.WatchOpts{Context: context.Background(), Start: nil}
-	filterOpts := &bind.FilterOpts{Context: context.Background(), Start: startHeight}
+// Receiver of the withdraw
+func (w WithdrawEvent) Receiver() common.Address {
+	return w.receiver
+}
+
+// Amount withdrawn
+func (w WithdrawEvent) Amount() *big.Int {
+	return w.amount
+}
+
+// TxHash hash of the transaction
+func (w WithdrawEvent) TxHash() common.Hash {
+	return w.txHash
+}
+
+// BlockHash of the containing block
+func (w WithdrawEvent) BlockHash() common.Hash {
+	return w.blockHash
+}
+
+// BlockHeight of the containing block
+func (w WithdrawEvent) BlockHeight() uint64 {
+	return w.blockHeight
+}
+
+// GetPastWithdraws gets a list of past withdraw events between two block numbers
+func (bridge *BridgeContract) GetPastWithdraws(startHeight uint64, endHeight *uint64) ([]WithdrawEvent, error) {
+	filterOpts := &bind.FilterOpts{Context: context.Background(), Start: startHeight, End: endHeight}
 	iterator, err := bridge.filter.FilterWithdraw(filterOpts, nil)
-	if err != nil {
-		log.Error("Creating past watch event iterator failed", "err", err)
-		return err
+	for IsNoPeerErr(err) {
+		iterator, err = bridge.filter.FilterWithdraw(filterOpts, nil)
 	}
+	if err != nil {
+		log.Error("Creating past withdraw event iterator failed", "err", err)
+		return nil, err
+	}
+
+	var withdraws []WithdrawEvent
 	for iterator.Next() {
 		withdraw := iterator.Event
 		if withdraw.Raw.Removed {
-			// ignore events which have been removed
 			continue
 		}
-		log.Info("Noticed past withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
-		wc <- withdrawEvent{
-			receiver:    withdraw.Receiver,
-			amount:      withdraw.Tokens,
-			txHash:      withdraw.Raw.TxHash,
-			blockHash:   withdraw.Raw.BlockHash,
-			blockHeight: withdraw.Raw.BlockNumber,
-		}
+		withdraws = append(withdraws, WithdrawEvent{receiver: withdraw.Receiver, amount: withdraw.Tokens, txHash: withdraw.Raw.TxHash, blockHash: withdraw.Raw.BlockHash, blockHeight: withdraw.Raw.BlockNumber})
 	}
-	if iterator.Error() != nil {
-		log.Error("Retrieving past watch event failed", "err", err)
+	// Make sure to check the iterator for errors
+	return withdraws, iterator.Error()
+}
+
+// SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
+// and prints out info about any withdraw as it happened
+func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- WithdrawEvent, startHeight uint64) error {
+	sink := make(chan *contract.TTFT20Withdraw)
+	watchOpts := &bind.WatchOpts{Context: context.Background(), Start: nil}
+	pastWithdraws, err := bridge.GetPastWithdraws(startHeight, nil)
+	if err != nil {
 		return err
+	}
+	for _, w := range pastWithdraws {
+		// notify about all the past withdraws
+		wc <- w
 	}
 	sub, err := bridge.filter.WatchWithdraw(watchOpts, sink, nil)
 	if err != nil {
@@ -280,7 +318,7 @@ func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- withdrawEvent, startHe
 				continue
 			}
 			log.Info("Noticed withdraw event", "receiver", withdraw.Receiver, "amount", withdraw.Tokens)
-			wc <- withdrawEvent{
+			wc <- WithdrawEvent{
 				receiver:    withdraw.Receiver,
 				amount:      withdraw.Tokens,
 				txHash:      withdraw.Raw.TxHash,
