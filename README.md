@@ -248,3 +248,9 @@ If your problem is not related to the official `tfchaind` binary, or if you do n
 Should you not find an issue (open or closed) for your problem, you can create a new issue. Make sure to include your environment, version, situation, steps on how to reproduce and any info you think might be helpful.
 
 Please use GitHub issues as much as possible, it keeps everything tracked. Only reach out to the `tfchain` maintainers if you really have to or in case it is not issue-related. The team is small, and direct support is pretty time-expensive. 
+
+## Repository Owners
+
+* Rob Van Mieghem ([@robvanmieghem](https://github.com/robvanmieghem))
+* Lee Smet ([@leesmet](https://github.com/leesmet))
+* Glen De Cauwsemaecker ([@glendc](https://github.com/glendc))
