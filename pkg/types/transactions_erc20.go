@@ -844,7 +844,8 @@ func (etctc ERC20CoinCreationTransactionController) ValidateTransaction(t types.
 
 	// validate the ERC20 Tx using the used Validator
 	erc20Address := ERC20AddressFromUnlockHash(etctx.Address)
-	err = etctc.TxValidator.ValidateWithdrawTx(etctx.BlockID, etctx.TransactionID, erc20Address, etctx.Value)
+	// we need to validate the total amount in the transaction, since the contract does not know which part went to txfee and which part was actually received
+	err = etctc.TxValidator.ValidateWithdrawTx(etctx.BlockID, etctx.TransactionID, erc20Address, etctx.Value.Add(etctx.TransactionFee))
 	if err != nil {
 		return fmt.Errorf("invalid ERC20 CoinCreation Tx: invalid attached ERC20 Tx: %v", err)
 	}

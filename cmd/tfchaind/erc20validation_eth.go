@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -112,10 +111,10 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 		if w.TxHash() == common.Hash(txID) {
 			found = true
 			if common.Hash(blockID) != w.BlockHash() {
-				return fmt.Errorf("withdraw tx validation failed: invalid block ID. Want ID %s, got ID %s", w.BlockHash().String(), common.Hash(blockID).String())
+				return fmt.Errorf("withdraw tx validation failed: invalid block ID. Want ID %s, got ID %s", w.BlockHash().Hex(), common.Hash(blockID).Hex())
 			}
 			if common.Address(expectedAddress) != w.Receiver() {
-				return fmt.Errorf("Withdraw tx validation failed: invalid receiving address. Want address %s, got address %s", w.Receiver().String(), common.Address(expectedAddress).String())
+				return fmt.Errorf("Withdraw tx validation failed: invalid receiving address. Want address %s, got address %s", w.Receiver().Hex(), common.Address(expectedAddress).Hex())
 			}
 			if expectedAmount.Cmp(types.NewCurrency(w.Amount())) != 0 {
 				return fmt.Errorf("Withdraw tx validation failed: invalid amount. Want %s, got %s", w.Amount().String(), expectedAmount.String())
@@ -125,7 +124,7 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 		}
 	}
 	if !found {
-		return errors.New("Withdraw tx validation failed: no matching withdraw event found - invalid tx ID")
+		return fmt.Errorf("Withdraw tx validation failed: no matching withdraw event found - invalid tx ID %s", common.Hash(txID).Hex())
 	}
 
 	// Get the transaction
