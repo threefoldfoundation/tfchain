@@ -150,9 +150,14 @@ func (cmds *cmds) walletBalance(cmd *cobra.Command, args []string) error {
 }
 
 func (cmds *cmds) walletLoad(cmd *cobra.Command, args []string) error {
-	walletName := cmd.Parent().Name()
+	walletName := cmd.Parent().Parent().Name()
 
-	amount, err := strconv.ParseUint(args[0], 10, 64)
+	// generate 1 address if no additional arg is specified
+	amountString := "1"
+	if len(args) > 0 {
+		amountString = args[0]
+	}
+	amount, err := strconv.ParseUint(amountString, 10, 64)
 	if err != nil {
 		return err
 	}

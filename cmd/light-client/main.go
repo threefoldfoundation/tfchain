@@ -104,16 +104,18 @@ Additional actions can be performed on this wallet via subcommands`, walletName)
 			Args: cobra.NoArgs,
 		}
 
-		loadCmd := &cobra.Command{
-			Use:   "load <amount>",
-			Short: "Generate additional keys",
+		generateCmd := &cobra.Command{
+			Use:   "generate <amount>",
+			Short: "Generate additional addresses",
 			Long: `Generate additional keys. The index used to generate the keys is continued from the allready loaded keys. After loading the wallet
-	persistent data is updated to reflect the additional keys, and they will be available for future use.`,
-			RunE: cmd.walletLoad,
-			Args: cobra.ExactArgs(1),
-		}
+persistent data is updated to reflect the additional keys, and they will be available for future use.
 
-		walletCmd.AddCommand(seedCmd, txCmd, addressesCmd, loadCmd)
+If no amount is specified, 1 address will be generated`,
+			RunE: cmd.walletLoad,
+			Args: cobra.MaximumNArgs(1),
+		}
+		addressesCmd.AddCommand(generateCmd)
+		walletCmd.AddCommand(seedCmd, txCmd, addressesCmd)
 	}
 
 	rootCmd.Execute()
