@@ -134,7 +134,7 @@ func (w *Wallet) getBalance(outputs SpendableOutputs) types.Currency {
 
 // TransferCoins transfers coins by creating and submitting a V1 transaction.
 // Data can optionally be included.
-func (w *Wallet) TransferCoins(amount types.Currency, to types.UnlockHash, data []byte, newRefundAddress bool) error {
+func (w *Wallet) TransferCoins(amount types.Currency, to types.UnlockConditionProxy, data []byte, newRefundAddress bool) error {
 	// check data length
 	if len(data) > ArbitraryDataMaxSize {
 		return ErrTooMuchData
@@ -209,7 +209,7 @@ func (w *Wallet) TransferCoins(amount types.Currency, to types.UnlockHash, data 
 	// Add our first output
 	txn.CoinOutputs = append(txn.CoinOutputs, types.CoinOutput{
 		Value:     amount,
-		Condition: types.NewCondition(types.NewUnlockHashCondition(to)),
+		Condition: to,
 	})
 
 	// So now we have enough inputs to fund everything. But we might have overshot it a little bit, so lets check that

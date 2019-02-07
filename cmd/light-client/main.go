@@ -21,6 +21,7 @@ type cmds struct {
 	KeysToLoad               uint64
 	GenerateNewRefundAddress bool
 	DataString               string
+	LockString               string
 }
 
 func main() {
@@ -78,22 +79,28 @@ Additional actions can be performed on this wallet via subcommands`, walletName)
 		seedCmd := &cobra.Command{
 			Use:   "seed",
 			Short: "Print the seed of this wallet",
-			Long: `Print the seed of this wallet as a mnemonic. This mnemonic can be stored and later used to recover
-	the wallet`,
-			RunE: cmd.walletSeed,
+			Long:  `Print the seed of this wallet as a mnemonic. This mnemonic can be stored and later used to recover the wallet`,
+			RunE:  cmd.walletSeed,
 		}
 
 		txCmd := &cobra.Command{
-			Use:   "send <address> <amount>",
+			Use:   "send <amount> <address> ...",
 			Short: "Send coins using a transaction",
 			Long: `Create a new transaction to send the specified amount of coins to the specified address.
-	Inputs are selected automatically from the available ones. The transactionfee is set to the lowest permitted value.
-	In case the sum of the inputs warants a refund output, that is also added automatically as well.`,
+Inputs are selected automatically from the available ones. The transactionfee is set to the lowest permitted value.
+In case the sum of the inputs warants a refund output, that is also added automatically as well.
+
+The following formats are supported to identify the receiver:
+	- empty string: send to the nil address, anyone can spend
+	- single address: send to an address. The owner can spend the funds
+	- multiple addresses: send to a multisig address composed of all the addresses given, everyone needs to sign to spend
+	- multiple addresses + integer: send to a multisig address composed of all the addresses given, the integer identifies how many parties need to sign to spend`,
 			RunE: cmd.walletSend,
-			Args: cobra.ExactArgs(2),
+			Args: cobra.MinimumNArgs(2),
 		}
 		txCmd.Flags().BoolVar(&cmd.GenerateNewRefundAddress, "new-refund-addr", false, "Generate a new refund address instead of reusing an existing address")
 		txCmd.Flags().StringVarP(&cmd.DataString, "data", "d", "", "Attach this string as arbitrary data to the transaction")
+		txCmd.Flags().StringVarP(&cmd.LockString, "lock", "l", "", "Optional time lock. Supported formats are: <integer>, <data>, <date time> <duration>")
 
 		addressesCmd := &cobra.Command{
 			Use:   "addresses",

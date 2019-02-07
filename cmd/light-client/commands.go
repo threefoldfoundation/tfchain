@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/threefoldtech/rivine/pkg/client"
 	"github.com/threefoldtech/rivine/types"
@@ -77,13 +79,7 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 	}
 
 	cc := client.NewCurrencyConvertor(types.CurrencyUnits{OneCoin: cts.OneCoin}, cts.ChainInfo.CoinUnit)
-	amount, err := cc.ParseCoinString(args[1])
-	if err != nil {
-		return err
-	}
-
-	var to types.UnlockHash
-	err = to.LoadString(args[0])
+	amount, err := cc.ParseCoinString(args[0])
 	if err != nil {
 		return err
 	}
@@ -93,13 +89,62 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	err = w.TransferCoins(amount, to, []byte(cmds.DataString), cmds.GenerateNewRefundAddress)
+	var targetCondition types.MarshalableUnlockCondition
+	if len(args) == 2 {
+		// nil condition
+		if args[1] == "" {
+			targetCondition = &types.NilCondition{}
+		} else {
+			// actual address
+			var to types.UnlockHash
+			err = to.LoadString(args[1])
+			if err != nil {
+				return err
+			}
+			targetCondition = types.NewUnlockHashCondition(to)
+		}
+	} else {
+		addressCount := len(args) - 1
+		var addresses []types.UnlockHash
+		// try to parse the last argument as an amount of signatures
+		sigAmt, err := parseAmount(args[len(args)-1])
+		if err != nil {
+			// all multisig addresses
+			sigAmt = uint64(addressCount)
+		} else {
+			// last input is an amount so we have 1 less address input
+			addressCount--
+			if sigAmt > uint64(addressCount) {
+				return errors.New("Invalid amount of signatures required, can't require more signatures than there are addresses")
+			}
+		}
+		// first arg is the amount of tokens so ignore that
+		for i := 1; i < addressCount+1; i++ {
+			addr := types.UnlockHash{}
+			err = addr.LoadString(args[i])
+			if err != nil {
+				return err
+			}
+			addresses = append(addresses, addr)
+		}
+		targetCondition = types.NewMultiSignatureCondition(addresses, sigAmt)
+	}
+
+	if cmds.LockString != "" {
+		timeLock, err := parseLockTime(cmds.LockString)
+		if err != nil {
+			return err
+		}
+		targetCondition = types.NewTimeLockCondition(timeLock, targetCondition)
+	}
+
+	err = w.TransferCoins(amount, types.NewCondition(targetCondition), []byte(cmds.DataString), cmds.GenerateNewRefundAddress)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Transaction posted")
-	fmt.Println("Transfered", cc.ToCoinStringWithUnit(amount), "to", to.String())
+	fmt.Println("Transfered", cc.ToCoinStringWithUnit(amount), "to", targetCondition.UnlockHash().String())
 	return nil
 }
 
@@ -168,4 +213,36 @@ func (cmds *cmds) walletLoad(cmd *cobra.Command, args []string) error {
 	}
 
 	return w.LoadKeys(amount)
+}
+
+func parseAmount(amt string) (uint64, error) {
+	return strconv.ParseUint(amt, 10, 64)
+}
+
+func parseLockTime(lockStr string) (uint64, error) {
+	// block height or unix time stamp
+	integer, err := strconv.ParseUint(lockStr, 10, 64)
+	if err == nil {
+		return integer, err
+	}
+
+	// date
+	timestamp, err := time.Parse("_2 Jan 2006", lockStr)
+	if err == nil {
+		return uint64(timestamp.Unix()), nil
+	}
+
+	// date time
+	timestamp, err = time.Parse("_2 Jan 2006 15:04", lockStr)
+	if err == nil {
+		return uint64(timestamp.Unix()), nil
+	}
+
+	// duration
+	duration, err := time.ParseDuration(lockStr)
+	if err == nil {
+		return uint64(time.Now().Add(duration).Unix()), nil
+	}
+
+	return 0, errors.New("Unrecognized locktime")
 }
