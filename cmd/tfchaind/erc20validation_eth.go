@@ -105,6 +105,11 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 	if err != nil {
 		return err
 	}
+	for erc20.IsNoPeerErr(err) {
+		time.Sleep(time.Second * 5)
+		log.Debug("Retrying to get past withdraws from peers")
+		withdraws, err = ev.contract.GetPastWithdraws(0, nil)
+	}
 	found := false
 	for _, w := range withdraws {
 		// looks like we found our transaction
