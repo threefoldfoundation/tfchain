@@ -284,6 +284,12 @@ func (lc *LightClient) AccountAddress() (common.Address, error) {
 	return addr, nil
 }
 
+// Synchronising returns a boolean if the ethereum client is syncing or not
+func (lc *LightClient) Synchronising() bool {
+	downloader := lc.lesc.Downloader()
+	return downloader != nil && downloader.Synchronising()
+}
+
 // IsNoPeerErr checks if an error is means an ethereum client could not execute
 // a call because it has no valid peers
 func IsNoPeerErr(err error) bool {

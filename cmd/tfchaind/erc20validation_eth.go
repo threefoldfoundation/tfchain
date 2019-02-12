@@ -150,3 +150,21 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 	// all is good, return nil to indicate this
 	return nil
 }
+
+// GetStatus implements ERC20TransactionValidator.GetStatus
+func (ev *ERC20NodeValidator) GetStatus() (*tftypes.ERC20SyncStatus, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+
+	syncStatus, err := ev.lc.SyncProgress(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tftypes.ERC20SyncStatus{
+		StartingBlock: syncStatus.StartingBlock,
+		CurrentBlock:  syncStatus.CurrentBlock,
+		HighestBlock:  syncStatus.HighestBlock,
+		Synchronising: ev.lc.Synchronising(),
+	}, nil
+}

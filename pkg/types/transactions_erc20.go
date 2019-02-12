@@ -126,6 +126,7 @@ type (
 	// in order to validate the attached ERC20 Tx. Use the NopERC20TransactionValidator if no such validation is required.
 	ERC20TransactionValidator interface {
 		ValidateWithdrawTx(blockID, txID ERC20Hash, expectedAddress ERC20Address, expecedAmount types.Currency) error
+		GetStatus() (*ERC20SyncStatus, error)
 	}
 )
 
@@ -133,10 +134,24 @@ type (
 // allowing you to disable any extra validation on ERC20 Transactions.
 type NopERC20TransactionValidator struct{}
 
+// ERC20SyncStatus provides a definition for the current status of the ehtereum network sync.
+type ERC20SyncStatus struct {
+	StartingBlock uint64
+	CurrentBlock  uint64
+	HighestBlock  uint64
+	Synchronising bool
+}
+
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx,
 // returning nil for every call.
 func (nop NopERC20TransactionValidator) ValidateWithdrawTx(ERC20Hash, ERC20Hash, ERC20Address, types.Currency) error {
 	return nil
+}
+
+// GetStatus implements ERC20TransactionValidator.GetStatus
+// returning nil status for every call.
+func (nop NopERC20TransactionValidator) GetStatus() (*ERC20SyncStatus, error) {
+	return &ERC20SyncStatus{}, nil
 }
 
 type (
