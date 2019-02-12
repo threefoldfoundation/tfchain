@@ -270,6 +270,8 @@ func (bridge *BridgeContract) GetPastWithdraws(startHeight uint64, endHeight *ui
 	filterOpts := &bind.FilterOpts{Context: context.Background(), Start: startHeight, End: endHeight}
 	iterator, err := bridge.filter.FilterWithdraw(filterOpts, nil)
 	for IsNoPeerErr(err) {
+		time.Sleep(time.Second * 5)
+		log.Debug("Retrying fetching past withdraws")
 		iterator, err = bridge.filter.FilterWithdraw(filterOpts, nil)
 	}
 	if err != nil {
