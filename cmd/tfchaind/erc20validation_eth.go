@@ -161,15 +161,19 @@ func (ev *ERC20NodeValidator) GetStatus() (*tftypes.ERC20SyncStatus, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
+	status := &tftypes.ERC20SyncStatus{
+		Synchronising: ev.lc.Synchronising(),
+	}
+
 	syncStatus, err := ev.lc.SyncProgress(ctx)
 	if err != nil {
 		return nil, err
 	}
+	if syncStatus != nil {
+		status.StartingBlock = syncStatus.StartingBlock
+		status.CurrentBlock = syncStatus.CurrentBlock
+		status.HighestBlock = syncStatus.HighestBlock
+	}
 
-	return &tftypes.ERC20SyncStatus{
-		StartingBlock: syncStatus.StartingBlock,
-		CurrentBlock:  syncStatus.CurrentBlock,
-		HighestBlock:  syncStatus.HighestBlock,
-		Synchronising: ev.lc.Synchronising(),
-	}, nil
+	return status, nil
 }

@@ -67,6 +67,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 			cancel()
 			return
 		}
+		api.RegisterERC20HTTPHandlers(router, erc20TxValidator)
 
 		// create and validate network config, and the transactionDB as well
 		// txdb is on index 0, as it is not manually loaded

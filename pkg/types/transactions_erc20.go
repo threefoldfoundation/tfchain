@@ -136,10 +136,10 @@ type NopERC20TransactionValidator struct{}
 
 // ERC20SyncStatus provides a definition for the current status of the ehtereum network sync.
 type ERC20SyncStatus struct {
-	StartingBlock uint64
-	CurrentBlock  uint64
-	HighestBlock  uint64
-	Synchronising bool
+	StartingBlock uint64 `json:"startingblock,omitempty"`
+	CurrentBlock  uint64 `json:"currentblock,omitempty"`
+	HighestBlock  uint64 `json:"highestblock,omitempty"`
+	Synchronising bool   `json:"synchronising"`
 }
 
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx,
