@@ -102,13 +102,13 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig, cancel <-chan struct{})
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx
 func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expectedAmount types.Currency) error {
 	withdraws, err := ev.contract.GetPastWithdraws(0, nil)
-	if err != nil {
-		return err
-	}
 	for erc20.IsNoPeerErr(err) {
 		time.Sleep(time.Second * 5)
 		log.Debug("Retrying to get past withdraws from peers")
 		withdraws, err = ev.contract.GetPastWithdraws(0, nil)
+	}
+	if err != nil {
+		return err
 	}
 	found := false
 	for _, w := range withdraws {
