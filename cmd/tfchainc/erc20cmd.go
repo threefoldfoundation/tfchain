@@ -60,8 +60,10 @@ func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []st
 	var encode func(interface{}) error
 	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
 	case cli.EncodingTypeHuman:
-		fmt.Printf(`synchronising: %v
-		`, syncingStatus.Synchronising)
+		encode = func(val interface{}) error {
+			fmt.Println("synchronising:", syncingStatus.Synchronising)
+			return nil
+		}
 	case cli.EncodingTypeJSON:
 		encode = json.NewEncoder(os.Stdout).Encode
 	}
