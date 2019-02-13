@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/spf13/cobra"
 	"github.com/threefoldfoundation/tfchain/cmd/tfchainc/internal"
@@ -61,7 +62,32 @@ func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []st
 	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
 	case cli.EncodingTypeHuman:
 		encode = func(val interface{}) error {
-			fmt.Println("synchronising:", syncingStatus.Synchronising)
+			v := reflect.ValueOf(syncingStatus)
+
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
+
+			// Loop every field in the Struct
+			for i := 0; i < v.NumField(); i++ {
+				// If the field type is unint64
+				if v.Field(i).Type().Name() == "uint64" {
+					value := v.Field(i).Interface().(uint64)
+					// If the value is not 0 (nil) than print key: value, else omit
+					if value != 0 {
+						fmt.Printf("%+v: %+v\n",
+							v.Type().Field(i).Name, // Name attribute gives us the struct's key
+							v.Field(i),             // Elem() dereferences the pointer value
+						)
+					}
+				} else {
+					// If no unint64 just print key: value
+					fmt.Printf("%+v: %+v\n",
+						v.Type().Field(i).Name, // Name attribute gives us the struct's key
+						v.Field(i),             // Elem() dereferences the pointer value
+					)
+				}
+			}
 			return nil
 		}
 	case cli.EncodingTypeJSON:
