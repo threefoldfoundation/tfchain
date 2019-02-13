@@ -18,7 +18,7 @@ import (
 func main() {
 	// create cli
 	bchainInfo := config.GetBlockchainInfo()
-	cliClient, err := client.NewCommandLineClient("", bchainInfo.Name, daemon.RivineUserAgent)
+	cliClient, err := internal.NewCommandLineClient("", bchainInfo.Name, daemon.RivineUserAgent)
 	if err != nil {
 		panic(err)
 	}
@@ -30,6 +30,10 @@ func main() {
 	createConsensusSubCmds(cliClient)
 	createExplorerSubCmds(cliClient)
 	createWalletSubCmds(cliClient)
+
+	// register root command
+	cliClient.ERC20Cmd = createERC20Cmd(cliClient)
+	cliClient.RootCmd.AddCommand(cliClient.ERC20Cmd)
 
 	// no ERC20-Tx Validation is done on client-side
 	nopERC20TxValidator := types.NopERC20TransactionValidator{}

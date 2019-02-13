@@ -4,19 +4,18 @@ import (
 	"encoding/json"
 
 	rivineapi "github.com/threefoldtech/rivine/pkg/api"
-	"github.com/threefoldtech/rivine/pkg/client"
 	"github.com/threefoldtech/rivine/types"
 )
 
 // TransactionPoolClient is used to easily interact
 // with the transaction pool through the HTTP REST API.
 type TransactionPoolClient struct {
-	client *client.CommandLineClient
+	client *CommandLineClient
 }
 
 // NewTransactionPoolClient creates a new TransactionPoolClient,
 // that can be used for easy interaction with the TransactionPool API exposed via the HTTP REST API.
-func NewTransactionPoolClient(cli *client.CommandLineClient) *TransactionPoolClient {
+func NewTransactionPoolClient(cli *CommandLineClient) *TransactionPoolClient {
 	if cli == nil {
 		panic("no CommandLineClient given")
 	}

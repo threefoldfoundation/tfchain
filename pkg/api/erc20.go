@@ -9,6 +9,13 @@ import (
 	rapi "github.com/threefoldtech/rivine/pkg/api"
 )
 
+type (
+	// ERC20SyncingStatus contains a Ethereum syncing status.
+	ERC20SyncingStatus struct {
+		Status tftypes.ERC20SyncStatus `json:"status"`
+	}
+)
+
 // RegisterERC20HTTPHandlers registers the (tfchain-specific) handlers for all ERC20 HTTP endpoints.
 func RegisterERC20HTTPHandlers(router rapi.Router, erc20txValidator tftypes.ERC20TransactionValidator) {
 	if erc20txValidator == nil {
@@ -32,6 +39,8 @@ func NewERC20StatusHandler(erc20txValidator tftypes.ERC20TransactionValidator) h
 			return
 		}
 
-		api.WriteJSON(w, ERC20Status)
+		api.WriteJSON(w, ERC20SyncingStatus{
+			Status: *ERC20Status,
+		})
 	}
 }
