@@ -105,6 +105,19 @@ The following formats are supported to identify the receiver:
 		txCmd.Flags().StringVarP(&cmd.DataString, "data", "d", "", "Attach this string as arbitrary data to the transaction")
 		txCmd.Flags().StringVarP(&cmd.LockString, "lock", "l", "", "Optional time lock. Supported formats are: <integer>, <data>, <date time> <duration>")
 
+		reserveCmd := &cobra.Command{
+			Use:   "reserve <type> <size> <email> <broker_address>",
+			Short: "Create a reservation transaction",
+			Long: `Create a reservation transaction. The exact cost of the reserved
+workload is automatically set. The email address is used to receive the connection
+info once the reservation has been processed by the broker, identified by the broker
+address. For a full overview of the available workloads and their price, see
+https://github.com/threefoldtech/grid_broker`,
+			RunE: cmd.walletReserve,
+			Args: cobra.ExactArgs(4),
+		}
+		reserveCmd.Flags().BoolVar(&cmd.GenerateNewRefundAddress, "new-refund-addr", false, "Generate a new refund address instead of reusing an existing address")
+
 		addressesCmd := &cobra.Command{
 			Use:   "addresses",
 			Short: "List all loaded addresses",
@@ -125,7 +138,7 @@ If no amount is specified, 1 address will be generated`,
 			Args: cobra.MaximumNArgs(1),
 		}
 		addressesCmd.AddCommand(generateCmd)
-		walletCmd.AddCommand(seedCmd, txCmd, addressesCmd)
+		walletCmd.AddCommand(seedCmd, txCmd, reserveCmd, addressesCmd)
 	}
 
 	rootCmd.Execute()

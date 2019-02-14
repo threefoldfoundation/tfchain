@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -16,6 +17,14 @@ import (
 	"github.com/threefoldfoundation/tfchain/cmd/light-client/explorer"
 	"github.com/threefoldfoundation/tfchain/cmd/light-client/wallet"
 )
+
+// ReservationData is the structure for the data to include in a transaction
+// used to create a reservation
+type ReservationData struct {
+	Email string `json:"email"`
+	Size  int    `json:"size"`
+	Type  string `json:"type"`
+}
 
 func (cmds *cmds) walletInit(cmd *cobra.Command, args []string) error {
 	wallet, err := wallet.New(args[0], cmds.KeysToLoad, cmds.Network)
@@ -147,6 +156,59 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func (cmds *cmds) walletReserve(cmd *cobra.Command, args []string) error {
+	walletName := cmd.Parent().Name()
+
+	w, err := wallet.Load(walletName)
+	if err != nil {
+		return err
+	}
+
+	cts, err := w.GetChainConstants()
+	if err != nil {
+		return err
+	}
+	cc := client.NewCurrencyConvertor(types.CurrencyUnits{OneCoin: cts.OneCoin}, cts.ChainInfo.CoinUnit)
+
+	var to types.UnlockHash
+	err = to.LoadString(args[3])
+	if err != nil {
+		return err
+	}
+	targetCondition := types.NewUnlockHashCondition(to)
+
+	size, cost, err := parseTypeSize(args[0], args[1])
+	if err != nil {
+		return err
+	}
+	amount, _ := cc.ParseCoinString(strconv.Itoa(cost))
+
+	data := &ReservationData{
+		Email: args[2],
+		Type:  args[0],
+		Size:  size,
+	}
+
+	// Encode the data to json by marshalling the struct, NOT by using a JSON writer
+	// over a byte buffer. Reason being that the writer appends a newline, which
+	// we don't need and don't want since it unnecessarily increases data size with
+	// and additional useless byte
+	buf, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	err = w.TransferCoins(amount, types.NewCondition(targetCondition), buf, cmds.GenerateNewRefundAddress)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Reservation created")
+	fmt.Printf("Paid %v to %v to reserve a %v of size %v\n", cc.ToCoinStringWithUnit(amount),
+		targetCondition.UnlockHash().String(), args[0], size)
+
+	return nil
+}
+
 func (cmds *cmds) walletAddresses(cmd *cobra.Command, args []string) error {
 	walletName := cmd.Parent().Name()
 	w, err := wallet.Load(walletName)
@@ -244,4 +306,34 @@ func parseLockTime(lockStr string) (uint64, error) {
 	}
 
 	return 0, errors.New("Unrecognized locktime")
+}
+
+func parseTypeSize(typ string, sizeString string) (int, int, error) {
+	size, err := strconv.Atoi(sizeString)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	switch typ {
+	case "vm":
+		switch size {
+		case 1:
+			return size, 1, nil
+		case 2:
+			return size, 4, nil
+		default:
+			return 0, 0, fmt.Errorf("Invalid size %v for 'vm', only size '1' and '2' supported", size)
+		}
+	case "s3":
+		switch size {
+		case 1:
+			return size, 10, nil
+		case 2:
+			return size, 40, nil
+		default:
+			return 0, 0, fmt.Errorf("Invalid size %v for 's3', only size '1' and '2' supported", size)
+		}
+	default:
+		return 0, 0, fmt.Errorf("Invalid type '%v', only 'vm' and 's3' are supported", typ)
+	}
 }
