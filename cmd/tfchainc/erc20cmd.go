@@ -36,7 +36,7 @@ func createERC20Cmd(client *internal.CommandLineClient) *cobra.Command {
 
 	// register flags
 	getSyncingStatusCmd.Flags().Var(
-		cli.NewEncodingTypeFlag(0, &erc20SubCmds.getSyncingStatusCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
+		cli.NewEncodingTypeFlag(cli.EncodingTypeHuman, &erc20SubCmds.getSyncingStatusCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
 
 	return rootCmd
@@ -51,36 +51,29 @@ type erc20SubCmds struct {
 
 // getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
 func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []string) {
-	client := erc20SubCmds.cli
 	var syncingStatus api.ERC20SyncingStatus
 
-	err := client.GetAPI("/erc20/downloader/status", &syncingStatus)
+	err := erc20SubCmds.cli.GetAPI("/erc20/downloader/status", &syncingStatus)
 	if err != nil {
 		cli.DieWithError("error while fetching the syncing status", err)
 	}
 
 	// encode depending on the encoding flag
-	var encode func(interface{}) error
 	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
 	case cli.EncodingTypeHuman:
-		encode = func(val interface{}) error {
-			syncing := syncingStatus.Status.Synchronising
-			if !syncing {
-				fmt.Println("ERC20 node is not syncronising")
-			} else {
-				fmt.Printf(`ERC20 node is currently syncronising...
+		if syncingStatus.Status.Synchronising {
+			fmt.Printf(`ERC20 node is currently syncronising...
 Starting block height: %d
 Current block height: %d
 Highest block height: %d
 `, syncingStatus.Status.StartingBlock, syncingStatus.Status.CurrentBlock, syncingStatus.Status.HighestBlock)
-			}
-			return nil
+		} else {
+			fmt.Println("ERC20 node is not syncronising")
 		}
 	case cli.EncodingTypeJSON:
-		encode = json.NewEncoder(os.Stdout).Encode
-	}
-	err = encode(syncingStatus)
-	if err != nil {
-		cli.DieWithError("failed to encode syncing status", err)
+		err = json.NewEncoder(os.Stdout).Encode(syncingStatus.Status)
+		if err != nil {
+			cli.DieWithError("failed to encode syncing status", err)
+		}
 	}
 }

@@ -33,14 +33,14 @@ func RegisterERC20HTTPHandlers(router rapi.Router, erc20txValidator tftypes.ERC2
 // NewERC20StatusHandler creates a handler to handle the API calls to /erc20/downloader/status.
 func NewERC20StatusHandler(erc20txValidator tftypes.ERC20TransactionValidator) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-		ERC20Status, err := erc20txValidator.GetStatus()
+		erc20Status, err := erc20txValidator.GetStatus()
 		if err != nil {
 			api.WriteError(w, api.Error{Message: err.Error()}, http.StatusInternalServerError)
 			return
 		}
 
 		api.WriteJSON(w, ERC20SyncingStatus{
-			Status: *ERC20Status,
+			Status: *erc20Status,
 		})
 	}
 }
