@@ -18,7 +18,7 @@ import (
 )
 
 func (cmds *cmds) walletInit(cmd *cobra.Command, args []string) error {
-	wallet, err := wallet.New(args[0], cmds.KeysToLoad)
+	wallet, err := wallet.New(args[0], cmds.KeysToLoad, cmds.Network)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (cmds *cmds) walletRecover(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	wallet, err := wallet.NewWalletFromMnemonic(args[0], strings.TrimSpace(mnemonic), cmds.KeysToLoad)
+	wallet, err := wallet.NewWalletFromMnemonic(args[0], strings.TrimSpace(mnemonic), cmds.KeysToLoad, cmds.Network)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (cmds *cmds) walletRecover(cmd *cobra.Command, args []string) error {
 
 func (cmds *cmds) walletSeed(cmd *cobra.Command, args []string) error {
 	walletName := cmd.Parent().Name()
-	w, err := wallet.Load(walletName, nil)
+	w, err := wallet.Load(walletName)
 	if err != nil {
 		return err
 	}
@@ -72,19 +72,18 @@ func (cmds *cmds) walletSeed(cmd *cobra.Command, args []string) error {
 func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 	walletName := cmd.Parent().Name()
 
-	backend := explorer.NewTestnetGroupedExplorer()
-	cts, err := backend.GetChainConstants()
+	w, err := wallet.Load(walletName)
+	if err != nil {
+		return err
+	}
+
+	cts, err := w.GetChainConstants()
 	if err != nil {
 		return err
 	}
 
 	cc := client.NewCurrencyConvertor(types.CurrencyUnits{OneCoin: cts.OneCoin}, cts.ChainInfo.CoinUnit)
 	amount, err := cc.ParseCoinString(args[0])
-	if err != nil {
-		return err
-	}
-
-	w, err := wallet.Load(walletName, backend)
 	if err != nil {
 		return err
 	}
@@ -150,7 +149,7 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 
 func (cmds *cmds) walletAddresses(cmd *cobra.Command, args []string) error {
 	walletName := cmd.Parent().Name()
-	w, err := wallet.Load(walletName, nil)
+	w, err := wallet.Load(walletName)
 	if err != nil {
 		return err
 	}
@@ -174,7 +173,7 @@ func (cmds *cmds) walletBalance(cmd *cobra.Command, args []string) error {
 
 	cc := client.NewCurrencyConvertor(types.CurrencyUnits{OneCoin: cts.OneCoin}, cts.ChainInfo.CoinUnit)
 
-	w, err := wallet.Load(walletName, backend)
+	w, err := wallet.Load(walletName)
 	if err != nil {
 		return err
 	}
@@ -207,7 +206,7 @@ func (cmds *cmds) walletLoad(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	w, err := wallet.Load(walletName, nil)
+	w, err := wallet.Load(walletName)
 	if err != nil {
 		return err
 	}

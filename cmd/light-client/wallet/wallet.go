@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/threefoldfoundation/tfchain/cmd/light-client/explorer"
 	"github.com/threefoldtech/rivine/crypto"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/types"
@@ -53,27 +54,27 @@ var (
 )
 
 // New creates a new wallet with a random seed
-func New(name string, keysToLoad uint64) (*Wallet, error) {
+func New(name string, keysToLoad uint64, backendName string) (*Wallet, error) {
 	seed := modules.Seed{}
 	_, err := rand.Read(seed[:])
 	if err != nil {
 		return nil, err
 	}
 
-	return NewWalletFromSeed(name, seed, keysToLoad)
+	return NewWalletFromSeed(name, seed, keysToLoad, backendName)
 }
 
 // NewWalletFromMnemonic creates a new wallet from a given mnemonic
-func NewWalletFromMnemonic(name string, mnemonic string, keysToLoad uint64) (*Wallet, error) {
+func NewWalletFromMnemonic(name string, mnemonic string, keysToLoad uint64, backendName string) (*Wallet, error) {
 	seed, err := modules.InitialSeedFromMnemonic(mnemonic)
 	if err != nil {
 		return nil, err
 	}
-	return NewWalletFromSeed(name, seed, keysToLoad)
+	return NewWalletFromSeed(name, seed, keysToLoad, backendName)
 }
 
 // NewWalletFromSeed creates a new wallet with a given seed
-func NewWalletFromSeed(name string, seed modules.Seed, keysToLoad uint64) (*Wallet, error) {
+func NewWalletFromSeed(name string, seed modules.Seed, keysToLoad uint64, backendName string) (*Wallet, error) {
 	exists, err := walletExists(name)
 	if err != nil {
 		return nil, err
@@ -82,9 +83,12 @@ func NewWalletFromSeed(name string, seed modules.Seed, keysToLoad uint64) (*Wall
 		return nil, ErrWalletExists
 	}
 
+	backend := loadBackend(backendName)
+
 	w := &Wallet{
-		seed: seed,
-		name: name,
+		seed:    seed,
+		name:    name,
+		backend: backend,
 	}
 
 	w.generateKeys(keysToLoad)
@@ -96,8 +100,20 @@ func NewWalletFromSeed(name string, seed modules.Seed, keysToLoad uint64) (*Wall
 	return w, nil
 }
 
+// LoadBackend loads a backend with the given name
+func loadBackend(name string) Backend {
+	switch name {
+	case "standard":
+		return explorer.NewMainnetGroupedExplorer()
+	case "testnet":
+		return explorer.NewTestnetGroupedExplorer()
+	default:
+		return nil
+	}
+}
+
 // Load loads persistent data for a wallet with a given name, and restores the wallets state
-func Load(name string, backend Backend) (*Wallet, error) {
+func Load(name string) (*Wallet, error) {
 	data, err := load(name)
 	if err != nil {
 		return nil, err
@@ -105,12 +121,17 @@ func Load(name string, backend Backend) (*Wallet, error) {
 	w := &Wallet{
 		name:    name,
 		seed:    data.Seed,
-		backend: backend,
+		backend: loadBackend(data.Backend),
 	}
 
 	w.generateKeys(data.KeysToLoad)
 
 	return w, nil
+}
+
+// GetChainConstants returns the chainconstatns of the underlying network
+func (w *Wallet) GetChainConstants() (modules.DaemonConstants, error) {
+	return w.backend.GetChainConstants()
 }
 
 // GetBalance returns the current unlocked and locked balance for the wallet

@@ -22,6 +22,7 @@ type cmds struct {
 	GenerateNewRefundAddress bool
 	DataString               string
 	LockString               string
+	Network                  string
 }
 
 func main() {
@@ -51,7 +52,9 @@ without having to download the entire blockchain.`,
 		Args:  cobra.ExactArgs(1),
 	}
 	initCmd.Flags().Uint64Var(&cmd.KeysToLoad, "key-amount", DefaultKeysToLoad, "Set the default amount of keys to load")
+	initCmd.Flags().StringVar(&cmd.Network, "network", "testnet", "Set the network to use for this wallet")
 	recoverCmd.Flags().Uint64Var(&cmd.KeysToLoad, "key-amount", DefaultKeysToLoad, "Set the default amount of keys to load")
+	recoverCmd.Flags().StringVar(&cmd.Network, "network", "testnet", "Set the network to use for this wallet")
 
 	rootCmd.AddCommand(
 		initCmd,

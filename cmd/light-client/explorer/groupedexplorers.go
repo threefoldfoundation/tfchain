@@ -4,9 +4,6 @@ import (
 	"errors"
 	"net"
 
-	"github.com/threefoldfoundation/tfchain/pkg/config"
-	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
-
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/pkg/api"
 	"github.com/threefoldtech/rivine/types"
@@ -22,28 +19,9 @@ type GroupedExplorer struct {
 	explorers []*Explorer
 }
 
-// TestnetGroupedExplorer is a GroupedExplorer preconfigured for the official public testnet explorers
-type TestnetGroupedExplorer struct {
-	*GroupedExplorer
-}
-
 // NewGroupedExplorer creates a new GroupedExplorer from existing regular Explorers
 func NewGroupedExplorer(explorers ...*Explorer) *GroupedExplorer {
 	return &GroupedExplorer{explorers: explorers}
-}
-
-// NewTestnetGroupedExplorer creates a preconfigured grouped explorer for the public testnet nodes
-func NewTestnetGroupedExplorer() *TestnetGroupedExplorer {
-	testnetUrls := []string{"https://explorer.testnet.threefoldtoken.com", "https://explorer2.testnet.threefoldtoken.com"}
-	var explorers []*Explorer
-	for _, url := range testnetUrls {
-		explorers = append(explorers, NewExplorer(url, "Rivine-Agent", ""))
-	}
-	explorer := &TestnetGroupedExplorer{NewGroupedExplorer(explorers...)}
-	// This call doesn't return an error since it just loads hard coded constants
-	cts, _ := explorer.GetChainConstants()
-	tftypes.RegisterTransactionTypesForTestNetwork(nil, tftypes.NopERC20TransactionValidator{}, cts.OneCoin, config.GetTestnetDaemonNetworkConfig())
-	return explorer
 }
 
 // CheckAddress returns all interesting transactions and blocks related to a given unlockhash
@@ -92,9 +70,4 @@ func (e *GroupedExplorer) GetChainConstants() (modules.DaemonConstants, error) {
 		return cts, err
 	}
 	return modules.DaemonConstants{}, ErrNoHealthyExplorers
-}
-
-// GetChainConstants returns the hardcoded chain constants for testnet. No call is made to the explorers
-func (te *TestnetGroupedExplorer) GetChainConstants() (modules.DaemonConstants, error) {
-	return modules.NewDaemonConstants(config.GetBlockchainInfo(), config.GetTestnetGenesis()), nil
 }

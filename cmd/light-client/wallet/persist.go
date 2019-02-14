@@ -22,6 +22,7 @@ type (
 	walletPersist struct {
 		Seed       modules.Seed `json:"seed"`
 		KeysToLoad uint64       `json:"keys_to_load"`
+		Backend    string       `json:"backend"`
 	}
 )
 
@@ -40,6 +41,7 @@ func save(wallet *Wallet) error {
 	data := walletPersist{
 		Seed:       wallet.seed,
 		KeysToLoad: uint64(len(wallet.keys)),
+		Backend:    wallet.backend.Name(),
 	}
 	err := os.MkdirAll(Dir(wallet.name), 0777)
 	if err != nil {

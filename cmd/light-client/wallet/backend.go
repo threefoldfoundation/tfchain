@@ -16,4 +16,6 @@ type Backend interface {
 	SendTxn(types.Transaction) error
 	// GetChainConstants gets the currently active chain constants for this backend
 	GetChainConstants() (modules.DaemonConstants, error)
+	// Name returns a static name for this backend, to allow loading and saving
+	Name() string
 }
