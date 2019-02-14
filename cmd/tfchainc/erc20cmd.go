@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/threefoldfoundation/tfchain/cmd/tfchainc/internal"
+	"github.com/threefoldfoundation/tfchain/pkg/api"
 	"github.com/threefoldtech/rivine/pkg/cli"
 )
 
@@ -48,10 +49,12 @@ type erc20SubCmds struct {
 	}
 }
 
+// getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
 func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []string) {
-	erc20cmds := internal.NewERC20Client(erc20SubCmds.cli)
+	client := erc20SubCmds.cli
+	var syncingStatus api.ERC20SyncingStatus
 
-	syncingStatus, err := erc20cmds.GetSyncingStatus()
+	err := client.GetAPI("/erc20/downloader/status", &syncingStatus)
 	if err != nil {
 		cli.DieWithError("error while fetching the syncing status", err)
 	}
@@ -61,7 +64,7 @@ func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []st
 	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
 	case cli.EncodingTypeHuman:
 		encode = func(val interface{}) error {
-			syncing := syncingStatus.Synchronising
+			syncing := syncingStatus.Status.Synchronising
 			if !syncing {
 				fmt.Println("ERC20 node is not syncronising")
 			} else {
@@ -69,7 +72,7 @@ func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []st
 Starting block height: %d
 Current block height: %d
 Highest block height: %d
-`, syncingStatus.StartingBlock, syncingStatus.CurrentBlock, syncingStatus.HighestBlock)
+`, syncingStatus.Status.StartingBlock, syncingStatus.Status.CurrentBlock, syncingStatus.Status.HighestBlock)
 			}
 			return nil
 		}
