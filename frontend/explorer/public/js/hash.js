@@ -2471,22 +2471,8 @@ function getCoinOutputsFromExplorerTransaction(txn) {
 		return txn.rawtransaction.data.coinoutputs;
 	}
 	var version = txn.rawtransaction.version;
-	if (version == 144 || version == 145 || version == 146) {
-		outputs = [{
-			'value': computeRequiredBotFeesFromRawTransaction(txn.rawtransaction),
-			'condition': {
-				'type': 1,
-				'data': {
-					// NOTE: this means we also render multi sig addresses as unlock hash conditions
-					// TODO: once we define 3Bot payouts as "miner" payouts, this will all be OK
-					'unlockhash': txn.coinoutputunlockhashes[0],
-				}
-			}
-		}];
-		if (txn.rawtransaction.data.refundcoinoutput != null) {
-			outputs.push(txn.rawtransaction.data.refundcoinoutput);
-		}
-		return outputs;
+	if ([144, 145, 146, 208, 210].includes(version) && txn.rawtransaction.data.refundcoinoutput != null) {
+		return [txn.rawtransaction.data.refundcoinoutput];
 	}
 	if (version == 209) {
 		return [{
@@ -2498,9 +2484,6 @@ function getCoinOutputsFromExplorerTransaction(txn) {
 				}
 			}
 		}];
-	}
-	if ((version == 208 || version == 210) && txn.rawtransaction.data.refundcoinoutput != null) {
-		return [txn.rawtransaction.data.refundcoinoutput];
 	}
 	return [];
 }
