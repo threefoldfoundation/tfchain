@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func createConsensusSubCmds(client *rivinecli.CommandLineClient) {
+func createConsensusSubCmds(client *internal.CommandLineClient) {
 	consensusSubCmds := &consensusSubCmds{cli: client}
 
 	// define commands
@@ -69,7 +69,7 @@ id, public key or name.
 }
 
 type consensusSubCmds struct {
-	cli                 *rivinecli.CommandLineClient
+	cli                 *internal.CommandLineClient
 	getMintConditionCfg struct {
 		EncodingType cli.EncodingType
 	}

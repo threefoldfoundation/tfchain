@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func createWalletSubCmds(client *rivinecli.CommandLineClient) {
+func createWalletSubCmds(client *internal.CommandLineClient) {
 	walletSubCmds := &walletSubCmds{cli: client}
 
 	// define commands
@@ -265,7 +265,7 @@ from which the ERC20 address is then derived, is known by this wallet.`,
 }
 
 type walletSubCmds struct {
-	cli                   *rivinecli.CommandLineClient
+	cli                   *internal.CommandLineClient
 	minterDefinitionTxCfg struct {
 		Description string
 	}

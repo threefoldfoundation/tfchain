@@ -6,18 +6,17 @@ import (
 
 	"github.com/threefoldfoundation/tfchain/pkg/api"
 
-	"github.com/threefoldtech/rivine/pkg/client"
 	"github.com/threefoldtech/rivine/types"
 )
 
 // WalletClient is used to easily interact with the wallet through the HTTP REST API.
 type WalletClient struct {
-	client *client.CommandLineClient
+	client *CommandLineClient
 }
 
 // NewWalletClient creates a new WalletClient,
 // that can be used for easy interaction with the Wallet API exposed via the HTTP REST API.
-func NewWalletClient(cli *client.CommandLineClient) *WalletClient {
+func NewWalletClient(cli *CommandLineClient) *WalletClient {
 	if cli == nil {
 		panic("no CommandLineClient given")
 	}

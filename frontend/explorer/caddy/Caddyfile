@@ -18,6 +18,10 @@ https://explorer.testnet.threefoldtoken.com {
         header_upstream User-Agent Rivine-Agent
     }
 
+    proxy /erc20 localhost:23110 {
+        header_upstream User-Agent Rivine-Agent
+    }
+
     log stdout
     tls support@threefoldtoken.com
 }

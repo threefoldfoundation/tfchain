@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func createExplorerSubCmds(client *rivinecli.CommandLineClient) {
+func createExplorerSubCmds(client *internal.CommandLineClient) {
 	explorerSubCmds := &explorerSubCmds{cli: client}
 
 	// define commands
@@ -57,7 +57,7 @@ id, public key or name.
 }
 
 type explorerSubCmds struct {
-	cli                 *rivinecli.CommandLineClient
+	cli                 *internal.CommandLineClient
 	getMintConditionCfg struct {
 		EncodingType cli.EncodingType
 	}
