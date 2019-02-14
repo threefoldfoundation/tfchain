@@ -35,8 +35,8 @@ func createERC20Cmd(client *internal.CommandLineClient) *cobra.Command {
 
 	// register flags
 	getSyncingStatusCmd.Flags().Var(
-		cli.NewEncodingTypeFlag(0, &erc20SubCmds.getSyncingStatusCfg.EncodingType, 0), "encoding",
-		cli.EncodingTypeFlagDescription(0))
+		cli.NewEncodingTypeFlag(0, &erc20SubCmds.getSyncingStatusCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
+		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
 
 	return rootCmd
 }
