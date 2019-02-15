@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/discv5"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/params"
+	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 )
 
 // LightClient creates a light client that can be used to interact with the Ethereum network,

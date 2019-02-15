@@ -216,3 +216,8 @@ func (bridge *Bridge) registerWithdrawalAddress(key types.PublicKey) error {
 	}
 	return bridge.bridgeContract.RegisterWithdrawalAddress(erc20addr)
 }
+
+// GetClient returns bridgecontract lightclient
+func (bridge *Bridge) GetClient() *LightClient {
+	return bridge.bridgeContract.LightClient()
+}

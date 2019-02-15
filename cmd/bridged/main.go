@@ -11,13 +11,17 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/threefoldtech/rivine/modules/transactionpool"
+	"github.com/threefoldtech/rivine/pkg/daemon"
 
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/threefoldfoundation/tfchain/pkg/api"
 	"github.com/threefoldfoundation/tfchain/pkg/cli"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
+	rivineapi "github.com/threefoldtech/rivine/pkg/api"
 
 	"github.com/spf13/cobra"
 	tfchaintypes "github.com/threefoldfoundation/tfchain/pkg/types"
@@ -33,6 +37,7 @@ type Commands struct {
 	BlockchainInfo rivinetypes.BlockchainInfo
 	ChainConstants rivinetypes.ChainConstants
 	BootstrapPeers []modules.NetAddress
+	NoBootstrap    bool
 
 	EthNetworkName string
 
@@ -51,6 +56,9 @@ type Commands struct {
 
 	RootPersistentDir string
 	transactionDB     *persist.TransactionDB
+
+	APIaddr   string
+	UserAgent string
 }
 
 // Root represents the root (`bridged`) command,
@@ -162,12 +170,25 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// create our server already, this way we can fail early if the API addr is already bound
+	fmt.Println("Binding API Address and serving the API...")
+	srv, err := daemon.NewHTTPServer(cmd.APIaddr)
+	if err != nil {
+		return err
+	}
+	servErrs := make(chan error, 32)
+	go func() {
+		servErrs <- srv.Serve()
+	}()
 	// load all modules
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+
+		// router to register all endpoints to
+		router := httprouter.New()
 
 		log.Info("loading rivine gateway module (1/4)...")
 		gateway, err := gateway.New(
@@ -189,7 +210,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		log.Info("loading rivine consensus module (2/4)...")
 		cs, err := consensus.New(
-			gateway, true, cmd.perDir("consensus"),
+			gateway, !cmd.NoBootstrap, cmd.perDir("consensus"),
 			cmd.BlockchainInfo, cmd.ChainConstants)
 		if err != nil {
 			log.Error("Failed to create consensus module", "err", err)
@@ -197,6 +218,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			cmdErr = err
 			return
 		}
+		rivineapi.RegisterConsensusHTTPHandlers(router, cs)
 		defer func() {
 			log.Info("Closing consensus module...")
 			err := cs.Close()
@@ -244,6 +266,13 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 				log.Error("Failed to close bridge module", "err", err)
 			}
 		}()
+
+		// Register ERC20 http handlers
+		api.RegisterERC20HTTPHandlers(router, bridged.GetClient())
+
+		// handle all our endpoints over a router,
+		// which requires a user agent should one be configured
+		srv.Handle("/", rivineapi.RequireUserAgentHandler(router, cmd.UserAgent))
 		log.Info("bridged is up and running...")
 
 		// wait until done
@@ -260,6 +289,8 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		log.Info("Caught stop signal, quitting...")
 	case <-ctx.Done():
 		log.Info("context is done, quitting...")
+	case err = <-servErrs:
+		log.Error("Error while serving API", "err", err)
 	}
 
 	cancel()
@@ -344,6 +375,12 @@ func main() {
 		cmd.RPCaddr,
 		"which port the gateway listens on",
 	)
+	cmdRoot.Flags().BoolVar(
+		&cmd.NoBootstrap,
+		"no-bootstrap",
+		cmd.NoBootstrap,
+		"disable bootstrapping on this run for tfchain",
+	)
 
 	cmdRoot.Flags().StringVarP(
 		&cmd.BlockchainInfo.NetworkName,
@@ -400,6 +437,18 @@ func main() {
 		&cmd.ContractAddress,
 		"contract-address", "",
 		"Use a custom contract",
+	)
+
+	cmdRoot.Flags().StringVar(
+		&cmd.APIaddr,
+		"api-address", "localhost:23111",
+		"Set custom api-address for bridged",
+	)
+
+	cmdRoot.Flags().StringVar(
+		&cmd.UserAgent,
+		"user-agent", daemon.RivineUserAgent,
+		"Set custom User-Agent",
 	)
 
 	// execute logic
