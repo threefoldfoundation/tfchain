@@ -295,3 +295,50 @@ func (lc *LightClient) Synchronising() bool {
 func IsNoPeerErr(err error) bool {
 	return err == light.ErrNoPeers
 }
+<<<<<<< Updated upstream
+=======
+
+// GetStatus implements ERC20TransactionValidator.GetStatus
+func (lc *LightClient) GetStatus() (*tftypes.ERC20SyncStatus, error) {
+	downloader := lc.lesc.Downloader()
+	if downloader == nil {
+		return nil, errors.New("Downloader is not available")
+	}
+	syncStatus := downloader.Progress()
+
+	status := tftypes.ERC20SyncStatus{
+		StartingBlock: syncStatus.StartingBlock,
+		CurrentBlock:  syncStatus.CurrentBlock,
+		HighestBlock:  syncStatus.HighestBlock,
+	}
+
+	if status.CurrentBlock > status.HighestBlock {
+		status.HighestBlock = status.CurrentBlock
+	}
+
+	return &status, nil
+}
+
+// GetBalanceInfo returns bridge ethereum address and balance
+func (lc *LightClient) GetBalanceInfo() (*tftypes.ERC20BalanceInfo, error) {
+	lc.accountLock.RLock()
+	defer lc.accountLock.RUnlock()
+	var addr common.Address
+
+	if lc.account == nil {
+		return nil, ErrNoAccountLoaded
+	}
+	copy(addr[:], lc.account.account.Address[:])
+
+	balance, err := lc.Client.BalanceAt(context.Background(), addr, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &tftypes.ERC20BalanceInfo{
+		Balance: balance,
+		Address: lc.account.account.Address,
+	}, nil
+}
+>>>>>>> Stashed changes
