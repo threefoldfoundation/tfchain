@@ -53,6 +53,7 @@ func RegisterExplorerHTTPHandlers(router rapi.Router, cs modules.ConsensusSet, e
 	router.GET("/explorer/stats/history", rapi.NewExplorerHistoryStatsHandler(explorer))
 	router.GET("/explorer/stats/range", rapi.NewExplorerRangeStatsHandler(explorer))
 	router.GET("/explorer/constants", rapi.NewExplorerConstantsHandler(explorer))
+	router.GET("/explorer/downloader/status", rapi.NewConsensusRootHandler(cs))
 
 	// tfchain-specific endpoints
 
