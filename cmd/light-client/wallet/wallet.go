@@ -108,7 +108,8 @@ func loadBackend(name string) Backend {
 	case "testnet":
 		return explorer.NewTestnetGroupedExplorer()
 	default:
-		return nil
+		// for now anything else will also default to testnet
+		return explorer.NewTestnetGroupedExplorer()
 	}
 }
 
