@@ -14,12 +14,15 @@ type (
 	ERC20SyncingStatus struct {
 		Status tftypes.ERC20SyncStatus `json:"status"`
 	}
+	ERC20BalanceInformation struct {
+		BalanceInfo tftypes.ERC20BalanceInfo `json:"balanceInformation"`
+	}
 )
 
 // RegisterERC20HTTPHandlers registers the (tfchain-specific) handlers for all ERC20 HTTP endpoints.
-func RegisterERC20HTTPHandlers(router rapi.Router, erc20txValidator tftypes.ERC20TransactionValidator) {
-	if erc20txValidator == nil {
-		panic("no erc20Validator given")
+func RegisterERC20HTTPHandlers(router rapi.Router, erc20InfoAPI tftypes.ERC20InfoAPI) {
+	if erc20InfoAPI == nil {
+		panic("no erc20InfoApi given")
 	}
 	if router == nil {
 		panic("no router given")
@@ -27,20 +30,35 @@ func RegisterERC20HTTPHandlers(router rapi.Router, erc20txValidator tftypes.ERC2
 
 	// tfchain-specific endpoints
 
-	router.GET("/erc20/downloader/status", NewERC20StatusHandler(erc20txValidator))
+	router.GET("/erc20/downloader/status", NewERC20StatusHandler(erc20InfoAPI))
+	router.GET("/erc20/account/balance", newERC20BalanceHandler(erc20InfoAPI))
+
 }
 
 // NewERC20StatusHandler creates a handler to handle the API calls to /erc20/downloader/status.
-func NewERC20StatusHandler(erc20txValidator tftypes.ERC20TransactionValidator) httprouter.Handle {
+func NewERC20StatusHandler(erc20InfoAPI tftypes.ERC20InfoAPI) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-		erc20Status, err := erc20txValidator.GetStatus()
+		ERC20Status, err := erc20InfoAPI.GetStatus()
 		if err != nil {
 			api.WriteError(w, api.Error{Message: err.Error()}, http.StatusInternalServerError)
 			return
 		}
 
 		api.WriteJSON(w, ERC20SyncingStatus{
-			Status: *erc20Status,
+			Status: *ERC20Status,
 		})
+	}
+}
+
+// newERC20BalanceHandler creates a handler to handle the API calls to /erc20/account/balance.
+func newERC20BalanceHandler(erc20InfoAPI tftypes.ERC20InfoAPI) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		ERC20BalanceInfo, err := erc20InfoAPI.GetBalanceInfo()
+		if err != nil {
+			api.WriteError(w, api.Error{Message: err.Error()}, http.StatusInternalServerError)
+			return
+		}
+
+		api.WriteJSON(w, ERC20BalanceInfo)
 	}
 }

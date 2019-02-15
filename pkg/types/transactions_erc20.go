@@ -6,7 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"regexp"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldtech/rivine/crypto"
@@ -126,7 +129,12 @@ type (
 	// in order to validate the attached ERC20 Tx. Use the NopERC20TransactionValidator if no such validation is required.
 	ERC20TransactionValidator interface {
 		ValidateWithdrawTx(blockID, txID ERC20Hash, expectedAddress ERC20Address, expecedAmount types.Currency) error
+		ERC20InfoAPI
+	}
+
+	ERC20InfoAPI interface {
 		GetStatus() (*ERC20SyncStatus, error)
+		GetBalanceInfo() (*ERC20BalanceInfo, error)
 	}
 )
 
@@ -141,6 +149,12 @@ type ERC20SyncStatus struct {
 	HighestBlock  uint64 `json:"highestblock"`
 }
 
+// ERC20BalanceInfo provides a definition for the ethereum bridge address balance
+type ERC20BalanceInfo struct {
+	Balance *big.Int       `json:"balance"`
+	Address common.Address `json:"address"`
+}
+
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx,
 // returning nil for every call.
 func (nop NopERC20TransactionValidator) ValidateWithdrawTx(ERC20Hash, ERC20Hash, ERC20Address, types.Currency) error {
@@ -151,6 +165,12 @@ func (nop NopERC20TransactionValidator) ValidateWithdrawTx(ERC20Hash, ERC20Hash,
 // returning nil status for every call.
 func (nop NopERC20TransactionValidator) GetStatus() (*ERC20SyncStatus, error) {
 	return &ERC20SyncStatus{}, nil
+}
+
+// GetBalanceInfo implements ERC20TransactionValidator.GetBalanceInfo
+// returning nil status for every call.
+func (nop NopERC20TransactionValidator) GetBalanceInfo() (*ERC20BalanceInfo, error) {
+	return &ERC20BalanceInfo{}, nil
 }
 
 type (

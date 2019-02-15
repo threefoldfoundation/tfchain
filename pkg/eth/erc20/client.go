@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/p2p/discv5"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/params"
+	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 )
 
 // LightClient creates a light client that can be used to interact with the Ethereum network,
@@ -295,8 +296,6 @@ func (lc *LightClient) Synchronising() bool {
 func IsNoPeerErr(err error) bool {
 	return err == light.ErrNoPeers
 }
-<<<<<<< Updated upstream
-=======
 
 // GetStatus implements ERC20TransactionValidator.GetStatus
 func (lc *LightClient) GetStatus() (*tftypes.ERC20SyncStatus, error) {
@@ -341,4 +340,3 @@ func (lc *LightClient) GetBalanceInfo() (*tftypes.ERC20BalanceInfo, error) {
 		Address: lc.account.account.Address,
 	}, nil
 }
->>>>>>> Stashed changes
