@@ -3,3 +3,4 @@ dist/
 *.out
 cmd/tfchaind/testnet
 cmd/bridgec/bridgec
+cmd/tfchaind/standard

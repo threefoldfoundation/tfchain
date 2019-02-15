@@ -87,6 +87,15 @@ func (lccfg *LightClientConfig) validate() error {
 	return nil
 }
 
+func addPeers(ethNode *node.Node, peers []*discv5.Node) {
+	for _, peer := range peers {
+		old, err := enode.ParseV4(peer.String())
+		if err != nil {
+			ethNode.Server().AddPeer(old)
+		}
+	}
+}
+
 // NewLightClient creates a new light client that can be used to interact with the ETH network.
 // See `LightClient` for more information.
 func NewLightClient(lccfg LightClientConfig) (*LightClient, error) {
@@ -149,13 +158,8 @@ func NewLightClient(lccfg LightClientConfig) (*LightClient, error) {
 		return nil, err
 	}
 
-	// add all bootstrap peers
-	for _, boot := range lccfg.BootstrapNodes {
-		old, err := enode.ParseV4(boot.String())
-		if err != nil {
-			stack.Server().AddPeer(old)
-		}
-	}
+	// add bootnodes
+	addPeers(stack, lccfg.BootstrapNodes)
 
 	// Attach to the client and retrieve any interesting metadata
 	api, err := stack.Attach()
