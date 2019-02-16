@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -18,13 +17,26 @@ import (
 	"github.com/threefoldfoundation/tfchain/cmd/light-client/wallet"
 )
 
-// ReservationData is the structure for the data to include in a transaction
-// used to create a reservation
-type ReservationData struct {
-	Email string `json:"email"`
-	Size  int    `json:"size"`
-	Type  string `json:"type"`
-}
+type (
+	// ReservationData is the structure for the data to include in a transaction
+	// used to create a reservation
+	ReservationData struct {
+		Email    string   `json:"email"`
+		Size     int      `json:"size"`
+		Type     Workload `json:"type"`
+		NodeID   string
+		FarmName string
+	}
+
+	// Workload is the shorthand identifier for a workload
+	Workload string
+)
+
+// Constants representing the different kind of workloads
+const (
+	VM Workload = "vm"
+	S3          = "s3"
+)
 
 func (cmds *cmds) walletInit(cmd *cobra.Command, args []string) error {
 	wallet, err := wallet.New(args[0], cmds.KeysToLoad, cmds.Network)
@@ -156,13 +168,33 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (cmds *cmds) walletReserve(cmd *cobra.Command, args []string) error {
-	walletName := cmd.Parent().Name()
+func (cmds *cmds) walletReserveVM(cmd *cobra.Command, args []string) error {
+	// a nodeid has a length of 12
+	if len(args[1]) != 12 {
+		return errors.New("Invalid node ID length")
+	}
 
+	walletName := cmd.Parent().Parent().Name()
 	w, err := wallet.Load(walletName)
 	if err != nil {
 		return err
 	}
+
+	return reserveWorkload(w, VM, args[0], args[1], args[2], args[3], cmds.GenerateNewRefundAddress)
+}
+
+func (cmds *cmds) walletReserveS3(cmd *cobra.Command, args []string) error {
+	walletName := cmd.Parent().Parent().Name()
+	w, err := wallet.Load(walletName)
+	if err != nil {
+		return err
+	}
+
+	return reserveWorkload(w, S3, args[0], args[1], args[2], args[3], cmds.GenerateNewRefundAddress)
+}
+
+func reserveWorkload(w *wallet.Wallet, workload Workload, sizeString string,
+	location string, email string, broker string, newRefundAddr bool) error {
 
 	cts, err := w.GetChainConstants()
 	if err != nil {
@@ -171,40 +203,38 @@ func (cmds *cmds) walletReserve(cmd *cobra.Command, args []string) error {
 	cc := client.NewCurrencyConvertor(types.CurrencyUnits{OneCoin: cts.OneCoin}, cts.ChainInfo.CoinUnit)
 
 	var to types.UnlockHash
-	err = to.LoadString(args[3])
+	err = to.LoadString(broker)
 	if err != nil {
 		return err
 	}
 	targetCondition := types.NewUnlockHashCondition(to)
 
-	size, cost, err := parseTypeSize(args[0], args[1])
+	size, cost, err := parseTypeSize(workload, sizeString)
 	if err != nil {
 		return err
 	}
 	amount, _ := cc.ParseCoinString(strconv.Itoa(cost))
-
-	data := &ReservationData{
-		Email: args[2],
-		Type:  args[0],
-		Size:  size,
+	data := ReservationData{
+		Email:    email,
+		Type:     workload,
+		Size:     size,
+		NodeID:   location,
+		FarmName: location,
 	}
 
-	// Encode the data to json by marshalling the struct, NOT by using a JSON writer
-	// over a byte buffer. Reason being that the writer appends a newline, which
-	// we don't need and don't want since it unnecessarily increases data size with
-	// and additional useless byte
-	buf, err := json.Marshal(data)
+	buf, err := encodeReservationData(data)
 	if err != nil {
 		return err
 	}
-	err = w.TransferCoins(amount, types.NewCondition(targetCondition), buf, cmds.GenerateNewRefundAddress)
+
+	err = w.TransferCoins(amount, types.NewCondition(targetCondition), buf, newRefundAddr)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Reservation created")
 	fmt.Printf("Paid %v to %v to reserve a %v of size %v\n", cc.ToCoinStringWithUnit(amount),
-		targetCondition.UnlockHash().String(), args[0], size)
+		targetCondition.UnlockHash().String(), workload, size)
 
 	return nil
 }
@@ -308,14 +338,14 @@ func parseLockTime(lockStr string) (uint64, error) {
 	return 0, errors.New("Unrecognized locktime")
 }
 
-func parseTypeSize(typ string, sizeString string) (int, int, error) {
+func parseTypeSize(typ Workload, sizeString string) (int, int, error) {
 	size, err := strconv.Atoi(sizeString)
 	if err != nil {
 		return 0, 0, err
 	}
 
 	switch typ {
-	case "vm":
+	case VM:
 		switch size {
 		case 1:
 			return size, 1, nil
@@ -324,7 +354,7 @@ func parseTypeSize(typ string, sizeString string) (int, int, error) {
 		default:
 			return 0, 0, fmt.Errorf("Invalid size %v for 'vm', only size '1' and '2' supported", size)
 		}
-	case "s3":
+	case S3:
 		switch size {
 		case 1:
 			return size, 10, nil
@@ -336,4 +366,37 @@ func parseTypeSize(typ string, sizeString string) (int, int, error) {
 	default:
 		return 0, 0, fmt.Errorf("Invalid type '%v', only 'vm' and 's3' are supported", typ)
 	}
+}
+
+// encodeReservationData converts a ReservationData struct to a byteslice
+// which can be included in a transaction
+// data layout:
+// 1 byte type
+// 1 byte size
+// 1 byte lenght of nodeID or farm name, depending on type
+// nodeID for VM, farm name for S3
+// 1 byte length of email address
+// email address
+func encodeReservationData(data ReservationData) ([]byte, error) {
+	bytes := make([]byte, 2)
+
+	bytes[1] = byte(data.Size)
+
+	if data.Type == VM {
+		bytes[0] = 1
+		bytes = append(bytes, byte(len(data.NodeID)))
+		bytes = append(bytes, []byte(data.NodeID)...)
+	} else if data.Type == S3 {
+		bytes[0] = 2
+		bytes = append(bytes, byte(len(data.FarmName)))
+		bytes = append(bytes, []byte(data.FarmName)...)
+	} else {
+		return nil, fmt.Errorf("Unknown workload %s", data.Type)
+	}
+
+	bytes = append(bytes, byte(len(data.Email)))
+	bytes = append(bytes, []byte(data.Email)...)
+
+	return bytes, nil
+
 }

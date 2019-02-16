@@ -113,10 +113,34 @@ workload is automatically set. The email address is used to receive the connecti
 info once the reservation has been processed by the broker, identified by the broker
 address. For a full overview of the available workloads and their price, see
 https://github.com/threefoldtech/grid_broker`,
-			RunE: cmd.walletReserve,
+			// RunE: cmd.walletReserve,
 			Args: cobra.ExactArgs(4),
 		}
 		reserveCmd.Flags().BoolVar(&cmd.GenerateNewRefundAddress, "new-refund-addr", false, "Generate a new refund address instead of reusing an existing address")
+
+		reserveVMCmd := &cobra.Command{
+			Use:   "vm <size> <nodeid> <email> <broker_addres>",
+			Short: "Reserve a vm on the threefold grid",
+			Long: `Create a transaction which attempts to reserve a vm. The exact
+cost of the reserved vm is automatically set. The email address is used to receive
+the connection info once the vm has been deployed by the broker. For a full overview
+of the available sizes and their price, see https://github.com/threefoldtech/grid_broker`,
+			RunE: cmd.walletReserveVM,
+			Args: cobra.ExactArgs(4),
+		}
+
+		reserveS3Cmd := &cobra.Command{
+			Use:   "s3 <size> <farm_name> <email> <broker_address>",
+			Short: "Reserve an s3 instance on the theefold grid",
+			Long: `Create a transaction which attmepts to reserve an s3 instance.
+The exact cost of the reserved instance is automatically set. The email address
+is used to receive the connection info once the s3 has been deployed by the
+broker. For a full overview of the available sizes and their price, see
+https://github.com/threefoldtoken/grid_broker`,
+			RunE: cmd.walletReserveS3,
+			Args: cobra.ExactArgs(4),
+		}
+		reserveCmd.AddCommand(reserveVMCmd, reserveS3Cmd)
 
 		addressesCmd := &cobra.Command{
 			Use:   "addresses",
