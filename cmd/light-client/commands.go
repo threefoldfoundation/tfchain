@@ -24,8 +24,7 @@ type (
 		Email    string   `json:"email"`
 		Size     int      `json:"size"`
 		Type     Workload `json:"type"`
-		NodeID   string
-		FarmName string
+		Location string
 	}
 
 	// Workload is the shorthand identifier for a workload
@@ -218,8 +217,7 @@ func reserveWorkload(w *wallet.Wallet, workload Workload, sizeString string,
 		Email:    email,
 		Type:     workload,
 		Size:     size,
-		NodeID:   location,
-		FarmName: location,
+		Location: location,
 	}
 
 	buf, err := encodeReservationData(data)
@@ -380,19 +378,18 @@ func parseTypeSize(typ Workload, sizeString string) (int, int, error) {
 func encodeReservationData(data ReservationData) ([]byte, error) {
 	bytes := make([]byte, 2)
 
-	bytes[1] = byte(data.Size)
-
 	if data.Type == VM {
 		bytes[0] = 1
-		bytes = append(bytes, byte(len(data.NodeID)))
-		bytes = append(bytes, []byte(data.NodeID)...)
 	} else if data.Type == S3 {
 		bytes[0] = 2
-		bytes = append(bytes, byte(len(data.FarmName)))
-		bytes = append(bytes, []byte(data.FarmName)...)
 	} else {
 		return nil, fmt.Errorf("Unknown workload %s", data.Type)
 	}
+
+	bytes[1] = byte(data.Size)
+
+	bytes = append(bytes, byte(len(data.Location)))
+	bytes = append(bytes, []byte(data.Location)...)
 
 	bytes = append(bytes, byte(len(data.Email)))
 	bytes = append(bytes, []byte(data.Email)...)
