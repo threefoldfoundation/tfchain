@@ -74,15 +74,10 @@ func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []st
 	// encode depending on the encoding flag
 	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
 	case cli.EncodingTypeHuman:
-		if syncingStatus.Status.Synchronising {
-			fmt.Printf(`ERC20 node is currently syncronising...
-Starting block height: %d
+		fmt.Printf(`Starting block height: %d
 Current block height: %d
 Highest block height: %d
 `, syncingStatus.Status.StartingBlock, syncingStatus.Status.CurrentBlock, syncingStatus.Status.HighestBlock)
-		} else {
-			fmt.Println("ERC20 node is not syncronising")
-		}
 	case cli.EncodingTypeJSON:
 		err = json.NewEncoder(os.Stdout).Encode(syncingStatus.Status)
 		if err != nil {
@@ -106,7 +101,7 @@ func (erc20SubCmds *erc20SubCmds) getBalanceInfo(cmd *cobra.Command, args []stri
 		fmt.Printf(`
 Address: %v
 Balance: %v
-`, balanceInfo.BalanceInfo.Address, balanceInfo.BalanceInfo.Balance)
+`, balanceInfo.BalanceInfo.Address.String(), balanceInfo.BalanceInfo.Balance)
 	case cli.EncodingTypeJSON:
 		err = json.NewEncoder(os.Stdout).Encode(balanceInfo.BalanceInfo)
 		if err != nil {

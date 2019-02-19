@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -269,6 +270,22 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		// Register ERC20 http handlers
 		api.RegisterERC20HTTPHandlers(router, bridged.GetClient())
+
+		router.POST("/bridge/stop", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+			// can't write after we stop the server, so lie a bit.
+			rivineapi.WriteSuccess(w)
+
+			// need to flush the response before shutting down the server
+			f, ok := w.(http.Flusher)
+			if !ok {
+				panic("Server does not support flushing")
+			}
+			f.Flush()
+
+			if err := srv.Close(); err != nil {
+				servErrs <- err
+			}
+		})
 
 		// handle all our endpoints over a router,
 		// which requires a user agent should one be configured
