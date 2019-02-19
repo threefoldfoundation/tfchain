@@ -14,8 +14,9 @@ type (
 	ERC20SyncingStatus struct {
 		Status tftypes.ERC20SyncStatus `json:"status"`
 	}
+	// ERC20BalanceInformation contains the Bridge Contract's balance info
 	ERC20BalanceInformation struct {
-		BalanceInfo tftypes.ERC20BalanceInfo `json:"balanceInformation"`
+		BalanceInfo tftypes.ERC20BalanceInfo `json:"balanceinformation"`
 	}
 )
 
@@ -59,6 +60,8 @@ func newERC20BalanceHandler(erc20InfoAPI tftypes.ERC20InfoAPI) httprouter.Handle
 			return
 		}
 
-		api.WriteJSON(w, ERC20BalanceInfo)
+		api.WriteJSON(w, ERC20BalanceInformation{
+			BalanceInfo: *ERC20BalanceInfo,
+		})
 	}
 }

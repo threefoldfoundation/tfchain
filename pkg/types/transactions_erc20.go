@@ -132,6 +132,7 @@ type (
 		ERC20InfoAPI
 	}
 
+	// ERC20InfoAPI interfaces covers all methods to retrieve the Bridge Contract's information
 	ERC20InfoAPI interface {
 		GetStatus() (*ERC20SyncStatus, error)
 		GetBalanceInfo() (*ERC20BalanceInfo, error)

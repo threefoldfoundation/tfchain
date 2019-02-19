@@ -99,8 +99,8 @@ func (erc20SubCmds *erc20SubCmds) getBalanceInfo(cmd *cobra.Command, args []stri
 	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
 	case cli.EncodingTypeHuman:
 		fmt.Printf(`
-Address: %v
-Balance: %v
+Address: %s
+Balance: %d
 `, balanceInfo.BalanceInfo.Address.String(), balanceInfo.BalanceInfo.Balance)
 	case cli.EncodingTypeJSON:
 		err = json.NewEncoder(os.Stdout).Encode(balanceInfo.BalanceInfo)
