@@ -37,6 +37,11 @@ const (
 	S3          = "s3"
 )
 
+const (
+	// PublicBroker is the address as string of the public broker
+	PublicBroker = "019bc85e0d710d928f163cbe9bf9f4911462488468ab66b758e178ea7ef978992fc203130127b7"
+)
+
 func (cmds *cmds) walletInit(cmd *cobra.Command, args []string) error {
 	wallet, err := wallet.New(args[0], cmds.KeysToLoad, cmds.Network)
 	if err != nil {
@@ -179,7 +184,7 @@ func (cmds *cmds) walletReserveVM(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return reserveWorkload(w, VM, args[0], args[1], args[2], args[3], cmds.GenerateNewRefundAddress)
+	return reserveWorkload(w, VM, args[0], args[1], args[2], cmds.Broker, cmds.GenerateNewRefundAddress)
 }
 
 func (cmds *cmds) walletReserveS3(cmd *cobra.Command, args []string) error {
@@ -189,11 +194,17 @@ func (cmds *cmds) walletReserveS3(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return reserveWorkload(w, S3, args[0], args[1], args[2], args[3], cmds.GenerateNewRefundAddress)
+	return reserveWorkload(w, S3, args[0], args[1], args[2], cmds.Broker, cmds.GenerateNewRefundAddress)
 }
 
 func reserveWorkload(w *wallet.Wallet, workload Workload, sizeString string,
-	location string, email string, broker string, newRefundAddr bool) error {
+	location string, email string, customBroker string, newRefundAddr bool) error {
+
+	// use the user defined broker if set
+	broker := PublicBroker
+	if customBroker != "" {
+		broker = customBroker
+	}
 
 	cts, err := w.GetChainConstants()
 	if err != nil {
