@@ -28,7 +28,7 @@ stdoutput = $(GOPATH)/bin
 daemonbin = $(stdoutput)/tfchaind
 clientbin = $(stdoutput)/tfchainc
 bridgebin = $(stdoutput)/bridged
-bridgeclient = $(stdoutput)/bridgec
+bridgeclientbin = $(stdoutput)/bridgec
 
 install:
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
@@ -39,7 +39,7 @@ install-std:
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgebin) $(bridgepkgs)
-	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgeclient) $(bridgeclientpkgs)
+	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgeclientbin) $(bridgeclientpkgs)
 
 install-noeth:
 	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)

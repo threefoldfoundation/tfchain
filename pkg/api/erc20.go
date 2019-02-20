@@ -16,7 +16,7 @@ type (
 	}
 	// ERC20BalanceInformation contains the Bridge Contract's balance info
 	ERC20BalanceInformation struct {
-		BalanceInfo tftypes.ERC20BalanceInfo `json:"balanceinformation"`
+		BalanceInfo tftypes.ERC20BalanceInfo `json:"balanceinfo"`
 	}
 )
 

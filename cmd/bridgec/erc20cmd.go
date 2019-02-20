@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/threefoldfoundation/tfchain/cmd/bridgec/internal"
 	"github.com/threefoldfoundation/tfchain/pkg/api"
+	erc20 "github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
 	"github.com/threefoldtech/rivine/pkg/cli"
 )
 
@@ -21,19 +22,16 @@ func createERC20Cmd(client *internal.CommandLineClient) *cobra.Command {
 		rootCmd = &cobra.Command{
 			Use:   "erc20",
 			Short: "Perform erc20 actions",
-			Long:  "Perform erc20 actions",
 			Run:   erc20SubCmds.getSyncingStatus,
 		}
 		getSyncingStatusCmd = &cobra.Command{
 			Use:   "syncstatus",
 			Short: "Get the ethereum sync status",
-			Long:  `Get the ethereum chain sync status.`,
 			Run:   erc20SubCmds.getSyncingStatus,
 		}
 		getBalanceInfoCmd = &cobra.Command{
 			Use:   "balance",
-			Short: "Get the ethereum balance info",
-			Long:  `Get the ethereum balance and address information`,
+			Short: "Get the ethereum balance and address information",
 			Run:   erc20SubCmds.getBalanceInfo,
 		}
 	)
@@ -98,10 +96,10 @@ func (erc20SubCmds *erc20SubCmds) getBalanceInfo(cmd *cobra.Command, args []stri
 	// encode depending on the encoding flag
 	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
 	case cli.EncodingTypeHuman:
-		fmt.Printf(`
-Address: %s
-Balance: %d
-`, balanceInfo.BalanceInfo.Address.String(), balanceInfo.BalanceInfo.Balance)
+		ether := erc20.Denominate(balanceInfo.BalanceInfo.Balance)
+		fmt.Printf(`Address: %s
+Balance: %d ETH
+`, balanceInfo.BalanceInfo.Address.String(), ether)
 	case cli.EncodingTypeJSON:
 		err = json.NewEncoder(os.Stdout).Encode(balanceInfo.BalanceInfo)
 		if err != nil {

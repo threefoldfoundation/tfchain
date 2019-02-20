@@ -3,16 +3,17 @@ package internal
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"runtime"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldtech/rivine/pkg/api"
 	"github.com/threefoldtech/rivine/pkg/cli"
+	rivinec "github.com/threefoldtech/rivine/pkg/client"
 )
 
-// CommandLineClient extend for ERC20 commands
+// CommandLineClient specific for bridge client
 type CommandLineClient struct {
 	*api.HTTPClient
 
@@ -39,14 +40,6 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 		Use:   os.Args[0],
 		Short: fmt.Sprintf("%s Client", strings.Title(name)),
 		Long:  fmt.Sprintf("%s Client", strings.Title(name)),
-		Run: Wrap(func() {
-			fmt.Println("Bride Client v1.0.0")
-
-			fmt.Println()
-			fmt.Printf("Go Version   v%s\r\n", runtime.Version()[2:])
-			fmt.Printf("GOOS         %s\r\n", runtime.GOOS)
-			fmt.Printf("GOARCH       %s\r\n", runtime.GOARCH)
-		}),
 	}
 
 	// create command tree
@@ -54,8 +47,8 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 		Use:   "version",
 		Short: "Print version information",
 		Long:  "Print version information.",
-		Run: Wrap(func() {
-			fmt.Println("Bride Client v1.0.0")
+		Run: rivinec.Wrap(func() {
+			fmt.Printf("Bride Client %s", config.GetBlockchainInfo().ChainVersion)
 
 			fmt.Println()
 			fmt.Printf("Go Version   v%s\r\n", runtime.Version()[2:])
@@ -67,12 +60,12 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 		Use:   "stop",
 		Short: fmt.Sprintf("Stop the %s bridge", name),
 		Long:  fmt.Sprintf("Stop the %s bridge.", name),
-		Run: Wrap(func() {
+		Run: rivinec.Wrap(func() {
 			err := client.Post("/bridge/stop", "")
 			if err != nil {
 				cli.Die("Could not stop bridge:", err)
 			}
-			fmt.Printf("bridge stopped.\n")
+			fmt.Println("bridge stopped.")
 		}),
 	})
 
@@ -84,33 +77,6 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 
 	// return client
 	return client, nil
-}
-
-// Wrap wraps a generic command with a check that the command has been
-// passed the correct number of arguments. The command must take only strings
-// as arguments.
-func Wrap(fn interface{}) func(*cobra.Command, []string) {
-	fnVal, fnType := reflect.ValueOf(fn), reflect.TypeOf(fn)
-	if fnType.Kind() != reflect.Func {
-		panic("wrapped function has wrong type signature")
-	}
-	for i := 0; i < fnType.NumIn(); i++ {
-		if fnType.In(i).Kind() != reflect.String {
-			panic("wrapped function has wrong type signature")
-		}
-	}
-
-	return func(cmd *cobra.Command, args []string) {
-		if len(args) != fnType.NumIn() {
-			cmd.UsageFunc()(cmd)
-			os.Exit(cli.ExitCodeUsage)
-		}
-		argVals := make([]reflect.Value, fnType.NumIn())
-		for i := range args {
-			argVals[i] = reflect.ValueOf(args[i])
-		}
-		fnVal.Call(argVals)
-	}
 }
 
 // Run the CLI, logic dependend upon the command the user used.
