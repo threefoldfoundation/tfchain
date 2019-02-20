@@ -30,23 +30,13 @@ func createERC20Cmd(client *internal.CommandLineClient) *cobra.Command {
 			Long:  `Get the ethereum chain sync status.`,
 			Run:   erc20SubCmds.getSyncingStatus,
 		}
-		getBalanceInfoCmd = &cobra.Command{
-			Use:   "balance",
-			Short: "Get the ethereum balance info",
-			Long:  `Get the ethereum balance and address information`,
-			Run:   erc20SubCmds.getBalanceInfo,
-		}
 	)
 
 	rootCmd.AddCommand(getSyncingStatusCmd)
-	rootCmd.AddCommand(getBalanceInfoCmd)
 
 	// register flags
 	getSyncingStatusCmd.Flags().Var(
 		cli.NewEncodingTypeFlag(cli.EncodingTypeHuman, &erc20SubCmds.getSyncingStatusCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
-		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
-	getBalanceInfoCmd.Flags().Var(
-		cli.NewEncodingTypeFlag(cli.EncodingTypeHuman, &erc20SubCmds.getBalanceInfoCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
 
 	return rootCmd
@@ -55,9 +45,6 @@ func createERC20Cmd(client *internal.CommandLineClient) *cobra.Command {
 type erc20SubCmds struct {
 	cli                 *internal.CommandLineClient
 	getSyncingStatusCfg struct {
-		EncodingType cli.EncodingType
-	}
-	getBalanceInfoCfg struct {
 		EncodingType cli.EncodingType
 	}
 }
@@ -82,30 +69,6 @@ Highest block height: %d
 		err = json.NewEncoder(os.Stdout).Encode(syncingStatus.Status)
 		if err != nil {
 			cli.DieWithError("failed to encode syncing status", err)
-		}
-	}
-}
-
-// getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
-func (erc20SubCmds *erc20SubCmds) getBalanceInfo(cmd *cobra.Command, args []string) {
-	var balanceInfo api.ERC20BalanceInformation
-
-	err := erc20SubCmds.cli.GetAPI("/erc20/account/balance", &balanceInfo)
-	if err != nil {
-		cli.DieWithError("error while fetching the balance information", err)
-	}
-
-	// encode depending on the encoding flag
-	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
-	case cli.EncodingTypeHuman:
-		fmt.Printf(`
-Address: %v
-Balance: %v
-`, balanceInfo.BalanceInfo.Address, balanceInfo.BalanceInfo.Balance)
-	case cli.EncodingTypeJSON:
-		err = json.NewEncoder(os.Stdout).Encode(balanceInfo.BalanceInfo)
-		if err != nil {
-			cli.DieWithError("failed to encode balance information", err)
 		}
 	}
 }
