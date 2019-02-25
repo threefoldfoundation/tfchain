@@ -133,8 +133,6 @@ type (
 	}
 
 	// ERC20InfoAPI is the API used by the bridge contract
-	// GetStatus returns the ethereum syncing status
-	// GetBalanceInfo returns the ethereum balance address and ethereum tokens on that address
 	ERC20InfoAPI interface {
 		GetStatus() (*ERC20SyncStatus, error)
 		GetBalanceInfo() (*ERC20BalanceInfo, error)

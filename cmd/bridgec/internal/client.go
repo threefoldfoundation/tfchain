@@ -39,7 +39,6 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 	client.RootCmd = &cobra.Command{
 		Use:   os.Args[0],
 		Short: fmt.Sprintf("%s Client", strings.Title(name)),
-		Long:  fmt.Sprintf("%s Client", strings.Title(name)),
 	}
 
 	// create command tree

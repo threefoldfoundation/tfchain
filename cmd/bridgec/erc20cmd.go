@@ -26,7 +26,7 @@ func createERC20Cmd(client *internal.CommandLineClient) *cobra.Command {
 		}
 		getSyncingStatusCmd = &cobra.Command{
 			Use:   "syncstatus",
-			Short: "Get the ethereum sync status",
+			Short: "Get the ethereum dowloader sync status",
 			Run:   erc20SubCmds.getSyncingStatus,
 		}
 		getBalanceInfoCmd = &cobra.Command{
@@ -98,7 +98,7 @@ func (erc20SubCmds *erc20SubCmds) getBalanceInfo(cmd *cobra.Command, args []stri
 	case cli.EncodingTypeHuman:
 		ether := erc20.Denominate(balanceInfo.BalanceInfo.Balance)
 		fmt.Printf(`Address: %s
-Balance: %d ETH
+Balance: %s
 `, balanceInfo.BalanceInfo.Address.String(), ether)
 	case cli.EncodingTypeJSON:
 		err = json.NewEncoder(os.Stdout).Encode(balanceInfo.BalanceInfo)
