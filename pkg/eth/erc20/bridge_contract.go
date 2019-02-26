@@ -75,7 +75,7 @@ func NewBridgeContract(networkName string, bootnodes []string, contractAddress s
 		NetworkName:    networkConfig.NetworkName,
 		NetworkID:      networkConfig.NetworkID,
 		GenesisBlock:   networkConfig.GenesisBlock,
-	}, cancel)
+	})
 	if err != nil {
 		return nil, err
 	}

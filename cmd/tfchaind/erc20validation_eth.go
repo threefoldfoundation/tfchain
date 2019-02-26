@@ -165,3 +165,8 @@ func (ev *ERC20NodeValidator) GetStatus() (*tftypes.ERC20SyncStatus, error) {
 func (ev *ERC20NodeValidator) GetBalanceInfo() (*tftypes.ERC20BalanceInfo, error) {
 	return ev.lc.GetBalanceInfo()
 }
+
+// Wait implements ERC20TransactionValidator.Wait
+func (ev *ERC20NodeValidator) Wait(ctx context.Context) error {
+	return ev.lc.Wait(ctx)
+}

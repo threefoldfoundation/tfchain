@@ -268,8 +268,10 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			}
 		}()
 
+		erc20Client := bridged.GetClient()
+
 		// Register ERC20 http handlers
-		api.RegisterERC20HTTPHandlers(router, bridged.GetClient())
+		api.RegisterERC20HTTPHandlers(router, erc20Client)
 
 		router.POST("/bridge/stop", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 			// can't write after we stop the server, so lie a bit.
@@ -290,6 +292,19 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		// handle all our endpoints over a router,
 		// which requires a user agent should one be configured
 		srv.Handle("/", rivineapi.RequireUserAgentHandler(router, cmd.UserAgent))
+
+		// Wait for the ethereum network to sync
+		err = erc20Client.Wait(ctx)
+		if err != nil {
+			servErrs <- err
+		}
+
+		// Start the bridge
+		err = bridged.Start(cs, cmd.transactionDB, ctx.Done())
+		if err != nil {
+			servErrs <- err
+		}
+
 		log.Info("bridged is up and running...")
 
 		// wait until done
