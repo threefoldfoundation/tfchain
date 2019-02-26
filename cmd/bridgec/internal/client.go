@@ -11,14 +11,25 @@ import (
 	"github.com/threefoldtech/rivine/pkg/api"
 	"github.com/threefoldtech/rivine/pkg/cli"
 	rivinec "github.com/threefoldtech/rivine/pkg/client"
+	"github.com/threefoldtech/rivine/types"
 )
+
+// Config defines the configuration for the bridge (CLI) client.
+type Config struct {
+	// These values aren't used for validation,
+	// but only in order to estimate progress with the syncing of your consensus.
+	BlockFrequencyInSeconds int64
+	GenesisBlockTimestamp   types.Timestamp
+}
 
 // CommandLineClient specific for bridge client
 type CommandLineClient struct {
 	*api.HTTPClient
 
-	RootCmd  *cobra.Command
-	ERC20Cmd *cobra.Command
+	Config       *Config
+	RootCmd      *cobra.Command
+	ERC20Cmd     *cobra.Command
+	ConsensusCmd *cobra.Command
 }
 
 // NewCommandLineClient creates a new CLI client, which can be run as it is,
@@ -36,9 +47,13 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 		UserAgent: userAgent,
 	}
 
+	var consensusCmd *consensusCmd
+	consensusCmd, client.ConsensusCmd = createConsensusCmd(client)
+
 	client.RootCmd = &cobra.Command{
 		Use:   os.Args[0],
 		Short: fmt.Sprintf("%s Client", strings.Title(name)),
+		Run:   rivinec.Wrap(consensusCmd.getSyncingStatus),
 	}
 
 	// create command tree
@@ -67,6 +82,9 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 			fmt.Println("bridge stopped.")
 		}),
 	})
+
+	client.ERC20Cmd = CreateERC20Cmd(client)
+	client.RootCmd.AddCommand(client.ERC20Cmd)
 
 	// parse flags
 	client.RootCmd.PersistentFlags().StringVarP(&client.HTTPClient.RootURL, "addr", "a",

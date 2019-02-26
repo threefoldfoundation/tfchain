@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/threefoldfoundation/tfchain/cmd/bridgec/internal"
+	internal "github.com/threefoldfoundation/tfchain/cmd/bridgec/internal"
 	"github.com/threefoldtech/rivine/pkg/cli"
 	"github.com/threefoldtech/rivine/pkg/daemon"
 )
@@ -15,10 +15,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	// register root command
-	cliClient.ERC20Cmd = createERC20Cmd(cliClient)
-	cliClient.RootCmd.AddCommand(cliClient.ERC20Cmd)
 
 	// start cli
 	if err := cliClient.Run(); err != nil {

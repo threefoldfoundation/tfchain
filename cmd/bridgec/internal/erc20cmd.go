@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"encoding/json"
@@ -6,15 +6,14 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/threefoldfoundation/tfchain/cmd/bridgec/internal"
-	"github.com/threefoldfoundation/tfchain/pkg/api"
+	tfchainapi "github.com/threefoldfoundation/tfchain/pkg/api"
 	erc20 "github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
 	"github.com/threefoldtech/rivine/pkg/cli"
 )
 
 // createERC20Cmd creates rootcommand for ERC20 and adds a subcommand
 // if rootcommand executed the user will also see the output of the syncing status of ethereum
-func createERC20Cmd(client *internal.CommandLineClient) *cobra.Command {
+func CreateERC20Cmd(client *CommandLineClient) *cobra.Command {
 	erc20SubCmds := &erc20SubCmds{cli: client}
 
 	// define Rootcommand
@@ -22,7 +21,6 @@ func createERC20Cmd(client *internal.CommandLineClient) *cobra.Command {
 		rootCmd = &cobra.Command{
 			Use:   "erc20",
 			Short: "Perform erc20 actions",
-			Run:   erc20SubCmds.getSyncingStatus,
 		}
 		getSyncingStatusCmd = &cobra.Command{
 			Use:   "syncstatus",
@@ -51,7 +49,7 @@ func createERC20Cmd(client *internal.CommandLineClient) *cobra.Command {
 }
 
 type erc20SubCmds struct {
-	cli                 *internal.CommandLineClient
+	cli                 *CommandLineClient
 	getSyncingStatusCfg struct {
 		EncodingType cli.EncodingType
 	}
@@ -62,7 +60,7 @@ type erc20SubCmds struct {
 
 // getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
 func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []string) {
-	var syncingStatus api.ERC20SyncingStatus
+	var syncingStatus tfchainapi.ERC20SyncingStatus
 
 	err := erc20SubCmds.cli.GetAPI("/erc20/downloader/status", &syncingStatus)
 	if err != nil {
@@ -72,7 +70,9 @@ func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []st
 	// encode depending on the encoding flag
 	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
 	case cli.EncodingTypeHuman:
-		fmt.Printf(`Starting block height: %d
+		fmt.Printf(`
+Ethereum sync status:
+Starting block height: %d
 Current block height: %d
 Highest block height: %d
 `, syncingStatus.Status.StartingBlock, syncingStatus.Status.CurrentBlock, syncingStatus.Status.HighestBlock)
@@ -86,7 +86,7 @@ Highest block height: %d
 
 // getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
 func (erc20SubCmds *erc20SubCmds) getBalanceInfo(cmd *cobra.Command, args []string) {
-	var balanceInfo api.ERC20BalanceInformation
+	var balanceInfo tfchainapi.ERC20BalanceInformation
 
 	err := erc20SubCmds.cli.GetAPI("/erc20/account/balance", &balanceInfo)
 	if err != nil {
