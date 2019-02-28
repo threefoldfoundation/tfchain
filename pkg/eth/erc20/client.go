@@ -89,7 +89,7 @@ func (lccfg *LightClientConfig) validate() error {
 
 // NewLightClient creates a new light client that can be used to interact with the ETH network.
 // See `LightClient` for more information.
-func NewLightClient(lccfg LightClientConfig, cancel <-chan struct{}) (*LightClient, error) {
+func NewLightClient(lccfg LightClientConfig) (*LightClient, error) {
 	// validate the cfg, as to provide better error reporting for obvious errors
 	err := lccfg.validate()
 	if err != nil {
@@ -166,31 +166,6 @@ func NewLightClient(lccfg LightClientConfig, cancel <-chan struct{}) (*LightClie
 
 	// create a client for the stack
 	client := ethclient.NewClient(api)
-
-	// wait until (light) client is fully synced
-	downloader := lesc.Downloader()
-	for {
-		progress := downloader.Progress()
-		if progress.HighestBlock == 0 {
-			log.Debug(
-				"LightClient's downloader needs to start to sync, waiting 10 seconds...",
-				"current_block", progress.CurrentBlock, "peers", stack.Server().Peers())
-		} else if downloader.Synchronising() || progress.CurrentBlock < progress.HighestBlock {
-			log.Debug(
-				"LightClient's downloader is still syncing, waiting 10 seconds...",
-				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock)
-		} else {
-			log.Debug(
-				"LightClient's downloader is synced",
-				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock, "starting_block", progress.StartingBlock)
-			break
-		}
-		select {
-		case <-time.After(time.Second * 10):
-		case <-cancel:
-			return nil, errors.New("failed to create light client, call got cancelled")
-		}
-	}
 
 	// return created light client
 	return &LightClient{
@@ -339,4 +314,32 @@ func (lc *LightClient) GetBalanceInfo() (*tftypes.ERC20BalanceInfo, error) {
 		Balance: balance,
 		Address: lc.account.account.Address,
 	}, nil
+}
+
+func (lc *LightClient) Wait(ctx context.Context) error {
+	// wait until (light) client is fully synced
+	downloader := lc.lesc.Downloader()
+	for {
+		progress := downloader.Progress()
+		if progress.HighestBlock == 0 {
+			log.Debug(
+				"LightClient's downloader needs to start to sync, waiting 10 seconds...",
+				"current_block", progress.CurrentBlock, "peers", lc.stack.Server().Peers())
+		} else if downloader.Synchronising() || progress.CurrentBlock < progress.HighestBlock {
+			log.Debug(
+				"LightClient's downloader is still syncing, waiting 10 seconds...",
+				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock)
+		} else {
+			log.Debug(
+				"LightClient's downloader is synced",
+				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock, "starting_block", progress.StartingBlock)
+			break
+		}
+		select {
+		case <-time.After(time.Second * 10):
+		case <-ctx.Done():
+			return errors.New("failed to create light client, call got cancelled")
+		}
+	}
+	return nil
 }

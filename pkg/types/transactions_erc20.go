@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -130,8 +131,10 @@ type (
 	ERC20TransactionValidator interface {
 		ValidateWithdrawTx(blockID, txID ERC20Hash, expectedAddress ERC20Address, expecedAmount types.Currency) error
 		ERC20InfoAPI
+		Wait(ctx context.Context) error
 	}
 
+	// ERC20InfoAPI is the API used by the bridge contract
 	ERC20InfoAPI interface {
 		GetStatus() (*ERC20SyncStatus, error)
 		GetBalanceInfo() (*ERC20BalanceInfo, error)
@@ -165,6 +168,12 @@ func (nop NopERC20TransactionValidator) ValidateWithdrawTx(ERC20Hash, ERC20Hash,
 // returning nil status for every call.
 func (nop NopERC20TransactionValidator) GetStatus() (*ERC20SyncStatus, error) {
 	return &ERC20SyncStatus{}, nil
+}
+
+// Wait implements ERC20TransactionValidator.Wait
+// returning nil status for every call.
+func (nop NopERC20TransactionValidator) Wait(_ context.Context) error {
+	return nil
 }
 
 // GetBalanceInfo implements ERC20TransactionValidator.GetBalanceInfo
