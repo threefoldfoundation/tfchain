@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
@@ -26,11 +25,10 @@ type Config struct {
 type CommandLineClient struct {
 	*api.HTTPClient
 
-	Config       *Config
-	RootCmd      *cobra.Command
-	ERC20Cmd     *cobra.Command
-	ConsensusCmd *cobra.Command
-	TfchainCmd   *cobra.Command
+	Config     *Config
+	RootCmd    *cobra.Command
+	ERC20Cmd   *cobra.Command
+	TfchainCmd *cobra.Command
 }
 
 // NewCommandLineClient creates a new CLI client, which can be run as it is,
@@ -48,14 +46,7 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 		UserAgent: userAgent,
 	}
 
-	var consensusCmd *consensusCmd
-	consensusCmd, client.ConsensusCmd = createConsensusCmd(client)
-
-	client.RootCmd = &cobra.Command{
-		Use:   os.Args[0],
-		Short: fmt.Sprintf("%s Client", strings.Title(name)),
-		Run:   rivinec.Wrap(consensusCmd.getSyncingStatus),
-	}
+	createRootCmd(os.Args[0], name, client)
 
 	// create command tree
 	client.RootCmd.AddCommand(&cobra.Command{

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -14,29 +15,25 @@ import (
 	"github.com/threefoldtech/rivine/types"
 )
 
-// CreateConsensusCmd creates rootcommand for consensus
-// if rootcommand executed the user will see the output of the syncing status of tfchain and ethereum network
-func createConsensusCmd(client *CommandLineClient) (*consensusCmd, *cobra.Command) {
-	consensusCmd := &consensusCmd{cli: client}
+// createRootCmd creates root command for consensus
+// if root command executed the user will see the output of the syncing status of tfchain and ethereum network
+func createRootCmd(binName, clientName string, client *CommandLineClient) {
+	rootCmd := &rootCmd{cli: client}
 
-	// define Rootcommand
-	var (
-		rootCmd = &cobra.Command{
-			Use:   "consensus",
-			Short: "Returns tfchain and ethereum network syncing status.",
-			Run:   rivinec.Wrap(consensusCmd.getSyncingStatus),
-		}
-	)
+	// create Rootcommand
+	client.RootCmd = &cobra.Command{
+		Use:   binName,
+		Short: fmt.Sprintf("%s Client", strings.Title(clientName)),
+		Run:   rivinec.Wrap(rootCmd.getSyncingStatus),
+	}
 
 	// register flags
-	rootCmd.Flags().Var(
-		cli.NewEncodingTypeFlag(cli.EncodingTypeHuman, &consensusCmd.getSyncingStatusCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
+	client.RootCmd.Flags().Var(
+		cli.NewEncodingTypeFlag(cli.EncodingTypeHuman, &rootCmd.getSyncingStatusCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
-
-	return consensusCmd, rootCmd
 }
 
-type consensusCmd struct {
+type rootCmd struct {
 	cli                 *CommandLineClient
 	getSyncingStatusCfg struct {
 		EncodingType cli.EncodingType
@@ -44,22 +41,22 @@ type consensusCmd struct {
 }
 
 // getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
-func (consensusCmd *consensusCmd) getSyncingStatus() {
+func (rootCmd *rootCmd) getSyncingStatus() {
 	var syncingStatus tfchainapi.ERC20SyncingStatus
 
-	err := consensusCmd.cli.GetAPI("/erc20/downloader/status", &syncingStatus)
+	err := rootCmd.cli.GetAPI("/erc20/downloader/status", &syncingStatus)
 	if err != nil {
 		cli.DieWithError("error while fetching the syncing status", err)
 	}
 
 	var cg api.ConsensusGET
-	err = consensusCmd.cli.GetAPI("/consensus", &cg)
+	err = rootCmd.cli.GetAPI("/consensus", &cg)
 	if err != nil {
 		cli.DieWithError("error while fetching the consensus status", err)
 	}
 
 	// encode depending on the encoding flag
-	switch consensusCmd.getSyncingStatusCfg.EncodingType {
+	switch rootCmd.getSyncingStatusCfg.EncodingType {
 	case cli.EncodingTypeHuman:
 		if cg.Synced {
 			fmt.Printf(`Tfchain sync status:
@@ -69,7 +66,7 @@ Height: %v
 Target: %v
 `, YesNo(cg.Synced), cg.CurrentBlock, cg.Height, cg.Target)
 		} else {
-			estimatedHeight := consensusCmd.estimatedHeightAt(time.Now())
+			estimatedHeight := rootCmd.estimatedHeightAt(time.Now())
 			estimatedProgress := float64(cg.Height) / float64(estimatedHeight) * 100
 			if estimatedProgress > 99 {
 				estimatedProgress = 99
@@ -87,7 +84,10 @@ Current block height: %d
 Highest block height: %d
 `, syncingStatus.Status.StartingBlock, syncingStatus.Status.CurrentBlock, syncingStatus.Status.HighestBlock)
 	case cli.EncodingTypeJSON:
-		err = json.NewEncoder(os.Stdout).Encode(syncingStatus.Status)
+		err = json.NewEncoder(os.Stdout).Encode(map[string]interface{}{
+			"tfchain":  cg,
+			"ethereum": syncingStatus.Status,
+		})
 		if err != nil {
 			cli.DieWithError("failed to encode syncing status", err)
 		}
@@ -105,14 +105,14 @@ func YesNo(b bool) string {
 // EstimatedHeightAt returns the estimated block height for the given time.
 // Block height is estimated by calculating the minutes since a known block in
 // the past and dividing by 10 minutes (the block time).
-func (consensusCmd *consensusCmd) estimatedHeightAt(t time.Time) types.BlockHeight {
-	if consensusCmd.cli.Config.GenesisBlockTimestamp == 0 {
+func (rootCmd *rootCmd) estimatedHeightAt(t time.Time) types.BlockHeight {
+	if rootCmd.cli.Config.GenesisBlockTimestamp == 0 {
 		panic("GenesisBlockTimestamp is undefined")
 	}
 	return estimatedHeightBetween(
-		int64(consensusCmd.cli.Config.GenesisBlockTimestamp),
+		int64(rootCmd.cli.Config.GenesisBlockTimestamp),
 		t.Unix(),
-		consensusCmd.cli.Config.BlockFrequencyInSeconds,
+		rootCmd.cli.Config.BlockFrequencyInSeconds,
 	)
 }
 

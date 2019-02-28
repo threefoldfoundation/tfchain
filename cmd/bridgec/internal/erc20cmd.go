@@ -39,22 +39,16 @@ func CreateERC20Cmd(client *CommandLineClient) *cobra.Command {
 	rootCmd.AddCommand(getBalanceInfoCmd)
 
 	// register flags
-	getSyncingStatusCmd.Flags().Var(
-		cli.NewEncodingTypeFlag(cli.EncodingTypeHuman, &erc20SubCmds.getSyncingStatusCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
-		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
-	getBalanceInfoCmd.Flags().Var(
-		cli.NewEncodingTypeFlag(cli.EncodingTypeHuman, &erc20SubCmds.getBalanceInfoCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
+	rootCmd.PersistentFlags().Var(
+		cli.NewEncodingTypeFlag(cli.EncodingTypeHuman, &erc20SubCmds.persistentCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
 
 	return rootCmd
 }
 
 type erc20SubCmds struct {
-	cli                 *CommandLineClient
-	getSyncingStatusCfg struct {
-		EncodingType cli.EncodingType
-	}
-	getBalanceInfoCfg struct {
+	cli           *CommandLineClient
+	persistentCfg struct {
 		EncodingType cli.EncodingType
 	}
 }
@@ -69,7 +63,7 @@ func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []st
 	}
 
 	// encode depending on the encoding flag
-	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
+	switch erc20SubCmds.persistentCfg.EncodingType {
 	case cli.EncodingTypeHuman:
 		fmt.Printf(`
 Ethereum sync status:
@@ -95,7 +89,7 @@ func (erc20SubCmds *erc20SubCmds) getBalanceInfo(cmd *cobra.Command, args []stri
 	}
 
 	// encode depending on the encoding flag
-	switch erc20SubCmds.getSyncingStatusCfg.EncodingType {
+	switch erc20SubCmds.persistentCfg.EncodingType {
 	case cli.EncodingTypeHuman:
 		ether := erc20.Denominate(balanceInfo.BalanceInfo.Balance)
 		fmt.Printf(`Address: %s
