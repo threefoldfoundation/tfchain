@@ -100,7 +100,7 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig, cancel <-chan struct{})
 }
 
 // ValidateWithdrawTx implements ERC20TransactionValidator.ValidateWithdrawTx
-func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expectedAmount types.Currency) error {
+func (ev *ERC20NodeValidator) ValidateWithdrawTx(_blockID, txID tftypes.ERC20Hash, expectedAddress tftypes.ERC20Address, expectedAmount types.Currency) error {
 	withdraws, err := ev.contract.GetPastWithdraws(0, nil)
 	for erc20.IsNoPeerErr(err) {
 		time.Sleep(time.Second * 5)
@@ -111,12 +111,15 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 		return err
 	}
 	found := false
+	var blockHash common.Hash
 	for _, w := range withdraws {
 		// looks like we found our transaction
 		if w.TxHash() == common.Hash(txID) {
 			found = true
-			if common.Hash(blockID) != w.BlockHash() {
-				return fmt.Errorf("withdraw tx validation failed: invalid block ID. Want ID %s, got ID %s", w.BlockHash().Hex(), common.Hash(blockID).Hex())
+			if (_blockID != tftypes.ERC20Hash{}) && common.Hash(_blockID) != w.BlockHash() {
+				// IF a blockID is given, check if its the same. It might be different in case of a fork,
+				// if so just add a statement in the logs.
+				log.Info("Withdraw tx found in different block then specified", "expected", _blockID, "got", w.BlockHash().Hex())
 			}
 			if common.Address(expectedAddress) != w.Receiver() {
 				return fmt.Errorf("Withdraw tx validation failed: invalid receiving address. Want address %s, got address %s", w.Receiver().Hex(), common.Address(expectedAddress).Hex())
@@ -125,6 +128,9 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 				return fmt.Errorf("Withdraw tx validation failed: invalid amount. Want %s, got %s", w.Amount().String(), expectedAmount.String())
 			}
 			// all event validations succeeded
+			// remember block hash from the withdraw event so we can look up the
+			// tx to check if it is old enough
+			blockHash = w.BlockHash()
 			break
 		}
 	}
@@ -135,13 +141,13 @@ func (ev *ERC20NodeValidator) ValidateWithdrawTx(blockID, txID tftypes.ERC20Hash
 	// Get the transaction
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	_, confirmations, err := ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
+	_, confirmations, err := ev.lc.FetchTransaction(ctx, blockHash, common.Hash(txID))
 	// If we have no peers we can't verify and thus not continue syncing, so keep retrying
 	for erc20.IsNoPeerErr(err) {
 		// wait 5 seconds before retrying
 		time.Sleep(time.Second * 5)
-		log.Debug("Retrying transaction fetch", "blockID", blockID, "txID", txID)
-		_, confirmations, err = ev.lc.FetchTransaction(ctx, common.Hash(blockID), common.Hash(txID))
+		log.Debug("Retrying transaction fetch", "blockID", blockHash.Hex(), "txID", txID.String())
+		_, confirmations, err = ev.lc.FetchTransaction(ctx, blockHash, common.Hash(txID))
 	}
 	if err != nil {
 		return fmt.Errorf("failed to fetch ERC20 Tx: %v", err)
