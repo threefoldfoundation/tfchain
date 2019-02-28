@@ -7,9 +7,10 @@ import (
 
 // Denominate converts gwei units into ether units
 func Denominate(gwei *big.Int) string {
-	fbalance := new(big.Float)
+	const precision = 256
+	fbalance := new(big.Float).SetPrec(precision)
 	fbalance.SetString(gwei.String())
-	ethValue := new(big.Float).Quo(fbalance, big.NewFloat(math.Pow10(18))).String()
-
-	return ethValue + " ETH"
+	ethValue := new(big.Float).SetPrec(precision)
+	divisor := big.NewFloat(math.Pow10(18)).SetPrec(precision)
+	return ethValue.Quo(fbalance, divisor).SetPrec(precision).Text('f', -1) + " ETH"
 }

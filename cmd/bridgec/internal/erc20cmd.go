@@ -11,7 +11,7 @@ import (
 	"github.com/threefoldtech/rivine/pkg/cli"
 )
 
-// createERC20Cmd creates rootcommand for ERC20 and adds a subcommand
+// CreateERC20Cmd creates rootcommand for ERC20 and adds a subcommand
 // if rootcommand executed the user will also see the output of the syncing status of ethereum
 func CreateERC20Cmd(client *CommandLineClient) *cobra.Command {
 	erc20SubCmds := &erc20SubCmds{cli: client}
