@@ -60,6 +60,8 @@ type Commands struct {
 
 	APIaddr   string
 	UserAgent string
+
+	VerboseRivineLogging bool
 }
 
 // Root represents the root (`bridged`) command,
@@ -194,7 +196,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		log.Info("loading rivine gateway module (1/4)...")
 		gateway, err := gateway.New(
 			cmd.RPCaddr, true, cmd.perDir("gateway"),
-			cmd.BlockchainInfo, cmd.ChainConstants, cmd.BootstrapPeers)
+			cmd.BlockchainInfo, cmd.ChainConstants, cmd.BootstrapPeers, cmd.VerboseRivineLogging)
 		if err != nil {
 			log.Error("Failed to create gateway module", "err", err)
 			cancel()
@@ -212,7 +214,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		log.Info("loading rivine consensus module (2/4)...")
 		cs, err := consensus.New(
 			gateway, !cmd.NoBootstrap, cmd.perDir("consensus"),
-			cmd.BlockchainInfo, cmd.ChainConstants)
+			cmd.BlockchainInfo, cmd.ChainConstants, cmd.VerboseRivineLogging)
 		if err != nil {
 			log.Error("Failed to create consensus module", "err", err)
 			cancel()
@@ -488,6 +490,7 @@ func main() {
 		"user-agent", daemon.RivineUserAgent,
 		"Set custom User-Agent",
 	)
+	cmdRoot.Flags().BoolVarP(&cmd.VerboseRivineLogging, "verboseRivinelogging", "v", false, "enable verboselogging in the logfiles of the rivine modules")
 
 	// execute logic
 	if err := cmdRoot.Execute(); err != nil {
