@@ -13,9 +13,8 @@ import (
 	"github.com/threefoldtech/rivine/types"
 )
 
-// CreateConsensusCmd creates rootcommand for consensus
-// if rootcommand executed the user will see the output of the syncing status of tfchain and ethereum network
-func createTfchainCommand(client *CommandLineClient) *cobra.Command {
+// createTFChainCommand creates a tfchain syncstatus command
+func createTFChainCommand(client *CommandLineClient) *cobra.Command {
 	tfchaincmd := &tfchaincmd{cli: client}
 
 	// define Rootcommand

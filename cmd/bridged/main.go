@@ -296,13 +296,19 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		// Wait for the ethereum network to sync
 		err = erc20Client.Wait(ctx)
 		if err != nil {
-			servErrs <- err
+			log.Error("error while waing for ERC20 client", "err", err)
+			cancel()
+			cmdErr = err
+			return
 		}
 
 		// Start the bridge
 		err = bridged.Start(cs, cmd.transactionDB, ctx.Done())
 		if err != nil {
-			servErrs <- err
+			log.Error("error while starting the ERC20 client", "err", err)
+			cancel()
+			cmdErr = err
+			return
 		}
 
 		log.Info("bridged is up and running...")

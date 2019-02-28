@@ -28,7 +28,7 @@ type CommandLineClient struct {
 	Config     *Config
 	RootCmd    *cobra.Command
 	ERC20Cmd   *cobra.Command
-	TfchainCmd *cobra.Command
+	TFChainCmd *cobra.Command
 }
 
 // NewCommandLineClient creates a new CLI client, which can be run as it is,
@@ -78,8 +78,8 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 	client.ERC20Cmd = CreateERC20Cmd(client)
 	client.RootCmd.AddCommand(client.ERC20Cmd)
 
-	client.TfchainCmd = createTfchainCommand(client)
-	client.RootCmd.AddCommand(client.TfchainCmd)
+	client.TFChainCmd = createTFChainCommand(client)
+	client.RootCmd.AddCommand(client.TFChainCmd)
 
 	// parse flags
 	client.RootCmd.PersistentFlags().StringVarP(&client.HTTPClient.RootURL, "addr", "a",
