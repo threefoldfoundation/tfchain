@@ -21,6 +21,7 @@ func CreateERC20Cmd(client *CommandLineClient) *cobra.Command {
 		rootCmd = &cobra.Command{
 			Use:   "erc20",
 			Short: "Perform erc20 actions",
+			Run:   erc20SubCmds.getSyncingStatus,
 		}
 		getSyncingStatusCmd = &cobra.Command{
 			Use:   "syncstatus",
