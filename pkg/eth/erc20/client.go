@@ -326,16 +326,16 @@ func (lc *LightClient) Wait(ctx context.Context) error {
 	for {
 		progress := downloader.Progress()
 		if progress.HighestBlock == 0 {
-			log.Debug(
-				"LightClient's downloader needs to start to sync, waiting 10 seconds...",
+			log.Info(
+				"LightClient needs to start to sync",
 				"current_block", progress.CurrentBlock, "peers", lc.stack.Server().Peers())
 		} else if downloader.Synchronising() || progress.CurrentBlock < progress.HighestBlock {
 			log.Debug(
-				"LightClient's downloader is still syncing, waiting 10 seconds...",
+				"LightClient is still syncing, waiting 10 seconds...",
 				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock)
 		} else {
-			log.Debug(
-				"LightClient's downloader is synced",
+			log.Info(
+				"LightClient is synced",
 				"current_block", progress.CurrentBlock, "highest_block", progress.HighestBlock, "starting_block", progress.StartingBlock)
 			break
 		}
