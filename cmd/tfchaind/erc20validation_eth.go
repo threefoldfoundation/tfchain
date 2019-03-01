@@ -60,7 +60,12 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig, cancel <-chan struct{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ERC20NodeValidator: error while ETH file-logger: %v", err)
 	}
-	ethFileLogLvl, ethStreamLogLvl := log.LvlInfo, log.LvlWarn
+	ethStreamLogLvl := log.LvlWarn
+	ethFileLogLvl := log.Lvl(cfg.EthLogLevel)
+	if ethFileLogLvl < log.LvlTrace {
+		ethFileLogLvl++
+	}
+
 	if build.DEBUG {
 		ethFileLogLvl, ethStreamLogLvl = log.LvlDebug, log.LvlInfo
 	}

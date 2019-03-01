@@ -8,4 +8,5 @@ type ERC20NodeValidatorConfig struct {
 	DataDir     string
 	Port        int
 	BootNodes   []string
+	EthLogLevel int
 }
