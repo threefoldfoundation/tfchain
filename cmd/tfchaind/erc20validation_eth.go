@@ -62,9 +62,6 @@ func NewERC20NodeValidator(cfg ERC20NodeValidatorConfig, cancel <-chan struct{})
 	}
 	ethStreamLogLvl := log.LvlWarn
 	ethFileLogLvl := log.Lvl(cfg.EthLogLevel)
-	if ethFileLogLvl < log.LvlTrace {
-		ethFileLogLvl++
-	}
 
 	if build.DEBUG {
 		ethFileLogLvl, ethStreamLogLvl = log.LvlDebug, log.LvlInfo
