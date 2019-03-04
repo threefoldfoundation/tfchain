@@ -124,7 +124,7 @@ func NewTransactionDBGetRecordForIDHandler(txdb *persist.TransactionDB) httprout
 			record, err = txdb.GetRecordForKey(pubKey)
 		}
 		if err != nil {
-			api.WriteError(w, api.Error{Message: err.Error()}, http.StatusInternalServerError)
+			api.WriteError(w, api.Error{Message: err.Error()}, threeBotErrorAsHTTPStatusCode(err))
 			return
 		}
 		api.WriteJSON(w, TransactionDBGetBotRecord{
@@ -145,7 +145,7 @@ func NewTransactionDBGetRecordForNameHandler(txdb *persist.TransactionDB) httpro
 		}
 		record, err := txdb.GetRecordForName(name)
 		if err != nil {
-			api.WriteError(w, api.Error{Message: err.Error()}, http.StatusInternalServerError)
+			api.WriteError(w, api.Error{Message: err.Error()}, threeBotErrorAsHTTPStatusCode(err))
 			return
 		}
 		api.WriteJSON(w, TransactionDBGetBotRecord{
@@ -168,12 +168,25 @@ func NewTransactionDBGetBotTransactionsHandler(txdb *persist.TransactionDB) http
 		ids, err := txdb.GetBotTransactionIdentifiers(id)
 		if err != nil {
 			api.WriteError(w, api.Error{Message: fmt.Errorf("failed to get transactions for BotID: %v", err).Error()},
-				http.StatusInternalServerError)
+				threeBotErrorAsHTTPStatusCode(err))
 			return
 		}
 		api.WriteJSON(w, TransactionDBGetBotTransactions{
 			Identifiers: ids,
 		})
+	}
+}
+
+// threeBotErrorAsHTTPStatusCode converts a 3bot error to an http status code.
+// if it is not an applicable 3bot error, an internal server error code is returned
+func threeBotErrorAsHTTPStatusCode(err error) int {
+	switch err {
+	case tftypes.ErrBotNotFound, tftypes.ErrBotNameNotFound, tftypes.ErrBotKeyNotFound:
+		return http.StatusNotFound
+	case tftypes.ErrBotNameExpired:
+		return http.StatusPaymentRequired
+	default:
+		return http.StatusInternalServerError
 	}
 }
 
