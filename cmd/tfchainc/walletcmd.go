@@ -330,9 +330,11 @@ func (walletSubCmds *walletSubCmds) createMinterDefinitionTxCmd(cmd *cobra.Comma
 	}
 
 	// if a description is given, use it as arbitrary data
-	if n := len(walletSubCmds.minterDefinitionTxCfg.Description); n > 0 {
+	if len(walletSubCmds.minterDefinitionTxCfg.Description) > 0 {
+		description := parseDescription(walletSubCmds.minterDefinitionTxCfg.Description)
+		n := len(description)
 		tx.ArbitraryData = make([]byte, n)
-		copy(tx.ArbitraryData[:], walletSubCmds.minterDefinitionTxCfg.Description[:])
+		copy(tx.ArbitraryData[:], description[:])
 	}
 
 	// encode the transaction as a JSON-encoded string and print it to the STDOUT
@@ -359,9 +361,11 @@ func (walletSubCmds *walletSubCmds) createCoinCreationTxCmd(cmd *cobra.Command, 
 		Nonce:     types.RandomTransactionNonce(),
 		MinerFees: []rivinetypes.Currency{walletSubCmds.cli.Config.MinimumTransactionFee},
 	}
-	if n := len(walletSubCmds.coinCreationTxCfg.Description); n > 0 {
+	if len(walletSubCmds.coinCreationTxCfg.Description) > 0 {
+		description := parseDescription(walletSubCmds.coinCreationTxCfg.Description)
+		n := len(description)
 		tx.ArbitraryData = make([]byte, n)
-		copy(tx.ArbitraryData[:], walletSubCmds.coinCreationTxCfg.Description[:])
+		copy(tx.ArbitraryData[:], description[:])
 	}
 	for _, pair := range pairs {
 		tx.CoinOutputs = append(tx.CoinOutputs, rivinetypes.CoinOutput{
@@ -936,4 +940,11 @@ func parseConditionString(str string) (condition rivinetypes.UnlockConditionProx
 			"condition has to be UnlockHash or JSON-encoded UnlockCondition, output %q is neither", str)
 	}
 	return
+}
+
+func parseDescription(str string) string {
+	if out, err := strconv.Unquote(`"` + str + `"`); err == nil {
+		return out
+	}
+	return str
 }
