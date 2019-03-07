@@ -15,7 +15,7 @@ func (cfg *ERC20NodeValidatorConfig) SetFlags(flags *flag.FlagSet) {
 	)
 	flags.IntVar(
 		&cfg.Port,
-		"ethport", 3003,
+		"ethport", 30303,
 		"network port used by peers on the ETH network to connect to this node if ethvalidation is  enabled",
 	)
 	flags.StringVar(

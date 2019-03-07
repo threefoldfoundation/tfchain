@@ -445,7 +445,7 @@ func main() {
 	)
 	cmdRoot.Flags().Uint16Var(
 		&cmd.EthPort,
-		"ethport", 3003,
+		"ethport", 30302,
 		"port for the ethereum deamon",
 	)
 	cmdRoot.Flags().StringSliceVar(
