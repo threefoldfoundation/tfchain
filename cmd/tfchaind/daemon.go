@@ -69,14 +69,6 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 		}
 		api.RegisterERC20HTTPHandlers(router, erc20TxValidator)
 
-		// Wait for the ethereum network to sync
-		err = erc20TxValidator.Wait(ctx)
-		if err != nil {
-			servErrs <- err
-			cancel()
-			return
-		}
-
 		// create and validate network config, and the transactionDB as well
 		// txdb is on index 0, as it is not manually loaded
 		printModuleIsLoading("(auto) transaction db")
@@ -267,6 +259,18 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 		// handle all our endpoints over a router,
 		// which requires a user agent should one be configured
 		srv.Handle("/", rivineapi.RequireUserAgentHandler(router, cfg.RequiredUserAgent))
+
+		// Wait for the ethereum network to sync
+		err = erc20TxValidator.Wait(ctx)
+		if err != nil {
+			servErrs <- err
+			cancel()
+			return
+		}
+
+		if cs != nil {
+			cs.Start()
+		}
 
 		// Print a 'startup complete' message.
 		startupTime := time.Since(loadStart)
