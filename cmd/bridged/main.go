@@ -304,6 +304,9 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			return
 		}
 
+		// Start the cs after the eth module is synced
+		cs.Start()
+
 		// Start the bridge
 		err = bridged.Start(cs, cmd.transactionDB, ctx.Done())
 		if err != nil {
