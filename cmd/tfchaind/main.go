@@ -22,7 +22,8 @@ func main() {
 	cmds.moduleSetFlag = daemon.DefaultModuleSetFlag()
 
 	// create the root command and add the flags to the root command
-	root := &cobra.Command{
+	rootCommand := &cobra.Command{
+
 		Use: os.Args[0],
 		Short: strings.Title(cmds.cfg.BlockchainInfo.Name) + " Daemon v" +
 			cmds.cfg.BlockchainInfo.ChainVersion.String(),
@@ -30,23 +31,23 @@ func main() {
 			cmds.cfg.BlockchainInfo.ChainVersion.String(),
 		Run: cmds.rootCommand,
 	}
-	cmds.cfg.RegisterAsFlags(root.Flags())
+	cmds.cfg.RegisterAsFlags(rootCommand.Flags())
 	// also add our modules as a flag
-	cmds.moduleSetFlag.RegisterFlag(root.Flags(), fmt.Sprintf("%s modules", os.Args[0]))
+	cmds.moduleSetFlag.RegisterFlag(rootCommand.Flags(), fmt.Sprintf("%s modules", os.Args[0]))
 
 	// custom flags
 	tfcli.NetAddressArrayFlagVar(
-		root.Flags(),
+		rootCommand.Flags(),
 		&cmds.cfg.BootstrapPeers,
 		"bootstrap-peers",
 		"overwrite the bootstrap peers to use, instead of using the default bootstrap peers",
 	)
 
 	// eth flags
-	cmds.erc20Cfg.SetFlags(root.Flags())
+	cmds.erc20Cfg.SetFlags(rootCommand.Flags())
 
 	// create the other commands
-	root.AddCommand(&cobra.Command{
+	rootCommand.AddCommand(&cobra.Command{
 		Use:   "version",
 		Short: "Print version information",
 		Long: "Print version information about the " +
@@ -54,7 +55,7 @@ func main() {
 		Run: cmds.versionCommand,
 	})
 
-	root.AddCommand(&cobra.Command{
+	rootCommand.AddCommand(&cobra.Command{
 		Use:   "modules",
 		Short: "List available modules for use with -M, --modules flag",
 		Long:  "List available modules for use with -M, --modules flag and their uses",
@@ -63,7 +64,7 @@ func main() {
 
 	// Parse cmdline flags, overwriting both the default values and the config
 	// file values.
-	if err := root.Execute(); err != nil {
+	if err := rootCommand.Execute(); err != nil {
 		// Since no commands return errors (all commands set Command.Run instead of
 		// Command.RunE), Command.Execute() should only return an error on an
 		// invalid command or flag. Therefore Command.Usage() was called (assuming
