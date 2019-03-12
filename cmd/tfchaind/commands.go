@@ -4,14 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/threefoldfoundation/tfchain/pkg/config"
-	"github.com/threefoldfoundation/tfchain/pkg/persist"
-	"github.com/threefoldfoundation/tfchain/pkg/types"
 
 	"github.com/threefoldtech/rivine/pkg/cli"
 	"github.com/threefoldtech/rivine/pkg/daemon"
@@ -60,112 +55,6 @@ func (cmds *commands) rootCommand(*cobra.Command, []string) {
 	if err != nil {
 		cli.DieWithError("daemon failed", err)
 	}
-}
-
-// setupNetwork injects the correct chain constants and genesis nodes based on the chosen network,
-// it also ensures that features added during the lifetime of the blockchain,
-// only get activated on a certain block height, giving everyone sufficient time to upgrade should such features be introduced,
-// it also creates the correct tfchain modules based on the given chain.
-func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator types.ERC20TransactionValidator) (daemon.NetworkConfig, *persist.TransactionDB, error) {
-	// return the network configuration, based on the network name,
-	// which includes the genesis block as well as the bootstrap peers
-	switch cfg.BlockchainInfo.NetworkName {
-	case config.NetworkNameStandard:
-		txdb, err := persist.NewTransactionDB(cfg.RootPersistentDir, config.GetStandardnetGenesisMintCondition())
-		if err != nil {
-			return daemon.NetworkConfig{}, nil, err
-		}
-
-		constants := config.GetStandardnetGenesis()
-		networkConfig := config.GetStandardDaemonNetworkConfig()
-
-		// Register the transaction controllers for all transaction versions
-		// supported on the standard network
-		types.RegisterTransactionTypesForStandardNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
-		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
-		// until the blockchain reached a height of 42000 blocks.
-		types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
-
-		if len(cfg.BootstrapPeers) == 0 {
-			cfg.BootstrapPeers = config.GetStandardnetBootstrapPeers()
-		}
-
-		// return the standard genesis block and bootstrap peers
-		return daemon.NetworkConfig{
-			Constants:      constants,
-			BootstrapPeers: cfg.BootstrapPeers,
-		}, txdb, nil
-
-	case config.NetworkNameTest:
-		txdb, err := persist.NewTransactionDB(cfg.RootPersistentDir, config.GetTestnetGenesisMintCondition())
-		if err != nil {
-			return daemon.NetworkConfig{}, nil, err
-		}
-
-		constants := config.GetTestnetGenesis()
-		networkConfig := config.GetTestnetDaemonNetworkConfig()
-
-		// Register the transaction controllers for all transaction versions
-		// supported on the test network
-		types.RegisterTransactionTypesForTestNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
-		// Use our custom MultiSignatureCondition, just for testing purposes
-		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
-
-		if len(cfg.BootstrapPeers) == 0 {
-			cfg.BootstrapPeers = config.GetTestnetBootstrapPeers()
-		}
-
-		// return the testnet genesis block and bootstrap peers
-		return daemon.NetworkConfig{
-			Constants:      constants,
-			BootstrapPeers: cfg.BootstrapPeers,
-		}, txdb, nil
-
-	case config.NetworkNameDev:
-		txdb, err := persist.NewTransactionDB(cfg.RootPersistentDir, config.GetDevnetGenesisMintCondition())
-		if err != nil {
-			return daemon.NetworkConfig{}, nil, err
-		}
-
-		constants := config.GetDevnetGenesis()
-		networkConfig := config.GetDevnetDaemonNetworkConfig()
-
-		// Register the transaction controllers for all transaction versions
-		// supported on the dev network
-		types.RegisterTransactionTypesForDevNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
-		// Use our custom MultiSignatureCondition, just for testing purposes
-		types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
-
-		if len(cfg.BootstrapPeers) == 0 {
-			cfg.BootstrapPeers = config.GetDevnetBootstrapPeers()
-		}
-
-		// return the devnet genesis block and bootstrap peers
-		return daemon.NetworkConfig{
-			Constants:      constants,
-			BootstrapPeers: cfg.BootstrapPeers,
-		}, txdb, nil
-
-	default:
-		// network isn't recognised
-		return daemon.NetworkConfig{}, nil, fmt.Errorf(
-			"Netork name %q not recognized", cfg.BlockchainInfo.NetworkName)
-	}
-}
-
-func setupERC20TransactionValidator(rootDir, networkName string, erc20Cfg ERC20NodeValidatorConfig, cancel <-chan struct{}) (types.ERC20TransactionValidator, error) {
-	if erc20Cfg.NetworkName == "" {
-		switch networkName {
-		case config.NetworkNameStandard:
-			erc20Cfg.NetworkName = "mainnet"
-		case config.NetworkNameTest:
-			erc20Cfg.NetworkName = "ropsten"
-		default:
-			erc20Cfg.NetworkName = "rinkeby"
-		}
-	}
-	erc20Cfg.DataDir = path.Join(rootDir, "leth")
-	return NewERC20NodeValidator(erc20Cfg, cancel)
 }
 
 func (cmds *commands) versionCommand(*cobra.Command, []string) {
