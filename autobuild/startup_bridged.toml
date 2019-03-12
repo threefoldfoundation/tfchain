@@ -4,4 +4,4 @@ protected = true
 
 [startup.bridged.args]
 name = "/bin/bridged"
-args = ["--rpc-addr={BRIDGED_RPC_ADDR}", "--network={TFCHAIND_NETWORK}", "--ethport={ETH_PORT}", "--account-json={ETH_ACCOUNT_JSON}", "--account-password={ETH_ACCOUNT_PASSWORD}"]
+args = ["--rpc-addr={BRIDGED_RPC_ADDR}", "--network={TFCHAIND_NETWORK}", "--ethport={ETH_PORT}", "--account-json={ETH_ACCOUNT_JSON}", "--account-password={ETH_ACCOUNT_PASSWORD}", "--ethbootnodes={BRIDGED_ETHBOOTNODES}"]

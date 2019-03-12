@@ -5,5 +5,5 @@ protected = true
 [startup.tfchaind.args]
 name = "/bin/tfchaind"
 # should use default values here?
-args = ["--rpc-addr={TFCHAIND_RPC_ADDR}", "--api-addr={TFCHAIND_API_ADDR}", "--persistent-directory={TFCHAIND_DATA_DIR}" , "--network={TFCHAIND_NETWORK}", "--ethvalidation"]
+args = ["--rpc-addr={TFCHAIND_RPC_ADDR}", "--api-addr={TFCHAIND_API_ADDR}", "--persistent-directory={TFCHAIND_DATA_DIR}" , "--network={TFCHAIND_NETWORK}", "--ethvalidation", "--ethbootnodes={TFCHAIND_ETHBOOTNODES}"]
 
