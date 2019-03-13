@@ -317,6 +317,11 @@ func (walletSubCmds *walletSubCmds) createMinterDefinitionTxCmd(cmd *cobra.Comma
 		MinerFees: []rivinetypes.Currency{walletSubCmds.cli.Config.MinimumTransactionFee},
 	}
 
+	if n := len(walletSubCmds.minterDefinitionTxCfg.Description); n > 0 {
+		tx.ArbitraryData = make([]byte, n)
+		copy(tx.ArbitraryData[:], walletSubCmds.minterDefinitionTxCfg.Description[:])
+	}
+
 	// parse the given mint condition
 	var err error
 	tx.MintCondition, err = parseConditionString(args[0])
@@ -348,6 +353,11 @@ func (walletSubCmds *walletSubCmds) createCoinCreationTxCmd(cmd *cobra.Command, 
 	tx := types.CoinCreationTransaction{
 		Nonce:     types.RandomTransactionNonce(),
 		MinerFees: []rivinetypes.Currency{walletSubCmds.cli.Config.MinimumTransactionFee},
+	}
+
+	if n := len(walletSubCmds.coinCreationTxCfg.Description); n > 0 {
+		tx.ArbitraryData = make([]byte, n)
+		copy(tx.ArbitraryData[:], walletSubCmds.coinCreationTxCfg.Description[:])
 	}
 
 	for _, pair := range pairs {
