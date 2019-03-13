@@ -255,9 +255,9 @@ from which the ERC20 address is then derived, is known by this wallet.`,
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
 
 	cli.ArbitraryDataFlagVar(createMinterDefinitionTxCmd.Flags(), &walletSubCmds.minterDefinitionTxCfg.Description,
-		"data", "optional arbitrary data (or description) to attach to transaction")
+		"description", "optionally add a description to describe the reasons of transfer of minting power, added as arbitrary data")
 	cli.ArbitraryDataFlagVar(createCoinCreationTxCmd.Flags(), &walletSubCmds.coinCreationTxCfg.Description,
-		"data", "optional arbitrary data (or description) to attach to transaction")
+		"description", "optionally add a description to describe the origins of the coin creation, added as arbitrary data")
 }
 
 type walletSubCmds struct {
