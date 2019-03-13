@@ -175,15 +175,6 @@ from which the ERC20 address is then derived, is known by this wallet.`,
 	)
 
 	// register flags
-
-	createMinterDefinitionTxCmd.Flags().StringVar(
-		&walletSubCmds.minterDefinitionTxCfg.Description, "description", "",
-		"optionally add a description to describe the reasons of transfer of minting power, added as arbitrary data")
-
-	createCoinCreationTxCmd.Flags().StringVar(
-		&walletSubCmds.coinCreationTxCfg.Description, "description", "",
-		"optionally add a description to describe the origins of the coin creation, added as arbitrary data")
-
 	internal.NetworkAddressArrayFlagVar(
 		sendBotRegistrationTxCmd.Flags(),
 		&walletSubCmds.sendBotRegistrationTxCfg.Addresses,
@@ -262,15 +253,20 @@ from which the ERC20 address is then derived, is known by this wallet.`,
 	listERC20AddressesCmd.Flags().Var(
 		cli.NewEncodingTypeFlag(0, &walletSubCmds.listERC20AddressRegistrationsCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
+
+	cli.ArbitraryDataFlagVar(createMinterDefinitionTxCmd.Flags(), &walletSubCmds.minterDefinitionTxCfg.Description,
+		"data", "optional arbitrary data (or description) to attach to transaction")
+	cli.ArbitraryDataFlagVar(createCoinCreationTxCmd.Flags(), &walletSubCmds.coinCreationTxCfg.Description,
+		"data", "optional arbitrary data (or description) to attach to transaction")
 }
 
 type walletSubCmds struct {
 	cli                   *internal.CommandLineClient
 	minterDefinitionTxCfg struct {
-		Description string
+		Description []byte
 	}
 	coinCreationTxCfg struct {
-		Description string
+		Description []byte
 	}
 
 	sendBotRegistrationTxCfg struct {
@@ -329,14 +325,6 @@ func (walletSubCmds *walletSubCmds) createMinterDefinitionTxCmd(cmd *cobra.Comma
 		cli.Die(err)
 	}
 
-	// if a description is given, use it as arbitrary data
-	if len(walletSubCmds.minterDefinitionTxCfg.Description) > 0 {
-		description := parseDescription(walletSubCmds.minterDefinitionTxCfg.Description)
-		n := len(description)
-		tx.ArbitraryData = make([]byte, n)
-		copy(tx.ArbitraryData[:], description[:])
-	}
-
 	// encode the transaction as a JSON-encoded string and print it to the STDOUT
 	json.NewEncoder(os.Stdout).Encode(tx.Transaction())
 }
@@ -361,12 +349,7 @@ func (walletSubCmds *walletSubCmds) createCoinCreationTxCmd(cmd *cobra.Command, 
 		Nonce:     types.RandomTransactionNonce(),
 		MinerFees: []rivinetypes.Currency{walletSubCmds.cli.Config.MinimumTransactionFee},
 	}
-	if len(walletSubCmds.coinCreationTxCfg.Description) > 0 {
-		description := parseDescription(walletSubCmds.coinCreationTxCfg.Description)
-		n := len(description)
-		tx.ArbitraryData = make([]byte, n)
-		copy(tx.ArbitraryData[:], description[:])
-	}
+
 	for _, pair := range pairs {
 		tx.CoinOutputs = append(tx.CoinOutputs, rivinetypes.CoinOutput{
 			Value:     pair.Value,
@@ -940,11 +923,4 @@ func parseConditionString(str string) (condition rivinetypes.UnlockConditionProx
 			"condition has to be UnlockHash or JSON-encoded UnlockCondition, output %q is neither", str)
 	}
 	return
-}
-
-func parseDescription(str string) string {
-	if out, err := strconv.Unquote(`"` + str + `"`); err == nil {
-		return out
-	}
-	return str
 }
