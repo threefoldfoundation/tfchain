@@ -428,7 +428,7 @@ function appendBlockTransactions(element, explorerBlock) {
 		}
 		if (explorerBlock.rawblock.transactions[i].data.arbitrarydata != null
 			&& explorerBlock.rawblock.transactions[i].data.arbitrarydata.length > 0) {
-			appendStat(table, 'Arbitrary Data Byte Count', window.atob(explorerBlock.rawblock.transactions[i].data.arbitrarydata).length);
+			appendStat(table, 'Arbitrary Data Byte Count', b64DecodeUnicode(explorerBlock.rawblock.transactions[i].data.arbitrarydata).length);
 		}
 		element.appendChild(table);
 	}
@@ -595,4 +595,12 @@ function buildPageTitle() {
 			break;
 	}
 }
+
+function b64DecodeUnicode(str) {
+    // Going backwards: from bytestream, to percent-encoding, to original string.
+    return decodeURIComponent(atob(str).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+}
+
 buildPageTitle();
