@@ -40,10 +40,7 @@ const (
 
 // GetCurrencyUnits returns the currency units used for all ThreeFold networks.
 func GetCurrencyUnits() types.CurrencyUnits {
-	return types.CurrencyUnits{
-		// 1 coin = 1 000 000 000 of the smalles possible units
-		OneCoin: types.NewCurrency(new(big.Int).Exp(big.NewInt(10), big.NewInt(9), nil)),
-	}
+	return types.DefaultCurrencyUnits()
 }
 
 // GetBlockchainInfo returns the naming and versioning of tfchain.
@@ -69,9 +66,6 @@ func GetStandardnetGenesisMintCondition() types.UnlockConditionProxy {
 // GetStandardnetGenesis explicitly sets all the required constants for the genesis block of the standard (prod) net
 func GetStandardnetGenesis() types.ChainConstants {
 	cfg := types.StandardnetChainConstants()
-
-	// use the threefold currency units
-	cfg.CurrencyUnits = GetCurrencyUnits()
 
 	// set transaction versions
 	cfg.DefaultTransactionVersion = types.TransactionVersionOne
@@ -201,9 +195,6 @@ func GetTestnetGenesisMintCondition() types.UnlockConditionProxy {
 func GetTestnetGenesis() types.ChainConstants {
 	cfg := types.TestnetChainConstants()
 
-	// use the threefold currency units
-	cfg.CurrencyUnits = GetCurrencyUnits()
-
 	// set transaction versions
 	cfg.DefaultTransactionVersion = types.TransactionVersionOne
 	cfg.GenesisTransactionVersion = types.TransactionVersionZero
@@ -271,9 +262,6 @@ func GetDevnetGenesisMintCondition() types.UnlockConditionProxy {
 // GetDevnetGenesis explicitly sets all the required constants for the genesis block of the devnet
 func GetDevnetGenesis() types.ChainConstants {
 	cfg := types.DevnetChainConstants()
-
-	// use the threefold currency units
-	cfg.CurrencyUnits = GetCurrencyUnits()
 
 	// set transaction versions
 	cfg.DefaultTransactionVersion = types.TransactionVersionOne
