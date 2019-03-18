@@ -38,6 +38,11 @@ const (
 	TestNetworkBlockFrequency     types.BlockHeight = 120 // 1 block per 2 minutes on average
 )
 
+// GetCurrencyUnits returns the currency units used for all ThreeFold networks.
+func GetCurrencyUnits() types.CurrencyUnits {
+	return types.DefaultCurrencyUnits()
+}
+
 // GetBlockchainInfo returns the naming and versioning of tfchain.
 func GetBlockchainInfo() types.BlockchainInfo {
 	return types.BlockchainInfo{
