@@ -14,11 +14,11 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/threefoldtech/rivine/modules/transactionpool"
+	"github.com/threefoldtech/rivine/pkg/cli"
 	"github.com/threefoldtech/rivine/pkg/daemon"
 
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/threefoldfoundation/tfchain/pkg/api"
-	"github.com/threefoldfoundation/tfchain/pkg/cli"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
 	"github.com/threefoldfoundation/tfchain/pkg/persist"
