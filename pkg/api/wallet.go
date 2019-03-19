@@ -38,6 +38,7 @@ func RegisterWalletHTTPHandlers(router api.Router, wallet modules.Wallet, requir
 }
 
 // NewWalletFundCoinsHandler creates a handler to handle the API calls to /wallet/fund/coins?amount=.
+// While it might be handy for other use cases, it is needed for 3bot registration
 func NewWalletFundCoinsHandler(wallet modules.Wallet) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 		q := req.URL.Query()
@@ -89,6 +90,7 @@ func NewWalletFundCoinsHandler(wallet modules.Wallet) httprouter.Handle {
 }
 
 // NewWalletGetPublicKeyHandler creates a handler to handle API calls to /wallet/publickey.
+// While it might be handy for other use cases, it is needed for 3bot.
 func NewWalletGetPublicKeyHandler(wallet modules.Wallet) httprouter.Handle {
 	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
 		unlockHash, err := wallet.NextAddress()
