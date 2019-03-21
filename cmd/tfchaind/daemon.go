@@ -325,9 +325,6 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 		// Register the transaction controllers for all transaction versions
 		// supported on the standard network
 		tfchaintypes.RegisterTransactionTypesForStandardNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
-		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
-		// until the blockchain reached a height of 42000 blocks.
-		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
 
 		if len(cfg.BootstrapPeers) == 0 {
 			cfg.BootstrapPeers = config.GetStandardnetBootstrapPeers()
@@ -351,8 +348,6 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 		// Register the transaction controllers for all transaction versions
 		// supported on the test network
 		tfchaintypes.RegisterTransactionTypesForTestNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
-		// Use our custom MultiSignatureCondition, just for testing purposes
-		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		if len(cfg.BootstrapPeers) == 0 {
 			cfg.BootstrapPeers = config.GetTestnetBootstrapPeers()
@@ -376,8 +371,6 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 		// Register the transaction controllers for all transaction versions
 		// supported on the dev network
 		tfchaintypes.RegisterTransactionTypesForDevNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
-		// Use our custom MultiSignatureCondition, just for testing purposes
-		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		if len(cfg.BootstrapPeers) == 0 {
 			cfg.BootstrapPeers = config.GetDevnetBootstrapPeers()

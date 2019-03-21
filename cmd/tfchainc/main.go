@@ -55,9 +55,6 @@ func main() {
 			// Register the transaction controllers for all transaction versions
 			// supported on the standard network
 			types.RegisterTransactionTypesForStandardNetwork(txDBReader, nopERC20TxValidator, cfg.CurrencyUnits.OneCoin, networkConfig)
-			// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
-			// until the blockchain reached a height of 42000 blocks.
-			types.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
 
 			// overwrite standard network genesis block stamp,
 			// as the genesis block is way earlier than the actual first block,
@@ -70,8 +67,6 @@ func main() {
 			// Register the transaction controllers for all transaction versions
 			// supported on the test network
 			types.RegisterTransactionTypesForTestNetwork(txDBReader, nopERC20TxValidator, cfg.CurrencyUnits.OneCoin, networkConfig)
-			// Use our custom MultiSignatureCondition, just for testing purposes
-			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 			// seems like testnet timestamp wasn't updated last time it was reset
 			cfg.GenesisBlockTimestamp = 1522792547 // timestamp of (testnet) block #1
@@ -82,8 +77,6 @@ func main() {
 			// Register the transaction controllers for all transaction versions
 			// supported on the dev network
 			types.RegisterTransactionTypesForDevNetwork(txDBReader, nopERC20TxValidator, cfg.CurrencyUnits.OneCoin, networkConfig)
-			// Use our custom MultiSignatureCondition, just for testing purposes
-			types.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		default:
 			return nil, fmt.Errorf("Netork name %q not recognized", cfg.NetworkName)

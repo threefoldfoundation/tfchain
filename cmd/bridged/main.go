@@ -106,9 +106,6 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		// supported on the standard network
 		tfchaintypes.RegisterTransactionTypesForStandardNetwork(cmd.transactionDB, &tfchaintypes.NopERC20TransactionValidator{},
 			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetStandardDaemonNetworkConfig())
-		// Forbid the usage of MultiSignatureCondition (and thus the multisig feature),
-		// until the blockchain reached a height of 42000 blocks.
-		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
 
 		if len(cmd.BootstrapPeers) == 0 {
 			cmd.BootstrapPeers = config.GetStandardnetBootstrapPeers()
@@ -130,8 +127,6 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		// supported on the test network
 		tfchaintypes.RegisterTransactionTypesForTestNetwork(cmd.transactionDB, &tfchaintypes.NopERC20TransactionValidator{},
 			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetTestnetDaemonNetworkConfig())
-		// Use our custom MultiSignatureCondition, just for testing purposes
-		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		if len(cmd.BootstrapPeers) == 0 {
 			cmd.BootstrapPeers = config.GetTestnetBootstrapPeers()
@@ -153,8 +148,6 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		// supported on the dev network
 		tfchaintypes.RegisterTransactionTypesForDevNetwork(cmd.transactionDB, &tfchaintypes.NopERC20TransactionValidator{},
 			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetDevnetDaemonNetworkConfig())
-		// Use our custom MultiSignatureCondition, just for testing purposes
-		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
 		if len(cmd.BootstrapPeers) == 0 {
 			cmd.BootstrapPeers = config.GetDevnetBootstrapPeers()
