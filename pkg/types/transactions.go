@@ -29,35 +29,11 @@ const (
 	TransactionVersionCoinCreation
 )
 
-const (
-	// TransactionVersionBotRegistration defines the Transaction version
-	// for a BotRegistration Transaction, used to register a new 3bot,
-	// where new means that the used public key cannot yet exist.
-	TransactionVersionBotRegistration types.TransactionVersion = iota + 144
-	// TransactionVersionBotRecordUpdate defines the Transaction version
-	// for a Tx used to update a 3bot Record by the owner. where owner
-	// means the 3bot that created the record to be updated initially using the BotRegistration Tx.
-	TransactionVersionBotRecordUpdate
-	// TransactionVersionBotNameTransfer defines the Transaction version
-	// for a Tx used to transfer one or multiple names from the active
-	// 3bot that up to the point of that Tx to another 3bot.
-	TransactionVersionBotNameTransfer
-)
-
 // These Specifiers are used internally when calculating a Transaction's ID.
 // See Rivine's Specifier for more details.
 var (
-	SpecifierMintDefinitionTransaction  = types.Specifier{'m', 'i', 'n', 't', 'e', 'r', ' ', 'd', 'e', 'f', 'i', 'n', ' ', 't', 'x'}
-	SpecifierCoinCreationTransaction    = types.Specifier{'c', 'o', 'i', 'n', ' ', 'm', 'i', 'n', 't', ' ', 't', 'x'}
-	SpecifierBotRegistrationTransaction = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'g', 'i', 's', 't', 'e', 'r', ' ', 't', 'x'}
-	SpecifierBotRecordUpdateTransaction = types.Specifier{'b', 'o', 't', ' ', 'r', 'e', 'c', 'u', 'p', 'd', 'a', 't', 'e', ' ', 't', 'x'}
-	SpecifierBotNameTransferTransaction = types.Specifier{'b', 'o', 't', ' ', 'n', 'a', 'm', 'e', 't', 'r', 'a', 'n', 's', ' ', 't', 'x'}
-)
-
-// Bot validation errors
-var (
-	ErrBotKeyAlreadyRegistered  = errors.New("bot key is already registered")
-	ErrBotNameAlreadyRegistered = errors.New("bot name is already registered")
+	SpecifierMintDefinitionTransaction = types.Specifier{'m', 'i', 'n', 't', 'e', 'r', ' ', 'd', 'e', 'f', 'i', 'n', ' ', 't', 'x'}
+	SpecifierCoinCreationTransaction   = types.Specifier{'c', 'o', 'i', 'n', ' ', 'm', 'i', 'n', 't', ' ', 't', 'x'}
 )
 
 // TFChainReadDB is the Read-Only Database that is required in order to fetch the
