@@ -34,14 +34,6 @@ func main() {
 	// also add our modules as a flag
 	cmds.moduleSetFlag.RegisterFlag(rootCommand.Flags(), fmt.Sprintf("%s modules", os.Args[0]))
 
-	// custom flags
-	cli.NetAddressArrayFlagVar(
-		rootCommand.Flags(),
-		&cmds.cfg.BootstrapPeers,
-		"bootstrap-peers",
-		"overwrite the bootstrap peers to use, instead of using the default bootstrap peers",
-	)
-
 	// eth flags
 	cmds.erc20Cfg.SetFlags(rootCommand.Flags())
 

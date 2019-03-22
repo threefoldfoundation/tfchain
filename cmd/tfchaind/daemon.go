@@ -329,10 +329,6 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 		// until the blockchain reached a height of 42000 blocks.
 		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(42000)
 
-		if len(cfg.BootstrapPeers) == 0 {
-			cfg.BootstrapPeers = config.GetStandardnetBootstrapPeers()
-		}
-
 		// return the standard genesis block and bootstrap peers
 		return daemon.NetworkConfig{
 			Constants:      constants,
@@ -353,10 +349,6 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 		tfchaintypes.RegisterTransactionTypesForTestNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
-
-		if len(cfg.BootstrapPeers) == 0 {
-			cfg.BootstrapPeers = config.GetTestnetBootstrapPeers()
-		}
 
 		// return the testnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
@@ -379,10 +371,6 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 		// Use our custom MultiSignatureCondition, just for testing purposes
 		tfchaintypes.RegisterBlockHeightLimitedMultiSignatureCondition(0)
 
-		if len(cfg.BootstrapPeers) == 0 {
-			cfg.BootstrapPeers = config.GetDevnetBootstrapPeers()
-		}
-
 		// return the devnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
 			Constants:      constants,
@@ -392,7 +380,7 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 	default:
 		// network isn't recognised
 		return daemon.NetworkConfig{}, nil, fmt.Errorf(
-			"Netork name %q not recognized", cfg.BlockchainInfo.NetworkName)
+			"Network name %q not recognized", cfg.BlockchainInfo.NetworkName)
 	}
 }
 
