@@ -114,7 +114,7 @@ var requestTemplate = mustTemplate("request.html", fmt.Sprintf(`
 	<div style="color:red;">{{.Error}}</div>
 
 	<form action="/request/tokens" method="POST">
-		<div>UnlockHash: <input type="text" size="78" name="uh"></div>
+		<div>Address: <input type="text" size="78" name="uh"></div>
 		<br>
 		<div><input type="submit" value="Request %[1]d TFT" style="width:20em;height:2em;"></div>
 	</form>
