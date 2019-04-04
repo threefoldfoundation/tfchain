@@ -13,7 +13,7 @@ mkdir -p $ARCHIVE
 mkdir -p $FAUCET_FLIST/bin
 
 # install go
-GOFILE=go1.11.linux-amd64.tar.gz
+GOFILE=go1.12.linux-amd64.tar.gz
 wget https://dl.google.com/go/$GOFILE
 tar -C /usr/local -xzf $GOFILE
 mkdir -p /root/go
