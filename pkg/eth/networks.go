@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/p2p/enode"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/p2p/discv5"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -21,13 +22,13 @@ type NetworkConfiguration struct {
 
 //GetBootnodes returns the bootnodes for the specific network as  slice of *discv5.Node
 // The default bootnodes can be overridden by passing a non nil or empty bootnodes parameter
-func (config NetworkConfiguration) GetBootnodes(bootnodes []string) ([]*discv5.Node, error) {
+func (config NetworkConfiguration) GetBootnodes(bootnodes []string) ([]*enode.Node, error) {
 	if bootnodes == nil || len(bootnodes) == 0 {
 		bootnodes = config.bootnodes
 	}
-	var nodes []*discv5.Node
+	var nodes []*enode.Node
 	for _, boot := range bootnodes {
-		if url, err := discv5.ParseNode(boot); err == nil {
+		if url, err := enode.ParseV4(boot); err == nil {
 			nodes = append(nodes, url)
 		} else {
 			err = errors.New("Failed to parse bootnode URL" + "url" + boot + "err" + err.Error())

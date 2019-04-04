@@ -27,7 +27,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/node"
 	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/discv5"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/params"
 	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
@@ -59,7 +58,7 @@ type LightClientConfig struct {
 	Port    int
 	DataDir string
 
-	BootstrapNodes []*discv5.Node
+	BootstrapNodes []*enode.Node
 	NetworkName    string
 	NetworkID      uint64
 	GenesisBlock   *core.Genesis
@@ -87,7 +86,7 @@ func (lccfg *LightClientConfig) validate() error {
 	return nil
 }
 
-func addPeers(ethNode *node.Node, peers []*discv5.Node) {
+func addPeers(ethNode *node.Node, peers []*enode.Node) {
 	for _, peer := range peers {
 		old, err := enode.ParseV4(peer.String())
 		if err != nil {
@@ -114,12 +113,12 @@ func NewLightClient(lccfg LightClientConfig) (*LightClient, error) {
 		Version: params.VersionWithMeta,
 		DataDir: datadir,
 		P2P: p2p.Config{
-			NAT:              nil,
-			NoDiscovery:      false,
-			DiscoveryV5:      true,
-			ListenAddr:       fmt.Sprintf(":%d", lccfg.Port),
-			MaxPeers:         25,
-			BootstrapNodesV5: lccfg.BootstrapNodes,
+			NAT:            nil,
+			NoDiscovery:    false,
+			DiscoveryV5:    true,
+			ListenAddr:     fmt.Sprintf(":%d", lccfg.Port),
+			MaxPeers:       25,
+			BootstrapNodes: lccfg.BootstrapNodes,
 		},
 	})
 	if err != nil {
