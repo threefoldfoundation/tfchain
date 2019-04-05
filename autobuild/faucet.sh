@@ -44,7 +44,7 @@ pushd /tmp
 popd 
 
 pushd $CADDYMAN
-./caddyman.sh install iyo
+GO111MODULE=on ./caddyman.sh install iyo
 popd
 
 cp $GOPATH/bin/caddy $FAUCET_FLIST/bin

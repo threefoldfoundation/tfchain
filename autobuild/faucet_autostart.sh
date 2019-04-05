@@ -51,7 +51,7 @@ pushd /tmp
 popd 
 
 pushd $CADDYMAN
-./caddyman.sh install iyo
+GO111MODULE=on ./caddyman.sh install iyo
 popd
 
 ls $GOPATH/bin/
