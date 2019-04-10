@@ -43,8 +43,15 @@ pushd /tmp
     git clone https://github.com/Incubaid/caddyman.git
 popd 
 
-pushd $CADDYMAN
-GO111MODULE=on ./caddyman.sh install iyo
+CADDY_PARENT_DIR=$GOPATH/src/github.com/mholt
+CADDY_SRC=$CADDY_PARENT_DIR/mholt
+pushd CADDY_PARENT_DIR
+	git clone https://github.com/mholt/caddy
+popd
+
+pushd $CADDY_SRC
+	cp $CADDYMAN/caddyman.sh .
+	GO111MODULE=on ./caddyman.sh install iyo
 popd
 
 cp $GOPATH/bin/caddy $FAUCET_FLIST/bin
