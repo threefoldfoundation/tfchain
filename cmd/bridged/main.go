@@ -196,6 +196,9 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			cmdErr = err
 			return
 		}
+		// Blank password as we are not exposing the bridge HTTP API.
+		// TODO: Proper password verification like in the regular daemon
+		rivineapi.RegisterGatewayHTTPHandlers(router, gateway, "")
 		defer func() {
 			log.Info("Closing gateway module...")
 			err := gateway.Close()
