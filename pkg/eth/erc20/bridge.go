@@ -167,6 +167,7 @@ func (bridge *Bridge) Start(cs modules.ConsensusSet, txdb *persist.TransactionDB
 				}
 				// remember the withdraw
 				txMap[tfchaintypes.ERC20Hash(we.txHash)] = we
+				log.Info("Remembering withdraw event", "txHash", we.TxHash(), "height", we.BlockHeight())
 
 			// If we get a new head, check every withdraw we have to see if it has matured
 			case head := <-heads:
@@ -174,6 +175,7 @@ func (bridge *Bridge) Start(cs modules.ConsensusSet, txdb *persist.TransactionDB
 				for id := range txMap {
 					we := txMap[id]
 					if head.Number.Uint64() >= we.blockHeight+EthBlockDelay {
+						log.Info("Attempting to create an ERC20 withdraw tx", "ethTx", we.TxHash())
 						// we waited long enough, create transaction and push it
 						uh, found, err := txdb.GetTFTAddressForERC20Address(tfchaintypes.ERC20Address(we.receiver))
 						if err != nil {
@@ -199,7 +201,7 @@ func (bridge *Bridge) Start(cs modules.ConsensusSet, txdb *persist.TransactionDB
 						tx.BlockID = tfchaintypes.ERC20Hash(we.blockHash)
 
 						if err := bridge.commitWithdrawTransaction(tx); err != nil {
-							log.Error("Failed ot create ERC20 Withdraw transaction", "err", err)
+							log.Error("Failed to create ERC20 Withdraw transaction", "err", err)
 							continue
 						}
 

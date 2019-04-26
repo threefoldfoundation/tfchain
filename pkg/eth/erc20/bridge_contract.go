@@ -294,6 +294,7 @@ func (bridge *BridgeContract) GetPastWithdraws(startHeight uint64, endHeight *ui
 // SubscribeWithdraw subscribes to new Withdraw events on the given contract. This call blocks
 // and prints out info about any withdraw as it happened
 func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- WithdrawEvent, startHeight uint64) error {
+	log.Info("Subscribing to withdraw events", "start height", startHeight)
 	sink := make(chan *contract.TTFT20Withdraw)
 	watchOpts := &bind.WatchOpts{Context: context.Background(), Start: nil}
 	pastWithdraws, err := bridge.GetPastWithdraws(startHeight, nil)
