@@ -137,6 +137,7 @@ func (bridge *Bridge) Start(cs modules.ConsensusSet, txdb *persist.TransactionDB
 	if err != nil {
 		return fmt.Errorf("bridged: failed to subscribe to consensus set: %v", err)
 	}
+	log.Info("Subscribed to tfchain consensus set")
 
 	heads := make(chan *ethtypes.Header)
 
