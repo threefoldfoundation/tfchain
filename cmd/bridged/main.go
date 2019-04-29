@@ -233,7 +233,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			return
 		}
 		log.Info("loading transactionpool module (3/4)...")
-		tpool, err := transactionpool.New(cs, gateway, cmd.perDir("transactionpool"), cmd.BlockchainInfo, cmd.ChainConstants)
+		tpool, err := transactionpool.New(cs, gateway, cmd.perDir("transactionpool"), cmd.BlockchainInfo, cmd.ChainConstants, cmd.VerboseRivineLogging)
 		if err != nil {
 			log.Error("Failed to create txpool module", "err", err)
 			cancel()
