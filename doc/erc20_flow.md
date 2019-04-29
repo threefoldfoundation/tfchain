@@ -16,14 +16,24 @@ The contract addresses which implement the ERC20 token (and thus are needed to v
 To convert TFTs to the ERC20 tokens, you will need at least 1,000 TFT (+0.1 TFT to pay the transaction fee), and the ethereum address to send the tokens to (e.g. through metamask). Once you have this, you can convert your tokens by simply sending your TFT to this address. After the transaction has been mined in a block,
 6 more blocks are waited before the ERC20 tokens will be minted onto the account. This provided protection against small forks on the tfchain network.
 
+![Send TFT to eth wallet](./assets/erc20_send_tft.jpg)
+
 ## Registering a withdrawal address
 
 To withdraw ERC20 tokens to a TFT address, you need to register a withdrawal address for your wallet. A withdrawal address is created for you after you create
 the corresponding transaction. The address generated is based on a public key you own, and is thus linked to your wallet. This also means that a withdrawal address
 is linked to an actual TFT address, which will eventually receive any tokens transfered to the ERC20 address.
 
+![Register withdraw address start](./assets/erc20_withdraw_address_register_button.jpg)
+
+![Withdraw address registered](./assets/erc20_withdraw_address_registered.jpg)
+
 ## Converting ERC20 compatible tokens back to TFTs
 
 Finally, ERC20 tokens can be converted back to TFTs, in roughly the same way as they were originally created, but with a transaction on the ethereum network. As mentioned in the previous section, you will need to have registered a withdrawal address in order to withdraw your tokens again. Converting your tokens is as simple
 as creating an ethereum transaction, where you send the amount of tokens you want to convert to the withdrawal address. After 30 ethereum blocks, to guard against
 forks on the ethereum network, a transaction is created on the tfchain network which transfers the same amount back to your TFT address. Unlike the TFT to ERC20 conversion, there is no minimum amount required to do the conversion.
+
+An example of how you wallet could look after gettings some TFT, sending them to an ethereum wallet, registering a withdrawal address and finaly sending the funds back to your wallet:
+
+![Example wallet](./assets/erc20_tx_complete.jpg)
