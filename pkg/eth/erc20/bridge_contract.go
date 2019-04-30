@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/event"
 	"github.com/ethereum/go-ethereum/log"
 
 	tfeth "github.com/threefoldfoundation/tfchain/pkg/eth"
@@ -37,6 +40,8 @@ type BridgeContract struct {
 	transactor *contract.TTFT20Transactor
 	caller     *contract.TTFT20Caller
 
+	contract *bind.BoundContract
+
 	// cache some stats in case they might be usefull
 	head    *types.Header // Current head header of the bridge
 	balance *big.Int      // The current balance of the bridge (note: ethers only!)
@@ -46,10 +51,12 @@ type BridgeContract struct {
 	lock sync.RWMutex // Lock protecting the bridge's internals
 }
 
+// GetContractAdress returns the address of this contract
 func (bridge *BridgeContract) GetContractAdress() common.Address {
 	return bridge.networkConfig.ContractAddress
 }
 
+// NewBridgeContract creates a new wrapper for an allready deployed contract
 func NewBridgeContract(networkName string, bootnodes []string, contractAddress string, port int, accountJSON, accountPass string, datadir string, cancel <-chan struct{}) (*BridgeContract, error) {
 	// load correct network config
 	networkConfig, err := tfeth.GetEthNetworkConfiguration(networkName)
@@ -99,20 +106,27 @@ func NewBridgeContract(networkName string, bootnodes []string, contractAddress s
 		return nil, err
 	}
 
+	contract, err := bindTTFT20(networkConfig.ContractAddress, lc.Client, lc.Client, lc.Client)
+	if err != nil {
+		return nil, err
+	}
+
 	return &BridgeContract{
 		networkConfig: networkConfig,
 		lc:            lc,
 		filter:        filter,
 		transactor:    transactor,
 		caller:        caller,
+		contract:      contract,
 	}, nil
 }
 
-// close terminates the Ethereum connection and tears down the stack.
+// Close terminates the Ethereum connection and tears down the stack.
 func (bridge *BridgeContract) Close() error {
 	return bridge.lc.Close()
 }
 
+// AccountAddress returns the account address of the bridge contract
 func (bridge *BridgeContract) AccountAddress() (common.Address, error) {
 	return bridge.lc.AccountAddress()
 }
@@ -122,7 +136,7 @@ func (bridge *BridgeContract) LightClient() *LightClient {
 	return bridge.lc
 }
 
-// refresh attempts to retrieve the latest header from the chain and extract the
+// Refresh attempts to retrieve the latest header from the chain and extract the
 // associated bridge balance and nonce for connectivity caching.
 func (bridge *BridgeContract) Refresh(head *types.Header) error {
 	// Ensure a state update does not run for too long
@@ -155,7 +169,7 @@ func (bridge *BridgeContract) Refresh(head *types.Header) error {
 	return nil
 }
 
-// loop subscribes to new eth heads. If a new head is received, it is passed on the given channel,
+// Loop subscribes to new eth heads. If a new head is received, it is passed on the given channel,
 // after which the internal stats are updated if no update is already in progress
 func (bridge *BridgeContract) Loop(ch chan<- *types.Header) {
 	log.Info("Subscribing to eth headers")
@@ -305,7 +319,7 @@ func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- WithdrawEvent, startHe
 		// notify about all the past withdraws
 		wc <- w
 	}
-	sub, err := bridge.filter.WatchWithdraw(watchOpts, sink, nil)
+	sub, err := bridge.WatchWithdraw(watchOpts, sink, nil)
 	if err != nil {
 		log.Error("Subscribing to withdraw events failed", "err", err)
 		return err
@@ -330,6 +344,59 @@ func (bridge *BridgeContract) SubscribeWithdraw(wc chan<- WithdrawEvent, startHe
 			}
 		}
 	}
+}
+
+// WatchWithdraw is a free log subscription operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
+//
+// Solidity: e Withdraw(receiver indexed address, tokens uint256)
+//
+// This method is copied from the generated bindings and slightly modified, so we can add logic to stay backwards compatible with the old withdraw event signature
+func (bridge *BridgeContract) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *contract.TTFT20Withdraw, receiver []common.Address) (event.Subscription, error) {
+
+	var receiverRule []interface{}
+	for _, receiverItem := range receiver {
+		receiverRule = append(receiverRule, receiverItem)
+	}
+
+	logs, sub, err := bridge.contract.WatchLogs(opts, "Withdraw", receiverRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(contract.TTFT20Withdraw)
+				if err := bridge.contract.UnpackLog(event, "Withdraw", log); err != nil {
+					// Could be that this is an old style withdraw event, try unpacking that
+					event2 := new(contract.TTFT20WithdrawV0)
+					if err2 := bridge.contract.UnpackLog(event2, "withdraw", log); err2 != nil {
+						// return the original error though
+						return err
+					}
+					// if we get here we have an old style withdraw, convert this to the new format
+					event.Raw = event2.Raw
+					event.Receiver = event2.Receiver
+					event.Tokens = event2.Tokens
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
 }
 
 // SubscribeRegisterWithdrawAddress subscribes to new RegisterWithdrawalAddress events on the given contract. This call blocks
@@ -495,4 +562,15 @@ func (bridge *BridgeContract) TokenBalance(address common.Address) (*big.Int, er
 func (bridge *BridgeContract) EthBalance() (*big.Int, error) {
 	err := bridge.Refresh(nil) // force a refresh
 	return bridge.balance, err
+}
+
+// bindTTFT20 binds a generic wrapper to an already deployed contract.
+//
+// This method is copied from the generated bindings as a convenient way to get a *bind.Contract, as this is needed to implement the WatchWithdraw function ourselves
+func bindTTFT20(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := abi.JSON(strings.NewReader(contract.TTFT20ABI))
+	if err != nil {
+		return nil, err
+	}
+	return bind.NewBoundContract(address, parsed, caller, transactor, filterer), nil
 }
