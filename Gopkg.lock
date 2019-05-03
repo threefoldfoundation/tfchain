@@ -117,7 +117,6 @@
     "crypto/bn256/google",
     "crypto/ecies",
     "crypto/secp256k1",
-    "crypto/sha3",
     "eth",
     "eth/downloader",
     "eth/fetcher",
@@ -151,8 +150,8 @@
     "rpc",
     "trie"
   ]
-  revision = "24d727b6d6e2c0cde222fa12155c4a6db5caaf2e"
-  version = "v1.8.20"
+  revision = "4bcc0a37ab70cb79b16893556cffdaad6974e7d8"
+  version = "v1.8.27"
 
 [[projects]]
   branch = "master"
@@ -366,9 +365,10 @@
     "pbkdf2",
     "ripemd160",
     "scrypt",
+    "sha3",
     "twofish"
   ]
-  revision = "7f39a6fea4fe9364fb61e1def6a268a51b4f3a06"
+  revision = "a29dc8fdc73485234dbef99ebedb95d2eced08de"
 
 [[projects]]
   branch = "master"
