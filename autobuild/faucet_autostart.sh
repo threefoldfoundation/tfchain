@@ -51,8 +51,8 @@ pushd /tmp
 popd 
 
 CADDY_PARENT_DIR=$GOPATH/src/github.com/mholt
-CADDY_SRC=$CADDY_PARENT_DIR/mholt
-pushd CADDY_PARENT_DIR
+CADDY_SRC=$CADDY_PARENT_DIR/caddy
+pushd $CADDY_PARENT_DIR
 	git clone https://github.com/mholt/caddy
 popd
 
