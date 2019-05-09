@@ -188,8 +188,8 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 	targetConditionProxies := make([]types.UnlockConditionProxy, 0, len(targetConditions))
 	addresses := make([]string, 0, len(targetConditions))
 	for i, condition := range targetConditions {
-		targetConditionProxies[i] = types.NewCondition(condition)
-		addresses[i] = targetConditionProxies[i].UnlockHash().String()
+		targetConditionProxies = append(targetConditionProxies, types.NewCondition(condition))
+		addresses = append(addresses, targetConditionProxies[i].UnlockHash().String())
 	}
 
 	err = w.TransferCoinsMulti(amounts, targetConditionProxies, []byte(cmds.DataString), cmds.GenerateNewRefundAddress)
