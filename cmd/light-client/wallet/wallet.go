@@ -3,6 +3,7 @@ package wallet
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/threefoldfoundation/tfchain/cmd/light-client/explorer"
@@ -199,10 +200,13 @@ func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types
 	// minerfee := types.NewCurrency64(10)
 
 	// The total funds we will be spending in this transaction
-	requiredFunds := types.Currency{}.Add(txFee)
-	for _, amount := range amounts {
-		requiredFunds = requiredFunds.Add(amount)
+	requiredFunds := (types.Currency{}).Add(txFee)
+	fmt.Printf("fee: %s\n", requiredFunds.String())
+	for i := range amounts {
+		requiredFunds = requiredFunds.Add(amounts[i])
 	}
+	fmt.Printf("available funds: %s\n", walletBalance.String())
+	fmt.Printf("required funds (with %d outputs): %s\n", len(amounts), requiredFunds.String())
 
 	// Verify that we actually have enough funds available in the wallet to complete the transaction
 	if walletBalance.Cmp(requiredFunds) == -1 {
