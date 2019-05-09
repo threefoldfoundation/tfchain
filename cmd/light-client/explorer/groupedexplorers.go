@@ -49,15 +49,15 @@ func (e *GroupedExplorer) CurrentHeight() (types.BlockHeight, error) {
 }
 
 // SendTxn sends a txn to the backend to ultimately include it in the transactionpool
-func (e *GroupedExplorer) SendTxn(tx types.Transaction) error {
+func (e *GroupedExplorer) SendTxn(tx types.Transaction) (types.TransactionID, error) {
 	for _, explorer := range e.explorers {
-		err := explorer.SendTxn(tx)
+		txID, err := explorer.SendTxn(tx)
 		if err, ok := err.(net.Error); ok && err.Timeout() {
 			continue
 		}
-		return err
+		return txID, err
 	}
-	return ErrNoHealthyExplorers
+	return types.TransactionID{}, ErrNoHealthyExplorers
 }
 
 // GetChainConstants gets the currently active chain constants for this backend

@@ -42,9 +42,12 @@ func (e *Explorer) CheckAddress(addr types.UnlockHash) ([]api.ExplorerBlock, []a
 }
 
 // SendTxn posts a transaction to the explorer to include it in the transactionpool
-func (e *Explorer) SendTxn(tx types.Transaction) error {
+func (e *Explorer) SendTxn(tx types.Transaction) (types.TransactionID, error) {
 	_, err := e.post("/transactionpool/transactions", tx, nil)
-	return err
+	if err != nil {
+		return types.TransactionID{}, err
+	}
+	return tx.ID(), nil
 }
 
 // CurrentHeight gets the current height of the explorer

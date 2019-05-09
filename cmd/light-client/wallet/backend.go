@@ -13,7 +13,7 @@ type Backend interface {
 	// CurrentHeight returns the current chain height
 	CurrentHeight() (types.BlockHeight, error)
 	// SendTxn sends a txn to the backend to ultimately include it in the transactionpool
-	SendTxn(types.Transaction) error
+	SendTxn(types.Transaction) (types.TransactionID, error)
 	// GetChainConstants gets the currently active chain constants for this backend
 	GetChainConstants() (modules.DaemonConstants, error)
 	// Name returns a static name for this backend, to allow loading and saving

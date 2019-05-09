@@ -157,38 +157,38 @@ func (w *Wallet) getBalance(outputs SpendableOutputs) types.Currency {
 
 // TransferCoins transfers coins by creating and submitting a V1 transaction.
 // Data can optionally be included.
-func (w *Wallet) TransferCoins(amount types.Currency, to types.UnlockConditionProxy, data []byte, newRefundAddress bool) error {
+func (w *Wallet) TransferCoins(amount types.Currency, to types.UnlockConditionProxy, data []byte, newRefundAddress bool) (types.TransactionID, error) {
 	return w.TransferCoinsMulti([]types.Currency{amount}, []types.UnlockConditionProxy{to}, data, newRefundAddress)
 }
 
 // TransferCoinsMulti transfers coins by creating and submitting a V1 transaction,
 // with multiple outputs. Data can optionally be included.
-func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types.UnlockConditionProxy, data []byte, newRefundAddress bool) error {
+func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types.UnlockConditionProxy, data []byte, newRefundAddress bool) (types.TransactionID, error) {
 	// check data length
 	if len(data) > ArbitraryDataMaxSize {
-		return ErrTooMuchData
+		return types.TransactionID{}, ErrTooMuchData
 	}
 	if len(amounts) == 0 {
-		return errors.New("at least one amount is required")
+		return types.TransactionID{}, errors.New("at least one amount is required")
 	}
 	if len(amounts) != len(conditions) {
-		return errors.New("the amount of of amounts does not match the amount of conditions")
+		return types.TransactionID{}, errors.New("the amount of of amounts does not match the amount of conditions")
 	}
 
 	chainCts, err := w.backend.GetChainConstants()
 	if err != nil {
-		return err
+		return types.TransactionID{}, err
 	}
 
 	outputs, err := w.getUnspentCoinOutputs()
 	if err != nil {
-		return err
+		return types.TransactionID{}, err
 	}
 
 	// only continue with unlocked outputs
 	outputs, _, err = w.splitTimeLockedOutputs(outputs)
 	if err != nil {
-		return err
+		return types.TransactionID{}, err
 	}
 
 	walletBalance := w.getBalance(outputs)
@@ -210,7 +210,7 @@ func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types
 
 	// Verify that we actually have enough funds available in the wallet to complete the transaction
 	if walletBalance.Cmp(requiredFunds) == -1 {
-		return ErrInsufficientWalletFunds
+		return types.TransactionID{}, ErrInsufficientWalletFunds
 	}
 
 	// Create the transaction object
@@ -243,7 +243,7 @@ func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types
 	// sanity checking
 	for _, inp := range inputs {
 		if _, exists := w.keys[outputs[inp.ParentID].Condition.UnlockHash()]; !exists {
-			return errors.New("Trying to spend unexisting output")
+			return types.TransactionID{}, errors.New("Trying to spend unexisting output")
 		}
 	}
 
@@ -271,7 +271,7 @@ func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types
 			refundAddr = key.UnlockHash()
 			// make sure to save so we update the key count in the persistent data
 			if err = save(w); err != nil {
-				return err
+				return types.TransactionID{}, err
 			}
 		}
 		outputToSelf := types.CoinOutput{
@@ -290,7 +290,7 @@ func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types
 
 	// sign transaction
 	if err := w.signTxn(txn, outputs); err != nil {
-		return err
+		return types.TransactionID{}, err
 	}
 
 	// finally commit

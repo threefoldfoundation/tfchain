@@ -192,12 +192,12 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 		addresses = append(addresses, targetConditionProxies[i].UnlockHash().String())
 	}
 
-	err = w.TransferCoinsMulti(amounts, targetConditionProxies, []byte(cmds.DataString), cmds.GenerateNewRefundAddress)
+	txID, err := w.TransferCoinsMulti(amounts, targetConditionProxies, []byte(cmds.DataString), cmds.GenerateNewRefundAddress)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Transaction posted")
+	fmt.Printf("Transaction posted: %s\n", txID.String())
 	for i, address := range addresses {
 		amount := amounts[i]
 		fmt.Println("Transfered", cc.ToCoinStringWithUnit(amount), "to", address)
@@ -269,12 +269,12 @@ func reserveWorkload(w *wallet.Wallet, workload Workload, sizeString string,
 		return err
 	}
 
-	err = w.TransferCoins(amount, types.NewCondition(targetCondition), buf, newRefundAddr)
+	txID, err := w.TransferCoins(amount, types.NewCondition(targetCondition), buf, newRefundAddr)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Reservation created")
+	fmt.Printf("Reservation created in transaction %s\n", txID.String())
 	fmt.Printf("Paid %v to %v to reserve a %v of size %v\n", cc.ToCoinStringWithUnit(amount),
 		targetCondition.UnlockHash().String(), workload, size)
 
