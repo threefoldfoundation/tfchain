@@ -160,7 +160,7 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 			}
 			amounts = []types.Currency{}
 			for i := 0; i < len(args); i += 2 {
-				amount, err := cc.ParseCoinString(args[0])
+				amount, err := cc.ParseCoinString(args[i])
 				if err != nil {
 					return err
 				}
@@ -198,7 +198,10 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println("Transaction posted")
-	fmt.Println("Transfered", cc.ToCoinStringWithUnit(amount), "to", strings.Join(addresses, ", "))
+	for i, address := range addresses {
+		amount := amounts[i]
+		fmt.Println("Transfered", cc.ToCoinStringWithUnit(amount), "to", address)
+	}
 	return nil
 }
 
