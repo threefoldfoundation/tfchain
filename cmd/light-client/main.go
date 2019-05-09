@@ -20,6 +20,7 @@ const (
 type cmds struct {
 	KeysToLoad               uint64
 	GenerateNewRefundAddress bool
+	MultiSig                 bool
 	DataString               string
 	LockString               string
 	Network                  string
@@ -103,6 +104,7 @@ The following formats are supported to identify the receiver:
 			Args: cobra.MinimumNArgs(2),
 		}
 		txCmd.Flags().BoolVar(&cmd.GenerateNewRefundAddress, "new-refund-addr", false, "Generate a new refund address instead of reusing an existing address")
+		txCmd.Flags().BoolVar(&cmd.MultiSig, "multisig", false, "Send coins to a multisignature address")
 		txCmd.Flags().StringVarP(&cmd.DataString, "data", "d", "", "Attach this string as arbitrary data to the transaction")
 		txCmd.Flags().StringVarP(&cmd.LockString, "lock", "l", "", "Optional time lock. Supported formats are: <integer>, <data>, <date time> <duration>")
 

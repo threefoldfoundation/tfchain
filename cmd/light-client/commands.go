@@ -112,12 +112,13 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	amounts := []types.Currency{amount}
 
-	var targetCondition types.MarshalableUnlockCondition
+	var targetConditions []types.MarshalableUnlockCondition
 	if len(args) == 2 {
 		// nil condition
 		if args[1] == "" {
-			targetCondition = &types.NilCondition{}
+			targetConditions = []types.MarshalableUnlockCondition{&types.NilCondition{}}
 		} else {
 			// actual address
 			var to types.UnlockHash
@@ -125,33 +126,54 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return err
 			}
-			targetCondition = types.NewUnlockHashCondition(to)
+			targetConditions = []types.MarshalableUnlockCondition{types.NewUnlockHashCondition(to)}
 		}
 	} else {
-		addressCount := len(args) - 1
-		var addresses []types.UnlockHash
-		// try to parse the last argument as an amount of signatures
-		sigAmt, err := parseAmount(args[len(args)-1])
-		if err != nil {
-			// all multisig addresses
-			sigAmt = uint64(addressCount)
-		} else {
-			// last input is an amount so we have 1 less address input
-			addressCount--
-			if sigAmt > uint64(addressCount) {
-				return errors.New("Invalid amount of signatures required, can't require more signatures than there are addresses")
-			}
-		}
-		// first arg is the amount of tokens so ignore that
-		for i := 1; i < addressCount+1; i++ {
-			addr := types.UnlockHash{}
-			err = addr.LoadString(args[i])
+		if cmds.MultiSig {
+			addressCount := len(args) - 1
+			var addresses []types.UnlockHash
+			// try to parse the last argument as an amount of signatures
+			sigAmt, err := parseAmount(args[len(args)-1])
 			if err != nil {
-				return err
+				// all multisig addresses
+				sigAmt = uint64(addressCount)
+			} else {
+				// last input is an amount so we have 1 less address input
+				addressCount--
+				if sigAmt > uint64(addressCount) {
+					return errors.New("Invalid amount of signatures required, can't require more signatures than there are addresses")
+				}
 			}
-			addresses = append(addresses, addr)
+			// first arg is the amount of tokens so ignore that
+			for i := 1; i < addressCount+1; i++ {
+				addr := types.UnlockHash{}
+				err = addr.LoadString(args[i])
+				if err != nil {
+					return err
+				}
+				addresses = append(addresses, addr)
+			}
+			targetConditions = []types.MarshalableUnlockCondition{types.NewMultiSignatureCondition(addresses, sigAmt)}
+		} else {
+			if len(args)%2 != 0 {
+				return errors.New("amount/address pair(s) expected")
+			}
+			amounts = []types.Currency{}
+			for i := 0; i < len(args); i += 2 {
+				amount := types.Currency{}
+				err = amount.LoadString(args[i])
+				if err != nil {
+					return err
+				}
+				amounts = append(amounts, amount)
+				addr := types.UnlockHash{}
+				err = addr.LoadString(args[i+1])
+				if err != nil {
+					return err
+				}
+				targetConditions = append(targetConditions, types.NewUnlockHashCondition(addr))
+			}
 		}
-		targetCondition = types.NewMultiSignatureCondition(addresses, sigAmt)
 	}
 
 	if cmds.LockString != "" {
@@ -159,16 +181,25 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		targetCondition = types.NewTimeLockCondition(timeLock, targetCondition)
+		for i := range targetConditions {
+			targetConditions[i] = types.NewTimeLockCondition(timeLock, targetConditions[i])
+		}
 	}
 
-	err = w.TransferCoins(amount, types.NewCondition(targetCondition), []byte(cmds.DataString), cmds.GenerateNewRefundAddress)
+	targetConditionProxies := make([]types.UnlockConditionProxy, 0, len(targetConditions))
+	addresses := make([]string, 0, len(targetConditions))
+	for i, condition := range targetConditions {
+		targetConditionProxies[i] = types.NewCondition(condition)
+		addresses[i] = targetConditionProxies[i].UnlockHash().String()
+	}
+
+	err = w.TransferCoinsMulti(amounts, targetConditionProxies, []byte(cmds.DataString), cmds.GenerateNewRefundAddress)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Transaction posted")
-	fmt.Println("Transfered", cc.ToCoinStringWithUnit(amount), "to", targetCondition.UnlockHash().String())
+	fmt.Println("Transfered", cc.ToCoinStringWithUnit(amount), "to", strings.Join(addresses, ", "))
 	return nil
 }
 

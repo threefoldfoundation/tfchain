@@ -157,9 +157,21 @@ func (w *Wallet) getBalance(outputs SpendableOutputs) types.Currency {
 // TransferCoins transfers coins by creating and submitting a V1 transaction.
 // Data can optionally be included.
 func (w *Wallet) TransferCoins(amount types.Currency, to types.UnlockConditionProxy, data []byte, newRefundAddress bool) error {
+	return w.TransferCoinsMulti([]types.Currency{amount}, []types.UnlockConditionProxy{to}, data, newRefundAddress)
+}
+
+// TransferCoinsMulti transfers coins by creating and submitting a V1 transaction,
+// with multiple outputs. Data can optionally be included.
+func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types.UnlockConditionProxy, data []byte, newRefundAddress bool) error {
 	// check data length
 	if len(data) > ArbitraryDataMaxSize {
 		return ErrTooMuchData
+	}
+	if len(amounts) == 0 {
+		return errors.New("at least one amount is required")
+	}
+	if len(amounts) != len(conditions) {
+		return errors.New("the amount of of amounts does not match the amount of conditions")
 	}
 
 	chainCts, err := w.backend.GetChainConstants()
@@ -187,7 +199,10 @@ func (w *Wallet) TransferCoins(amount types.Currency, to types.UnlockConditionPr
 	// minerfee := types.NewCurrency64(10)
 
 	// The total funds we will be spending in this transaction
-	requiredFunds := amount.Add(txFee)
+	requiredFunds := types.Currency{}.Add(txFee)
+	for _, amount := range amounts {
+		requiredFunds = requiredFunds.Add(amount)
+	}
 
 	// Verify that we actually have enough funds available in the wallet to complete the transaction
 	if walletBalance.Cmp(requiredFunds) == -1 {
@@ -229,10 +244,13 @@ func (w *Wallet) TransferCoins(amount types.Currency, to types.UnlockConditionPr
 	}
 
 	// Add our first output
-	txn.CoinOutputs = append(txn.CoinOutputs, types.CoinOutput{
-		Value:     amount,
-		Condition: to,
-	})
+	for i, condition := range conditions {
+		amount := amounts[i]
+		txn.CoinOutputs = append(txn.CoinOutputs, types.CoinOutput{
+			Value:     amount,
+			Condition: condition,
+		})
+	}
 
 	// So now we have enough inputs to fund everything. But we might have overshot it a little bit, so lets check that
 	// and add a new output to ourself if required to consume the leftover value
