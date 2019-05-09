@@ -160,8 +160,7 @@ func (cmds *cmds) walletSend(cmd *cobra.Command, args []string) error {
 			}
 			amounts = []types.Currency{}
 			for i := 0; i < len(args); i += 2 {
-				amount := types.Currency{}
-				err = amount.LoadString(args[i])
+				amount, err := cc.ParseCoinString(args[0])
 				if err != nil {
 					return err
 				}
