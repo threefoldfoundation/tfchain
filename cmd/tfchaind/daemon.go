@@ -326,6 +326,11 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 		// supported on the standard network
 		tfchaintypes.RegisterTransactionTypesForStandardNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
 
+		// Get the bootstrap peers from the config
+		if len(cfg.BootstrapPeers) == 0 {
+			cfg.BootstrapPeers = config.GetStandardnetBootstrapPeers()
+		}
+
 		// return the standard genesis block and bootstrap peers
 		return daemon.NetworkConfig{
 			Constants:      constants,
@@ -345,6 +350,11 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 		// supported on the test network
 		tfchaintypes.RegisterTransactionTypesForTestNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
 
+		// Get the bootstrap peers from the config
+		if len(cfg.BootstrapPeers) == 0 {
+			cfg.BootstrapPeers = config.GetTestnetBootstrapPeers()
+		}
+
 		// return the testnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
 			Constants:      constants,
@@ -363,6 +373,11 @@ func setupNetwork(cfg ExtendedDaemonConfig, erc20TxValidator tfchaintypes.ERC20T
 		// Register the transaction controllers for all transaction versions
 		// supported on the dev network
 		tfchaintypes.RegisterTransactionTypesForDevNetwork(txdb, erc20TxValidator, constants.CurrencyUnits.OneCoin, networkConfig)
+
+		// Get the bootstrap peers from the config
+		if len(cfg.BootstrapPeers) == 0 {
+			cfg.BootstrapPeers = config.GetDevnetBootstrapPeers()
+		}
 
 		// return the devnet genesis block and bootstrap peers
 		return daemon.NetworkConfig{
