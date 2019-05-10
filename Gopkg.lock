@@ -344,7 +344,7 @@
     "sync",
     "types"
   ]
-  revision = "75993ba4f451b08b970e593ba6c3e99d5fb492e9"
+  revision = "6c9e8e3eb879b512050618f03a928134f1f8b260"
 
 [[projects]]
   branch = "master"
