@@ -213,7 +213,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 			printModuleIsLoading("explorer")
 			e, err = explorer.New(cs,
 				filepath.Join(cfg.RootPersistentDir, modules.ExplorerDir),
-				cfg.BlockchainInfo, networkCfg.Constants)
+				cfg.BlockchainInfo, networkCfg.Constants, cfg.VerboseLogging)
 			if err != nil {
 				servErrs <- err
 				cancel()
