@@ -4,6 +4,7 @@ root ../public
 header / {
 	    Access-Control-Allow-Origin  *
         Access-Control-Allow-Methods  *
+        Access-Control-Allow-Headers  *
 }
 
 proxy /explorer localhost:23110 {
