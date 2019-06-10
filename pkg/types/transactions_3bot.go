@@ -1291,7 +1291,7 @@ func (brtc BotRegistrationTransactionController) ValidateTransaction(t types.Tra
 	// look up the public key, to ensure it is not registered yet
 	_, err = brtc.Registry.GetRecordForKey(brtx.Identification.PublicKey)
 	if err == nil {
-		return ErrBotNameAlreadyRegistered
+		return ErrBotKeyAlreadyRegistered
 	}
 	if err != ErrBotKeyNotFound {
 		return fmt.Errorf("unexpected error while validating non-existence of bot's public key: %v", err)
