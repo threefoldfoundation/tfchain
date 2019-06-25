@@ -13,8 +13,8 @@ import (
 	"github.com/bgentry/speakeasy"
 
 	"github.com/spf13/cobra"
-	"github.com/threefoldfoundation/tfchain/cmd/light-client/explorer"
-	"github.com/threefoldfoundation/tfchain/cmd/light-client/wallet"
+	"github.com/threefoldfoundation/tfchain/cmd/tfchaint/explorer"
+	"github.com/threefoldfoundation/tfchain/cmd/tfchaint/wallet"
 )
 
 type (

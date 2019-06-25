@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/threefoldfoundation/tfchain/cmd/light-client/wallet"
+	"github.com/threefoldfoundation/tfchain/cmd/tfchaint/wallet"
 
 	"github.com/spf13/cobra"
 )
@@ -32,7 +32,7 @@ func main() {
 	var cmd cmds
 
 	rootCmd := &cobra.Command{
-		Use:   "tfchain-light [wallet name]",
+		Use:   "tfchaint [wallet name]",
 		Short: "Tfchain command line light wallet",
 		Long: `A command line based light wallet for Threefold Chain. This application uses a locally
 stored seed, and gets the required blockchain info from public explorers. This way you can manage a wallet

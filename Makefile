@@ -2,6 +2,7 @@ all: install
 
 daemonpkgs = ./cmd/tfchaind
 clientpkgs = ./cmd/tfchainc
+thinclientpkgs = ./cmd/tfchaint
 bridgepkgs = ./cmd/bridged
 bridgeclientpkgs = ./cmd/bridgec
 faucetpkgs = ./frontend/tftfaucet
@@ -27,27 +28,32 @@ ldflagsversion = -X $(configpkg).rawVersion=$(fullversion)
 stdoutput = $(GOPATH)/bin
 daemonbin = $(stdoutput)/tfchaind
 clientbin = $(stdoutput)/tfchainc
+thinclientbin = $(stdoutput)/tfchaint
 bridgebin = $(stdoutput)/bridged
 bridgeclientbin = $(stdoutput)/bridgec
 
 install:
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
+	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(thinclientbin) $(thinclientpkgs)
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(bridgebin) $(bridgepkgs)
 
 install-std:
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
+	go build -ldflags '$(ldflagsversion) -s -w' -o $(thinclientbin) $(thinclientpkgs)
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgebin) $(bridgepkgs)
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgeclientbin) $(bridgeclientpkgs)
 
 install-noeth:
 	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
 	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
+	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(thinclientbin) $(thinclientpkgs)
 
 install-std-noeth:
 	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
 	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
+	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(thinclientbin) $(thinclientpkgs)
 
 update:
 	git pull && git submodule update --recursive --remote

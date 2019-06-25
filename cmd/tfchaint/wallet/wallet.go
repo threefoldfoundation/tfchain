@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/threefoldfoundation/tfchain/cmd/light-client/explorer"
+	"github.com/threefoldfoundation/tfchain/cmd/tfchaint/explorer"
 	"github.com/threefoldtech/rivine/crypto"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/types"
