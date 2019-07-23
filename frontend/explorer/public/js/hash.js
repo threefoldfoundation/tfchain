@@ -60,6 +60,7 @@ function appendUnknownTransaction(infoBody, explorerTransaction, confirmed) {
 	table = createStatsTable();
 	infoBody.appendChild(table);
 	appendStatHeader(table, 'Unsupported Transaction Version');
+	appendStatHeader(table, 'Unsupported Transaction Version');
 	doms = appendStat(table, 'Transaction Version', explorerTransaction.rawtransaction.version);
 }
 
@@ -90,7 +91,7 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 		appendStat(table, 'Blockstake Output Count', explorerTransaction.rawtransaction.data.blockstakeoutputs.length);
 	}
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Byte Count',  b64DecodeUnicode(explorerTransaction.rawtransaction.data.arbitrarydata).length);
+		appendStat(table, 'Arbitrary Data Byte Count',  decodeArrayBuffer(explorerTransaction.rawtransaction.data.arbitrarydata).length);
 	}
 	infoBody.appendChild(table);
 
@@ -177,7 +178,7 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Base64-decoded Data', b64DecodeUnicode(explorerTransaction.rawtransaction.data.arbitrarydata));
+		appendStat(table, 'data', arbitraryDataToString(explorerTransaction.rawtransaction.data.arbitrarydata));
 		infoBody.appendChild(table);
 	}
 	if (confirmed) {
@@ -227,7 +228,7 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 		appendStat(table, 'Blockstake Output Count', explorerTransaction.rawtransaction.data.blockstakeoutputs.length);
 	}
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Byte Count',  b64DecodeUnicode(explorerTransaction.rawtransaction.data.arbitrarydata).length);
+		appendStat(table, 'Arbitrary Data Byte Count',  decodeArrayBuffer(explorerTransaction.rawtransaction.data.arbitrarydata).length);
 	}
 	infoBody.appendChild(table);
 
@@ -292,7 +293,7 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 		appendStatTableTitle(infoBody, 'Blockstake Inputs');
 		for (var i = 0; i < explorerTransaction.rawtransaction.data.blockstakeinputs.length; i++) {
 			var f;
-			switch (explorerTransaction.rawtransaction.data.blockstakeinputs[i].fulfillment.type) {				
+			switch (explorerTransaction.rawtransaction.data.blockstakeinputs[i].fulfillment.type) {
 				case 0:
 					break;
 				case 1:
@@ -333,7 +334,7 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Base64-decoded Data', b64DecodeUnicode(explorerTransaction.rawtransaction.data.arbitrarydata));
+		appendStat(table, 'data', arbitraryDataToString(explorerTransaction.rawtransaction.data.arbitrarydata));
 		infoBody.appendChild(table);
 	}
 	if (confirmed) {
@@ -371,7 +372,7 @@ function appendV128Transaction(infoBody, explorerTransaction, confirmed) {
 	doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction.id);
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Byte Count',  b64DecodeUnicode(explorerTransaction.rawtransaction.data.arbitrarydata).length);
+		appendStat(table, 'Arbitrary Data Byte Count',  decodeArrayBuffer(explorerTransaction.rawtransaction.data.arbitrarydata).length);
 	}
 	infoBody.appendChild(table);
 
@@ -423,7 +424,7 @@ function appendV128Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Base64-decoded Data', b64DecodeUnicode(explorerTransaction.rawtransaction.data.arbitrarydata));
+		appendStat(table, 'data', arbitraryDataToString(explorerTransaction.rawtransaction.data.arbitrarydata));
 		infoBody.appendChild(table);
 	}
 
@@ -463,7 +464,7 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 	linkHash(doms[2], explorerTransaction.id);
 	appendStat(table, 'Coin Output Count', explorerTransaction.rawtransaction.data.coinoutputs.length);
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
-		appendStat(table, 'Arbitrary Data Byte Count',  b64DecodeUnicode(explorerTransaction.rawtransaction.data.arbitrarydata).length);
+		appendStat(table, 'Arbitrary Data Byte Count',  decodeArrayBuffer(explorerTransaction.rawtransaction.data.arbitrarydata).length);
 	}
 	infoBody.appendChild(table);
 
@@ -520,7 +521,7 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 	if (explorerTransaction.rawtransaction.data.arbitrarydata != null) {
 		appendStatTableTitle(infoBody, 'Arbitrary Data');
 		var table = createStatsTable();
-		appendStat(table, 'Base64-decoded Data', b64DecodeUnicode(explorerTransaction.rawtransaction.data.arbitrarydata));
+		appendStat(table, 'data', arbitraryDataToString(explorerTransaction.rawtransaction.data.arbitrarydata));
 		infoBody.appendChild(table);
 	}
 
@@ -1341,13 +1342,13 @@ function addV1T3Input(infoBody, explorerTransaction, i, type) {
 	var doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction.rawtransaction.data[inputspecifier][i].parentid);
 
-	
+
 	var amount = explorerTransaction[inputoutputspecifier][i].value;
 	if (type === 'coins') {
 		amount = readableCoins(amount);
 	}
 	appendStat(table, 'Value', amount);
-	
+
 	appendStatHeader(table, 'Condition');
 	appendStat(table, 'Type', explorerTransaction[inputoutputspecifier][i].condition.type);
 	var rawInput = explorerTransaction[inputoutputspecifier][i];
@@ -1393,11 +1394,11 @@ function addV1NilOutput(_ctx, table, explorerTransaction, i, type, outputs) {
 
 	var doms = appendStat(table, 'ID', '');
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
-	
+
 	var locked = addVNilCondition(_ctx, table);
 
 	if (outputs == null) {
-		var outputspecifier = getOutputSpecifier(type);	
+		var outputspecifier = getOutputSpecifier(type);
 		outputs = explorerTransaction.rawtransaction.data[outputspecifier];
 	}
 
@@ -1425,7 +1426,7 @@ function addV1T1Output(_ctx, table, explorerTransaction, i, type, outputs) {
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
 	if (outputs == null) {
-		var outputspecifier = getOutputSpecifier(type);	
+		var outputspecifier = getOutputSpecifier(type);
 		outputs = explorerTransaction.rawtransaction.data[outputspecifier];
 	}
 
@@ -1453,7 +1454,7 @@ function addV1T2Output(_ctx, table, explorerTransaction, i, type, outputs) {
 	var outputunlockhashesspecifier = getOutputUnlockHashesSpecifier(type);
 
 	if (outputs == null) {
-		var outputspecifier = getOutputSpecifier(type);	
+		var outputspecifier = getOutputSpecifier(type);
 		outputs = explorerTransaction.rawtransaction.data[outputspecifier];
 	}
 
@@ -1503,7 +1504,7 @@ function addV1T3Output(ctx, table, explorerTransaction, i, type, outputs) {
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
 	if (outputs == null) {
-		var outputspecifier = getOutputSpecifier(type);	
+		var outputspecifier = getOutputSpecifier(type);
 		outputs = explorerTransaction.rawtransaction.data[outputspecifier];
 	}
 
@@ -1518,7 +1519,7 @@ function addV1T3Output(ctx, table, explorerTransaction, i, type, outputs) {
 		amount = readableCoins(amount);
 	}
 	appendStat(table, 'Value', amount);
-	
+
 	return {
 		value: output.value,
 		locked: locked,
@@ -1570,7 +1571,7 @@ function addV1T4Output(_ctx, table, explorerTransaction, i, type, outputs) {
 	linkHash(doms[2], explorerTransaction[outputidspecifier][i]);
 
 	if (outputs == null) {
-		var outputspecifier = getOutputSpecifier(type);	
+		var outputspecifier = getOutputSpecifier(type);
 		outputs = explorerTransaction.rawtransaction.data[outputspecifier];
 	}
 
@@ -1822,7 +1823,7 @@ function appendUnlockHashTransactionElements(domParent, hash, explorerHash, addr
 		for (var i = 0; i < scoids.length; i++) {
 			if (scoidMatches[i] == true) {
 				appendStat(tables[i], 'Has Been Spent', 'Yes');
-				
+
 			} else {
 				appendStat(tables[i], 'Has Been Spent', 'No');
 				if (values[i].confirmed) {
@@ -2115,7 +2116,7 @@ function appendUnlockHashTables(domParent, hash, explorerHash) {
 				if (j == 0) {
 					sourceDesc = 'Block Creator Reward';
 				} else if (j == 1) {
-					sourceDesc = 'Transactions Fee Payout'; 
+					sourceDesc = 'Transactions Fee Payout';
 				} else {
 					// try to get specific title for this custom Miner Fee Payout
 					var targetIndex = j - 2;
@@ -2417,9 +2418,9 @@ function appendRawTransaction(infoBody, rawTx) {
 	container.classList.add('raw', 'hidden');
 	var block = document.createElement('CODE');
 	block.textContent = JSON.stringify(rawTx);
-	
+
 	buttonContainer.appendChild(button);
-	infoBody.appendChild(buttonContainer);	
+	infoBody.appendChild(buttonContainer);
 	container.appendChild(block);
 	infoBody.appendChild(container);
 }
@@ -2671,7 +2672,7 @@ function appendNavigationMenuCoinOutput(explorerHash, hash) {
 					linkHash(outputSpan, explorerHash.transactions[i].coinoutputids[j], 'Coin Output');
 					return;
 				}
-			} 
+			}
 		}
 	}
 	if (explorerHash.blocks == null) {
@@ -2745,7 +2746,7 @@ function appendNavigationInvalidHash() {
 // fills out the page with the response.
 function fetchHashInfo(hash) {
 	var request = new XMLHttpRequest();
-	var reqString = '/explorer/hashes/' + hash;
+	var reqString = 'https://explorer.testnet.threefoldtoken.com/explorer/hashes/' + hash;
 	request.open('GET', reqString, false);
 	request.send();
 	if (request.status != 200) {
@@ -2928,10 +2929,10 @@ function buildErrorPage(hash) {
 				'The transaction, Block, Coin Output or Blockstake Output'+
 				' &mdash;referenced by the given identifier&mdash; might have been reverted as part of a fork');
 		} else {
-			title += ' has an invalid length;'	
+			title += ' has an invalid length;'
 		}
 		makeErrorMessage(errorBody, title, suggestions);
-	
+
 		// add a last suggestion
 		var lastSuggestion = document.createElement('div');
 		errorBody.appendChild(lastSuggestion)
@@ -2954,7 +2955,7 @@ function buildErrorPage(hash) {
 		'Unlock Hashes &mdash;meaning Wallet and Contract Addresses&mdash; have a length of 78 characters'
 	]
 	makeErrorMessage(errorBody, title, suggestions);
-} 
+}
 
 function makeErrorMessage(body, title, suggestions) {
 	var errorMessage = document.createElement('div');
@@ -2990,7 +2991,7 @@ function appendSearchHash() {
 
 	text.innerHTML = "Would you like to try again? Please correct your hash, and paste it here in order to search for it:";
 
-	searchField.required = true;              
+	searchField.required = true;
 	searchField.setAttribute('name', 'hash');
 
 	searchButton.setAttribute('value', 'go');
@@ -3003,6 +3004,142 @@ function appendSearchHash() {
 	hashSearchForm.appendChild(searchField);
 	hashSearchForm.appendChild(searchButton);
 	container.appendChild(hashSearchForm);
+}
+
+function uint8ArrayToString(uarray) {
+	return '0x' + uarray.map(x => ('00' + x.toString(16)).slice(-2)).join('')
+}
+
+function arbitraryDataToString(arbitrarydata) {
+	const arbitraryDecoded = decodeArrayBuffer(arbitrarydata);
+	if (arbitraryDecoded.length < 9) {
+		return uint8ArrayToString(arbitraryDecoded);
+	}
+
+	// skip checksum validation as we do not have a blake2b lib available here
+	let type = Number(arbitraryDecoded[6]);
+	if (type !== 1) {
+		return uint8ArrayToString(arbitraryDecoded)
+	}
+
+	const senderLength = Number(arbitraryDecoded[7]);
+	const messageLength = Number(arbitraryDecoded[8]);
+
+	// ensure the length is ok
+	if (arbitraryDecoded.length < senderLength+messageLength+9) {
+		return uint8ArrayToString(arbitraryDecoded);
+	}
+
+	// decode the sender/message
+	let decoder = new TextDecoder();
+	let sender = '';
+	let message = '';
+
+	if (senderLength > 0) {
+		sender = decoder.decode(arbitraryDecoded.slice(9, 9+senderLength));
+	}
+	if (messageLength > 0) {
+		message = decoder.decode(arbitraryDecoded.slice(9+senderLength, 9+senderLength+messageLength));
+	}
+
+	// return the content as a single string
+	if (sender !== '') {
+		if (message !== '') {
+			return `${message} (from: ${sender})`;
+		}
+		return `from: ${sender}`;
+	} else if (message !== '') {
+		return message;
+	}
+	return '';
+}
+
+/*
+Copyright (c) 2011, Daniel Guerrero
+All rights reserved.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL DANIEL GUERRERO BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/**
+ * Uses the new array typed in javascript to binary base64 encode/decode
+ * at the moment just decodes a binary base64 encoded
+ * into either an ArrayBuffer (decodeArrayBuffer)
+ * or into an Uint8Array (decode)
+ * 
+ * References:
+ * https://developer.mozilla.org/en/JavaScript_typed_arrays/ArrayBuffer
+ * https://developer.mozilla.org/en/JavaScript_typed_arrays/Uint8Array
+ */
+// _keyBase64Str is used for decoding
+const _keyBase64Str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
+/* will return a  Uint8Array type */
+function decodeArrayBuffer(input) {
+	var bytes = (input.length/4) * 3;
+	var ab = new ArrayBuffer(bytes);
+	decode(input, ab);
+	
+	return new Uint8Array(ab);
+}
+function removePaddingChars(input){
+	var lkey = _keyBase64Str.indexOf(input.charAt(input.length - 1));
+	if(lkey == 64){
+		return input.substring(0,input.length - 1);
+	}
+	return input;
+}
+function decode(input, arrayBuffer) {
+	//get last chars to see if are valid
+	input = removePaddingChars(input);
+	input = removePaddingChars(input);
+
+	var bytes = parseInt((input.length / 4) * 3, 10);
+	
+	var uarray;
+	var chr1, chr2, chr3;
+	var enc1, enc2, enc3, enc4;
+	var i = 0;
+	var j = 0;
+	
+	if (arrayBuffer)
+		uarray = new Uint8Array(arrayBuffer);
+	else
+		uarray = new Uint8Array(bytes);
+	
+	input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+	
+	for (i=0; i<bytes; i+=3) {	
+		//get the 3 octects in 4 ascii chars
+		enc1 = _keyBase64Str.indexOf(input.charAt(j++));
+		enc2 = _keyBase64Str.indexOf(input.charAt(j++));
+		enc3 = _keyBase64Str.indexOf(input.charAt(j++));
+		enc4 = _keyBase64Str.indexOf(input.charAt(j++));
+
+		chr1 = (enc1 << 2) | (enc2 >> 4);
+		chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+		chr3 = ((enc3 & 3) << 6) | enc4;
+
+		uarray[i] = chr1;			
+		if (enc3 != 64) uarray[i+1] = chr2;
+		if (enc4 != 64) uarray[i+2] = chr3;
+	}
+
+	return uarray;	
 }
 
 buildHashPage();
