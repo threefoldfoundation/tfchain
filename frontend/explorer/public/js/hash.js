@@ -2746,7 +2746,7 @@ function appendNavigationInvalidHash() {
 // fills out the page with the response.
 function fetchHashInfo(hash) {
 	var request = new XMLHttpRequest();
-	var reqString = 'https://explorer.testnet.threefoldtoken.com/explorer/hashes/' + hash;
+	var reqString = '/explorer/hashes/' + hash;
 	request.open('GET', reqString, false);
 	request.send();
 	if (request.status != 200) {
