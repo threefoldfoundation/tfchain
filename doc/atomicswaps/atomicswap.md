@@ -2,7 +2,7 @@
 
 ## Theory
 
-A cross-chain swap is a trade between two users of different cryptocurrencies. For example, one party may send Threefold tokens to a second party's Threefold address, while the second party would send Bitcoin to the first party's Bitcoin address. However, as the blockchains are unrelated and transactions cannot be reversed, this does not protect against one of the parties not honoring their end of the deal. One common solution to this problem is to introduce a mutually-trusted third party for escrow. An atomic cross-chain swap solves this problem without the need for a third party. On top of that, it achieves waterproof validation without introducing the problems and complexities introduced by a escrow-based validation system.
+A cross-chain swap is a trade between two users of different cryptocurrencies. For example, one party may send Threefold Tokens to a second party's Threefold Address, while the second party would send Bitcoin to the first party's Bitcoin address. However, as the blockchains are unrelated and transactions cannot be reversed, this does not protect against one of the parties not honoring their end of the deal. One common solution to this problem is to introduce a mutually-trusted third party for escrow. An atomic cross-chain swap solves this problem without the need for a third party. On top of that, it achieves waterproof validation without introducing the problems and complexities introduced by a escrow-based validation system.
 
 Atomic swaps involve each party paying into a contract transaction, one contract for each blockchain. The contracts contain an output that is spendable by either party, but the rules required for redemption are different for each party involved. 
 
