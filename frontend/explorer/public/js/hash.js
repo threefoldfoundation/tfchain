@@ -1366,7 +1366,7 @@ function addV1T3Input(infoBody, explorerTransaction, i, type) {
 	appendStat(table, 'Minimum Signature Count', condition.data.minimumsignaturecount);
 
 	appendStatHeader(table, 'Fulfillment');
-	addV3Fulfillment(table, explorerTransaction.rawtransaction.data[inputspecifier][i].rawInput.fulfillment)
+	addV3Fulfillment(table, explorerTransaction.rawtransaction.data[inputspecifier][i].fulfillment)
 	infoBody.appendChild(table);
 }
 
