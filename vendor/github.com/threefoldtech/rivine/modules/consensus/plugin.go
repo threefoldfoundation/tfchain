@@ -1,12 +1,14 @@
 package consensus
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/persist"
 	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
+	"github.com/threefoldtech/rivine/types"
 
 	bolt "github.com/rivine/bbolt"
 )
@@ -49,7 +51,9 @@ type pluginMetadata struct {
 // RegisterPlugin registers a plugin to the map of plugins,
 // initializes its bucket using the plugin and ensures it receives all
 // consensus updates it is missing (as a special case this means anything).
-func (cs *ConsensusSet) RegisterPlugin(name string, plugin modules.ConsensusSetPlugin, cancel <-chan struct{}) error {
+// This initial sync is cancelled if tyhe passed context is cancelled.
+func (cs *ConsensusSet) RegisterPlugin(ctx context.Context, name string, plugin modules.ConsensusSetPlugin) error {
+	cs.log.Debugln("Registering plugin ", name)
 	if name == "" {
 		return ErrPluginNameEmpty
 	}
@@ -82,48 +86,59 @@ func (cs *ConsensusSet) RegisterPlugin(name string, plugin modules.ConsensusSetP
 	}
 
 	// init sync the plugin
-	newConsensusChangeID, err := cs.initPluginSync(name, plugin, consensusChangeID, cancel)
+	initialSyncCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	newConsensusChangeID, err := cs.initPluginSync(initialSyncCtx, name, plugin, consensusChangeID)
 	if err != nil {
 		return err
 	}
 
-	if newConsensusChangeID == consensusChangeID {
-		return nil // return early
-	}
-	// update the plugin metadata and call it done
-	return cs.db.Update(func(tx *bolt.Tx) error {
-		rootbucket := tx.Bucket(BucketPlugins)
-		// get the metadata bucket from the rootbucket
-		metadataBucket := rootbucket.Bucket(bucketPluginsMetadata)
-		if metadataBucket == nil {
-			return ErrPluginGhostMetadata
-		}
-		// get the plugin metadata as-is
-		pluginMetadataBytes := metadataBucket.Get([]byte(name))
-		if len(pluginMetadataBytes) == 0 {
-			return ErrMissingPluginMetadata
-		}
-		var pluginMetadata pluginMetadata
-		err := rivbin.Unmarshal(pluginMetadataBytes, &pluginMetadata)
+	if newConsensusChangeID != consensusChangeID {
+		err = cs.db.Update(func(tx *bolt.Tx) error {
+			rootbucket := tx.Bucket(BucketPlugins)
+			// get the metadata bucket from the rootbucket
+			metadataBucket := rootbucket.Bucket(bucketPluginsMetadata)
+			if metadataBucket == nil {
+				return ErrPluginGhostMetadata
+			}
+			// get the plugin metadata as-is
+			pluginMetadataBytes := metadataBucket.Get([]byte(name))
+			if len(pluginMetadataBytes) == 0 {
+				return ErrMissingPluginMetadata
+			}
+			var pluginMetadata pluginMetadata
+			err := rivbin.Unmarshal(pluginMetadataBytes, &pluginMetadata)
+			if err != nil {
+				return err
+			}
+
+			// save the new metadata
+			pluginMetadata.ConsensusChangeID = newConsensusChangeID
+			metadataBytes, err := rivbin.Marshal(pluginMetadata)
+			if err != nil {
+				return fmt.Errorf("failed to (rivbin) marshal plugin metadata: %v", err)
+			}
+			return metadataBucket.Put([]byte(name), metadataBytes)
+		})
 		if err != nil {
 			return err
 		}
+	}
 
-		// save the new metadata
-		pluginMetadata.ConsensusChangeID = newConsensusChangeID
-
-		// Check if map is nil, if nil make one
-		if cs.plugins == nil {
-			cs.plugins = make(map[string]modules.ConsensusSetPlugin)
-		}
-		// Add plugin to cs plugins map
-		cs.plugins[name] = plugin
-
-		return metadataBucket.Put([]byte(name), rivbin.Marshal(pluginMetadata))
-	})
+	// Check if map is nil, if nil make one
+	if cs.plugins == nil {
+		cs.plugins = make(map[string]modules.ConsensusSetPlugin)
+	}
+	// Add plugin to cs plugins map
+	cs.plugins[name] = plugin
+	// return without errors
+	return nil
 }
 
-func (cs *ConsensusSet) initPluginSync(name string, plugin modules.ConsensusSetPlugin, start modules.ConsensusChangeID, cancel <-chan struct{}) (modules.ConsensusChangeID, error) {
+// initPluginSync ensures the plugin receives all
+// consensus updates it is missing (as a special case this means anything).
+// This initial sync is  be cancelled if the passes context is closed.
+func (cs *ConsensusSet) initPluginSync(ctx context.Context, name string, plugin modules.ConsensusSetPlugin, start modules.ConsensusChangeID) (modules.ConsensusChangeID, error) {
 	newChangeID := start
 	err := cs.db.View(func(tx *bolt.Tx) error {
 		// 'exists' and 'entry' are going to be pointed to the first entry that
@@ -178,17 +193,49 @@ func (cs *ConsensusSet) initPluginSync(name string, plugin modules.ConsensusSetP
 		// Send all remaining consensus changes to the subscriber.
 		for exists {
 			select {
-			case <-cancel:
+			case <-ctx.Done():
 				return errors.New("aborting initPluginSync")
 			default:
 				cc, err := cs.computeConsensusChange(tx, entry)
 				if err != nil {
 					return err
 				}
+
+				coinOutputDiffs := make(map[types.CoinOutputID]types.CoinOutput)
+				blockStakeOutputDiffs := make(map[types.BlockStakeOutputID]types.BlockStakeOutput)
+				for _, diff := range cc.CoinOutputDiffs {
+					coinOutputDiffs[diff.ID] = diff.CoinOutput
+				}
+				for _, diff := range cc.BlockStakeOutputDiffs {
+					blockStakeOutputDiffs[diff.ID] = diff.BlockStakeOutput
+				}
+
+				var ok bool
 				for _, block := range cc.RevertedBlocks {
 					blockHeight, exists := cs.BlockHeightOfBlock(block)
 					if exists {
-						err = plugin.RevertBlock(block, blockHeight, bucket)
+						cBlock := modules.ConsensusBlock{
+							Block:                  block,
+							Height:                 blockHeight,
+							SpentCoinOutputs:       make(map[types.CoinOutputID]types.CoinOutput),
+							SpentBlockStakeOutputs: make(map[types.BlockStakeOutputID]types.BlockStakeOutput),
+						}
+						for _, txn := range block.Transactions {
+							for _, ci := range txn.CoinInputs {
+								cBlock.SpentCoinOutputs[ci.ParentID], ok = coinOutputDiffs[ci.ParentID]
+								if !ok {
+									return fmt.Errorf("failed to find reverted coin input %s as coin output in consensus change", ci.ParentID.String())
+								}
+							}
+							for _, bsi := range txn.BlockStakeInputs {
+								cBlock.SpentBlockStakeOutputs[bsi.ParentID], ok = blockStakeOutputDiffs[bsi.ParentID]
+								if !ok {
+									return fmt.Errorf("failed to find reverted block stake input %s as block stake output in consensus change", bsi.ParentID.String())
+								}
+							}
+						}
+
+						err = plugin.RevertBlock(cBlock, bucket)
 						if err != nil {
 							return err
 						}
@@ -197,7 +244,28 @@ func (cs *ConsensusSet) initPluginSync(name string, plugin modules.ConsensusSetP
 				for _, block := range cc.AppliedBlocks {
 					blockHeight, exists := cs.BlockHeightOfBlock(block)
 					if exists {
-						err = plugin.ApplyBlock(block, blockHeight, bucket)
+						cBlock := modules.ConsensusBlock{
+							Block:                  block,
+							Height:                 blockHeight,
+							SpentCoinOutputs:       make(map[types.CoinOutputID]types.CoinOutput),
+							SpentBlockStakeOutputs: make(map[types.BlockStakeOutputID]types.BlockStakeOutput),
+						}
+						for _, txn := range block.Transactions {
+							for _, ci := range txn.CoinInputs {
+								cBlock.SpentCoinOutputs[ci.ParentID], ok = coinOutputDiffs[ci.ParentID]
+								if !ok {
+									return fmt.Errorf("failed to find applied coin input %s as coin output in consensus change", ci.ParentID.String())
+								}
+							}
+							for _, bsi := range txn.BlockStakeInputs {
+								cBlock.SpentBlockStakeOutputs[bsi.ParentID], ok = blockStakeOutputDiffs[bsi.ParentID]
+								if !ok {
+									return fmt.Errorf("failed to find applied block stake input %s as block stake output in consensus change", bsi.ParentID.String())
+								}
+							}
+						}
+
+						err = plugin.ApplyBlock(cBlock, bucket)
 						if err != nil {
 							return err
 						}
@@ -236,7 +304,11 @@ func (cs *ConsensusSet) initConsensusSetPlugin(tx *bolt.Tx, name string, plugin 
 		if len(data) != 0 {
 			return modules.ConsensusChangeID{}, ErrPluginGhostMetadata
 		}
-		err = metadataBucket.Put([]byte(name), rivbin.Marshal(pluginMetadata{}))
+		pluginMetadataBytes, err := rivbin.Marshal(pluginMetadata{})
+		if err != nil {
+			return modules.ConsensusChangeID{}, fmt.Errorf("failed to rivbin marshal nil plugin metadata: %v", err)
+		}
+		err = metadataBucket.Put([]byte(name), pluginMetadataBytes)
 		if err != nil {
 			return modules.ConsensusChangeID{}, err
 		}
@@ -264,6 +336,7 @@ func (cs *ConsensusSet) initConsensusSetPlugin(tx *bolt.Tx, name string, plugin 
 	}
 
 	var pluginStorage modules.PluginViewStorage
+	cs.log.Debugln("Creating new pluginstorage for ", name)
 	pluginStorage = NewPluginStorage(cs.db, name, &cs.pluginsWaitGroup)
 	// init plugin
 	pluginVersion, err := plugin.InitPlugin(pluginMetadata.Version, bucket, pluginStorage, func(plugin modules.ConsensusSetPlugin) {
@@ -274,13 +347,82 @@ func (cs *ConsensusSet) initConsensusSetPlugin(tx *bolt.Tx, name string, plugin 
 	}
 	// save the new metadata
 	pluginMetadata.Version = &pluginVersion
-	err = metadataBucket.Put([]byte(name), rivbin.Marshal(pluginMetadata))
+	pluginMetadataBytes, err = rivbin.Marshal(pluginMetadata)
+	if err != nil {
+		return modules.ConsensusChangeID{}, fmt.Errorf("failed to rivbin marshal updated plugin metadata: %v", err)
+	}
+	err = metadataBucket.Put([]byte(name), pluginMetadataBytes)
 	if err != nil {
 		return modules.ConsensusChangeID{}, err
 	}
 
 	// return the consensus change ID that we already have, for further usage
 	return pluginMetadata.ConsensusChangeID, nil
+}
+
+func (cs *ConsensusSet) validateTransactionUsingPlugins(tx modules.ConsensusTransaction, ctx types.TransactionValidationContext, btx *bolt.Tx) error {
+	if len(cs.plugins) == 0 {
+		return nil // if there are no errors, there is nothing to validate using plugins
+	}
+	var err error
+	for name, plugin := range cs.plugins {
+		validators := plugin.TransactionValidators()
+		validatorMapping := plugin.TransactionValidatorVersionFunctionMapping()
+		if len(validators) == 0 && len(validatorMapping) == 0 {
+			continue // no validators attached to this plugin
+		}
+		txValidators, ok := validatorMapping[tx.Version]
+		if !ok && len(validators) == 0 {
+			continue // no validators attached to this plugin for this tx's version
+		}
+		// return the first error that occurs
+		bucket := cs.bucketForPlugin(btx, name)
+		for _, txValidator := range txValidators {
+			err = txValidator(tx, ctx, bucket)
+			if err != nil {
+				return err
+			}
+		}
+		for _, txValidator := range validators {
+			err = txValidator(tx, ctx, bucket)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// return the root bucket for a plugin using name in the form of a LazyBoltBucket
+func (cs *ConsensusSet) bucketForPlugin(tx *bolt.Tx, name string) *persist.LazyBoltBucket {
+	return persist.NewLazyBoltBucket(func() (*bolt.Bucket, error) {
+		mdBucket := tx.Bucket(BucketPlugins)
+		if mdBucket == nil {
+			return nil, errors.New("metadata plugins bucket is missing, while it should exist at this point")
+		}
+		b := mdBucket.Bucket([]byte(name))
+		if b == nil {
+			return nil, fmt.Errorf("bucket %s for plugin does not exist", name)
+		}
+		return b, nil
+	})
+}
+
+//closePlugins calls Close on all registered plugins
+func (cs *ConsensusSet) closePlugins() error {
+	if err := cs.tg.Add(); err != nil {
+		return err
+	}
+	defer cs.tg.Done()
+	cs.log.Debugln("Number of plugins to close:", len(cs.plugins))
+
+	for name, plugin := range cs.plugins {
+		cs.log.Debugln("Closing plugin ", name)
+		if err := plugin.Close(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // UnregisterPlugin removes a plugin from the map of plugins
@@ -293,6 +435,7 @@ func (cs *ConsensusSet) UnregisterPlugin(name string, plugin modules.ConsensusSe
 	defer cs.mu.Unlock()
 
 	if existingPlugin, ok := cs.plugins[name]; ok && existingPlugin == plugin {
+		plugin.Close()
 		delete(cs.plugins, name)
 	} else {
 		fmt.Printf("try to delete plugin %s, plugin does not exist", name)

@@ -2,13 +2,13 @@ package consensus
 
 import (
 	"errors"
+	"fmt"
 
+	bolt "github.com/rivine/bbolt"
 	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	"github.com/threefoldtech/rivine/types"
-
-	"github.com/rivine/bbolt"
 )
 
 var (
@@ -28,22 +28,22 @@ func commitDiffSetSanity(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirect
 
 	// Diffs should have already been generated for this node.
 	if !pb.DiffsGenerated {
-		panic(errDiffsNotGenerated)
+		build.Critical(errDiffsNotGenerated)
 	}
 
 	// Current node must be the input node's parent if applying, and
 	// current node must be the input node if reverting.
 	if dir == modules.DiffApply {
 		parent, err := getBlockMap(tx, pb.Block.ParentID)
-		if build.DEBUG && err != nil {
-			panic(err)
+		if err != nil {
+			build.Severe(err)
 		}
 		if parent.Block.ID() != currentBlockID(tx) {
-			panic(errWrongAppliedDiffSet)
+			build.Critical(errWrongAppliedDiffSet)
 		}
 	} else {
 		if pb.Block.ID() != currentBlockID(tx) {
-			panic(errWrongRevertDiffSet)
+			build.Critical(errWrongRevertDiffSet)
 		}
 	}
 }
@@ -144,8 +144,8 @@ func commitDiffSet(tx *bolt.Tx, pb *processedBlock, dir modules.DiffDirection) {
 func (cs *ConsensusSet) generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) error {
 	// Sanity check - the block being applied should have the current block as
 	// a parent.
-	if build.DEBUG && pb.Block.ParentID != currentBlockID(tx) {
-		panic(errInvalidSuccessor)
+	if pb.Block.ParentID != currentBlockID(tx) {
+		build.Critical(errInvalidSuccessor)
 	}
 
 	// Create the bucket to hold all of the delayed siacoin outputs created by
@@ -157,7 +157,29 @@ func (cs *ConsensusSet) generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) er
 	// validated all at once because some transactions may not be valid until
 	// previous transactions have been applied.
 	for idx, txn := range pb.Block.Transactions {
-		err := validTransaction(tx, txn, types.TransactionValidationConstants{
+		cTxn := modules.ConsensusTransaction{
+			Transaction:            txn,
+			BlockHeight:            pb.Height,
+			BlockTime:              pb.Block.Timestamp,
+			SequenceID:             uint16(idx),
+			SpentCoinOutputs:       make(map[types.CoinOutputID]types.CoinOutput),
+			SpentBlockStakeOutputs: make(map[types.BlockStakeOutputID]types.BlockStakeOutput),
+		}
+		var err error
+		for _, ci := range txn.CoinInputs {
+			cTxn.SpentCoinOutputs[ci.ParentID], err = getCoinOutput(tx, ci.ParentID)
+			if err != nil {
+				return fmt.Errorf("failed to find coin input %s as unspent coin output in current consensus state: %v", ci.ParentID.String(), err)
+			}
+		}
+		for _, bsi := range txn.BlockStakeInputs {
+			cTxn.SpentBlockStakeOutputs[bsi.ParentID], err = getBlockStakeOutput(tx, bsi.ParentID)
+			if err != nil {
+				return fmt.Errorf("failed to find block stake input %s as unspent block stake output in current consensus state: %v", bsi.ParentID.String(), err)
+			}
+		}
+
+		err = cs.validTransaction(tx, cTxn, types.TransactionValidationConstants{
 			BlockSizeLimit:         cs.chainCts.BlockSizeLimit,
 			ArbitraryDataSizeLimit: cs.chainCts.ArbitraryDataSizeLimit,
 			MinimumMinerFee:        cs.chainCts.MinimumTransactionFee,
@@ -168,6 +190,15 @@ func (cs *ConsensusSet) generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) er
 			return err
 		}
 		applyTransaction(tx, pb, txn)
+
+		// apply the transaction for each of the plugins
+		for name, plugin := range cs.plugins {
+			bucket := cs.bucketForPlugin(tx, name)
+			err := plugin.ApplyTransaction(cTxn, bucket)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	// After all of the transactions have been applied, 'maintenance' is
@@ -198,7 +229,11 @@ func (cs *ConsensusSet) generateAndApplyDiff(tx *bolt.Tx, pb *processedBlock) er
 		pb.ConsensusChecksum = consensusChecksum(tx)
 	}
 
-	return blockMap.Put(bid[:], siabin.Marshal(*pb))
+	pbb, err := siabin.Marshal(*pb)
+	if err != nil {
+		return fmt.Errorf("failed to (siabin) marshal processed block: %v", err)
+	}
+	return blockMap.Put(bid[:], pbb)
 }
 
 // isBlockCreatingTx checks if a transaction at a given index in the block is considered to
@@ -229,11 +264,35 @@ func (cs *ConsensusSet) isBlockCreatingTx(txIdx int, block types.Block) bool {
 
 	// this might be block creation transaction, so do a more expensive check to see
 	// if we indeed spend the output indicated in the block header
-	t, exists := cs.TransactionAtShortID(types.NewTransactionShortID(
-		block.Header().POBSOutput.BlockHeight, uint16(block.Header().POBSOutput.TransactionIndex)))
+
+	// Note that we can't expect the block to extend the active fork, if we do
+	// we won't be able to recover forks
+	//
+	// Also, the block under validation can not be expected to be in the cs yet,
+	// so we first load its parent, then the height of the parent, then work
+	// from there
+	parent, exists := cs.FindParentBlock(block, 1)
+	if !exists {
+		// can this happen?
+		return false
+	}
+	height, exists := cs.BlockHeightOfBlock(parent)
 	if !exists {
 		return false
 	}
+	// height points at our parent block right now, so increment by one to
+	// account for that
+	height++
+	refBlock, exists := cs.FindParentBlock(block, height-block.Header().POBSOutput.BlockHeight)
+	if !exists {
+		return false
+	}
+	if block.Header().POBSOutput.TransactionIndex >= uint64(len(refBlock.Transactions)) ||
+		block.Header().POBSOutput.OutputIndex >= uint64(len(refBlock.Transactions[block.Header().POBSOutput.TransactionIndex].BlockStakeOutputs)) {
+		return false
+	}
+
+	t := refBlock.Transactions[block.Header().POBSOutput.TransactionIndex]
 
 	if uint64(len(t.BlockStakeOutputs)) > block.Header().POBSOutput.OutputIndex &&
 		t.BlockStakeOutputID(block.Header().POBSOutput.OutputIndex) ==

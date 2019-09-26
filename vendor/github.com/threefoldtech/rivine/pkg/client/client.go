@@ -57,11 +57,11 @@ type Config struct {
 func Wrap(fn interface{}) func(*cobra.Command, []string) {
 	fnVal, fnType := reflect.ValueOf(fn), reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
-		panic("wrapped function has wrong type signature")
+		build.Critical("wrapped function has wrong type signature")
 	}
 	for i := 0; i < fnType.NumIn(); i++ {
 		if fnType.In(i).Kind() != reflect.String {
-			panic("wrapped function has wrong type signature")
+			build.Critical("wrapped function has wrong type signature")
 		}
 	}
 
@@ -84,18 +84,18 @@ func Wrap(fn interface{}) func(*cobra.Command, []string) {
 func WrapWithConfig(config *Config, fn interface{}) func(*cobra.Command, []string) {
 	fnVal, fnType := reflect.ValueOf(fn), reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
-		panic("wrapped function has wrong type signature")
+		build.Critical("wrapped function has wrong type signature")
 	}
 	numIn := fnType.NumIn()
 	if numIn < 1 {
-		panic("wrapped function has insufficient amount of arguments")
+		build.Critical("wrapped function has insufficient amount of arguments")
 	}
 	if fnType.In(0).Elem() != reflect.TypeOf(config) {
-		panic("wrapped function should have a *Config param as first argument")
+		build.Critical("wrapped function should have a *Config param as first argument")
 	}
 	for i := 1; i < numIn; i++ {
 		if fnType.In(i).Kind() != reflect.String {
-			panic("wrapped function has wrong type signature")
+			build.Critical("wrapped function has wrong type signature")
 		}
 	}
 
@@ -254,30 +254,4 @@ func (cli *CommandLineClient) CreateCurrencyConvertor() CurrencyConvertor {
 		cli.Config.CurrencyUnits,
 		cli.Config.CurrencyCoinUnit,
 	)
-}
-
-// FetchConfigFromDaemon fetches constants and creates a config, by fetching the constants from the daemon.
-// Returns an error in case the fetching wasn't possible.
-func FetchConfigFromDaemon(httpClient *api.HTTPClient) (*Config, error) {
-	var constants modules.DaemonConstants
-	err := httpClient.GetAPI("/daemon/constants", &constants)
-	if err == nil {
-		// returned config from received constants from the daemon's server module
-		cfg := ConfigFromDaemonConstants(constants)
-		return &cfg, nil
-	}
-	err = httpClient.GetAPI("/explorer/constants", &constants)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load constants from daemon's server and explorer modules: %v", err)
-	}
-	if constants.ChainInfo == (types.BlockchainInfo{}) {
-		// only since 1.0.7 do we support the full set of public daemon constants for both
-		// the explorer endpoint as well as the daemon endpoint,
-		// so we need to validate this
-		return nil, errors.New("failed to load constants from daemon's server and explorer modules: " +
-			"explorer modules does not support the full exposure of public daemon constants")
-	}
-	// returned config from received constants from the daemon's explorer module
-	cfg := ConfigFromDaemonConstants(constants)
-	return &cfg, nil
 }

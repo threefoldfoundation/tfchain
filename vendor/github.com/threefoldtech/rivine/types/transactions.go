@@ -11,6 +11,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/crypto"
 	"github.com/threefoldtech/rivine/pkg/encoding/rivbin"
 	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
@@ -461,65 +462,6 @@ var (
 	_ json.Unmarshaler = (*Transaction)(nil)
 )
 
-// ValidateTransaction validates this transaction in the given context.
-//
-// By default it checks for a transaction whether the transaction fits within a block,
-// that the arbitrary data is within a limited size, there are no outputs
-// spent multiple times, all defined values adhere to a network-constant defined
-// minimum value (e.g. miner fees having to be at least the MinimumMinerFee),
-// and also validates that all used Conditions and Fulfillments are standard.
-//
-// Each transaction Version however can also choose to overwrite this logic,
-// and implement none, some or all of these default rules, optionally
-// adding some version-specific rules to it.
-func (t Transaction) ValidateTransaction(ctx ValidationContext, constants TransactionValidationConstants) error {
-	controller, exists := _RegisteredTransactionVersions[t.Version]
-	if !exists {
-		return ErrUnknownTransactionType
-	}
-	validator, ok := controller.(TransactionValidator)
-	if !ok {
-		return DefaultTransactionValidation(t, ctx, constants)
-	}
-	return validator.ValidateTransaction(t, ctx, constants)
-}
-
-// ValidateCoinOutputs validates the coin outputs within the current blockchain context.
-// This behaviour can be overwritten by the used Transaction Controller.
-//
-// The default validation logic ensures that the total amount of output coins (including fees),
-// equals the total amount of input coins. It also ensures that all coin inputs refer with their given ParentID
-// to an existing unspent coin output.
-func (t Transaction) ValidateCoinOutputs(ctx FundValidationContext, coinInputs map[CoinOutputID]CoinOutput) error {
-	controller, exists := _RegisteredTransactionVersions[t.Version]
-	if !exists {
-		return ErrUnknownTransactionType
-	}
-	validator, ok := controller.(CoinOutputValidator)
-	if !ok {
-		return DefaultCoinOutputValidation(t, ctx, coinInputs)
-	}
-	return validator.ValidateCoinOutputs(t, ctx, coinInputs)
-}
-
-// ValidateBlockStakeOutputs validates the blockstake outputs within the current blockchain context.
-// This behaviour can be overwritten by the used Transaction Controller.
-//
-// The default validation logic ensures that the total amount of output blockstakes,
-// equals the total amount of input blockstakes. It also ensures that all blockstake inputs refer with their given ParentID
-// to an existing unspent blockstake output.
-func (t Transaction) ValidateBlockStakeOutputs(ctx FundValidationContext, blockStakeInputs map[BlockStakeOutputID]BlockStakeOutput) error {
-	controller, exists := _RegisteredTransactionVersions[t.Version]
-	if !exists {
-		return ErrUnknownTransactionType
-	}
-	validator, ok := controller.(BlockStakeOutputValidator)
-	if !ok {
-		return DefaultBlockStakeOutputValidation(t, ctx, blockStakeInputs)
-	}
-	return validator.ValidateBlockStakeOutputs(t, ctx, blockStakeInputs)
-}
-
 // SignExtension allows the transaction to sign —using the given sign callback—
 // any fulfillment defined within the extension data of the transaction that has to be signed.
 func (t *Transaction) SignExtension(sign func(*UnlockFulfillmentProxy, UnlockConditionProxy, ...interface{}) error) error {
@@ -590,10 +532,10 @@ func (v TransactionVersion) IsValidTransactionVersion() error {
 // See the TransactionShortID type for more information.
 func NewTransactionShortID(height BlockHeight, txSequenceID uint16) TransactionShortID {
 	if (height & blockHeightOOBMask) > 0 {
-		panic("block height out of bounds")
+		build.Critical("block height out of bounds")
 	}
 	if (txSequenceID & txSeqIndexOOBMask) > 0 {
-		panic("transaction sequence ID out of bounds")
+		build.Critical("transaction sequence ID out of bounds")
 	}
 
 	return TransactionShortID(height<<txShortIDBlockHeightShift) |
@@ -801,6 +743,27 @@ func (bsoid *BlockStakeOutputID) UnmarshalJSON(b []byte) error {
 // TransactionNonce is a nonce
 // used to ensure the uniqueness of an otherwise potentially non-unique Tx
 type TransactionNonce [TransactionNonceLength]byte
+
+// MarshalJSON implements JSON.Marshaller.MarshalJSON
+// encodes the Nonce as a base64-encoded string
+func (tn TransactionNonce) MarshalJSON() ([]byte, error) {
+	return json.Marshal(tn[:])
+}
+
+// UnmarshalJSON implements JSON.Unmarshaller.UnmarshalJSON
+// piggy-backing on the base64-decoding used for byte slices in the std JSON lib
+func (tn *TransactionNonce) UnmarshalJSON(in []byte) error {
+	var out []byte
+	err := json.Unmarshal(in, &out)
+	if err != nil {
+		return err
+	}
+	if len(out) != TransactionNonceLength {
+		return errors.New("invalid tx nonce length")
+	}
+	copy(tn[:], out[:])
+	return nil
+}
 
 // TransactionNonceLength defines the length of a TransactionNonce
 const TransactionNonceLength = 8

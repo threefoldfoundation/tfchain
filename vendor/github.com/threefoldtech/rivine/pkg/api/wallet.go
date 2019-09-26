@@ -3,10 +3,12 @@ package api
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"strconv"
 
+	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/crypto"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/types"
@@ -83,8 +85,10 @@ type (
 	// WalletCoinsPOST is given by the user
 	// to indicate to where to send how much coins
 	WalletCoinsPOST struct {
-		CoinOutputs []types.CoinOutput `json:"coinoutputs`
-		Data        []byte             `json:"data,omitempty"`
+		CoinOutputs           []types.CoinOutput `json:"coinoutputs`
+		Data                  []byte             `json:"data,omitempty"`
+		RefundAddress         *types.UnlockHash  `json:"refundaddress,omitempty"`
+		GenerateRefundAddress bool               `json:"genrefundaddress,omitempty"`
 	}
 	// WalletCoinsPOSTResp Resp contains the ID of the transaction
 	// that was created as a result of a POST call to /wallet/coins.
@@ -95,8 +99,10 @@ type (
 	// WalletBlockStakesPOST is given by the user
 	// to indicate to where to send how much blockstakes
 	WalletBlockStakesPOST struct {
-		BlockStakeOutputs []types.BlockStakeOutput `json:"blockstakeoutputs`
-		Data              []byte                   `json:"data,omitempty"`
+		BlockStakeOutputs     []types.BlockStakeOutput `json:"blockstakeoutputs`
+		Data                  []byte                   `json:"data,omitempty"`
+		RefundAddress         *types.UnlockHash        `json:"refundaddress,omitempty"`
+		GenerateRefundAddress bool                     `json:"genrefundaddress,omitempty"`
 	}
 	// WalletBlockStakesPOSTResp Resp contains the ID of the transaction
 	// that was created as a result of a POST call to /wallet/blockstakes.
@@ -180,15 +186,28 @@ type (
 	WalletCreateTransactionRESP struct {
 		Transaction types.Transaction `json:"transaction"`
 	}
+
+	// WalletFundCoins is the resulting object that is returned,
+	// to be used by a client to fund a transaction of any type.
+	WalletFundCoins struct {
+		CoinInputs       []types.CoinInput `json:"coininputs"`
+		RefundCoinOutput *types.CoinOutput `json:"refund"`
+	}
+
+	// WalletPublicKeyGET contains a public key returned by a GET call to
+	// /wallet/publickey.
+	WalletPublicKeyGET struct {
+		PublicKey types.PublicKey `json:"publickey"`
+	}
 )
 
 // RegisterWalletHTTPHandlers registers the default Rivine handlers for all default Rivine Wallet HTTP endpoints.
 func RegisterWalletHTTPHandlers(router Router, wallet modules.Wallet, requiredPassword string) {
 	if wallet == nil {
-		panic("no wallet module given")
+		build.Critical("no wallet module given")
 	}
 	if router == nil {
-		panic("no httprouter Router given")
+		build.Critical("no httprouter Router given")
 	}
 
 	router.GET("/wallet", RequirePasswordHandler(NewWalletRootHandler(wallet), requiredPassword))
@@ -213,6 +232,8 @@ func RegisterWalletHTTPHandlers(router Router, wallet modules.Wallet, requiredPa
 	router.GET("/wallet/locked", RequirePasswordHandler(NewWalletListLockedHandler(wallet), requiredPassword))
 	router.POST("/wallet/create/transaction", RequirePasswordHandler(NewWalletCreateTransactionHandler(wallet), requiredPassword))
 	router.POST("/wallet/sign", RequirePasswordHandler(NewWalletSignHandler(wallet), requiredPassword))
+	router.GET("/wallet/publickey", RequirePasswordHandler(NewWalletGetPublicKeyHandler(wallet), requiredPassword))
+	router.GET("/wallet/fund/coins", RequirePasswordHandler(NewWalletFundCoinsHandler(wallet), requiredPassword))
 }
 
 // NewWalletRootHandler creates a handler to handle API calls to /wallet.
@@ -374,7 +395,12 @@ func NewWalletInitHandler(wallet modules.Wallet) httprouter.Handle {
 				return
 			}
 		} else {
-			encryptionKey := crypto.TwofishKey(crypto.HashObject(passphrase))
+			ph, err := crypto.HashObject(passphrase)
+			if err != nil {
+				WriteError(w, Error{"error when calling /wallet/init: " + err.Error()}, http.StatusBadRequest)
+				return
+			}
+			encryptionKey := crypto.TwofishKey(ph)
 			seed, err = wallet.Encrypt(encryptionKey, seed)
 			if err != nil {
 				WriteError(w, Error{"error when calling /wallet/init: " + err.Error()}, http.StatusBadRequest)
@@ -410,13 +436,20 @@ func NewWalletSeedHandler(wallet modules.Wallet) httprouter.Handle {
 			if err != nil {
 				WriteError(w, Error{"error when calling /wallet/seed: " +
 					modules.ErrBadEncryptionKey.Error()}, http.StatusBadRequest)
+				return
 			}
 		} else {
-			encryptionKey := crypto.TwofishKey(crypto.HashObject(passphrase))
+			ph, err := crypto.HashObject(passphrase)
+			if err != nil {
+				WriteError(w, Error{"error when calling /wallet/seed: " + err.Error()}, http.StatusBadRequest)
+				return
+			}
+			encryptionKey := crypto.TwofishKey(ph)
 			err = wallet.LoadSeed(encryptionKey, seed)
 			if err == modules.ErrBadEncryptionKey {
 				WriteError(w, Error{"error when calling /wallet/seed: " +
 					modules.ErrBadEncryptionKey.Error()}, http.StatusBadRequest)
+				return
 			}
 			if err != nil {
 				WriteError(w, Error{"error when calling /wallet/seed: " +
@@ -532,7 +565,7 @@ func NewWalletCoinsHandler(wallet modules.Wallet) httprouter.Handle {
 			WriteError(w, Error{"error decoding the supplied coin outputs: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		tx, err := wallet.SendOutputs(body.CoinOutputs, nil, body.Data)
+		tx, err := wallet.SendOutputs(body.CoinOutputs, nil, body.Data, body.RefundAddress, !body.GenerateRefundAddress)
 		if err != nil {
 			WriteError(w, Error{"error after call to /wallet/coins: " + err.Error()}, walletErrorToHTTPStatus(err))
 			return
@@ -551,7 +584,7 @@ func NewWalletBlockStakesHandler(wallet modules.Wallet) httprouter.Handle {
 			WriteError(w, Error{"error decoding the supplied blockstake outputs: " + err.Error()}, http.StatusBadRequest)
 			return
 		}
-		tx, err := wallet.SendOutputs(nil, body.BlockStakeOutputs, body.Data)
+		tx, err := wallet.SendOutputs(nil, body.BlockStakeOutputs, body.Data, body.RefundAddress, !body.GenerateRefundAddress)
 		if err != nil {
 			WriteError(w, Error{"error after call to /wallet/blockstakes: " + err.Error()}, walletErrorToHTTPStatus(err))
 			return
@@ -691,8 +724,14 @@ func NewWalletUnlockHandler(wallet modules.Wallet) httprouter.Handle {
 				http.StatusUnauthorized)
 			return
 		}
-		encryptionKey := crypto.TwofishKey(crypto.HashObject(passphrase))
-		err := wallet.Unlock(encryptionKey)
+		ph, err := crypto.HashObject(passphrase)
+		if err != nil {
+			WriteError(w, Error{"error when calling /wallet/unlock:" + err.Error()},
+				http.StatusUnauthorized)
+			return
+		}
+		encryptionKey := crypto.TwofishKey(ph)
+		err = wallet.Unlock(encryptionKey)
 		if err == nil {
 			WriteSuccess(w)
 			return
@@ -794,9 +833,106 @@ func NewWalletSignHandler(wallet modules.Wallet) httprouter.Handle {
 	}
 }
 
+// NewWalletFundCoinsHandler creates a handler to handle the API calls to /wallet/fund/coins?amount=.
+// While it might be handy for other use cases, it is needed for 3bot registration
+func NewWalletFundCoinsHandler(wallet modules.Wallet) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+		q := req.URL.Query()
+		// parse the amount
+		amountStr := q.Get("amount")
+		if amountStr == "" || amountStr == "0" {
+			WriteError(w, Error{Message: "an amount has to be specified, greater than 0"}, http.StatusBadRequest)
+			return
+		}
+		var amount types.Currency
+		err := amount.LoadString(amountStr)
+		if err != nil {
+			WriteError(w, Error{Message: "invalid amount given: " + err.Error()}, http.StatusBadRequest)
+			return
+		}
+
+		// parse optional refund address and reuseRefundAddress from query params
+		var (
+			refundAddress    *types.UnlockHash
+			newRefundAddress bool
+		)
+		refundStr := q.Get("refund")
+		if refundStr != "" {
+			// try as a bool
+			var b bool
+			n, err := fmt.Sscanf(refundStr, "%t", &b)
+			if err == nil && n == 1 {
+				newRefundAddress = b
+			} else {
+				// try as an address
+				var uh types.UnlockHash
+				err = uh.LoadString(refundStr)
+				if err != nil {
+					WriteError(w, Error{Message: fmt.Sprintf("refund query param has to be a boolean or unlockhash, %s is invalid", refundStr)}, http.StatusBadRequest)
+					return
+				}
+				refundAddress = &uh
+			}
+		}
+
+		// start a transaction and fund the requested amount
+		txbuilder := wallet.StartTransaction()
+		err = txbuilder.FundCoins(amount, refundAddress, !newRefundAddress)
+		if err != nil {
+			WriteError(w, Error{Message: "failed to fund the requested coins: " + err.Error()}, http.StatusInternalServerError)
+			return
+		}
+
+		// build the dummy Txn, as to view the Txn
+		txn, _ := txbuilder.View()
+		// defer drop the Txn
+		defer txbuilder.Drop()
+
+		// compose the result object and validate it
+		result := WalletFundCoins{CoinInputs: txn.CoinInputs}
+		if len(result.CoinInputs) == 0 {
+			WriteError(w, Error{Message: "no coin inputs could be generated"}, http.StatusInternalServerError)
+			return
+		}
+		switch len(txn.CoinOutputs) {
+		case 0:
+			// ignore, valid, but nothing to do
+		case 1:
+			// add as refund
+			result.RefundCoinOutput = &txn.CoinOutputs[0]
+		case 2:
+			WriteError(w, Error{Message: "more than 2 coin outputs were generated, while maximum 1 was expected"}, http.StatusInternalServerError)
+			return
+		}
+		// all good, return the resulting object
+		WriteJSON(w, result)
+	}
+}
+
+// NewWalletGetPublicKeyHandler creates a handler to handle API calls to /wallet/publickey.
+// While it might be handy for other use cases, it is needed for 3bot.
+func NewWalletGetPublicKeyHandler(wallet modules.Wallet) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+		unlockHash, err := wallet.NextAddress()
+		if err != nil {
+			WriteError(w, Error{Message: "error after call to /wallet/publickey: " + err.Error()}, walletErrorToHTTPStatus(err))
+			return
+		}
+		pk, _, err := wallet.GetKey(unlockHash)
+		if err != nil {
+			WriteError(w, Error{Message: "failed to fetch newly created public key: " + err.Error()}, http.StatusInternalServerError)
+			return
+		}
+		WriteJSON(w, WalletPublicKeyGET{PublicKey: pk})
+	}
+}
+
 func walletErrorToHTTPStatus(err error) int {
 	if err == modules.ErrLockedWallet {
 		return http.StatusForbidden
+	}
+	if cErr, ok := err.(types.ClientError); ok {
+		return cErr.Kind.AsHTTPStatusCode()
 	}
 	return http.StatusInternalServerError
 }

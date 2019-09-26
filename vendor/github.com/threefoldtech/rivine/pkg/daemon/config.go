@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/threefoldtech/rivine/modules"
-	"github.com/threefoldtech/rivine/types"
 	"github.com/threefoldtech/rivine/pkg/cli"
+	"github.com/threefoldtech/rivine/types"
 )
 
 const (
@@ -60,6 +60,10 @@ type (
 
 		// Optional BootstrapPeers we want to use instead of the default NetworkConfigs.
 		BootstrapPeers []modules.NetAddress
+
+		// DebugConsensusDB is an optional filepath in which json encoded
+		// consensus database stats will be saved
+		DebugConsensusDB string
 	}
 
 	// NetworkConfig are variables for a particular chain. Currently, these are genesis constants and bootstrap peers
@@ -92,6 +96,8 @@ func DefaultConfig() Config {
 		VerboseLogging:    false,
 
 		BootstrapPeers: nil,
+
+		DebugConsensusDB: "",
 	}
 }
 
@@ -101,7 +107,7 @@ func (cfg *Config) RegisterAsFlags(flagSet *pflag.FlagSet) {
 	flagSet.StringVarP(&cfg.ProfileDir, "profile-directory", "", cfg.ProfileDir, "location of the profiling directory")
 	flagSet.StringVarP(&cfg.APIaddr, "api-addr", "", cfg.APIaddr, "which host:port the API server listens on")
 	flagSet.StringVarP(&cfg.RootPersistentDir, "persistent-directory", "d", cfg.RootPersistentDir,
-		"location of the root diretory used to store persistent data of the daemon of"+
+		"location of the root directory used to store persistent data of the daemon of "+
 			cfg.BlockchainInfo.Name)
 
 	flagSet.BoolVarP(&cfg.VerboseLogging, "verboselogging", "v", false, "enable logging of debug information in the logfiles of the modules")
@@ -111,6 +117,7 @@ func (cfg *Config) RegisterAsFlags(flagSet *pflag.FlagSet) {
 	flagSet.BoolVarP(&cfg.AuthenticateAPI, "authenticate-api", "", cfg.AuthenticateAPI, "enable API password protection")
 	flagSet.BoolVarP(&cfg.AllowAPIBind, "disable-api-security", "", cfg.AllowAPIBind, fmt.Sprintf("allow the daemon of %s to listen on a non-localhost address (DANGEROUS)", cfg.BlockchainInfo.Name))
 	flagSet.StringVarP(&cfg.BlockchainInfo.NetworkName, "network", "n", cfg.BlockchainInfo.NetworkName, "the name of the network to which the daemon connects")
+	flagSet.StringVar(&cfg.DebugConsensusDB, "consensus-db-stats", cfg.DebugConsensusDB, "file path in which json encoded database stats will be saved")
 
 	cli.NetAddressArrayFlagVar(flagSet, &cfg.BootstrapPeers, "bootstrap-peers",
 		"overwrite the bootstrap peers to use, instead of using the default bootstrap peers")

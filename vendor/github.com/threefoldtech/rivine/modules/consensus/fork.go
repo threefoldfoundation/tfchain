@@ -2,13 +2,11 @@ package consensus
 
 import (
 	"errors"
-	"fmt"
-
-	"github.com/threefoldtech/rivine/build"
-	"github.com/threefoldtech/rivine/modules"
-	"github.com/threefoldtech/rivine/persist"
 
 	bolt "github.com/rivine/bbolt"
+	"github.com/threefoldtech/rivine/build"
+	"github.com/threefoldtech/rivine/modules"
+	"github.com/threefoldtech/rivine/types"
 )
 
 var (
@@ -30,15 +28,15 @@ func backtrackToCurrentPath(tx *bolt.Tx, pb *processedBlock) []*processedBlock {
 		}
 		// Sanity check - an error should only indicate that pb.Height >
 		// blockHeight(tx).
-		if build.DEBUG && err != nil && pb.Height <= blockHeight(tx) {
-			panic(err)
+		if err != nil && pb.Height <= blockHeight(tx) {
+			build.Severe(err)
 		}
 
 		// Prepend the next block to the list of blocks leading from the
 		// current path to the input block.
 		pb, err = getBlockMap(tx, pb.Block.ParentID)
-		if build.DEBUG && err != nil {
-			panic(err)
+		if err != nil {
+			build.Severe(err)
 		}
 		path = append([]*processedBlock{pb}, path...)
 	}
@@ -51,16 +49,16 @@ func backtrackToCurrentPath(tx *bolt.Tx, pb *processedBlock) []*processedBlock {
 func (cs *ConsensusSet) revertToBlock(tx *bolt.Tx, pb *processedBlock) (revertedBlocks []*processedBlock) {
 	// Sanity check - make sure that pb is in the current path.
 	currentPathID, err := getPath(tx, pb.Height)
-	if build.DEBUG && (err != nil || currentPathID != pb.Block.ID()) {
-		panic(errExternalRevert)
+	if err != nil || currentPathID != pb.Block.ID() {
+		build.Severe(errExternalRevert)
 	}
 
 	// Rewind blocks until 'pb' is the current block.
 	for currentBlockID(tx) != pb.Block.ID() {
 		block := currentProcessedBlock(tx)
 		err = cs.rewindBlock(tx, block)
-		if build.DEBUG && err != nil {
-			panic(err)
+		if err != nil {
+			build.Severe(err)
 		}
 		revertedBlocks = append(revertedBlocks, block)
 
@@ -119,23 +117,25 @@ func (cs *ConsensusSet) rewindBlock(tx *bolt.Tx, pb *processedBlock) error {
 }
 
 func (cs *ConsensusSet) rewindBlockForPlugins(tx *bolt.Tx, pb *processedBlock) error {
-	// update plugins
-	pluginBuckets := map[string]*persist.LazyBoltBucket{}
-	for name := range cs.plugins {
-		pluginBuckets[name] = persist.NewLazyBoltBucket(func() (*bolt.Bucket, error) {
-			rootbucket := tx.Bucket(BucketPlugins)
-			if rootbucket == nil {
-				return nil, fmt.Errorf("plugin bucket does not exist")
-			}
-			b := rootbucket.Bucket([]byte(name))
-			if b == nil {
-				return nil, fmt.Errorf("bucket %s for plugin does not exist", name)
-			}
-			return b, nil
-		})
+	cBlock := modules.ConsensusBlock{
+		Block:                  pb.Block,
+		Height:                 pb.Height,
+		SpentCoinOutputs:       make(map[types.CoinOutputID]types.CoinOutput),
+		SpentBlockStakeOutputs: make(map[types.BlockStakeOutputID]types.BlockStakeOutput),
 	}
+	for _, diff := range pb.CoinOutputDiffs {
+		cBlock.SpentCoinOutputs[diff.ID] = diff.CoinOutput
+	}
+	for _, diff := range pb.DelayedCoinOutputDiffs {
+		cBlock.SpentCoinOutputs[diff.ID] = diff.CoinOutput
+	}
+	for _, diff := range pb.BlockStakeOutputDiffs {
+		cBlock.SpentBlockStakeOutputs[diff.ID] = diff.BlockStakeOutput
+	}
+
 	for name, plugin := range cs.plugins {
-		err := plugin.RevertBlock(pb.Block, pb.Height, pluginBuckets[name])
+		bucket := cs.bucketForPlugin(tx, name)
+		err := plugin.RevertBlock(cBlock, bucket)
 		if err != nil {
 			return err
 		}
@@ -153,23 +153,25 @@ func (cs *ConsensusSet) forwardBlock(tx *bolt.Tx, pb *processedBlock) error {
 }
 
 func (cs *ConsensusSet) forwardBlockForPlugins(tx *bolt.Tx, pb *processedBlock) error {
-	// update plugins
-	pluginBuckets := map[string]*persist.LazyBoltBucket{}
-	for name := range cs.plugins {
-		pluginBuckets[name] = persist.NewLazyBoltBucket(func() (*bolt.Bucket, error) {
-			rootbucket := tx.Bucket(BucketPlugins)
-			if rootbucket == nil {
-				return nil, fmt.Errorf("plugin bucket does not exist")
-			}
-			b := rootbucket.Bucket([]byte(name))
-			if b == nil {
-				return nil, fmt.Errorf("bucket %s for plugin does not exist", name)
-			}
-			return b, nil
-		})
+	cBlock := modules.ConsensusBlock{
+		Block:                  pb.Block,
+		Height:                 pb.Height,
+		SpentCoinOutputs:       make(map[types.CoinOutputID]types.CoinOutput),
+		SpentBlockStakeOutputs: make(map[types.BlockStakeOutputID]types.BlockStakeOutput),
 	}
+	for _, diff := range pb.CoinOutputDiffs {
+		cBlock.SpentCoinOutputs[diff.ID] = diff.CoinOutput
+	}
+	for _, diff := range pb.DelayedCoinOutputDiffs {
+		cBlock.SpentCoinOutputs[diff.ID] = diff.CoinOutput
+	}
+	for _, diff := range pb.BlockStakeOutputDiffs {
+		cBlock.SpentBlockStakeOutputs[diff.ID] = diff.BlockStakeOutput
+	}
+
 	for name, plugin := range cs.plugins {
-		err := plugin.ApplyBlock(pb.Block, pb.Height, pluginBuckets[name])
+		bucket := cs.bucketForPlugin(tx, name)
+		err := plugin.ApplyBlock(cBlock, bucket)
 		if err != nil {
 			return err
 		}

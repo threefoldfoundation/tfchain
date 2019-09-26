@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/threefoldtech/rivine/build"
@@ -152,9 +153,7 @@ func (w *Wallet) MultiSigWallets() ([]modules.MultiSigWallet, error) {
 			if len(unlockhashes) == 0 {
 				w.log.Printf("[ERROR] failed to convert output to multisig condition: type=%T conditionType=%d",
 					co.Condition.Condition, co.Condition.ConditionType())
-				if build.DEBUG {
-					panic("Failed to convert output to multisig condition")
-				}
+				build.Critical("Failed to convert output to multisig condition")
 				continue
 			}
 			// Create a new wallet for this address
@@ -185,9 +184,7 @@ func (w *Wallet) MultiSigWallets() ([]modules.MultiSigWallet, error) {
 			if len(unlockhashes) == 0 {
 				w.log.Printf("[ERROR] failed to convert output to multisig condition: type=%T conditionType=%d",
 					bso.Condition.Condition, bso.Condition.ConditionType())
-				if build.DEBUG {
-					panic("Failed to convert output to multisig condition")
-				}
+				build.Severe("Failed to convert output to multisig condition")
 				continue
 			}
 			// Create a new wallet for this address
@@ -244,7 +241,7 @@ func (w *Wallet) SendCoins(amount types.Currency, cond types.UnlockConditionProx
 			Condition: cond,
 			Value:     amount,
 		},
-	}, nil, nil)
+	}, nil, nil, nil, false)
 }
 
 // SendBlockStakes creates a transaction sending 'amount' to whoever can fulfill the condition. The transaction
@@ -255,12 +252,12 @@ func (w *Wallet) SendBlockStakes(amount types.Currency, cond types.UnlockConditi
 			Condition: cond,
 			Value:     amount,
 		},
-	}, nil)
+	}, nil, nil, false)
 }
 
 // SendOutputs is a tool for sending coins and block stakes from the wallet, to one or multiple addreses.
 // The transaction is automatically given to the transaction pool, and is also returned to the caller.
-func (w *Wallet) SendOutputs(coinOutputs []types.CoinOutput, blockstakeOutputs []types.BlockStakeOutput, data []byte) (types.Transaction, error) {
+func (w *Wallet) SendOutputs(coinOutputs []types.CoinOutput, blockstakeOutputs []types.BlockStakeOutput, data []byte, refundAddress *types.UnlockHash, reuseRefundAddress bool) (types.Transaction, error) {
 	if len(coinOutputs) == 0 && len(blockstakeOutputs) == 0 {
 		// at least one coin output OR one block stake output has to be send
 		return types.Transaction{}, ErrNilOutputs
@@ -278,7 +275,7 @@ func (w *Wallet) SendOutputs(coinOutputs []types.CoinOutput, blockstakeOutputs [
 		txnBuilder.AddCoinOutput(co)
 		totalAmount = totalAmount.Add(co.Value)
 	}
-	err := txnBuilder.FundCoins(totalAmount)
+	err := txnBuilder.FundCoins(totalAmount, refundAddress, reuseRefundAddress)
 	if err != nil {
 		return types.Transaction{}, err
 	}
@@ -289,7 +286,7 @@ func (w *Wallet) SendOutputs(coinOutputs []types.CoinOutput, blockstakeOutputs [
 		totalAmount = totalAmount.Add(bso.Value)
 	}
 	if !totalAmount.Equals64(0) {
-		err = txnBuilder.FundBlockStakes(totalAmount)
+		err = txnBuilder.FundBlockStakes(totalAmount, refundAddress, reuseRefundAddress)
 		if err != nil {
 			return types.Transaction{}, err
 		}
@@ -302,7 +299,7 @@ func (w *Wallet) SendOutputs(coinOutputs []types.CoinOutput, blockstakeOutputs [
 		return types.Transaction{}, err
 	}
 	if len(txnSet) == 0 {
-		panic("unexpected txnSet length: " + strconv.Itoa(len(txnSet)))
+		build.Severe(fmt.Errorf("unexpected txnSet length: " + strconv.Itoa(len(txnSet))))
 	}
 	err = w.tpool.AcceptTransactionSet(txnSet)
 	if err != nil {
@@ -313,8 +310,8 @@ func (w *Wallet) SendOutputs(coinOutputs []types.CoinOutput, blockstakeOutputs [
 
 // Len returns the number of elements in the sortedOutputs struct.
 func (so sortedOutputs) Len() int {
-	if build.DEBUG && len(so.ids) != len(so.outputs) {
-		panic("sortedOutputs object is corrupt")
+	if len(so.ids) != len(so.outputs) {
+		build.Severe("sortedOutputs object is corrupt")
 	}
 	return len(so.ids)
 }

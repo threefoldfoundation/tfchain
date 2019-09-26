@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+
+	"github.com/threefoldtech/rivine/build"
 )
 
 type (
@@ -16,26 +18,26 @@ type (
 
 // Marshal returns the encoding of v. For encoding details, see the package
 // docstring.
-func Marshal(v interface{}) []byte {
+func Marshal(v interface{}) ([]byte, error) {
 	b := new(bytes.Buffer)
 	err := NewEncoder(b).Encode(v) // no error possible when using a bytes.Buffer
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return b.Bytes()
+	return b.Bytes(), nil
 }
 
 // MarshalAll encodes all of its inputs and returns their concatenation.
-func MarshalAll(vs ...interface{}) []byte {
+func MarshalAll(vs ...interface{}) ([]byte, error) {
 	b := new(bytes.Buffer)
 	enc := NewEncoder(b)
 	// Error from EncodeAll is ignored as encoding cannot fail when writing
 	// to a bytes.Buffer.
 	err := enc.EncodeAll(vs...)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return b.Bytes()
+	return b.Bytes(), nil
 }
 
 // Encoder writes objects to an output stream.
@@ -171,7 +173,9 @@ func (e *Encoder) encode(val reflect.Value) error {
 	default:
 		// Marshalling should never fail. If it panics, you're doing something wrong,
 		// like trying to encode a map or an unexported struct field.
-		panic(fmt.Sprintf("error while trying to marshal unsupported type %s/%s",
-			val.Type().String(), val.Kind().String()))
+		errf := fmt.Errorf("error while trying to marshal unsupported type %s/%s",
+			val.Type().String(), val.Kind().String())
+		build.Critical(errf)
+		return errf
 	}
 }

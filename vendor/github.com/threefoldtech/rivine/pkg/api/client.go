@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/bgentry/speakeasy"
@@ -57,9 +58,9 @@ type HTTPClient struct {
 	UserAgent string
 }
 
-// PostResp makes a POST API call and decodes the response. An error is
+// PostWithResponse makes a POST API call and decodes the response. An error is
 // returned if the response status is not 2xx.
-func (c *HTTPClient) PostResp(call, data string, reply interface{}) error {
+func (c *HTTPClient) PostWithResponse(call, data string, reply interface{}) error {
 	resp, err := c.apiPost(call, data)
 	if err != nil {
 		return err
@@ -90,7 +91,7 @@ func (c *HTTPClient) Post(call, data string) error {
 
 // GetAPI makes a GET API call and decodes the response. An error is returned
 // if the response status is not 2xx.
-func (c *HTTPClient) GetAPI(call string, obj interface{}) error {
+func (c *HTTPClient) GetWithResponse(call string, obj interface{}) error {
 	resp, err := c.apiGet(call)
 	if err != nil {
 		return err
@@ -168,7 +169,15 @@ func (c *HTTPClient) apiPost(call, data string) (*http.Response, error) {
 	}
 	// check error code
 	if resp.StatusCode == http.StatusUnauthorized {
+		b, rErr := ioutil.ReadAll(resp.Body)
 		resp.Body.Close()
+		if rErr != nil || !c.responseIsAPIPasswordError(b) {
+			apiErr, ok := c.responseAsError(b)
+			if ok {
+				return nil, fmt.Errorf("Unauthorized (401): %s", apiErr.Message)
+			}
+			return nil, errors.New("API Call failed with the (401) unauthorized status")
+		}
 		// try again using an authenticated HTTP Post call
 		password, err := c.apiPassword()
 		if err != nil {
@@ -195,6 +204,17 @@ func (c *HTTPClient) apiPost(call, data string) (*http.Response, error) {
 		}
 	}
 	return resp, nil
+}
+
+func (c *HTTPClient) responseIsAPIPasswordError(resp []byte) bool {
+	err, ok := c.responseAsError(resp)
+	return ok && err.Message == "API Basic authentication failed."
+}
+
+func (c *HTTPClient) responseAsError(resp []byte) (Error, bool) {
+	var apiError Error
+	err := json.Unmarshal(resp, &apiError)
+	return apiError, err == nil
 }
 
 func (c *HTTPClient) apiPassword() (string, error) {
