@@ -47,6 +47,7 @@ func NewPlugin(feePoolAddress types.UnlockHash, oneCoin types.Currency, txValida
 	p := &Plugin{
 		txValidator: txValidator,
 		oneCoin:     oneCoin,
+		txVersions:  txVersions,
 	}
 	types.RegisterTransactionVersion(txVersions.ERC20Conversion, erc20types.ERC20ConvertTransactionController{
 		TransactionVersion: txVersions.ERC20Conversion,

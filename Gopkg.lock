@@ -482,7 +482,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e0d2b86c9bb9c292edce7336a38abcb74026616063f3a7f9e01a3e46a31478f0"
+  digest = "1:b8c81a19dbc91032acbdd885c8978e71d471c44e34070d87a5b0de0c89436265"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -508,11 +508,11 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "01f2a997d0f6cc1f7509c91125eadaf76f4a6b5a"
+  revision = "e713ff4227cbc95d4eb6e41d943b6b20a3c0145f"
 
 [[projects]]
   branch = "master"
-  digest = "1:2b6c10f8e14e8951ef4ba79cb7690e3900ba1b0ad2617e6c1f88e304a0e37f4d"
+  digest = "1:a9ac0067017d0c32bd8ee1ff08603f4b095b4e0f9ee1bdaa9af87bafad85437a"
   name = "github.com/threefoldtech/rivine-extension-erc20"
   packages = [
     ".",
@@ -525,7 +525,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "a3e63b4701f51cb3838671ec33da5725f6442f8b"
+  revision = "fa9b8cf6eef7727f39ae6ba73bc5be8c5ea9ae40"
 
 [[projects]]
   branch = "master"
@@ -680,34 +680,13 @@
   analyzer-version = 1
   input-imports = [
     "github.com/bgentry/speakeasy",
-    "github.com/ethereum/go-ethereum",
-    "github.com/ethereum/go-ethereum/accounts",
-    "github.com/ethereum/go-ethereum/accounts/abi",
-    "github.com/ethereum/go-ethereum/accounts/abi/bind",
-    "github.com/ethereum/go-ethereum/accounts/keystore",
-    "github.com/ethereum/go-ethereum/common",
-    "github.com/ethereum/go-ethereum/core",
-    "github.com/ethereum/go-ethereum/core/types",
-    "github.com/ethereum/go-ethereum/eth",
-    "github.com/ethereum/go-ethereum/eth/downloader",
-    "github.com/ethereum/go-ethereum/ethclient",
-    "github.com/ethereum/go-ethereum/ethstats",
-    "github.com/ethereum/go-ethereum/event",
-    "github.com/ethereum/go-ethereum/les",
-    "github.com/ethereum/go-ethereum/light",
     "github.com/ethereum/go-ethereum/log",
-    "github.com/ethereum/go-ethereum/node",
-    "github.com/ethereum/go-ethereum/p2p",
-    "github.com/ethereum/go-ethereum/p2p/enode",
-    "github.com/ethereum/go-ethereum/params",
     "github.com/julienschmidt/httprouter",
     "github.com/rivine/bbolt",
     "github.com/spf13/cobra",
     "github.com/spf13/pflag",
     "github.com/threefoldtech/rivine-extension-erc20",
-    "github.com/threefoldtech/rivine-extension-erc20/api",
     "github.com/threefoldtech/rivine-extension-erc20/api/bridge",
-    "github.com/threefoldtech/rivine-extension-erc20/api/bridge/contract",
     "github.com/threefoldtech/rivine-extension-erc20/client",
     "github.com/threefoldtech/rivine-extension-erc20/daemon",
     "github.com/threefoldtech/rivine-extension-erc20/http",
