@@ -28,7 +28,6 @@ type cmds struct {
 }
 
 func main() {
-
 	var cmd cmds
 
 	rootCmd := &cobra.Command{

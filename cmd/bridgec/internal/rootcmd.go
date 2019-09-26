@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	tfchainapi "github.com/threefoldfoundation/tfchain/pkg/api"
+	erc20api "github.com/threefoldtech/rivine-extension-erc20/http"
 	api "github.com/threefoldtech/rivine/pkg/api"
 	"github.com/threefoldtech/rivine/pkg/cli"
 	rivinec "github.com/threefoldtech/rivine/pkg/client"
@@ -42,15 +42,15 @@ type rootCmd struct {
 
 // getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
 func (rootCmd *rootCmd) getSyncingStatus() {
-	var syncingStatus tfchainapi.ERC20SyncingStatus
+	var syncingStatus erc20api.ERC20SyncingStatus
 
-	err := rootCmd.cli.GetAPI("/erc20/downloader/status", &syncingStatus)
+	err := rootCmd.cli.GetWithResponse("/erc20/downloader/status", &syncingStatus)
 	if err != nil {
 		cli.DieWithError("error while fetching the syncing status", err)
 	}
 
 	var cg api.ConsensusGET
-	err = rootCmd.cli.GetAPI("/consensus", &cg)
+	err = rootCmd.cli.GetWithResponse("/consensus", &cg)
 	if err != nil {
 		cli.DieWithError("error while fetching the consensus status", err)
 	}

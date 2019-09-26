@@ -71,3 +71,67 @@ func (e *GroupedExplorer) GetChainConstants() (modules.DaemonConstants, error) {
 	}
 	return modules.DaemonConstants{}, ErrNoHealthyExplorers
 }
+
+func (e *GroupedExplorer) Get(endpoint string) error {
+	var (
+		nerr net.Error
+		err  error
+		ok   bool
+	)
+	for _, explorer := range e.explorers {
+		err = explorer.Get(endpoint)
+		if nerr, ok = err.(net.Error); ok && nerr.Timeout() {
+			continue
+		}
+		return err
+	}
+	return ErrNoHealthyExplorers
+}
+
+func (e *GroupedExplorer) GetWithResponse(endpoint string, responseBody interface{}) error {
+	var (
+		nerr net.Error
+		err  error
+		ok   bool
+	)
+	for _, explorer := range e.explorers {
+		err = explorer.GetWithResponse(endpoint, responseBody)
+		if nerr, ok = err.(net.Error); ok && nerr.Timeout() {
+			continue
+		}
+		return err
+	}
+	return ErrNoHealthyExplorers
+}
+
+func (e *GroupedExplorer) Post(endpoint, data string) error {
+	var (
+		nerr net.Error
+		err  error
+		ok   bool
+	)
+	for _, explorer := range e.explorers {
+		err = explorer.Post(endpoint, data)
+		if nerr, ok = err.(net.Error); ok && nerr.Timeout() {
+			continue
+		}
+		return err
+	}
+	return ErrNoHealthyExplorers
+}
+
+func (e *GroupedExplorer) PostWithResponse(endpoint, data string, responseBody interface{}) error {
+	var (
+		nerr net.Error
+		err  error
+		ok   bool
+	)
+	for _, explorer := range e.explorers {
+		err = explorer.PostWithResponse(endpoint, data, responseBody)
+		if nerr, ok = err.(net.Error); ok && nerr.Timeout() {
+			continue
+		}
+		return err
+	}
+	return ErrNoHealthyExplorers
+}

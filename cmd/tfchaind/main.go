@@ -14,7 +14,7 @@ import (
 func main() {
 	var cmds commands
 	// load default config to start with
-	cmds.cfg.Config = daemon.DefaultConfig()
+	cmds.cfg.Config = DefaultConfig()
 	cmds.cfg.BlockchainInfo = config.GetBlockchainInfo()
 
 	// load default config flag
@@ -22,7 +22,6 @@ func main() {
 
 	// create the root command and add the flags to the root command
 	rootCommand := &cobra.Command{
-
 		Use: os.Args[0],
 		Short: strings.Title(cmds.cfg.BlockchainInfo.Name) + " Daemon v" +
 			cmds.cfg.BlockchainInfo.ChainVersion.String(),

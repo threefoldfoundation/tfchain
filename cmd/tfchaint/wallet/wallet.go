@@ -266,9 +266,15 @@ func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types
 			refundAddr = w.firstAddress
 		} else {
 			// generate a new address
-			key := generateSpendableKey(w.seed, uint64(len(w.keys)))
-			w.keys[key.UnlockHash()] = key
-			refundAddr = key.UnlockHash()
+			key, err := generateSpendableKey(w.seed, uint64(len(w.keys)))
+			if err != nil {
+				return types.TransactionID{}, err
+			}
+			refundAddr, err = key.UnlockHash()
+			if err != nil {
+				return types.TransactionID{}, err
+			}
+			w.keys[refundAddr] = key
 			// make sure to save so we update the key count in the persistent data
 			if err = save(w); err != nil {
 				return types.TransactionID{}, err
@@ -413,16 +419,25 @@ func (w *Wallet) splitTimeLockedOutputs(outputs SpendableOutputs) (SpendableOutp
 }
 
 // generateKeys clears all existing keys and generates up to amount keys. If amount <= len(w.keys), no new keys will be generated
-func (w *Wallet) generateKeys(amount uint64) {
+func (w *Wallet) generateKeys(amount uint64) error {
 	w.keys = make(map[types.UnlockHash]spendableKey)
 
 	for i := 0; i < int(amount); i++ {
-		key := generateSpendableKey(w.seed, uint64(i))
-		w.keys[key.UnlockHash()] = key
+		key, err := generateSpendableKey(w.seed, uint64(i))
+		if err != nil {
+			return err
+		}
+		uh, err := key.UnlockHash()
+		if err != nil {
+			return err
+		}
+		w.keys[uh] = key
 		if i == 0 {
-			w.firstAddress = key.UnlockHash()
+			w.firstAddress = uh
 		}
 	}
+
+	return nil
 }
 
 // signTxn signs a transaction
@@ -461,17 +476,20 @@ func (w *Wallet) getFulfillableContextForLatestBlock() (types.FulfillableContext
 	}, nil
 }
 
-func generateSpendableKey(seed modules.Seed, index uint64) spendableKey {
+func generateSpendableKey(seed modules.Seed, index uint64) (spendableKey, error) {
 	// Generate the keys and unlock conditions.
-	entropy := crypto.HashAll(seed, index)
+	entropy, err := crypto.HashAll(seed, index)
+	if err != nil {
+		return spendableKey{}, err
+	}
 	sk, pk := crypto.GenerateKeyPairDeterministic(entropy)
 	return spendableKey{
 		PublicKey: pk,
 		SecretKey: sk,
-	}
+	}, nil
 }
 
 // UnlockHash derives the unlockhash from the spendableKey
-func (sk spendableKey) UnlockHash() types.UnlockHash {
+func (sk spendableKey) UnlockHash() (types.UnlockHash, error) {
 	return types.NewEd25519PubKeyUnlockHash(sk.PublicKey)
 }

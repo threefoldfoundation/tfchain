@@ -1,9 +1,10 @@
 package explorer
 
 import (
+	tfcli "github.com/threefoldfoundation/tfchain/extensions/tfchain/client"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
-	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 	"github.com/threefoldtech/rivine/modules"
+	"github.com/threefoldtech/rivine/pkg/client"
 )
 
 // TestnetGroupedExplorer is a GroupedExplorer preconfigured for the official public testnet explorers
@@ -22,9 +23,14 @@ func NewTestnetGroupedExplorer() *TestnetGroupedExplorer {
 		explorers = append(explorers, NewExplorer(url, "Rivine-Agent", ""))
 	}
 	explorer := &TestnetGroupedExplorer{NewGroupedExplorer(explorers...)}
-	// This call doesn't return an error since it just loads hard coded constants
-	cts, _ := explorer.GetChainConstants()
-	tftypes.RegisterTransactionTypesForTestNetwork(nil, tftypes.NopERC20TransactionValidator{}, cts.OneCoin, config.GetTestnetDaemonNetworkConfig())
+
+	// register transactions for testnet network of tfchain
+	bc, err := client.NewBaseClient(explorer, nil)
+	if err != nil {
+		panic(err)
+	}
+	tfcli.RegisterTestnetTransactions(bc)
+
 	return explorer
 }
 

@@ -11,6 +11,8 @@ import (
 	"github.com/threefoldtech/rivine/pkg/cli"
 	"github.com/threefoldtech/rivine/pkg/daemon"
 
+	erc20daemon "github.com/threefoldtech/rivine-extension-erc20/daemon"
+
 	"github.com/bgentry/speakeasy"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +21,7 @@ type commands struct {
 	cfg           ExtendedDaemonConfig
 	moduleSetFlag daemon.ModuleSetFlag
 
-	erc20Cfg ERC20NodeValidatorConfig
+	erc20Cfg erc20daemon.ERC20NodeValidatorConfig
 }
 
 func (cmds *commands) rootCommand(*cobra.Command, []string) {
@@ -61,7 +63,7 @@ func (cmds *commands) versionCommand(*cobra.Command, []string) {
 	var postfix string
 	switch cmds.cfg.BlockchainInfo.NetworkName {
 	case "devnet":
-		postfix = "-dev"
+		postfix = "-devnet"
 	case "testnet":
 		postfix = "-testing"
 	case "standard": // ""

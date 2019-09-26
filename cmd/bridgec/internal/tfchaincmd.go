@@ -44,7 +44,7 @@ type tfchaincmd struct {
 // getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
 func (tfchaincmd *tfchaincmd) getSyncingStatus() {
 	var cg api.ConsensusGET
-	err := tfchaincmd.cli.GetAPI("/consensus", &cg)
+	err := tfchaincmd.cli.GetWithResponse("/consensus", &cg)
 	if err != nil {
 		cli.DieWithError("error while fetching the consensus status", err)
 	}

@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	tfchainapi "github.com/threefoldfoundation/tfchain/pkg/api"
-	erc20 "github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
+	erc20bridge "github.com/threefoldtech/rivine-extension-erc20/api/bridge"
+	erc20api "github.com/threefoldtech/rivine-extension-erc20/http"
 	"github.com/threefoldtech/rivine/pkg/cli"
 )
 
@@ -55,9 +55,9 @@ type erc20SubCmds struct {
 
 // getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
 func (erc20SubCmds *erc20SubCmds) getSyncingStatus(cmd *cobra.Command, args []string) {
-	var syncingStatus tfchainapi.ERC20SyncingStatus
+	var syncingStatus erc20api.ERC20SyncingStatus
 
-	err := erc20SubCmds.cli.GetAPI("/erc20/downloader/status", &syncingStatus)
+	err := erc20SubCmds.cli.GetWithResponse("/erc20/downloader/status", &syncingStatus)
 	if err != nil {
 		cli.DieWithError("error while fetching the syncing status", err)
 	}
@@ -81,9 +81,9 @@ Highest block height: %d
 
 // getSyncingStatus Gets the ethereum blockchain syncing status from the deamon API
 func (erc20SubCmds *erc20SubCmds) getBalanceInfo(cmd *cobra.Command, args []string) {
-	var balanceInfo tfchainapi.ERC20BalanceInformation
+	var balanceInfo erc20api.ERC20BalanceInformation
 
-	err := erc20SubCmds.cli.GetAPI("/erc20/account/balance", &balanceInfo)
+	err := erc20SubCmds.cli.GetWithResponse("/erc20/account/balance", &balanceInfo)
 	if err != nil {
 		cli.DieWithError("error while fetching the balance information", err)
 	}
@@ -91,7 +91,7 @@ func (erc20SubCmds *erc20SubCmds) getBalanceInfo(cmd *cobra.Command, args []stri
 	// encode depending on the encoding flag
 	switch erc20SubCmds.persistentCfg.EncodingType {
 	case cli.EncodingTypeHuman:
-		ether := erc20.Denominate(balanceInfo.BalanceInfo.Balance)
+		ether := erc20bridge.Denominate(balanceInfo.BalanceInfo.Balance)
 		fmt.Printf(`Address: %s
 Balance: %s
 `, balanceInfo.BalanceInfo.Address.String(), ether)

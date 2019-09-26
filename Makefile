@@ -6,8 +6,8 @@ thinclientpkgs = ./cmd/tfchaint
 bridgepkgs = ./cmd/bridged
 bridgeclientpkgs = ./cmd/bridgec
 faucetpkgs = ./frontend/tftfaucet
-testpkgs = ./pkg/types ./pkg/persist ./pkg/eth 
-pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config $(testpkgs)
+testpkgs =  ./extensions/threebot ./extensions/threebot/types ./extensions/tfchain/consensus
+pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config ./pkg/types ./pkg/api $(testpkgs) $(bridgepkgs) $(bridgeclientpkgs) $(faucetpkgs) ./extensions/tfchain/client ./extensions/threebot/api ./extensions/threebot/client
 
 version = $(shell git describe --abbrev=0)
 commit = $(shell git rev-parse --short HEAD)
@@ -37,6 +37,7 @@ install:
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(thinclientbin) $(thinclientpkgs)
 	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(bridgebin) $(bridgepkgs)
+	go build -race -tags='debug profile' -ldflags '$(ldflagsversion)' -o $(bridgeclientbin) $(bridgeclientpkgs)
 
 install-std:
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
@@ -192,5 +193,9 @@ check-%:
 
 ineffassign:
 	ineffassign $(pkgs)
+
+lint:
+	goimports -w $(pkgs)
+	gofmt -s -w $(pkgs)
 
 .PHONY: all install xc release-images get_hub_jwt check-% ineffassign explorer release-explorer faucet
