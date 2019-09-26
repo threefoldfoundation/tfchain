@@ -152,7 +152,10 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 				networkCfg.DaemonNetworkConfig.GenesisMintingCondition,
 				tftypes.TransactionVersionMinterDefinition,
 				tftypes.TransactionVersionCoinCreation,
-				nil, // no minting options
+				&minting.PluginOptions{
+					UseLegacySiaEncoding: true,
+					RequireMinerFees:     true,
+				},
 			)
 			err = cs.RegisterPlugin(ctx, "minting", mintingPlugin)
 			if err != nil {
