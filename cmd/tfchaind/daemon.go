@@ -147,7 +147,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 				}
 			}()
 
-			// register the minting extension plugin
+			// create the minting extension plugin
 			mintingPlugin = minting.NewMintingPlugin(
 				networkCfg.DaemonNetworkConfig.GenesisMintingCondition,
 				tftypes.TransactionVersionMinterDefinition,
@@ -157,22 +157,12 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 					RequireMinerFees:     true,
 				},
 			)
-			err = cs.RegisterPlugin(ctx, "minting", mintingPlugin)
-			if err != nil {
-				servErrs <- fmt.Errorf("failed to register the minting extension: %v", err)
-				err = mintingPlugin.Close() //make sure any resources are released
-				if err != nil {
-					fmt.Println("Error during closing of the mintingPlugin :", err)
-				}
-				cancel()
-				return
-			}
 			// add the HTTP handlers for the minting plugin as well
 			mintingapi.RegisterConsensusMintingHTTPHandlers(router, mintingPlugin)
 
 			// 3Bot and ERC20 is not yet to be used on network standard
 			if cfg.BlockchainInfo.NetworkName != config.NetworkNameStandard {
-				// register the 3Bot plugin
+				// create the 3Bot plugin
 				threebotPlugin = threebot.NewPlugin(
 					networkCfg.DaemonNetworkConfig.FoundationPoolAddress,
 					networkCfg.NetworkConfig.Constants.CurrencyUnits.OneCoin,
@@ -180,16 +170,6 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 						HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden: 350000,
 					},
 				)
-				err = cs.RegisterPlugin(ctx, "threebot", threebotPlugin)
-				if err != nil {
-					servErrs <- fmt.Errorf("failed to register the threebot extension: %v", err)
-					err = threebotPlugin.Close() //make sure any resources are released
-					if err != nil {
-						fmt.Println("Error during closing of the threebotPlugin:", err)
-					}
-					cancel()
-					return
-				}
 				// add the HTTP handlers for the threebot plugin as well
 				tbapi.RegisterConsensusHTTPHandlers(router, threebotPlugin)
 
@@ -203,7 +183,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 				// add the HTTP handlers for the ERC20 plugin as well
 				erc20api.RegisterERC20HTTPHandlers(router, erc20TxValidator)
 
-				// register the ERC20 plugin
+				// create the ERC20 plugin
 				erc20Plugin = erc20.NewPlugin(
 					networkCfg.DaemonNetworkConfig.ERC20FeePoolAddress,
 					networkCfg.NetworkConfig.Constants.CurrencyUnits.OneCoin,
@@ -214,6 +194,10 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 						ERC20CoinCreation:        tftypes.TransactionVersionERC20CoinCreation,
 					},
 				)
+				// add the HTTP handlers for the ERC20 plugin as well
+				erc20api.RegisterConsensusHTTPHandlers(router, erc20Plugin)
+
+				// register the ERC20 Plugin
 				err = cs.RegisterPlugin(ctx, "erc20", erc20Plugin)
 				if err != nil {
 					servErrs <- fmt.Errorf("failed to register the ERC20 extension: %v", err)
@@ -224,8 +208,28 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 					cancel()
 					return
 				}
-				// add the HTTP handlers for the ERC20 plugin as well
-				erc20api.RegisterConsensusHTTPHandlers(router, erc20Plugin)
+				// register the Threebot Plugin
+				err = cs.RegisterPlugin(ctx, "threebot", threebotPlugin)
+				if err != nil {
+					servErrs <- fmt.Errorf("failed to register the threebot extension: %v", err)
+					err = threebotPlugin.Close() //make sure any resources are released
+					if err != nil {
+						fmt.Println("Error during closing of the threebotPlugin:", err)
+					}
+					cancel()
+					return
+				}
+			}
+			// register the Minting Plugin
+			err = cs.RegisterPlugin(ctx, "minting", mintingPlugin)
+			if err != nil {
+				servErrs <- fmt.Errorf("failed to register the minting extension: %v", err)
+				err = mintingPlugin.Close() //make sure any resources are released
+				if err != nil {
+					fmt.Println("Error during closing of the mintingPlugin :", err)
+				}
+				cancel()
+				return
 			}
 		}
 

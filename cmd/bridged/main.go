@@ -230,7 +230,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			threebotPlugin *threebot.Plugin
 		)
 
-		// register the minting extension plugin
+		// create the minting extension plugin
 		mintingPlugin = minting.NewMintingPlugin(
 			cmd.NetworkConfig.GenesisMintingCondition,
 			tftypes.TransactionVersionMinterDefinition,
@@ -240,21 +240,11 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 				RequireMinerFees:     true,
 			},
 		)
-		err = cs.RegisterPlugin(ctx, "minting", mintingPlugin)
-		if err != nil {
-			servErrs <- fmt.Errorf("failed to register the minting extension: %v", err)
-			err = mintingPlugin.Close() //make sure any resources are released
-			if err != nil {
-				log.Error("Error during closing of the mintingPlugin", "err", err)
-			}
-			cancel()
-			return
-		}
 		// add the HTTP handlers for the minting plugin as well
 		mintingapi.RegisterConsensusMintingHTTPHandlers(router, mintingPlugin)
 
 		// 3Bot and ERC20 is not yet to be used on network standard
-		// register the 3Bot plugin
+		// create the 3Bot plugin
 		threebotPlugin = threebot.NewPlugin(
 			cmd.NetworkConfig.FoundationPoolAddress,
 			cmd.ChainConstants.CurrencyUnits.OneCoin,
@@ -262,16 +252,6 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 				HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden: 350000,
 			},
 		)
-		err = cs.RegisterPlugin(ctx, "threebot", threebotPlugin)
-		if err != nil {
-			servErrs <- fmt.Errorf("failed to register the threebot extension: %v", err)
-			err = threebotPlugin.Close() //make sure any resources are released
-			if err != nil {
-				log.Error("Error during closing of the threebotPlugin", "err", err)
-			}
-			cancel()
-			return
-		}
 		// add the HTTP handlers for the threebot plugin as well
 		bpapi.RegisterConsensusHTTPHandlers(router, threebotPlugin)
 
@@ -349,6 +329,30 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		}
 		// add the HTTP handlers for the ERC20 plugin as well
 		erc20api.RegisterConsensusHTTPHandlers(router, erc20Plugin)
+
+		// register the threebot plugin
+		err = cs.RegisterPlugin(ctx, "threebot", threebotPlugin)
+		if err != nil {
+			servErrs <- fmt.Errorf("failed to register the threebot extension: %v", err)
+			err = threebotPlugin.Close() //make sure any resources are released
+			if err != nil {
+				log.Error("Error during closing of the threebotPlugin", "err", err)
+			}
+			cancel()
+			return
+		}
+
+		// register the minting plugin
+		err = cs.RegisterPlugin(ctx, "minting", mintingPlugin)
+		if err != nil {
+			servErrs <- fmt.Errorf("failed to register the minting extension: %v", err)
+			err = mintingPlugin.Close() //make sure any resources are released
+			if err != nil {
+				log.Error("Error during closing of the mintingPlugin", "err", err)
+			}
+			cancel()
+			return
+		}
 
 		router.POST("/bridge/stop", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 			// can't write after we stop the server, so lie a bit.
