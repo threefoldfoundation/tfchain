@@ -139,13 +139,22 @@ func getBotIDForPublicKey(bucket *bolt.Bucket, key types.PublicKey) (tbtypes.Bot
 // GetRecordForName returns the record mapped to the given Name.
 func (p *Plugin) GetRecordForName(name tbtypes.BotName) (record *tbtypes.BotRecord, err error) {
 	err = p.storage.View(func(bucket *bolt.Bucket) error {
-		record, err = getRecordForName(bucket, name)
+		blockTimeBucket := bucket.Bucket(bucketBlockTime)
+		if blockTimeBucket == nil {
+			return fmt.Errorf("corrupt 3bot plugin DB: bucket %s not foumd", string(bucketBlockTime))
+		}
+		_, chainTime, err := getCurrentBlockHeightAndTime(blockTimeBucket)
+		if err != nil {
+			return err
+		}
+
+		record, err = getRecordForName(bucket, name, chainTime)
 		return err
 	})
 	return
 }
 
-func getRecordForName(bucket *bolt.Bucket, name tbtypes.BotName) (*tbtypes.BotRecord, error) {
+func getRecordForName(bucket *bolt.Bucket, name tbtypes.BotName, chainTime types.Timestamp) (*tbtypes.BotRecord, error) {
 	nameBucket := bucket.Bucket(bucketBotNameToIDMapping)
 	if nameBucket == nil {
 		return nil, errors.New("corrupt 3bot plugin DB: bot name bucket does not exist")
@@ -167,15 +176,6 @@ func getRecordForName(bucket *bolt.Bucket, name tbtypes.BotName) (*tbtypes.BotRe
 	}
 
 	record, err := getRecordForID(bucket, id)
-	if err != nil {
-		return nil, err
-	}
-
-	blockTimeBucket := bucket.Bucket(bucketBlockTime)
-	if blockTimeBucket == nil {
-		return nil, fmt.Errorf("corrupt 3bot plugin DB: bucket %s not foumd", string(bucketBlockTime))
-	}
-	_, chainTime, err := getCurrentBlockHeightAndTime(blockTimeBucket)
 	if err != nil {
 		return nil, err
 	}
@@ -933,7 +933,7 @@ func (p *Plugin) validateBotRegistrationTx(txn modules.ConsensusTransaction, ctx
 
 	// validate that the names are not registered yet
 	for _, name := range brtx.Names {
-		_, err = getRecordForName(rootBucket, name)
+		_, err = getRecordForName(rootBucket, name, ctx.BlockTime)
 		if err == nil {
 			return tbtypes.ErrBotNameAlreadyRegistered
 		}
@@ -988,7 +988,7 @@ func (p *Plugin) validateBotUpdateTx(txn modules.ConsensusTransaction, ctx types
 	}
 
 	// ensure all to-be-added names are available
-	offenderRecord, err := areBotNamesAvailable(rootBucket, brutx.Names.Add...)
+	offenderRecord, err := areBotNamesAvailable(rootBucket, ctx.BlockTime, brutx.Names.Add...)
 	if err != nil {
 		if err == tbtypes.ErrBotNameAlreadyRegistered {
 			return fmt.Errorf(
@@ -1535,13 +1535,13 @@ func (sid *sortableTransactionShortID) UnmarshalRivine(r io.Reader) error {
 	return nil
 }
 
-func areBotNamesAvailable(bucket *bolt.Bucket, names ...tbtypes.BotName) (*tbtypes.BotRecord, error) {
+func areBotNamesAvailable(bucket *bolt.Bucket, chainTime types.Timestamp, names ...tbtypes.BotName) (*tbtypes.BotRecord, error) {
 	var (
 		err    error
 		record *tbtypes.BotRecord
 	)
 	for _, name := range names {
-		record, err = getRecordForName(bucket, name)
+		record, err = getRecordForName(bucket, name, chainTime)
 		switch err {
 		case tbtypes.ErrBotNameNotFound, tbtypes.ErrBotNameExpired:
 			continue // name is available, check the others
