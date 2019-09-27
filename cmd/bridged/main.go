@@ -110,7 +110,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 	log.Info("starting bridge", "version", cmd.BlockchainInfo.ChainVersion.String())
 
-	log.Info("loading network config, registering types and loading rivine transaction db (0/4)...")
+	log.Info("loading network config (0/4)...")
 	switch cmd.BlockchainInfo.NetworkName {
 	case config.NetworkNameStandard:
 		// cmd.ChainConstants = config.GetStandardnetGenesis()

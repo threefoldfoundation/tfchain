@@ -54,7 +54,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 		modulesToLoad = moduleIdentifiers.Len()
 	)
 	printModuleIsLoading := func(name string) {
-		fmt.Printf("Loading %s (%d/%d)...\r\n", name, i, modulesToLoad)
+		fmt.Printf("Loading %s (%d/%d)...\r\n", name, i+1, modulesToLoad)
 		i++
 	}
 
