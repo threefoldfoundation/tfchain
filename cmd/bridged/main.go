@@ -258,6 +258,9 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		threebotPlugin = threebot.NewPlugin(
 			cmd.NetworkConfig.FoundationPoolAddress,
 			cmd.ChainConstants.CurrencyUnits.OneCoin,
+			&threebot.PluginOptions{ // TODO: remove this hack once possible (e.g. a testnet network reset)
+				HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden: 350000,
+			},
 		)
 		err = cs.RegisterPlugin(ctx, "threebot", threebotPlugin)
 		if err != nil {

@@ -176,6 +176,9 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 				threebotPlugin = threebot.NewPlugin(
 					networkCfg.DaemonNetworkConfig.FoundationPoolAddress,
 					networkCfg.NetworkConfig.Constants.CurrencyUnits.OneCoin,
+					&threebot.PluginOptions{ // TODO: remove this hack once possible (e.g. a testnet network reset)
+						HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden: 350000,
+					},
 				)
 				err = cs.RegisterPlugin(ctx, "threebot", threebotPlugin)
 				if err != nil {

@@ -45,12 +45,22 @@ type (
 	Plugin struct {
 		storage            modules.PluginViewStorage
 		unregisterCallback modules.PluginUnregisterCallback
+
+		hackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden types.BlockHeight
+	}
+
+	// opt-in features for the plugin
+	PluginOptions struct {
+		HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden types.BlockHeight
 	}
 )
 
 // NewPlugin creates a new 3bot Plugin.
-func NewPlugin(registryPool types.UnlockHash, oneCoin types.Currency) *Plugin {
+func NewPlugin(registryPool types.UnlockHash, oneCoin types.Currency, opts *PluginOptions) *Plugin {
 	p := new(Plugin)
+	if opts != nil {
+		p.hackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden = opts.HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden
+	}
 	types.RegisterTransactionVersion(tbtypes.TransactionVersionBotRegistration, tbtypes.BotRegistrationTransactionController{
 		Registry:            p,
 		RegistryPoolAddress: registryPool,
@@ -884,11 +894,18 @@ func (p *Plugin) validateBotRegistrationTx(txn modules.ConsensusTransaction, ctx
 		_, err = getRecordForID(rootBucket, id)
 		return err
 	}()
-	if err == nil {
-		return tbtypes.ErrBotKeyAlreadyRegistered
-	}
-	if err != tbtypes.ErrBotKeyNotFound {
-		return fmt.Errorf("unexpected error while validating non-existence of bot's public key: %v", err)
+	// TODO: remove this sad hack, required due to mistakes in testnet 3Bot inner block validation
+	if ctx.BlockHeight < p.hackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden {
+		if err != nil && err != tbtypes.ErrBotKeyNotFound && err != tbtypes.ErrBotKeyAlreadyRegistered {
+			return fmt.Errorf("unexpected error while validating non-existence of bot's public key: %v", err)
+		}
+	} else {
+		if err == nil {
+			return tbtypes.ErrBotKeyAlreadyRegistered
+		}
+		if err != tbtypes.ErrBotKeyNotFound {
+			return fmt.Errorf("unexpected error while validating non-existence of bot's public key: %v", err)
+		}
 	}
 
 	// validate the signature of the to-be-registered bot
@@ -934,13 +951,22 @@ func (p *Plugin) validateBotRegistrationTx(txn modules.ConsensusTransaction, ctx
 	// validate that the names are not registered yet
 	for _, name := range brtx.Names {
 		_, err = getRecordForName(rootBucket, name, ctx.BlockTime)
-		if err == nil {
-			return tbtypes.ErrBotNameAlreadyRegistered
-		}
-		if err != tbtypes.ErrBotNameNotFound {
-			return fmt.Errorf(
-				"unexpected error while validating non-existence of bot's name %v: %v",
-				name, err)
+		// TODO: remove this sad hack, required due to mistakes in testnet 3Bot inner block validation
+		if ctx.BlockHeight < p.hackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden {
+			if err != nil && err != tbtypes.ErrBotNameNotFound && err != tbtypes.ErrBotNameAlreadyRegistered {
+				return fmt.Errorf(
+					"unexpected error while validating non-existence of bot's name %v: %v",
+					name, err)
+			}
+		} else {
+			if err == nil {
+				return tbtypes.ErrBotNameAlreadyRegistered
+			}
+			if err != tbtypes.ErrBotNameNotFound {
+				return fmt.Errorf(
+					"unexpected error while validating non-existence of bot's name %v: %v",
+					name, err)
+			}
 		}
 	}
 
