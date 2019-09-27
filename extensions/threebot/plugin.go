@@ -988,9 +988,14 @@ func (p *Plugin) validateBotUpdateTx(txn modules.ConsensusTransaction, ctx types
 	}
 
 	// ensure all to-be-added names are available
-	err = areBotNamesAvailable(rootBucket, brutx.Names.Add...)
+	offenderRecord, err := areBotNamesAvailable(rootBucket, brutx.Names.Add...)
 	if err != nil {
-		return fmt.Errorf("bot cannot be updated: areBotNamesAvailable: %v", err)
+		if err == tbtypes.ErrBotNameAlreadyRegistered {
+			return fmt.Errorf(
+				"bot %d cannot be updated: areBotNamesAvailable: 3Bot with id %d and key %s already owns one of added names",
+				record.ID, offenderRecord.ID, offenderRecord.PublicKey.String())
+		}
+		return fmt.Errorf("bot %d cannot be updated: areBotNamesAvailable: %v", record.ID, err)
 	}
 
 	// try to update the record, to spot any errors should that happen for real
@@ -1530,10 +1535,13 @@ func (sid *sortableTransactionShortID) UnmarshalRivine(r io.Reader) error {
 	return nil
 }
 
-func areBotNamesAvailable(bucket *bolt.Bucket, names ...tbtypes.BotName) error {
-	var err error
+func areBotNamesAvailable(bucket *bolt.Bucket, names ...tbtypes.BotName) (*tbtypes.BotRecord, error) {
+	var (
+		err    error
+		record *tbtypes.BotRecord
+	)
 	for _, name := range names {
-		_, err = getRecordForName(bucket, name)
+		record, err = getRecordForName(bucket, name)
 		switch err {
 		case tbtypes.ErrBotNameNotFound, tbtypes.ErrBotNameExpired:
 			continue // name is available, check the others
@@ -1541,10 +1549,10 @@ func areBotNamesAvailable(bucket *bolt.Bucket, names ...tbtypes.BotName) error {
 			// when no error is returned a record is returned,
 			// meaning the name is linked to a non-expired 3bot,
 			// and consequently the name is not available
-			return tbtypes.ErrBotNameAlreadyRegistered
+			return record, tbtypes.ErrBotNameAlreadyRegistered
 		default:
-			return err // unexpected
+			return nil, err // unexpected
 		}
 	}
-	return nil
+	return nil, nil
 }
