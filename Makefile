@@ -196,6 +196,5 @@ ineffassign:
 
 lint:
 	goimports -w $(pkgs)
-	gofmt -s -w $(pkgs)
 
 .PHONY: all install xc release-images get_hub_jwt check-% ineffassign explorer release-explorer faucet

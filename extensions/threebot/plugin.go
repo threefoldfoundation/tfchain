@@ -139,47 +139,52 @@ func getBotIDForPublicKey(bucket *bolt.Bucket, key types.PublicKey) (tbtypes.Bot
 // GetRecordForName returns the record mapped to the given Name.
 func (p *Plugin) GetRecordForName(name tbtypes.BotName) (record *tbtypes.BotRecord, err error) {
 	err = p.storage.View(func(bucket *bolt.Bucket) error {
-		nameBucket := bucket.Bucket(bucketBotNameToIDMapping)
-		if nameBucket == nil {
-			return errors.New("corrupt 3bot plugin DB: bot name bucket does not exist")
-		}
-
-		bname, err := rivbin.Marshal(name)
-		if err != nil {
-			return err
-		}
-		b := nameBucket.Get(bname)
-		if len(b) == 0 {
-			return tbtypes.ErrBotNameNotFound
-		}
-
-		var id tbtypes.BotID
-		err = rivbin.Unmarshal(b, &id)
-		if err != nil {
-			return err
-		}
-
-		record, err = getRecordForID(bucket, id)
-		if err != nil {
-			return err
-		}
-
-		blockTimeBucket := bucket.Bucket(bucketBlockTime)
-		if blockTimeBucket == nil {
-			return fmt.Errorf("corrupt 3bot plugin DB: bucket %s not foumd", string(bucketBlockTime))
-		}
-		_, chainTime, err := getCurrentBlockHeightAndTime(blockTimeBucket)
-		if err != nil {
-			return err
-		}
-
-		if record.Expiration.SiaTimestamp() <= chainTime {
-			// a botname automatically expires as soon as the last 3bot that owned it expired as well
-			return tbtypes.ErrBotNameExpired
-		}
-		return nil
+		record, err = getRecordForName(bucket, name)
+		return err
 	})
 	return
+}
+
+func getRecordForName(bucket *bolt.Bucket, name tbtypes.BotName) (*tbtypes.BotRecord, error) {
+	nameBucket := bucket.Bucket(bucketBotNameToIDMapping)
+	if nameBucket == nil {
+		return nil, errors.New("corrupt 3bot plugin DB: bot name bucket does not exist")
+	}
+
+	bname, err := rivbin.Marshal(name)
+	if err != nil {
+		return nil, err
+	}
+	b := nameBucket.Get(bname)
+	if len(b) == 0 {
+		return nil, tbtypes.ErrBotNameNotFound
+	}
+
+	var id tbtypes.BotID
+	err = rivbin.Unmarshal(b, &id)
+	if err != nil {
+		return nil, err
+	}
+
+	record, err := getRecordForID(bucket, id)
+	if err != nil {
+		return nil, err
+	}
+
+	blockTimeBucket := bucket.Bucket(bucketBlockTime)
+	if blockTimeBucket == nil {
+		return nil, fmt.Errorf("corrupt 3bot plugin DB: bucket %s not foumd", string(bucketBlockTime))
+	}
+	_, chainTime, err := getCurrentBlockHeightAndTime(blockTimeBucket)
+	if err != nil {
+		return nil, err
+	}
+
+	if record.Expiration.SiaTimestamp() <= chainTime {
+		// a botname automatically expires as soon as the last 3bot that owned it expired as well
+		return nil, tbtypes.ErrBotNameExpired
+	}
+	return record, nil
 }
 
 // GetBotTransactionIdentifiers returns the identifiers of all transactions that created and updated the given bot's record.
@@ -865,8 +870,20 @@ func (p *Plugin) validateBotRegistrationTx(txn modules.ConsensusTransaction, ctx
 		return fmt.Errorf("failed to use tx as a bot registration tx: %v", err)
 	}
 
+	rootBucket, err := bucket.AsBoltBucket()
+	if err != nil {
+		return fmt.Errorf("failed to cast passed bucket as a bolt bucket: %v", err)
+	}
+
 	// look up the public key, to ensure it is not registered yet
-	_, err = p.GetRecordForKey(brtx.Identification.PublicKey)
+	err = func() error {
+		id, err := getBotIDForPublicKey(rootBucket, brtx.Identification.PublicKey)
+		if err != nil {
+			return err
+		}
+		_, err = getRecordForID(rootBucket, id)
+		return err
+	}()
 	if err == nil {
 		return tbtypes.ErrBotKeyAlreadyRegistered
 	}
@@ -916,7 +933,7 @@ func (p *Plugin) validateBotRegistrationTx(txn modules.ConsensusTransaction, ctx
 
 	// validate that the names are not registered yet
 	for _, name := range brtx.Names {
-		_, err = p.GetRecordForName(name)
+		_, err = getRecordForName(rootBucket, name)
 		if err == nil {
 			return tbtypes.ErrBotNameAlreadyRegistered
 		}
@@ -946,10 +963,15 @@ func (p *Plugin) validateBotUpdateTx(txn modules.ConsensusTransaction, ctx types
 		return types.ErrTooSmallMinerFee
 	}
 
-	// look up the record, using the given ID, to ensure it is registered
-	record, err := p.GetRecordForID(brutx.Identifier)
+	rootBucket, err := bucket.AsBoltBucket()
 	if err != nil {
-		return fmt.Errorf("bot cannot be updated: GetRecordForID(%v): %v", brutx.Identifier, err)
+		return fmt.Errorf("failed to cast passed bucket as a bolt bucket: %v", err)
+	}
+
+	// look up the record, using the given ID, to ensure it is registered
+	record, err := getRecordForID(rootBucket, brutx.Identifier)
+	if err != nil {
+		return fmt.Errorf("bot cannot be updated: getRecordForID(%v): %v", brutx.Identifier, err)
 	}
 
 	// validate the signature of the to-be-updated bot
@@ -966,7 +988,7 @@ func (p *Plugin) validateBotUpdateTx(txn modules.ConsensusTransaction, ctx types
 	}
 
 	// ensure all to-be-added names are available
-	err = areBotNamesAvailable(p, brutx.Names.Add...)
+	err = areBotNamesAvailable(rootBucket, brutx.Names.Add...)
 	if err != nil {
 		return fmt.Errorf("bot cannot be updated: areBotNamesAvailable: %v", err)
 	}
@@ -998,16 +1020,21 @@ func (p *Plugin) validateBotNameTransferTx(txn modules.ConsensusTransaction, ctx
 		return errors.New("the identifiers of the sender and receiver bot have to be different")
 	}
 
+	rootBucket, err := bucket.AsBoltBucket()
+	if err != nil {
+		return fmt.Errorf("failed to cast passed bucket as a bolt bucket: %v", err)
+	}
+
 	// look up the record of the sender, using the given (sender) ID, to ensure it is registered,
 	// as well as for validation checks that follow
-	recordSender, err := p.GetRecordForID(bnttx.Sender.Identifier)
+	recordSender, err := getRecordForID(rootBucket, bnttx.Sender.Identifier)
 	if err != nil {
 		return fmt.Errorf("invalid sender (%d) of bot name transfer: %v", bnttx.Sender.Identifier, err)
 	}
 
 	// look up the record of the sender, using the given (sender) ID, to ensure it is registered,
 	// as well as for validation checks that follow
-	recordReceiver, err := p.GetRecordForID(bnttx.Receiver.Identifier)
+	recordReceiver, err := getRecordForID(rootBucket, bnttx.Receiver.Identifier)
 	if err != nil {
 		return fmt.Errorf("invalid sender (%d) of bot name transfer: %v", bnttx.Receiver.Identifier, err)
 	}
@@ -1503,10 +1530,10 @@ func (sid *sortableTransactionShortID) UnmarshalRivine(r io.Reader) error {
 	return nil
 }
 
-func areBotNamesAvailable(registry tbtypes.BotRecordReadRegistry, names ...tbtypes.BotName) error {
+func areBotNamesAvailable(bucket *bolt.Bucket, names ...tbtypes.BotName) error {
 	var err error
 	for _, name := range names {
-		_, err = registry.GetRecordForName(name)
+		_, err = getRecordForName(bucket, name)
 		switch err {
 		case tbtypes.ErrBotNameNotFound, tbtypes.ErrBotNameExpired:
 			continue // name is available, check the others

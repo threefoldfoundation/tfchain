@@ -482,7 +482,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d9dd0fcd280a13af76e7f935a8518e14de2b7939f07921411337396953ab4277"
+  digest = "1:ad87db7a02314c517f8c6b27c23caf2e7d07df794ba41b8d098ab766f69a2cb1"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -508,11 +508,11 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "48b23c3e4650255de5503cdaa5fb6905a8ecef8e"
+  revision = "2eda462ecb3f733f2d20a9aab3b36dde6d0c4b79"
 
 [[projects]]
   branch = "master"
-  digest = "1:a9ac0067017d0c32bd8ee1ff08603f4b095b4e0f9ee1bdaa9af87bafad85437a"
+  digest = "1:fa9dfb64fbe92da589b703cd990a1b0b610411ede8665d461dba1e18e60ad7df"
   name = "github.com/threefoldtech/rivine-extension-erc20"
   packages = [
     ".",
@@ -525,7 +525,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "fa9b8cf6eef7727f39ae6ba73bc5be8c5ea9ae40"
+  revision = "61d8f50c13762576c61e1f673723288391b238db"
 
 [[projects]]
   branch = "master"

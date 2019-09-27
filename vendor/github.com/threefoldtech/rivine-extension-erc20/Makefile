@@ -9,6 +9,5 @@ ineffassign:
 
 lint:
 	goimports -w $(allpkgs)
-	gofmt -s -w $(allpkgs)
 
 .PHONY: test ineffassign lint

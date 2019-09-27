@@ -356,57 +356,43 @@ func getUnconfirmedTransactions(explorer modules.Explorer, tpool modules.Transac
 		}
 	}
 	// go through all unconfirmed transactions
+unconfirmedTxsLoop:
 	for _, txn := range unconfirmedTxns {
-		related := false
 		// Check if any coin output is related to the hash we currently have
 		for _, co := range txn.CoinOutputs {
 			if co.Condition.UnlockHash() == addr {
-				related = true
 				relatedTxns = append(relatedTxns, txn)
-				break
+				continue unconfirmedTxsLoop
 			}
-		}
-		if related {
-			continue
 		}
 		// Check if any blockstake output is related
 		for _, bso := range txn.BlockStakeOutputs {
 			if bso.Condition.UnlockHash() == addr {
-				related = true
 				relatedTxns = append(relatedTxns, txn)
-				break
+				continue unconfirmedTxsLoop
 			}
-		}
-		if related {
-			continue
 		}
 		// Check the coin inputs
 		for _, ci := range txn.CoinInputs {
 			// check if related to an unconfirmed coin output
 			if sco, ok := potentiallySpentCoinOutputs[ci.ParentID]; ok && sco.Condition.UnlockHash() == addr {
-				// mark related, add tx and stop this coin input loop
-				related = true
+				// add tx and stop this coin input loop
 				relatedTxns = append(relatedTxns, txn)
-				break
+				continue unconfirmedTxsLoop
 			}
 			// check if related to a confirmed coin output
 			co, _ := explorer.CoinOutput(ci.ParentID)
 			if co.Condition.UnlockHash() == addr {
-				related = true
 				relatedTxns = append(relatedTxns, txn)
-				break
+				continue unconfirmedTxsLoop
 			}
-		}
-		if related {
-			continue
 		}
 		// Check blockstake inputs
 		for _, bsi := range txn.BlockStakeInputs {
 			bsi, _ := explorer.BlockStakeOutput(bsi.ParentID)
 			if bsi.Condition.UnlockHash() == addr {
-				// related = true // ineffectassign
 				relatedTxns = append(relatedTxns, txn)
-				break
+				continue unconfirmedTxsLoop
 			}
 		}
 	}

@@ -3,7 +3,6 @@ package consensus
 import (
 	"fmt"
 
-	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/modules/consensus"
 	"github.com/threefoldtech/rivine/types"
@@ -26,13 +25,10 @@ func GetStandardTransactionValidators() []modules.TransactionValidationFunction 
 
 func GetStandardTransactionVersionMappedValidators() map[types.TransactionVersion][]modules.TransactionValidationFunction {
 	const (
-		secondsInOneDay                         = 86400 + config.StandardNetworkBlockFrequency // round up
-		daysFromStartOfBlockchainUntil2ndOfJuly = 74
-		txnFeeCheckBlockHeight                  = daysFromStartOfBlockchainUntil2ndOfJuly *
-			(secondsInOneDay / config.StandardNetworkBlockFrequency)
+		minimumBlockHeightSinceMinerFeesAreRequired   = 300000
 		blockHeightSinceLegacyTransactionsAreDisabled = 385000
 	)
-	validator := &MinimumMinerFeeValidator{MinimumBlockHeight: txnFeeCheckBlockHeight}
+	validator := &MinimumMinerFeeValidator{MinimumBlockHeight: minimumBlockHeightSinceMinerFeesAreRequired}
 	legacyValidator := &DisableTransactionSinceValidator{MinimumBlockHeight: blockHeightSinceLegacyTransactionsAreDisabled}
 	return map[types.TransactionVersion][]modules.TransactionValidationFunction{
 		types.TransactionVersionZero: {
@@ -66,13 +62,10 @@ func GetTestnetTransactionValidators() []modules.TransactionValidationFunction {
 
 func GetTestnetTransactionVersionMappedValidators() map[types.TransactionVersion][]modules.TransactionValidationFunction {
 	const (
-		secondsInOneDay                         = 86400 + config.TestNetworkBlockFrequency // round up
-		daysFromStartOfBlockchainUntil2ndOfJuly = 90
-		txnFeeCheckBlockHeight                  = daysFromStartOfBlockchainUntil2ndOfJuly *
-			(secondsInOneDay / config.TestNetworkBlockFrequency)
+		minimumBlockHeightSinceMinerFeesAreRequired   = 300000
 		blockHeightSinceLegacyTransactionsAreDisabled = 385000
 	)
-	validator := &MinimumMinerFeeValidator{MinimumBlockHeight: txnFeeCheckBlockHeight}
+	validator := &MinimumMinerFeeValidator{MinimumBlockHeight: minimumBlockHeightSinceMinerFeesAreRequired}
 	legacyValidator := &DisableTransactionSinceValidator{MinimumBlockHeight: blockHeightSinceLegacyTransactionsAreDisabled}
 	return map[types.TransactionVersion][]modules.TransactionValidationFunction{
 		types.TransactionVersionZero: {
@@ -127,7 +120,7 @@ type MinimumMinerFeeValidator struct {
 // Validate is a validator function that checks if all miner fees are valid.
 // Until the minimum block height 0 fees are allowed, afterwards the minimum fee is checked
 func (validator *MinimumMinerFeeValidator) Validate(tx modules.ConsensusTransaction, ctx types.TransactionValidationContext) error {
-	if tx.BlockHeight < validator.MinimumBlockHeight {
+	if ctx.BlockHeight < validator.MinimumBlockHeight {
 		// no need to check
 		return nil
 	}
@@ -151,12 +144,12 @@ type DisableTransactionSinceValidator struct {
 	MinimumBlockHeight types.BlockHeight
 }
 
-// Validate is a validator function that checks if the block is still allowed
+// Validate is a validator function that checks if the transaction is still allowed
 // in the current chain.
 func (validator *DisableTransactionSinceValidator) Validate(tx modules.ConsensusTransaction, ctx types.TransactionValidationContext) error {
-	if tx.BlockHeight < validator.MinimumBlockHeight {
+	if ctx.BlockHeight < validator.MinimumBlockHeight {
 		// no need to check
 		return nil
 	}
-	return fmt.Errorf("transaction is no longer allowed since block height %d", tx.BlockHeight)
+	return fmt.Errorf("transaction is no longer allowed since block height %d (disallowed since %d)", ctx.BlockHeight, validator.MinimumBlockHeight)
 }
