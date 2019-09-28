@@ -5,7 +5,7 @@ clientpkgs = ./cmd/tfchainc
 thinclientpkgs = ./cmd/tfchaint
 bridgepkgs = ./cmd/bridged
 bridgeclientpkgs = ./cmd/bridgec
-faucetpkgs = ./frontend/tftfaucet
+faucetpkgs = ./frontend/faucet
 testpkgs =  ./extensions/threebot ./extensions/threebot/types ./extensions/tfchain/consensus
 pkgs = $(daemonpkgs) $(clientpkgs) ./pkg/config ./pkg/types ./pkg/api $(testpkgs) $(bridgepkgs) $(bridgeclientpkgs) $(faucetpkgs) ./extensions/tfchain/client ./extensions/threebot/api ./extensions/threebot/client
 
