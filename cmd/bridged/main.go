@@ -245,12 +245,16 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		// 3Bot and ERC20 is not yet to be used on network standard
 		// create the 3Bot plugin
+		var tbPluginOpts *threebot.PluginOptions
+		if cmd.BlockchainInfo.NetworkName == config.NetworkNameTest {
+			tbPluginOpts = &threebot.PluginOptions{ // TODO: remove this hack once possible (e.g. a testnet network reset)
+				HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden: 350000,
+			}
+		}
 		threebotPlugin = threebot.NewPlugin(
 			cmd.NetworkConfig.FoundationPoolAddress,
 			cmd.ChainConstants.CurrencyUnits.OneCoin,
-			&threebot.PluginOptions{ // TODO: remove this hack once possible (e.g. a testnet network reset)
-				HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden: 350000,
-			},
+			tbPluginOpts,
 		)
 		// add the HTTP handlers for the threebot plugin as well
 		bpapi.RegisterConsensusHTTPHandlers(router, threebotPlugin)

@@ -163,12 +163,16 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 			// 3Bot and ERC20 is not yet to be used on network standard
 			if cfg.BlockchainInfo.NetworkName != config.NetworkNameStandard {
 				// create the 3Bot plugin
+				var tbPluginOpts *threebot.PluginOptions
+				if cfg.BlockchainInfo.NetworkName == config.NetworkNameTest {
+					tbPluginOpts = &threebot.PluginOptions{ // TODO: remove this hack once possible (e.g. a testnet network reset)
+						HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden: 350000,
+					}
+				}
 				threebotPlugin = threebot.NewPlugin(
 					networkCfg.DaemonNetworkConfig.FoundationPoolAddress,
 					networkCfg.NetworkConfig.Constants.CurrencyUnits.OneCoin,
-					&threebot.PluginOptions{ // TODO: remove this hack once possible (e.g. a testnet network reset)
-						HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden: 350000,
-					},
+					tbPluginOpts,
 				)
 				// add the HTTP handlers for the threebot plugin as well
 				tbapi.RegisterConsensusHTTPHandlers(router, threebotPlugin)
