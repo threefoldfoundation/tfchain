@@ -35,8 +35,10 @@ func main() {
 	mintingcli.CreateWalletCmds(
 		cliClient.CommandLineClient,
 		tftypes.TransactionVersionMinterDefinition, tftypes.TransactionVersionCoinCreation,
-		nil, // no options desired
-	)
+		&mintingcli.WalletCmdsOpts{
+			CoinDestructionTxVersion: 0,    // disabled
+			RequireMinerFees:         true, // require miner fees
+		})
 	erc20cli.CreateWalletCmds(cliClient.CommandLineClient, erc20types.TransactionVersions{
 		ERC20Conversion:          tftypes.TransactionVersionERC20Conversion,
 		ERC20AddressRegistration: tftypes.TransactionVersionERC20AddressRegistration,
