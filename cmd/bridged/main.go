@@ -358,6 +358,11 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			return
 		}
 
+		// register our special bridge HTTP handlers
+		router.GET("/daemon/constants", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+			constants := modules.NewDaemonConstants(cmd.BlockchainInfo, cmd.ChainConstants)
+			rivineapi.WriteJSON(w, constants)
+		})
 		router.POST("/bridge/stop", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 			// can't write after we stop the server, so lie a bit.
 			rivineapi.WriteSuccess(w)

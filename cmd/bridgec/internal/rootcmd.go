@@ -22,9 +22,10 @@ func createRootCmd(binName, clientName string, client *CommandLineClient) {
 
 	// create Rootcommand
 	client.RootCmd = &cobra.Command{
-		Use:   binName,
-		Short: fmt.Sprintf("%s Client", strings.Title(clientName)),
-		Run:   rivinec.Wrap(rootCmd.getSyncingStatus),
+		Use:     binName,
+		Short:   fmt.Sprintf("%s Client", strings.Title(clientName)),
+		Run:     rivinec.Wrap(rootCmd.getSyncingStatus),
+		PreRunE: client.preRunE,
 	}
 
 	// register flags
