@@ -30,8 +30,8 @@
   name = "github.com/bgentry/speakeasy"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/ethereum/go-ethereum"
-  version = "1.9.5"
 
 [[constraint]]
   name = "github.com/julienschmidt/httprouter"
@@ -60,6 +60,10 @@
 [[override]]
   name = "github.com/russross/blackfriday"
   version = "1.5"
+
+[[override]]
+  branch = "master"
+  name = "github.com/syndtr/goleveldb"
 
 [prune]
   go-tests = true

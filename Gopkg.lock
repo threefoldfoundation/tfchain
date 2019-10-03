@@ -58,7 +58,7 @@
   name = "github.com/aristanetworks/goarista"
   packages = ["monotime"]
   pruneopts = "UT"
-  revision = "60b7b74727fd0950b5456694c2f0a9fec245faee"
+  revision = "186a6201b8efc232db8ddab212591470ec924be9"
 
 [[projects]]
   branch = "master"
@@ -120,7 +120,8 @@
   version = "v0.10.5"
 
 [[projects]]
-  digest = "1:fcf2cccbd9152031a7f085bd9efb343077e1d341843e08576d2e48dd272b30a3"
+  branch = "master"
+  digest = "1:d97669eb5d9e8fddafb2e740a42cfbc4a387d3bea9d603a8d9bf29ce91e330b6"
   name = "github.com/ethereum/go-ethereum"
   packages = [
     ".",
@@ -199,8 +200,7 @@
     "trie",
   ]
   pruneopts = "T"
-  revision = "a1c09b93871dd3770adffb177086abda1b2ff3af"
-  version = "v1.9.5"
+  revision = "a73f3f45183a347864a1c941930d6f26c6f06ac2"
 
 [[projects]]
   branch = "master"
@@ -308,12 +308,12 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:f97285a3b0a496dcf8801072622230d513f69175665d94de60eb042d03387f6c"
+  digest = "1:84a35669b4b31cc20ffc89c3b2ab32f2189fb2366a973efa1c25e009ef6ae1c6"
   name = "github.com/julienschmidt/httprouter"
   packages = ["."]
   pruneopts = "UT"
-  revision = "348b672cd90d8190f8240323e372ecd1e66b59dc"
-  version = "v1.2.0"
+  revision = "4eec211fa4e8df74ed978dc5681612131854144f"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
@@ -324,12 +324,12 @@
   revision = "51dc0efba3568b598359930901dc6647e9b2c6a1"
 
 [[projects]]
-  digest = "1:7c084e0e780596dd2a7e20d25803909a9a43689c153de953520dfbc0b0e51166"
+  digest = "1:4a29eeb25603debe8f2098a9902c4d3851034cf70d33be428826e86e8c30a1b0"
   name = "github.com/mattn/go-colorable"
   packages = ["."]
   pruneopts = "UT"
-  revision = "8029fb3788e5a4a9c00e415f586a6d033f5d38b3"
-  version = "v0.1.2"
+  revision = "98ec13f34aabf44cc914c65a1cfb7b9bc815aef1"
+  version = "v0.1.4"
 
 [[projects]]
   digest = "1:36325ebb862e0382f2f14feef409ba9351271b89ada286ae56836c603d43b59c"
@@ -460,7 +460,8 @@
   version = "0.2.5"
 
 [[projects]]
-  digest = "1:5b180f17d5bc50b765f4dcf0d126c72979531cbbd7f7929bf3edd87fb801ea2d"
+  branch = "master"
+  digest = "1:c345767003e0d53971e0f409a42b875dab3fee7ec269557c863ebbb194341420"
   name = "github.com/syndtr/goleveldb"
   packages = [
     "leveldb",
@@ -477,12 +478,11 @@
     "leveldb/util",
   ]
   pruneopts = "UT"
-  revision = "9d007e481048296f09f59bd19bb7ae584563cd95"
-  version = "v1.0.0"
+  revision = "758128399b1df3a87e92df6c26c1d2063da8fabe"
 
 [[projects]]
   branch = "master"
-  digest = "1:1c14b6b7c54e4e96be0f20a948fba6b8571f1d401179c13c36c58e646602ea0b"
+  digest = "1:9a227cde40e6b0516ae8af571591e2d402309b36fcfc31fcdbf0f27d58262c50"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -508,11 +508,11 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "3a3ffa4833e34a71d66fc71bfaa7a5c71547aaf2"
+  revision = "4d5e41642194d34332c27c24d7f87329b698de5f"
 
 [[projects]]
   branch = "master"
-  digest = "1:fa9dfb64fbe92da589b703cd990a1b0b610411ede8665d461dba1e18e60ad7df"
+  digest = "1:c8815a842380ae89a115102db963e1d1326eb911ea84b9839d76b1f2e00014ad"
   name = "github.com/threefoldtech/rivine-extension-erc20"
   packages = [
     ".",
@@ -525,7 +525,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "61d8f50c13762576c61e1f673723288391b238db"
+  revision = "2f2d89adbd621c9178c87faa050a11f40d53908d"
 
 [[projects]]
   branch = "master"
@@ -579,7 +579,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:00c96e756876ed0318ca1c18935387a76774fc609cfb8b3a1e86116d264c87e6"
+  digest = "1:157ef930e212b03369a1bbaf201de4b1f153e0627af12e6b1a2b750b6c7fe0da"
   name = "golang.org/x/crypto"
   packages = [
     "blake2b",
@@ -594,11 +594,11 @@
     "twofish",
   ]
   pruneopts = "UT"
-  revision = "fa1a291087948aa85c6e20c1b3749a02403ffc1b"
+  revision = "34f69633bfdcf9db92f698f8487115767eebef81"
 
 [[projects]]
   branch = "master"
-  digest = "1:a167b5c532f3245f5a147ade26185f16d6ee8f8d3f6c9846f447e9d8b9705505"
+  digest = "1:94002ae1eb37d085f9aca990b3246b0cf6f0d114b5c0924aedd8eaf2a912143f"
   name = "golang.org/x/net"
   packages = [
     "html",
@@ -606,11 +606,11 @@
     "html/charset",
   ]
   pruneopts = "UT"
-  revision = "c00fd9afed17cfdca9b3e1e3b8de7ef2b3f0347b"
+  revision = "2ec189313ef0a07735684caebd1ba8b8ebca456f"
 
 [[projects]]
   branch = "master"
-  digest = "1:d316a0442d11de60979bec58172150184128011baff0e22dd3c2b06d00dcfcc2"
+  digest = "1:73c8fbc1b18bb74bf421444fd41e95cf29e043ef9d1bb9e000be9843e6c9b29a"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
@@ -618,7 +618,7 @@
     "windows",
   ]
   pruneopts = "UT"
-  revision = "2837fb4f24fee082b8c39b1a6dc9e0ed9f3fbd4f"
+  revision = "b397fe3ad8ed895c98fa54584f61835a88e65ff5"
 
 [[projects]]
   digest = "1:7570a3e4daa14b7627089e77ad8c714f5f36b4cf1b7dfd8510df7d6935dc42a0"
