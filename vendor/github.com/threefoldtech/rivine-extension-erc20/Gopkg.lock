@@ -450,7 +450,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ac23737e6270fd7393954186edba2681efda5f2c466e484accb5d8a03de8d4f5"
+  digest = "1:abac2fff4a3f75ab2f04dc673a5927fbad34107e4c72e6e54ad2fbd482c85094"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -465,7 +465,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "4d5e41642194d34332c27c24d7f87329b698de5f"
+  revision = "55e46012bb50c7d229581d15325613efa29e75c2"
 
 [[projects]]
   branch = "master"

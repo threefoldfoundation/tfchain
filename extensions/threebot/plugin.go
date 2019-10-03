@@ -261,6 +261,18 @@ func (p *Plugin) ApplyBlock(block modules.ConsensusBlock, bucket *persist.LazyBo
 	return setStatsBlockTime(blockTimeBucket, block.Height, block.Timestamp)
 }
 
+// ApplyBlockHeader applies a block's header data to the 3Bot bucket.
+func (p *Plugin) ApplyBlockHeader(header modules.ConsensusBlockHeader, bucket *persist.LazyBoltBucket) error {
+	if bucket == nil {
+		return errors.New("3Bot bucket does not exist")
+	}
+	blockTimeBucket, err := bucket.Bucket(bucketBlockTime)
+	if err != nil {
+		return fmt.Errorf("corrupt 3bot plugin DB: %v", err)
+	}
+	return setStatsBlockTime(blockTimeBucket, header.Height, header.Timestamp)
+}
+
 // ApplyTransaction applies a 3Bot transactions to the 3Bot bucket.
 func (p *Plugin) ApplyTransaction(txn modules.ConsensusTransaction, bucket *persist.LazyBoltBucket) error {
 	if bucket == nil {
@@ -572,6 +584,18 @@ func (p *Plugin) RevertBlock(block modules.ConsensusBlock, bucket *persist.LazyB
 		return fmt.Errorf("corrupt 3bot plugin DB: %v", err)
 	}
 	return deleteStatsBlockTime(blockTimeBucket, block.Height)
+}
+
+// RevertBlockHeader applies a block's header data to the 3Bot bucket.
+func (p *Plugin) RevertBlockHeader(header modules.ConsensusBlockHeader, bucket *persist.LazyBoltBucket) error {
+	if bucket == nil {
+		return errors.New("3Bot bucket does not exist")
+	}
+	blockTimeBucket, err := bucket.Bucket(bucketBlockTime)
+	if err != nil {
+		return fmt.Errorf("corrupt 3bot plugin DB: %v", err)
+	}
+	return deleteStatsBlockTime(blockTimeBucket, header.Height)
 }
 
 // RevertTransaction reverts a 3Bot transactions to the 3Bot bucket.
