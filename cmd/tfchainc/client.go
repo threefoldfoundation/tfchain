@@ -13,7 +13,7 @@ type CommandLineClient struct {
 }
 
 func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, error) {
-	client, err := client.NewCommandLineClient(address, name, userAgent)
+	client, err := client.NewCommandLineClient(address, name, userAgent, nil)
 	if err != nil {
 		return nil, err
 	}
