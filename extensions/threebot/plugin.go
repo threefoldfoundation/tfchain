@@ -1133,6 +1133,9 @@ func (p *Plugin) validateBotNameTransferTx(txn modules.ConsensusTransaction, ctx
 
 // Close unregisters the plugin from the consensus
 func (p *Plugin) Close() error {
+	if p.storage == nil {
+		return nil
+	}
 	return p.storage.Close()
 }
 
