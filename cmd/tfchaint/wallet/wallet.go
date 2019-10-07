@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/threefoldfoundation/tfchain/cmd/tfchaint/explorer"
@@ -36,11 +37,21 @@ type (
 		PublicKey crypto.PublicKey
 		SecretKey crypto.SecretKey
 	}
+
+	// jobContext stores information used to fetch an address on the explorer
+	jobContext struct {
+		currentChainHeight types.BlockHeight
+		maturityDelay      types.BlockHeight
+		address            types.UnlockHash
+	}
 )
 
 const (
 	// ArbitraryDataMaxSize is the maximum size of the arbitrary data field on a transaction
 	ArbitraryDataMaxSize = 83
+
+	// WorkerCount is the number of workers used to process information about explorer addresses
+	WorkerCount = 25
 )
 
 var (
@@ -108,9 +119,11 @@ func loadBackend(name string) Backend {
 		return explorer.NewMainnetGroupedExplorer()
 	case "testnet":
 		return explorer.NewTestnetGroupedExplorer()
+	case "devnet":
+		return explorer.NewDevnetGroupedExplorer()
 	default:
-		// for now anything else will also default to testnet
-		return explorer.NewTestnetGroupedExplorer()
+		// for now anything else will also default to devnet
+		return explorer.NewDevnetGroupedExplorer()
 	}
 }
 
@@ -266,9 +279,15 @@ func (w *Wallet) TransferCoinsMulti(amounts []types.Currency, conditions []types
 			refundAddr = w.firstAddress
 		} else {
 			// generate a new address
-			key := generateSpendableKey(w.seed, uint64(len(w.keys)))
-			w.keys[key.UnlockHash()] = key
-			refundAddr = key.UnlockHash()
+			key, err := generateSpendableKey(w.seed, uint64(len(w.keys)))
+			if err != nil {
+				return types.TransactionID{}, err
+			}
+			refundAddr, err = key.UnlockHash()
+			if err != nil {
+				return types.TransactionID{}, err
+			}
+			w.keys[refundAddr] = key
 			// make sure to save so we update the key count in the persistent data
 			if err = save(w); err != nil {
 				return types.TransactionID{}, err
@@ -314,6 +333,12 @@ func (w *Wallet) LoadKeys(amount uint64) error {
 }
 
 func (w *Wallet) getUnspentCoinOutputs() (SpendableOutputs, error) {
+	workerCount := WorkerCount
+
+	if len(w.keys) < workerCount {
+		workerCount = len(w.keys)
+	}
+
 	currentChainHeight, err := w.backend.CurrentHeight()
 	if err != nil {
 		return nil, err
@@ -324,69 +349,93 @@ func (w *Wallet) getUnspentCoinOutputs() (SpendableOutputs, error) {
 		return nil, err
 	}
 
-	outputChan := make(chan SpendableOutputs)
-	for address := range w.keys {
-		go func(addr types.UnlockHash) {
-			tempMap := make(SpendableOutputs)
+	jobs := make(chan jobContext, len(w.keys))
+	results := make(chan SpendableOutputs)
+	errChan := make(chan error, len(w.keys))
 
-			defer func() {
-				// always send the map
-				outputChan <- tempMap
-			}()
-
-			blocks, transactions, err := w.backend.CheckAddress(addr)
-			if err != nil {
-				return
-			}
-
-			// We scann the blocks here for the miner fees, and the transactions for actual transactions
-			for _, block := range blocks {
-				// Collect the miner fees
-				// But only those that have matured already
-				if block.Height+chainCts.MaturityDelay >= currentChainHeight {
-					// ignore miner payout which hasn't yet matured
-					continue
-				}
-				for i, minerPayout := range block.RawBlock.MinerPayouts {
-					if minerPayout.UnlockHash == addr {
-						tempMap[block.MinerPayoutIDs[i]] = types.CoinOutput{
-							Value: minerPayout.Value,
-							Condition: types.UnlockConditionProxy{
-								Condition: types.NewUnlockHashCondition(minerPayout.UnlockHash),
-							},
-						}
-					}
-				}
-			}
-
-			// Collect the transaction outputs
-			for _, txn := range transactions {
-				for i, utxo := range txn.RawTransaction.CoinOutputs {
-					if utxo.Condition.UnlockHash() == addr {
-						tempMap[txn.CoinOutputIDs[i]] = utxo
-					}
-				}
-			}
-			// Remove the ones we've spent already
-			for _, txn := range transactions {
-				for _, ci := range txn.RawTransaction.CoinInputs {
-					delete(tempMap, ci.ParentID)
-				}
-			}
-
-		}(address)
+	for worker := 1; worker <= workerCount; worker++ {
+		go w.checkAddress(jobs, results, errChan)
 	}
 
-	outputMap := make(SpendableOutputs)
-	for i := 0; i < len(w.keys); i++ {
-		mp := <-outputChan
-		for key, value := range mp {
-			outputMap[key] = value
+	for address := range w.keys {
+		jobs <- jobContext{
+			address:            address,
+			currentChainHeight: currentChainHeight,
+			maturityDelay:      chainCts.MaturityDelay,
 		}
 	}
-	close(outputChan)
+	close(jobs)
 
-	return outputMap, nil
+	ucos := make(SpendableOutputs)
+	errs := make([]string, 0)
+
+	for i := 0; i < len(w.keys); i++ {
+		select {
+		case res := <-results:
+			for k, v := range res {
+				ucos[k] = v
+			}
+		case err := <-errChan:
+			errs = append(errs, err.Error())
+		}
+	}
+
+	close(results)
+	close(errChan)
+
+	if len(errs) > 0 {
+		err = errors.New(strings.Join(errs, "\n"))
+	}
+
+	return ucos, err
+}
+
+func (w *Wallet) checkAddress(jobs <-chan jobContext, results chan<- SpendableOutputs, errChan chan<- error) {
+	for context := range jobs {
+		blocks, transactions, err := w.backend.CheckAddress(context.address)
+		if err != nil {
+			errChan <- err
+			continue
+		}
+		tempMap := make(SpendableOutputs)
+
+		// We scann the blocks here for the miner fees, and the transactions for actual transactions
+		for _, block := range blocks {
+			// Collect the miner fees
+			// But only those that have matured already
+			if block.Height+context.maturityDelay >= context.currentChainHeight {
+				// ignore miner payout which hasn't yet matured
+				continue
+			}
+			for i, minerPayout := range block.RawBlock.MinerPayouts {
+				if minerPayout.UnlockHash == context.address {
+					tempMap[block.MinerPayoutIDs[i]] = types.CoinOutput{
+						Value: minerPayout.Value,
+						Condition: types.UnlockConditionProxy{
+							Condition: types.NewUnlockHashCondition(minerPayout.UnlockHash),
+						},
+					}
+				}
+			}
+		}
+
+		// Collect the transaction outputs
+		for _, txn := range transactions {
+			for i, utxo := range txn.RawTransaction.CoinOutputs {
+				if utxo.Condition.UnlockHash() == context.address {
+					tempMap[txn.CoinOutputIDs[i]] = utxo
+				}
+			}
+		}
+		// Remove the ones we've spent already
+		for _, txn := range transactions {
+			for _, ci := range txn.RawTransaction.CoinInputs {
+				delete(tempMap, ci.ParentID)
+			}
+		}
+
+		results <- tempMap
+	}
 }
 
 // splitTimeLockedOutputs separates a list of SpendableOutputs into a list of outputs which can be spent right now (no timelock or
@@ -413,16 +462,25 @@ func (w *Wallet) splitTimeLockedOutputs(outputs SpendableOutputs) (SpendableOutp
 }
 
 // generateKeys clears all existing keys and generates up to amount keys. If amount <= len(w.keys), no new keys will be generated
-func (w *Wallet) generateKeys(amount uint64) {
+func (w *Wallet) generateKeys(amount uint64) error {
 	w.keys = make(map[types.UnlockHash]spendableKey)
 
 	for i := 0; i < int(amount); i++ {
-		key := generateSpendableKey(w.seed, uint64(i))
-		w.keys[key.UnlockHash()] = key
+		key, err := generateSpendableKey(w.seed, uint64(i))
+		if err != nil {
+			return err
+		}
+		uh, err := key.UnlockHash()
+		if err != nil {
+			return err
+		}
+		w.keys[uh] = key
 		if i == 0 {
-			w.firstAddress = key.UnlockHash()
+			w.firstAddress = uh
 		}
 	}
+
+	return nil
 }
 
 // signTxn signs a transaction
@@ -461,17 +519,20 @@ func (w *Wallet) getFulfillableContextForLatestBlock() (types.FulfillableContext
 	}, nil
 }
 
-func generateSpendableKey(seed modules.Seed, index uint64) spendableKey {
+func generateSpendableKey(seed modules.Seed, index uint64) (spendableKey, error) {
 	// Generate the keys and unlock conditions.
-	entropy := crypto.HashAll(seed, index)
+	entropy, err := crypto.HashAll(seed, index)
+	if err != nil {
+		return spendableKey{}, err
+	}
 	sk, pk := crypto.GenerateKeyPairDeterministic(entropy)
 	return spendableKey{
 		PublicKey: pk,
 		SecretKey: sk,
-	}
+	}, nil
 }
 
 // UnlockHash derives the unlockhash from the spendableKey
-func (sk spendableKey) UnlockHash() types.UnlockHash {
+func (sk spendableKey) UnlockHash() (types.UnlockHash, error) {
 	return types.NewEd25519PubKeyUnlockHash(sk.PublicKey)
 }

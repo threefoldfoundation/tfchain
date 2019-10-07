@@ -10,6 +10,8 @@ import (
 	"io"
 	"os"
 	"reflect"
+
+	"github.com/threefoldtech/rivine/build"
 )
 
 const (
@@ -152,20 +154,24 @@ func NewEncoder(w io.Writer) *Encoder {
 
 // Marshal returns the encoding of v. For encoding details, see the package
 // docstring.
-func Marshal(v interface{}) []byte {
+func Marshal(v interface{}) ([]byte, error) {
 	b := new(bytes.Buffer)
-	NewEncoder(b).Encode(v) // no error possible when using a bytes.Buffer
-	return b.Bytes()
+	err := NewEncoder(b).Encode(v)
+	if err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
 }
 
 // MarshalAll encodes all of its inputs and returns their concatenation.
-func MarshalAll(vs ...interface{}) []byte {
+func MarshalAll(vs ...interface{}) ([]byte, error) {
 	b := new(bytes.Buffer)
 	enc := NewEncoder(b)
-	// Error from EncodeAll is ignored as encoding cannot fail when writing
-	// to a bytes.Buffer.
-	_ = enc.EncodeAll(vs...)
-	return b.Bytes()
+	err := enc.EncodeAll(vs...)
+	if err != nil {
+		return nil, err
+	}
+	return b.Bytes(), nil
 }
 
 // WriteFile writes v to a file. The file will be created if it does not exist.
@@ -195,7 +201,7 @@ func (d *Decoder) Read(p []byte) (int, error) {
 	n, err := d.r.Read(p)
 	// enforce an absolute maximum size limit
 	if d.n += n; d.n > MaxObjectSize {
-		panic(ErrObjectTooLarge)
+		build.Critical(ErrObjectTooLarge)
 	}
 	return n, err
 }
@@ -243,14 +249,14 @@ func (d *Decoder) readN(n int) []byte {
 			panic(io.ErrUnexpectedEOF)
 		}
 		if d.n += n; d.n > MaxObjectSize {
-			panic(ErrObjectTooLarge)
+			build.Critical(ErrObjectTooLarge)
 		}
 		return b
 	}
 	b := make([]byte, n)
 	_, err := io.ReadFull(d, b)
 	if err != nil {
-		panic(err)
+		build.Critical(err)
 	}
 	return b
 }
@@ -264,7 +270,7 @@ func (d *Decoder) decode(val reflect.Value) {
 		if u, ok := val.Addr().Interface().(SiaUnmarshaler); ok {
 			err := u.UnmarshalSia(d.r)
 			if err != nil {
-				panic(err)
+				build.Critical(err)
 			}
 			return
 		}
@@ -286,7 +292,7 @@ func (d *Decoder) decode(val reflect.Value) {
 	case reflect.Bool:
 		b := d.readN(1)
 		if b[0] > 1 {
-			panic("boolean value was not 0 or 1")
+			build.Critical("boolean value was not 0 or 1")
 		}
 		val.SetBool(b[0] == 1)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -296,7 +302,7 @@ func (d *Decoder) decode(val reflect.Value) {
 	case reflect.String:
 		strLen := DecUint64(d.readN(8))
 		if strLen > MaxSliceSize {
-			panic("string is too large")
+			build.Critical("string is too large")
 		}
 		val.SetString(string(d.readN(int(strLen))))
 	case reflect.Slice:
@@ -306,7 +312,7 @@ func (d *Decoder) decode(val reflect.Value) {
 		// sanity-check the sliceLen, otherwise you can crash a peer by making
 		// them allocate a massive slice
 		if sliceLen > 1<<31-1 || sliceLen*uint64(val.Type().Elem().Size()) > MaxSliceSize {
-			panic(ErrSliceTooLarge)
+			build.Critical(ErrSliceTooLarge)
 		} else if sliceLen == 0 {
 			return
 		}
@@ -319,7 +325,7 @@ func (d *Decoder) decode(val reflect.Value) {
 			b := val.Slice(0, val.Len())
 			_, err := io.ReadFull(d, b.Bytes())
 			if err != nil {
-				panic(err)
+				build.Critical(err)
 			}
 			return
 		}
@@ -334,7 +340,7 @@ func (d *Decoder) decode(val reflect.Value) {
 		}
 		return
 	default:
-		panic("unknown type")
+		build.Critical("unknown type")
 	}
 }
 

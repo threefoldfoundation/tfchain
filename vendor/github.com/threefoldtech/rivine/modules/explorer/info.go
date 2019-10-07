@@ -4,12 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	bolt "github.com/rivine/bbolt"
 	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	"github.com/threefoldtech/rivine/types"
-
-	"github.com/rivine/bbolt"
 )
 
 // Block takes a block ID and finds the corresponding block, provided that the
@@ -92,7 +91,11 @@ func (e *Explorer) MultiSigAddresses(uh types.UnlockHash) (uhs []types.UnlockHas
 		return nil
 	}
 	err := e.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(bucketWalletAddressToMultiSigAddressMapping).Bucket(siabin.Marshal(uh))
+		uhb, err := siabin.Marshal(uh)
+		if err != nil {
+			return fmt.Errorf("failed to siabin marshal uh: %v", err)
+		}
+		b := tx.Bucket(bucketWalletAddressToMultiSigAddressMapping).Bucket(uhb)
 		if b == nil {
 			return errors.New("not found")
 		}
@@ -247,12 +250,14 @@ func (e *Explorer) getStats(start types.BlockHeight, end types.BlockHeight) (*mo
 			// Add the block creator to the node
 			// Also genesis wan't created
 			if height != 0 {
-				creator := block.MinerPayouts[0].UnlockHash.String()
-				_, exists = stats.Creators[creator]
-				if !exists {
-					stats.Creators[creator] = 1
-				} else {
-					stats.Creators[creator]++
+				if len(block.Transactions) != 0 && len(block.Transactions[0].BlockStakeOutputs) != 0 {
+					creator := block.Transactions[0].BlockStakeOutputs[0].Condition.UnlockHash().String()
+					_, exists = stats.Creators[creator]
+					if !exists {
+						stats.Creators[creator] = 1
+					} else {
+						stats.Creators[creator]++
+					}
 				}
 			}
 		}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/threefoldtech/rivine/modules"
@@ -64,6 +65,26 @@ func (e *Explorer) GetChainConstants() (modules.DaemonConstants, error) {
 	return body, err
 }
 
+func (e *Explorer) Get(endpoint string) error {
+	_, err := e.get(endpoint, nil)
+	return err
+}
+
+func (e *Explorer) GetWithResponse(endpoint string, responseBody interface{}) error {
+	_, err := e.get(endpoint, responseBody)
+	return err
+}
+
+func (e *Explorer) Post(endpoint, data string) error {
+	_, err := e.post(endpoint, data, nil)
+	return err
+}
+
+func (e *Explorer) PostWithResponse(endpoint, data string, responseBody interface{}) error {
+	_, err := e.post(endpoint, data, responseBody)
+	return err
+}
+
 func (e *Explorer) get(endpoint string, responseBody interface{}) (*http.Response, error) {
 	return e.request("GET", endpoint, nil, responseBody)
 }
@@ -73,12 +94,20 @@ func (e *Explorer) post(endpoint string, body interface{}, responseBody interfac
 }
 
 func (e *Explorer) request(method string, endpoint string, body interface{}, responseBody interface{}) (*http.Response, error) {
-	buf := bytes.NewBuffer(nil)
-	err := json.NewEncoder(buf).Encode(body)
-	if err != nil {
-		return nil, err
+	var br io.Reader
+	if s, ok := body.(string); ok {
+		br = strings.NewReader(s)
+	} else if b, ok := body.([]byte); ok {
+		br = bytes.NewReader(b)
+	} else {
+		buf := bytes.NewBuffer(nil)
+		err := json.NewEncoder(buf).Encode(body)
+		if err != nil {
+			return nil, err
+		}
+		br = buf
 	}
-	req, err := http.NewRequest(method, e.url+endpoint, buf)
+	req, err := http.NewRequest(method, e.url+endpoint, br)
 	if err != nil {
 		return nil, err
 	}

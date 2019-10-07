@@ -24,11 +24,11 @@ mkdir -p /root/go/src/github.com/threefoldfoundation
 cp -ar /tfchain /root/go/src/github.com/threefoldfoundation/tfchain
 
 TFCHAIN=$GOPATH/src/github.com/threefoldfoundation/tfchain
-FAUCET=$TFCHAIN/frontend/tftfaucet
+FAUCET=$TFCHAIN/frontend/faucet
 
 
 pushd $FAUCET
-go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FAUCET_FLIST/bin/tftfaucet
+go build -ldflags "-linkmode external -s -w -extldflags -static" -o $FAUCET_FLIST/bin/faucet
 popd
 
 # make sure binary is executable

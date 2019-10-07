@@ -57,11 +57,11 @@ type Config struct {
 func Wrap(fn interface{}) func(*cobra.Command, []string) {
 	fnVal, fnType := reflect.ValueOf(fn), reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
-		panic("wrapped function has wrong type signature")
+		build.Critical("wrapped function has wrong type signature")
 	}
 	for i := 0; i < fnType.NumIn(); i++ {
 		if fnType.In(i).Kind() != reflect.String {
-			panic("wrapped function has wrong type signature")
+			build.Critical("wrapped function has wrong type signature")
 		}
 	}
 
@@ -84,18 +84,18 @@ func Wrap(fn interface{}) func(*cobra.Command, []string) {
 func WrapWithConfig(config *Config, fn interface{}) func(*cobra.Command, []string) {
 	fnVal, fnType := reflect.ValueOf(fn), reflect.TypeOf(fn)
 	if fnType.Kind() != reflect.Func {
-		panic("wrapped function has wrong type signature")
+		build.Critical("wrapped function has wrong type signature")
 	}
 	numIn := fnType.NumIn()
 	if numIn < 1 {
-		panic("wrapped function has insufficient amount of arguments")
+		build.Critical("wrapped function has insufficient amount of arguments")
 	}
 	if fnType.In(0).Elem() != reflect.TypeOf(config) {
-		panic("wrapped function should have a *Config param as first argument")
+		build.Critical("wrapped function should have a *Config param as first argument")
 	}
 	for i := 1; i < numIn; i++ {
 		if fnType.In(i).Kind() != reflect.String {
-			panic("wrapped function has wrong type signature")
+			build.Critical("wrapped function has wrong type signature")
 		}
 	}
 
@@ -113,18 +113,35 @@ func WrapWithConfig(config *Config, fn interface{}) func(*cobra.Command, []strin
 	}
 }
 
+// OptionalCommandLineClientCommands allows the creator of a command line client to pass
+// commands that the callee created already, as an overwrite.
+type OptionalCommandLineClientCommands struct {
+	CommandLineClient *CommandLineClient
+
+	WalletCmd     *WalletCommand
+	AtomicSwapCmd *cobra.Command
+	GatewayCmd    *cobra.Command
+	ExploreCmd    *cobra.Command
+	MergeCmd      *cobra.Command
+}
+
 // NewCommandLineClient creates a new CLI client, which can be run as it is,
 // or be extended/modified to fit your needs.
 // If a config is not loaded automatically, it will be tried to be loaded from the daemon
 // automatically, this might however fail.
-func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, error) {
+func NewCommandLineClient(address, name, userAgent string, opts *OptionalCommandLineClientCommands) (*CommandLineClient, error) {
 	if address == "" {
 		address = "http://localhost:23110"
 	}
 	if name == "" {
 		name = "R?v?ne"
 	}
-	client := new(CommandLineClient)
+	var client *CommandLineClient
+	if opts != nil && opts.CommandLineClient != nil {
+		client = opts.CommandLineClient
+	} else {
+		client = new(CommandLineClient)
+	}
 	client.HTTPClient = &api.HTTPClient{
 		RootURL:   address,
 		UserAgent: userAgent,
@@ -170,20 +187,57 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 		}),
 	})
 
-	client.WalletCmd = createWalletCmd(client)
-	client.RootCmd.AddCommand(client.WalletCmd.Command)
+	if opts == nil {
+		client.WalletCmd = createWalletCmd(client)
+		client.RootCmd.AddCommand(client.WalletCmd.Command)
 
-	client.AtomicSwapCmd = createAtomicSwapCmd(client)
-	client.RootCmd.AddCommand(client.AtomicSwapCmd)
+		client.AtomicSwapCmd = createAtomicSwapCmd(client)
+		client.RootCmd.AddCommand(client.AtomicSwapCmd)
 
-	client.GatewayCmd = createGatewayCmd(client)
-	client.RootCmd.AddCommand(client.GatewayCmd)
+		client.GatewayCmd = createGatewayCmd(client)
+		client.RootCmd.AddCommand(client.GatewayCmd)
 
-	client.ExploreCmd = createExploreCmd(client)
-	client.RootCmd.AddCommand(client.ExploreCmd)
+		client.ExploreCmd = createExploreCmd(client)
+		client.RootCmd.AddCommand(client.ExploreCmd)
 
-	client.MergeCmd = createMergeCmd(client)
-	client.RootCmd.AddCommand(client.MergeCmd)
+		client.MergeCmd = createMergeCmd(client)
+		client.RootCmd.AddCommand(client.MergeCmd)
+	} else {
+		if opts.WalletCmd == nil {
+			client.WalletCmd = createWalletCmd(client)
+		} else {
+			client.WalletCmd = opts.WalletCmd
+		}
+		client.RootCmd.AddCommand(client.WalletCmd.Command)
+
+		if opts.AtomicSwapCmd == nil {
+			client.AtomicSwapCmd = createAtomicSwapCmd(client)
+		} else {
+			client.AtomicSwapCmd = opts.AtomicSwapCmd
+		}
+		client.RootCmd.AddCommand(client.AtomicSwapCmd)
+
+		if opts.GatewayCmd == nil {
+			client.GatewayCmd = createGatewayCmd(client)
+		} else {
+			client.GatewayCmd = opts.GatewayCmd
+		}
+		client.RootCmd.AddCommand(client.GatewayCmd)
+
+		if opts.ExploreCmd == nil {
+			client.ExploreCmd = createExploreCmd(client)
+		} else {
+			client.ExploreCmd = opts.ExploreCmd
+		}
+		client.RootCmd.AddCommand(client.ExploreCmd)
+
+		if opts.MergeCmd == nil {
+			client.MergeCmd = createMergeCmd(client)
+		} else {
+			client.MergeCmd = opts.MergeCmd
+		}
+		client.RootCmd.AddCommand(client.MergeCmd)
+	}
 
 	// parse flags
 	client.RootCmd.PersistentFlags().StringVarP(&client.HTTPClient.RootURL, "addr", "a",
@@ -254,30 +308,4 @@ func (cli *CommandLineClient) CreateCurrencyConvertor() CurrencyConvertor {
 		cli.Config.CurrencyUnits,
 		cli.Config.CurrencyCoinUnit,
 	)
-}
-
-// FetchConfigFromDaemon fetches constants and creates a config, by fetching the constants from the daemon.
-// Returns an error in case the fetching wasn't possible.
-func FetchConfigFromDaemon(httpClient *api.HTTPClient) (*Config, error) {
-	var constants modules.DaemonConstants
-	err := httpClient.GetAPI("/daemon/constants", &constants)
-	if err == nil {
-		// returned config from received constants from the daemon's server module
-		cfg := ConfigFromDaemonConstants(constants)
-		return &cfg, nil
-	}
-	err = httpClient.GetAPI("/explorer/constants", &constants)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load constants from daemon's server and explorer modules: %v", err)
-	}
-	if constants.ChainInfo == (types.BlockchainInfo{}) {
-		// only since 1.0.7 do we support the full set of public daemon constants for both
-		// the explorer endpoint as well as the daemon endpoint,
-		// so we need to validate this
-		return nil, errors.New("failed to load constants from daemon's server and explorer modules: " +
-			"explorer modules does not support the full exposure of public daemon constants")
-	}
-	// returned config from received constants from the daemon's explorer module
-	cfg := ConfigFromDaemonConstants(constants)
-	return &cfg, nil
 }

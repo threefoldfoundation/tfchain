@@ -43,7 +43,7 @@ type inputSignContext struct {
 // FundCoins will add a siacoin input of exactly 'amount' to the
 // transaction. The coin input will not be signed until 'Sign' is called
 // on the transaction builder.
-func (tb *transactionBuilder) FundCoins(amount types.Currency) error {
+func (tb *transactionBuilder) FundCoins(amount types.Currency, refundAddress *types.UnlockHash, reuseRefundAddress bool) error {
 	tb.wallet.mu.Lock()
 	defer tb.wallet.mu.Unlock()
 
@@ -118,9 +118,7 @@ func (tb *transactionBuilder) FundCoins(amount types.Currency) error {
 			}
 			ff = types.NewSingleSignatureFulfillment(pk)
 		default:
-			if build.DEBUG {
-				panic(fmt.Sprintf("unexpected condition type: %[1]v (%[1]T)", sco.Condition))
-			}
+			build.Severe(fmt.Errorf("unexpected condition type: %[1]v (%[1]T)", sco.Condition))
 			return types.ErrUnexpectedUnlockCondition
 		}
 		// Add a coin input for this output.
@@ -152,9 +150,30 @@ func (tb *transactionBuilder) FundCoins(amount types.Currency) error {
 
 	// Create a refund output if needed.
 	if !amount.Equals(fund) {
-		refundUnlockHash, err := tb.wallet.nextPrimarySeedAddress()
-		if err != nil {
-			return err
+		var refundUnlockHash types.UnlockHash
+		if refundAddress != nil {
+			// use specified refund address
+			refundUnlockHash = *refundAddress
+		} else if reuseRefundAddress {
+			// use the fist coin input of this tx as refund address
+			var maxCoinAmount types.Currency
+			for _, ci := range tb.transaction.CoinInputs {
+				co, exists := tb.wallet.coinOutputs[ci.ParentID]
+				if !exists {
+					co = tb.getCoFromUnconfirmedProcessedTransactions(ci.ParentID)
+				}
+				if maxCoinAmount.Cmp(co.Value) < 0 {
+					maxCoinAmount = co.Value
+					refundUnlockHash = co.Condition.UnlockHash()
+				}
+			}
+		} else {
+			// generate a new address
+			var err error
+			refundUnlockHash, err = tb.wallet.nextPrimarySeedAddress()
+			if err != nil {
+				return err
+			}
 		}
 		refundOutput := types.CoinOutput{
 			Value:     fund.Sub(amount),
@@ -170,10 +189,24 @@ func (tb *transactionBuilder) FundCoins(amount types.Currency) error {
 	return nil
 }
 
+// GetCoFromUnconfirmedProcessedTransaction tries to find a coin output in the unconfirmed
+// transaction list
+func (tb *transactionBuilder) getCoFromUnconfirmedProcessedTransactions(id types.CoinOutputID) types.CoinOutput {
+	for _, upt := range tb.wallet.unconfirmedProcessedTransactions {
+		for i, sco := range upt.Transaction.CoinOutputs {
+			if upt.Transaction.CoinOutputID(uint64(i)) != id {
+				continue
+			}
+			return sco
+		}
+	}
+	return types.CoinOutput{}
+}
+
 // FundBlockStakes will add a blockstake input of exactly 'amount' to the
 // transaction. The blockstake input will not be signed until 'Sign' is called
 // on the transaction builder.
-func (tb *transactionBuilder) FundBlockStakes(amount types.Currency) error {
+func (tb *transactionBuilder) FundBlockStakes(amount types.Currency, refundAddress *types.UnlockHash, reuseRefundAddress bool) error {
 	tb.wallet.mu.Lock()
 	defer tb.wallet.mu.Unlock()
 
@@ -218,9 +251,7 @@ func (tb *transactionBuilder) FundBlockStakes(amount types.Currency) error {
 			}
 			ff = types.NewSingleSignatureFulfillment(pk)
 		default:
-			if build.DEBUG {
-				panic(fmt.Sprintf("unexpected condition type: %[1]v (%[1]T)", sfo.Condition))
-			}
+			build.Severe(fmt.Sprintf("unexpected condition type: %[1]v (%[1]T)", sfo.Condition))
 			return types.ErrUnexpectedUnlockCondition
 		}
 		// Add a block stake input for this output.
@@ -252,9 +283,27 @@ func (tb *transactionBuilder) FundBlockStakes(amount types.Currency) error {
 
 	// Create a refund output if needed.
 	if !amount.Equals(fund) {
-		refundUnlockHash, err := tb.wallet.nextPrimarySeedAddress()
-		if err != nil {
-			return err
+		var refundUnlockHash types.UnlockHash
+		if refundAddress != nil {
+			// use specified refund address
+			refundUnlockHash = *refundAddress
+		} else if reuseRefundAddress {
+			// use the fist coin input of this tx as refund address
+			var maxCoinAmount types.Currency
+			for _, bsi := range tb.transaction.BlockStakeInputs {
+				bso := tb.wallet.blockstakeOutputs[bsi.ParentID]
+				if maxCoinAmount.Cmp(bso.Value) < 0 {
+					maxCoinAmount = bso.Value
+					refundUnlockHash = bso.Condition.UnlockHash()
+				}
+			}
+		} else {
+			// generate a new address
+			var err error
+			refundUnlockHash, err = tb.wallet.nextPrimarySeedAddress()
+			if err != nil {
+				return err
+			}
 		}
 		refundOutput := types.BlockStakeOutput{
 			Value:     fund.Sub(amount),
@@ -367,6 +416,9 @@ func (tb *transactionBuilder) Drop() {
 	for _, txn := range txns {
 		for _, sci := range txn.CoinInputs {
 			delete(tb.wallet.spentOutputs, types.OutputID(sci.ParentID))
+		}
+		for _, bsi := range txn.BlockStakeInputs {
+			delete(tb.wallet.spentOutputs, types.OutputID(bsi.ParentID))
 		}
 	}
 
@@ -604,23 +656,23 @@ func (w *Wallet) RegisterTransaction(t types.Transaction, parents []types.Transa
 	// transaction.
 	pBytes := bytes.NewBuffer(nil)
 	err := json.NewEncoder(pBytes).Encode(parents)
-	if build.DEBUG && err != nil {
-		panic("Failed to encode parent transactions: " + err.Error())
+	if err != nil {
+		build.Severe("Failed to encode parent transactions: " + err.Error())
 	}
 	var pCopy []types.Transaction
 	err = json.NewDecoder(pBytes).Decode(&pCopy)
-	if build.DEBUG && err != nil {
-		panic("Failed to decode parent transactions: " + err.Error())
+	if err != nil {
+		build.Severe("Failed to decode parent transactions: " + err.Error())
 	}
 	tbytes := bytes.NewBuffer(nil)
 	err = json.NewEncoder(tbytes).Encode(t)
-	if build.DEBUG && err != nil {
-		panic("Failed to encode transaction: " + err.Error())
+	if err != nil {
+		build.Severe("Failed to encode transaction: " + err.Error())
 	}
 	var tCopy types.Transaction
 	err = json.NewDecoder(tbytes).Decode(&tCopy)
-	if build.DEBUG && err != nil {
-		panic("Failed to decode transaction: " + err.Error())
+	if err != nil {
+		build.Severe("Failed to decode transaction: " + err.Error())
 	}
 	return &transactionBuilder{
 		parents:     pCopy,

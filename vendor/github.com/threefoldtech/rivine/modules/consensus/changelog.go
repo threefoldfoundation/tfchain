@@ -17,13 +17,14 @@ package consensus
 // the genesis block will call 'append' later on during initialization.
 
 import (
+	"fmt"
+
+	bolt "github.com/rivine/bbolt"
 	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/crypto"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	"github.com/threefoldtech/rivine/types"
-
-	"github.com/rivine/bbolt"
 )
 
 var (
@@ -58,7 +59,11 @@ func appendChangeLog(tx *bolt.Tx, ce changeEntry) error {
 	cl := tx.Bucket(ChangeLog)
 	ceid := ce.ID()
 	cn := changeNode{Entry: ce, Next: modules.ConsensusChangeID{}}
-	err := cl.Put(ceid[:], siabin.Marshal(cn))
+	cnb, err := siabin.Marshal(cn)
+	if err != nil {
+		return fmt.Errorf("failed to (siabin) marshal change node entry: %v", err)
+	}
+	err = cl.Put(ceid[:], cnb)
 	if err != nil {
 		return err
 	}
@@ -76,9 +81,13 @@ func appendChangeLog(tx *bolt.Tx, ce changeEntry) error {
 		}
 
 		// Point the 'next' of the old tail node to the new tail node and
-		// insert.
+		// insert.maar
 		tailCN.Next = ceid
-		err = cl.Put(tailID[:], siabin.Marshal(tailCN))
+		tailCNB, err := siabin.Marshal(tailCN)
+		if err != nil {
+			return fmt.Errorf("failed to (siabin) marshal tial CN: %v", err)
+		}
+		err = cl.Put(tailID[:], tailCNB)
 		if err != nil {
 			return err
 		}
@@ -102,15 +111,19 @@ func getEntry(tx *bolt.Tx, id modules.ConsensusChangeID) (ce changeEntry, exists
 		return changeEntry{}, false
 	}
 	err := siabin.Unmarshal(changeNodeBytes, &cn)
-	if build.DEBUG && err != nil {
-		panic(err)
+	if err != nil {
+		build.Severe(err)
 	}
 	return cn.Entry, true
 }
 
 // ID returns the id of a change entry.
 func (ce *changeEntry) ID() modules.ConsensusChangeID {
-	return modules.ConsensusChangeID(crypto.HashObject(ce))
+	h, err := crypto.HashObject(ce)
+	if err != nil {
+		build.Severe(err)
+	}
+	return modules.ConsensusChangeID(h)
 }
 
 // NextEntry returns the entry after the current entry.
@@ -121,8 +134,8 @@ func (ce *changeEntry) NextEntry(tx *bolt.Tx) (nextEntry changeEntry, exists boo
 	cl := tx.Bucket(ChangeLog)
 	changeNodeBytes := cl.Get(ceid[:])
 	err := siabin.Unmarshal(changeNodeBytes, &cn)
-	if build.DEBUG && err != nil {
-		panic(err)
+	if err != nil {
+		build.Severe(err)
 	}
 
 	return getEntry(tx, cn.Next)
@@ -143,7 +156,11 @@ func (cs *ConsensusSet) createChangeLog(tx *bolt.Tx) error {
 		Entry: ge,
 		Next:  modules.ConsensusChangeID{},
 	}
-	err = cl.Put(geid[:], siabin.Marshal(cn))
+	cnb, err := siabin.Marshal(cn)
+	if err != nil {
+		return fmt.Errorf("failed to (siabin) marshal change node: %v", err)
+	}
+	err = cl.Put(geid[:], cnb)
 	if err != nil {
 		return err
 	}

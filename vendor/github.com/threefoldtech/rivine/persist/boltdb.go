@@ -1,6 +1,7 @@
 package persist
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -119,12 +120,20 @@ func NewLazyBoltBucket(getter func() (*bolt.Bucket, error)) *LazyBoltBucket {
 	}
 }
 
+func (lb *LazyBoltBucket) AsBoltBucket() (*bolt.Bucket, error) {
+	return lb.bucket()
+}
+
 func (lb *LazyBoltBucket) Bucket(name []byte) (*bolt.Bucket, error) {
 	bucket, err := lb.bucket()
 	if err != nil {
 		return nil, err
 	}
-	return bucket.Bucket(name), nil
+	outBucket := bucket.Bucket(name)
+	if outBucket == nil {
+		return nil, fmt.Errorf("no bucket found for name %s", string(name))
+	}
+	return outBucket, nil
 }
 func (lb *LazyBoltBucket) CreateBucket(key []byte) (*bolt.Bucket, error) {
 	bucket, err := lb.bucket()

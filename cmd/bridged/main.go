@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
@@ -18,14 +19,22 @@ import (
 	"github.com/threefoldtech/rivine/pkg/daemon"
 
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/threefoldfoundation/tfchain/pkg/api"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
-	"github.com/threefoldfoundation/tfchain/pkg/eth/erc20"
-	"github.com/threefoldfoundation/tfchain/pkg/persist"
+	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
+	erc20types "github.com/threefoldtech/rivine-extension-erc20/types"
 	rivineapi "github.com/threefoldtech/rivine/pkg/api"
 
+	"github.com/threefoldtech/rivine/extensions/minting"
+	mintingapi "github.com/threefoldtech/rivine/extensions/minting/api"
+
+	"github.com/threefoldfoundation/tfchain/extensions/threebot"
+	bpapi "github.com/threefoldfoundation/tfchain/extensions/threebot/api"
+	erc20 "github.com/threefoldtech/rivine-extension-erc20"
+	erc20bridge "github.com/threefoldtech/rivine-extension-erc20/api/bridge"
+	erc20daemon "github.com/threefoldtech/rivine-extension-erc20/daemon"
+	erc20api "github.com/threefoldtech/rivine-extension-erc20/http"
+
 	"github.com/spf13/cobra"
-	tfchaintypes "github.com/threefoldfoundation/tfchain/pkg/types"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/modules/consensus"
 	"github.com/threefoldtech/rivine/modules/gateway"
@@ -37,6 +46,7 @@ type Commands struct {
 	RPCaddr        string
 	BlockchainInfo rivinetypes.BlockchainInfo
 	ChainConstants rivinetypes.ChainConstants
+	NetworkConfig  config.DaemonNetworkConfig
 	BootstrapPeers []modules.NetAddress
 	NoBootstrap    bool
 
@@ -56,18 +66,24 @@ type Commands struct {
 	ContractAddress string
 
 	RootPersistentDir string
-	transactionDB     *persist.TransactionDB
+	erc20Registry     erc20types.ERC20Registry
 
 	APIaddr   string
 	UserAgent string
 
 	VerboseRivineLogging bool
+	ConsensusDebugFile   string
 }
+
+const (
+	// maxConcurrentRPC is the maximum amount of concurrent RPC's to be handled
+	// per peer
+	maxConcurrentRPC = 1
+)
 
 // Root represents the root (`bridged`) command,
 // starting a bridged daemon instance, running until the user intervenes.
 func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
-
 	// Define the Ethereum Logger,
 	// logging both to a file and the STDERR, with a lower verbosity for the latter.
 	logFileDir := cmd.perDir("bridge")
@@ -94,39 +110,25 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 	log.Info("starting bridge", "version", cmd.BlockchainInfo.ChainVersion.String())
 
-	log.Info("loading network config, registering types and loading rivine transaction db (0/4)...")
+	log.Info("loading network config (0/4)...")
 	switch cmd.BlockchainInfo.NetworkName {
 	case config.NetworkNameStandard:
-		cmd.transactionDB, cmdErr = persist.NewTransactionDB(cmd.rootPerDir(), config.GetStandardnetGenesisMintCondition())
-		if cmdErr != nil {
-			return fmt.Errorf("failed to create tfchain transaction DB for tfchain standard: %v", cmdErr)
-		}
-		cmd.ChainConstants = config.GetStandardnetGenesis()
-		// Register the transaction controllers for all transaction versions
-		// supported on the standard network
-		tfchaintypes.RegisterTransactionTypesForStandardNetwork(cmd.transactionDB, &tfchaintypes.NopERC20TransactionValidator{},
-			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetStandardDaemonNetworkConfig())
+		// cmd.ChainConstants = config.GetStandardnetGenesis()
+		// cmd.NetworkConfig = config.GetStandardDaemonNetworkConfig()
 
-		if len(cmd.BootstrapPeers) == 0 {
-			cmd.BootstrapPeers = config.GetStandardnetBootstrapPeers()
-		}
+		// if len(cmd.BootstrapPeers) == 0 {
+		// 	cmd.BootstrapPeers = config.GetStandardnetBootstrapPeers()
+		// }
 
-		if cmd.EthNetworkName == "" {
-			// default to main network on standard net
-			cmd.EthNetworkName = "main"
-		}
+		// if cmd.EthNetworkName == "" {
+		// 	// default to main network on standard net
+		// 	cmd.EthNetworkName = "main"
+		// }
+		return errors.New("ERC20 feature is currently not enabled on standard net")
 
 	case config.NetworkNameTest:
-		cmd.transactionDB, cmdErr = persist.NewTransactionDB(cmd.rootPerDir(), config.GetTestnetGenesisMintCondition())
-		if cmdErr != nil {
-			return fmt.Errorf("failed to create tfchain transaction DB for tfchain testnet: %v", cmdErr)
-		}
-		// get chain constants and bootstrap peers
 		cmd.ChainConstants = config.GetTestnetGenesis()
-		// Register the transaction controllers for all transaction versions
-		// supported on the test network
-		tfchaintypes.RegisterTransactionTypesForTestNetwork(cmd.transactionDB, &tfchaintypes.NopERC20TransactionValidator{},
-			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetTestnetDaemonNetworkConfig())
+		cmd.NetworkConfig = config.GetTestnetDaemonNetworkConfig()
 
 		if len(cmd.BootstrapPeers) == 0 {
 			cmd.BootstrapPeers = config.GetTestnetBootstrapPeers()
@@ -138,16 +140,8 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		}
 
 	case config.NetworkNameDev:
-		cmd.transactionDB, cmdErr = persist.NewTransactionDB(cmd.rootPerDir(), config.GetDevnetGenesisMintCondition())
-		if cmdErr != nil {
-			return fmt.Errorf("failed to create tfchain transaction DB for tfchain devnet: %v", cmdErr)
-		}
-		// get chain constants and bootstrap peers
 		cmd.ChainConstants = config.GetDevnetGenesis()
-		// Register the transaction controllers for all transaction versions
-		// supported on the dev network
-		tfchaintypes.RegisterTransactionTypesForDevNetwork(cmd.transactionDB, &tfchaintypes.NopERC20TransactionValidator{},
-			cmd.ChainConstants.CurrencyUnits.OneCoin, config.GetDevnetDaemonNetworkConfig())
+		cmd.NetworkConfig = config.GetDevnetDaemonNetworkConfig()
 
 		if len(cmd.BootstrapPeers) == 0 {
 			cmd.BootstrapPeers = config.GetDevnetBootstrapPeers()
@@ -162,6 +156,11 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		return fmt.Errorf(
 			"%q is an invalid network name, has to be one of {standard,testnet,devnet}",
 			cmd.BlockchainInfo.Name)
+	}
+
+	err = cmd.ChainConstants.Validate()
+	if err != nil {
+		return fmt.Errorf("failed to validate network config: %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -188,7 +187,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 
 		log.Info("loading rivine gateway module (1/4)...")
 		gateway, err := gateway.New(
-			cmd.RPCaddr, true, cmd.perDir("gateway"),
+			cmd.RPCaddr, true, maxConcurrentRPC, cmd.perDir("gateway"),
 			cmd.BlockchainInfo, cmd.ChainConstants, cmd.BootstrapPeers, cmd.VerboseRivineLogging)
 		if err != nil {
 			log.Error("Failed to create gateway module", "err", err)
@@ -210,7 +209,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		log.Info("loading rivine consensus module (2/4)...")
 		cs, err := consensus.New(
 			gateway, !cmd.NoBootstrap, cmd.perDir("consensus"),
-			cmd.BlockchainInfo, cmd.ChainConstants, cmd.VerboseRivineLogging)
+			cmd.BlockchainInfo, cmd.ChainConstants, cmd.VerboseRivineLogging, cmd.ConsensusDebugFile)
 		if err != nil {
 			log.Error("Failed to create consensus module", "err", err)
 			cancel()
@@ -225,13 +224,41 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 				log.Error("Failed to close consensus module", "err", err)
 			}
 		}()
-		err = cmd.transactionDB.SubscribeToConsensusSet(cs)
-		if err != nil {
-			log.Error("Failed to subscribe transactionDB module to consensus module", "err", err)
-			cancel()
-			cmdErr = err
-			return
+
+		var (
+			mintingPlugin  *minting.Plugin
+			threebotPlugin *threebot.Plugin
+		)
+
+		// create the minting extension plugin
+		mintingPlugin = minting.NewMintingPlugin(
+			cmd.NetworkConfig.GenesisMintingCondition,
+			tftypes.TransactionVersionMinterDefinition,
+			tftypes.TransactionVersionCoinCreation,
+			&minting.PluginOptions{
+				UseLegacySiaEncoding: true,
+				RequireMinerFees:     true,
+			},
+		)
+		// add the HTTP handlers for the minting plugin as well
+		mintingapi.RegisterConsensusMintingHTTPHandlers(router, mintingPlugin)
+
+		// 3Bot and ERC20 is not yet to be used on network standard
+		// create the 3Bot plugin
+		var tbPluginOpts *threebot.PluginOptions
+		if cmd.BlockchainInfo.NetworkName == config.NetworkNameTest {
+			tbPluginOpts = &threebot.PluginOptions{ // TODO: remove this hack once possible (e.g. a testnet network reset)
+				HackMinimumBlockHeightSinceDoubleRegistrationsAreForbidden: 350000,
+			}
 		}
+		threebotPlugin = threebot.NewPlugin(
+			cmd.NetworkConfig.FoundationPoolAddress,
+			cmd.ChainConstants.CurrencyUnits.OneCoin,
+			tbPluginOpts,
+		)
+		// add the HTTP handlers for the threebot plugin as well
+		bpapi.RegisterConsensusHTTPHandlers(router, threebotPlugin)
+
 		log.Info("loading transactionpool module (3/4)...")
 		tpool, err := transactionpool.New(cs, gateway, cmd.perDir("transactionpool"), cmd.BlockchainInfo, cmd.ChainConstants, cmd.VerboseRivineLogging)
 		if err != nil {
@@ -249,9 +276,13 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		}()
 
 		log.Info("loading bridged module (4/4)...")
-		bridged, err := erc20.NewBridge(
-			cs, cmd.transactionDB, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.EthBootNodes, cmd.ContractAddress, cmd.perDir("bridge"),
-			cmd.BlockchainInfo, cmd.ChainConstants, ctx.Done())
+		bridged, err := erc20bridge.NewBridge(
+			cs, tpool, cmd.EthPort, cmd.accJSON, cmd.accPass, cmd.EthNetworkName, cmd.EthBootNodes, cmd.ContractAddress, cmd.perDir("bridge"),
+			cmd.BlockchainInfo, cmd.ChainConstants, erc20types.TransactionVersions{
+				ERC20Conversion:          tftypes.TransactionVersionERC20Conversion,
+				ERC20AddressRegistration: tftypes.TransactionVersionERC20AddressRegistration,
+				ERC20CoinCreation:        tftypes.TransactionVersionERC20CoinCreation,
+			}, ctx.Done())
 		if err != nil {
 			log.Error("Failed to create bridge module", "err", err)
 			cancel()
@@ -267,10 +298,71 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		}()
 
 		erc20Client := bridged.GetClient()
+		erc20BridgeContract := bridged.GetBridgeContract()
+		erc20NodeValidator, err := erc20daemon.NewERC20NodeValidatorFromBridgeContract(erc20BridgeContract)
+		if err != nil {
+			log.Error("failed to create ERC20 bridge node validator", "err", err)
+			cancel()
+			cmdErr = err
+			return
+		}
 
-		// Register ERC20 http handlers
-		api.RegisterERC20HTTPHandlers(router, erc20Client)
+		// register the ERC20 plugin
+		erc20Plugin := erc20.NewPlugin(
+			cmd.NetworkConfig.ERC20FeePoolAddress,
+			cmd.ChainConstants.CurrencyUnits.OneCoin,
+			erc20NodeValidator, erc20types.TransactionVersions{
+				ERC20Conversion:          tftypes.TransactionVersionERC20Conversion,
+				ERC20AddressRegistration: tftypes.TransactionVersionERC20AddressRegistration,
+				ERC20CoinCreation:        tftypes.TransactionVersionERC20CoinCreation,
+			})
 
+		// register ERC20 plugin and HTTP handlers
+		// add the HTTP handlers for the ERC20 plugin as well
+		erc20api.RegisterERC20HTTPHandlers(router, erc20NodeValidator)
+
+		err = cs.RegisterPlugin(ctx, "erc20", erc20Plugin)
+		if err != nil {
+			servErrs <- fmt.Errorf("failed to register the ERC20 extension: %v", err)
+			err = erc20Plugin.Close() //make sure any resources are released
+			if err != nil {
+				log.Error("Error during closing of the erc20Plugin", "err", err)
+			}
+			cancel()
+			return
+		}
+		// add the HTTP handlers for the ERC20 plugin as well
+		erc20api.RegisterConsensusHTTPHandlers(router, erc20Plugin)
+
+		// register the threebot plugin
+		err = cs.RegisterPlugin(ctx, "threebot", threebotPlugin)
+		if err != nil {
+			servErrs <- fmt.Errorf("failed to register the threebot extension: %v", err)
+			err = threebotPlugin.Close() //make sure any resources are released
+			if err != nil {
+				log.Error("Error during closing of the threebotPlugin", "err", err)
+			}
+			cancel()
+			return
+		}
+
+		// register the minting plugin
+		err = cs.RegisterPlugin(ctx, "minting", mintingPlugin)
+		if err != nil {
+			servErrs <- fmt.Errorf("failed to register the minting extension: %v", err)
+			err = mintingPlugin.Close() //make sure any resources are released
+			if err != nil {
+				log.Error("Error during closing of the mintingPlugin", "err", err)
+			}
+			cancel()
+			return
+		}
+
+		// register our special bridge HTTP handlers
+		router.GET("/daemon/constants", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+			constants := modules.NewDaemonConstants(cmd.BlockchainInfo, cmd.ChainConstants)
+			rivineapi.WriteJSON(w, constants)
+		})
 		router.POST("/bridge/stop", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 			// can't write after we stop the server, so lie a bit.
 			rivineapi.WriteSuccess(w)
@@ -304,7 +396,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		cs.Start()
 
 		// Start the bridge
-		err = bridged.Start(cs, cmd.transactionDB, ctx.Done())
+		err = bridged.Start(cs, erc20Plugin, ctx.Done())
 		if err != nil {
 			log.Error("error while starting the ERC20 client", "err", err)
 			cancel()
@@ -490,6 +582,7 @@ func main() {
 		"Set custom User-Agent",
 	)
 	cmdRoot.Flags().BoolVarP(&cmd.VerboseRivineLogging, "verboseRivinelogging", "v", false, "enable verboselogging in the logfiles of the rivine modules")
+	cmdRoot.Flags().StringVar(&cmd.ConsensusDebugFile, "consensus-db-stats", cmd.ConsensusDebugFile, "file path in which json encoded database stats will be saved")
 
 	// execute logic
 	if err := cmdRoot.Execute(); err != nil {

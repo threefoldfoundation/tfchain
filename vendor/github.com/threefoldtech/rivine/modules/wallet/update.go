@@ -8,6 +8,7 @@ import (
 
 	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/modules"
+	rivinesync "github.com/threefoldtech/rivine/sync"
 	"github.com/threefoldtech/rivine/types"
 )
 
@@ -45,13 +46,13 @@ func (w *Wallet) updateConfirmedSet(cc modules.ConsensusChange) {
 		if _, exists := w.keys[diff.CoinOutput.Condition.UnlockHash()]; exists {
 			_, exists = w.coinOutputs[diff.ID]
 			if diff.Direction == modules.DiffApply {
-				if build.DEBUG && exists {
-					panic("adding an existing output to wallet")
+				if exists {
+					build.Severe("adding an existing output to wallet")
 				}
 				w.coinOutputs[diff.ID] = diff.CoinOutput
 			} else {
-				if build.DEBUG && !exists {
-					panic("deleting nonexisting output from wallet")
+				if !exists {
+					build.Severe("deleting nonexisting output from wallet")
 				}
 				delete(w.coinOutputs, diff.ID)
 			}
@@ -67,13 +68,13 @@ func (w *Wallet) updateConfirmedSet(cc modules.ConsensusChange) {
 			if _, exists := w.keys[uh]; exists {
 				_, exists = w.multiSigCoinOutputs[diff.ID]
 				if diff.Direction == modules.DiffApply {
-					if build.DEBUG && exists {
-						panic("adding an existing multisig output to wallet")
+					if exists {
+						build.Severe("adding an existing multisig output to wallet")
 					}
 					w.multiSigCoinOutputs[diff.ID] = diff.CoinOutput
 				} else {
-					if build.DEBUG && !exists {
-						panic("deleting nonexisting multisig output from wallet")
+					if !exists {
+						build.Severe("deleting nonexisting multisig output from wallet")
 					}
 					delete(w.multiSigCoinOutputs, diff.ID)
 				}
@@ -88,13 +89,13 @@ func (w *Wallet) updateConfirmedSet(cc modules.ConsensusChange) {
 
 			_, exists = w.blockstakeOutputs[diff.ID]
 			if diff.Direction == modules.DiffApply {
-				if build.DEBUG && exists {
-					panic("adding an existing output to wallet")
+				if exists {
+					build.Severe("adding an existing output to wallet")
 				}
 				w.blockstakeOutputs[diff.ID] = diff.BlockStakeOutput
 			} else {
-				if build.DEBUG && !exists {
-					panic("deleting nonexisting output from wallet")
+				if !exists {
+					build.Severe("deleting an nonexisting output from wallet")
 				}
 				delete(w.blockstakeOutputs, diff.ID)
 			}
@@ -110,13 +111,13 @@ func (w *Wallet) updateConfirmedSet(cc modules.ConsensusChange) {
 			if _, exists := w.keys[uh]; exists {
 				_, exists = w.multiSigBlockStakeOutputs[diff.ID]
 				if diff.Direction == modules.DiffApply {
-					if build.DEBUG && exists {
-						panic("adding an existing multisig output to wallet")
+					if exists {
+						build.Severe("adding an existing multisig output to wallet")
 					}
 					w.multiSigBlockStakeOutputs[diff.ID] = diff.BlockStakeOutput
 				} else {
-					if build.DEBUG && !exists {
-						panic("deleting nonexisting multisig output from wallet")
+					if !exists {
+						build.Severe("deleting nonexisting multisig output from wallet")
 					}
 					delete(w.multiSigBlockStakeOutputs, diff.ID)
 				}
@@ -131,9 +132,7 @@ func getMultisigConditionProperties(condition types.MarshalableUnlockCondition) 
 	if ct == types.ConditionTypeTimeLock {
 		cg, ok := condition.(types.MarshalableUnlockConditionGetter)
 		if !ok {
-			if build.DEBUG {
-				panic(fmt.Sprintf("unexpected Go-type for TimeLockCondition: %T", condition))
-			}
+			build.Severe(fmt.Sprintf("unexpected Go-type for TimeLockCondition: %T", condition))
 			return nil, 0
 		}
 		return getMultisigConditionProperties(cg.GetMarshalableUnlockCondition())
@@ -221,7 +220,7 @@ func (w *Wallet) applyHistory(cc modules.ConsensusChange) {
 
 		blockheight, blockexists := w.cs.BlockHeightOfBlock(block)
 		if !blockexists {
-			panic("Block wherer ubs is used to respent, does not yet exist as processedblock")
+			build.Critical("Block wherer ubs is used to respent, does not yet exist as processedblock")
 		}
 
 		for ti, txn := range block.Transactions {
@@ -340,6 +339,8 @@ func (w *Wallet) applyHistory(cc modules.ConsensusChange) {
 			}
 		}
 	}
+	// Reset spent outputs map
+	w.spentOutputs = make(map[types.OutputID]types.BlockHeight)
 }
 
 // ProcessConsensusChange parses a consensus change to update the set of
@@ -361,11 +362,14 @@ func (w *Wallet) ProcessConsensusChange(cc modules.ConsensusChange) {
 
 // ReceiveUpdatedUnconfirmedTransactions updates the wallet's unconfirmed
 // transaction set.
-func (w *Wallet) ReceiveUpdatedUnconfirmedTransactions(txns []types.Transaction, _ modules.ConsensusChange) {
+func (w *Wallet) ReceiveUpdatedUnconfirmedTransactions(txns []types.Transaction, _ modules.ConsensusChange) error {
 	if err := w.tg.Add(); err != nil {
 		// Gracefully reject transactions if the wallet's Close method has
 		// closed the wallet's ThreadGroup already.
-		return
+		if err == rivinesync.ErrStopped {
+			return nil
+		}
+		return err
 	}
 	defer w.tg.Done()
 	w.mu.Lock()
@@ -387,6 +391,8 @@ func (w *Wallet) ReceiveUpdatedUnconfirmedTransactions(txns []types.Transaction,
 			_, exists := w.keys[output.UnlockHash]
 			if exists {
 				relevant = true
+				// Add the outputid and height to spentoutputs map in wallet
+				w.spentOutputs[types.OutputID(sci.ParentID)] = pt.ConfirmationHeight
 			} else if _, exists = w.multiSigCoinOutputs[sci.ParentID]; exists {
 				// Since we know about every multisig output that is still open and releated,
 				// any relevant multisig input must have a parent ID present in the multisig
@@ -426,8 +432,18 @@ func (w *Wallet) ReceiveUpdatedUnconfirmedTransactions(txns []types.Transaction,
 				Value:      sco.Value,
 			}
 		}
+		for _, bsi := range txn.BlockStakeInputs {
+			output := w.historicOutputs[types.OutputID(bsi.ParentID)]
+			_, exists := w.keys[output.UnlockHash]
+			if exists {
+				relevant = true
+				// Add the outputid and height to spentoutputs map in wallet
+				w.spentOutputs[types.OutputID(bsi.ParentID)] = pt.ConfirmationHeight
+			}
+		}
 		if relevant {
 			w.unconfirmedProcessedTransactions = append(w.unconfirmedProcessedTransactions, pt)
 		}
 	}
+	return nil
 }

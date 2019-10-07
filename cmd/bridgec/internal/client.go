@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -9,6 +10,7 @@ import (
 	"github.com/threefoldfoundation/tfchain/pkg/config"
 	"github.com/threefoldtech/rivine/pkg/api"
 	"github.com/threefoldtech/rivine/pkg/cli"
+	"github.com/threefoldtech/rivine/pkg/client"
 	rivinec "github.com/threefoldtech/rivine/pkg/client"
 	"github.com/threefoldtech/rivine/types"
 )
@@ -25,10 +27,11 @@ type Config struct {
 type CommandLineClient struct {
 	*api.HTTPClient
 
-	Config     *Config
+	Config     *client.Config
 	RootCmd    *cobra.Command
 	ERC20Cmd   *cobra.Command
 	TFChainCmd *cobra.Command
+	PreRunE    func(*client.Config) (*client.Config, error)
 }
 
 // NewCommandLineClient creates a new CLI client, which can be run as it is,
@@ -94,4 +97,31 @@ func NewCommandLineClient(address, name, userAgent string) (*CommandLineClient, 
 // Run the CLI, logic dependend upon the command the user used.
 func (cli *CommandLineClient) Run() error {
 	return cli.RootCmd.Execute()
+}
+
+// preRunE checks that all preConditions match
+func (cli *CommandLineClient) preRunE(*cobra.Command, []string) error {
+	address, err := sanitizeURL(cli.HTTPClient.RootURL)
+	if err != nil {
+		return fmt.Errorf("invalid daemon RPC address %q: %v", cli.HTTPClient.RootURL, err)
+	}
+	cli.HTTPClient.RootURL = address
+
+	if cli.Config == nil {
+		var err error
+		cli.Config, err = client.FetchConfigFromDaemon(cli.HTTPClient)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "fetching config from daemon failed: %v\r\n", err)
+		}
+	}
+	if cli.PreRunE != nil {
+		cli.Config, err = cli.PreRunE(cli.Config)
+		if err != nil {
+			return fmt.Errorf("user-defined pre-run callback failed: %v", err)
+		}
+	}
+	if cli.Config == nil {
+		return errors.New("cannot run command line client: no config is defined")
+	}
+	return nil
 }

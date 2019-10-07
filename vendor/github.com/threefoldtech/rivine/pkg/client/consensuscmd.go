@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/pkg/api"
 	"github.com/threefoldtech/rivine/pkg/cli"
 	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
@@ -54,7 +55,7 @@ type consensusCmd struct {
 // Prints the current state of consensus.
 func (consensusCmd *consensusCmd) rootCmd() {
 	var cg api.ConsensusGET
-	err := consensusCmd.cli.GetAPI("/consensus", &cg)
+	err := consensusCmd.cli.GetWithResponse("/consensus", &cg)
 	if err != nil {
 		cli.Die("Could not get current consensus state:", err)
 	}
@@ -82,7 +83,7 @@ Progress (estimated): %.2f%%
 // the past and dividing by 10 minutes (the block time).
 func (consensusCmd *consensusCmd) estimatedHeightAt(t time.Time) types.BlockHeight {
 	if consensusCmd.cli.Config.GenesisBlockTimestamp == 0 {
-		panic("GenesisBlockTimestamp is undefined")
+		build.Critical("GenesisBlockTimestamp is undefined")
 	}
 	return estimatedHeightBetween(
 		int64(consensusCmd.cli.Config.GenesisBlockTimestamp),
@@ -106,7 +107,7 @@ func estimatedHeightBetween(from, to, blockFrequency int64) types.BlockHeight {
 func (consensusCmd *consensusCmd) transactionCmd(id string) {
 	var txn api.ConsensusGetTransaction
 
-	err := consensusCmd.cli.GetAPI("/consensus/transactions/"+id, &txn)
+	err := consensusCmd.cli.GetWithResponse("/consensus/transactions/"+id, &txn)
 	if err != nil {
 		cli.Die("failed to get transaction:", err, "; ID:", id)
 	}
@@ -121,9 +122,11 @@ func (consensusCmd *consensusCmd) transactionCmd(id string) {
 		encode = json.NewEncoder(os.Stdout).Encode
 	case cli.EncodingTypeHex:
 		encode = func(v interface{}) error {
-			b := siabin.Marshal(v)
-			fmt.Println(hex.EncodeToString(b))
-			return nil
+			b, err := siabin.Marshal(v)
+			if err == nil {
+				fmt.Println(hex.EncodeToString(b))
+			}
+			return err
 		}
 	}
 

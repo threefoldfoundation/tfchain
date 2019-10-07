@@ -2,7 +2,7 @@
 name = "core.system"
 
 [startup.faucet.args]
-name = "/bin/tftfaucet"
+name = "/bin/faucet"
 args = ["-port={FAUCET_WEBSITE_PORT}", "-daemon-address={BLOCK_CREATOR_API_ADDR}"]
 
 [startup.caddy]

@@ -3,12 +3,11 @@ package explorer
 import (
 	"fmt"
 
+	bolt "github.com/rivine/bbolt"
 	"github.com/threefoldtech/rivine/build"
 	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/pkg/encoding/siabin"
 	"github.com/threefoldtech/rivine/types"
-
-	bolt "github.com/rivine/bbolt"
 )
 
 // ProcessConsensusChange follows the most recent changes to the consensus set,
@@ -63,7 +62,9 @@ func (e *Explorer) ProcessConsensusChange(cc modules.ConsensusChange) {
 
 				for _, sci := range txn.CoinInputs {
 					dbRemoveCoinOutputID(tx, sci.ParentID, txid)
-					unmapParentUnlockConditionHash(tx, sci.ParentID, txid)
+					if err = unmapParentUnlockConditionHash(tx, sci.ParentID, txid); err != nil {
+						build.Severe(err)
+					}
 				}
 				for k, sco := range txn.CoinOutputs {
 					scoid := txn.CoinOutputID(uint64(k))
@@ -73,7 +74,9 @@ func (e *Explorer) ProcessConsensusChange(cc modules.ConsensusChange) {
 				}
 				for _, sfi := range txn.BlockStakeInputs {
 					dbRemoveBlockStakeOutputID(tx, sfi.ParentID, txid)
-					unmapParentUnlockConditionHash(tx, sfi.ParentID, txid)
+					if err = unmapParentUnlockConditionHash(tx, sfi.ParentID, txid); err != nil {
+						build.Severe(err)
+					}
 				}
 				for k, sfo := range txn.BlockStakeOutputs {
 					sfoid := txn.BlockStakeOutputID(uint64(k))
@@ -172,7 +175,11 @@ func (e *Explorer) ProcessConsensusChange(cc modules.ConsensusChange) {
 			}
 
 			// calculate and add new block facts, if possible
-			if tx.Bucket(bucketBlockFacts).Get(siabin.Marshal(block.ParentID)) != nil {
+			blockParentIDBytes, err := siabin.Marshal(block.ParentID)
+			if err != nil {
+				return fmt.Errorf("failed to (siabin) marshal block parent ID: %v", err)
+			}
+			if tx.Bucket(bucketBlockFacts).Get(blockParentIDBytes) != nil {
 				facts := e.dbCalculateBlockFacts(tx, block)
 				dbAddBlockFacts(tx, facts)
 			}
@@ -191,7 +198,15 @@ func (e *Explorer) ProcessConsensusChange(cc modules.ConsensusChange) {
 		var facts blockFacts
 		err = dbGetAndDecode(bucketBlockFacts, currentID, &facts)(tx)
 		if err == nil {
-			err = tx.Bucket(bucketBlockFacts).Put(siabin.Marshal(currentID), siabin.Marshal(facts))
+			currentIDBytes, err := siabin.Marshal(currentID)
+			if err != nil {
+				return fmt.Errorf("failed to (siabin) marshal block parent ID: %v", err)
+			}
+			factsBytes, err := siabin.Marshal(facts)
+			if err != nil {
+				return fmt.Errorf("failed to (siabin) marshalfacts: %v", err)
+			}
+			err = tx.Bucket(bucketBlockFacts).Put(currentIDBytes, factsBytes)
 			if err != nil {
 				return err
 			}
@@ -225,7 +240,7 @@ func (e *Explorer) dbCalculateBlockFacts(tx *bolt.Tx, block types.Block) blockFa
 	// get target
 	target, exists := e.cs.ChildTarget(block.ParentID)
 	if !exists {
-		panic(fmt.Sprint("ConsensusSet is missing target of known block", block.ParentID))
+		build.Critical(fmt.Errorf("ConsensusSet is missing target of known block %v", block.ParentID))
 	}
 
 	// update fields
@@ -242,7 +257,7 @@ func (e *Explorer) dbCalculateBlockFacts(tx *bolt.Tx, block types.Block) blockFa
 	if bf.Height > e.chainCts.MaturityDelay {
 		oldBlock, exists := e.cs.BlockAtHeight(bf.Height - e.chainCts.MaturityDelay)
 		if !exists {
-			panic(fmt.Sprint("ConsensusSet is missing block at height", bf.Height-e.chainCts.MaturityDelay))
+			build.Critical(fmt.Errorf("ConsensusSet is missing block at height %v", bf.Height-e.chainCts.MaturityDelay))
 		}
 		maturityTimestamp = oldBlock.Timestamp
 	}
@@ -256,11 +271,11 @@ func (e *Explorer) dbCalculateBlockFacts(tx *bolt.Tx, block types.Block) blockFa
 		for i := types.BlockHeight(1); i < ActiveBSEstimationBlocks; i++ {
 			b, exists := e.cs.BlockAtHeight(bf.Height - i)
 			if !exists {
-				panic(fmt.Sprint("ConsensusSet is missing block at height", bf.Height-i))
+				build.Critical(fmt.Errorf("ConsensusSet is missing block at height %v", bf.Height-i))
 			}
 			target, exists := e.cs.ChildTarget(b.ParentID)
 			if !exists {
-				panic(fmt.Sprint("ConsensusSet is missing target of known block", b.ParentID))
+				build.Critical(fmt.Errorf("ConsensusSet is missing target of known block %v", b.ParentID))
 			}
 			totalDifficulty = totalDifficulty.AddDifficulties(
 				target, e.chainCts.RootDepth)
@@ -325,17 +340,22 @@ func (e *Explorer) dbAddGenesisBlock(tx *bolt.Tx) {
 // helper functions
 func assertNil(err error) {
 	if err != nil {
-		panic(err)
+		build.Critical(err)
 	}
 }
+func assertSiaMarshal(val interface{}) []byte {
+	b, err := siabin.Marshal(val)
+	assertNil(err)
+	return b
+}
 func mustPut(bucket *bolt.Bucket, key, val interface{}) {
-	assertNil(bucket.Put(siabin.Marshal(key), siabin.Marshal(val)))
+	assertNil(bucket.Put(assertSiaMarshal(key), assertSiaMarshal(val)))
 }
 func mustPutSet(bucket *bolt.Bucket, key interface{}) {
-	assertNil(bucket.Put(siabin.Marshal(key), nil))
+	assertNil(bucket.Put(assertSiaMarshal(key), nil))
 }
 func mustDelete(bucket *bolt.Bucket, key interface{}) {
-	assertNil(bucket.Delete(siabin.Marshal(key)))
+	assertNil(bucket.Delete(assertSiaMarshal(key)))
 }
 func bucketIsEmpty(bucket *bolt.Bucket) bool {
 	k, _ := bucket.Cursor().First()
@@ -379,16 +399,18 @@ func dbRemoveCoinOutput(tx *bolt.Tx, id types.CoinOutputID) {
 
 // Add/Remove txid from siacoin output ID bucket
 func dbAddCoinOutputID(tx *bolt.Tx, id types.CoinOutputID, txid types.TransactionID) {
-	b, err := tx.Bucket(bucketCoinOutputIDs).CreateBucketIfNotExists(siabin.Marshal(id))
+	b, err := tx.Bucket(bucketCoinOutputIDs).CreateBucketIfNotExists(assertSiaMarshal(id))
 	assertNil(err)
 	mustPutSet(b, txid)
 }
 
 func dbRemoveCoinOutputID(tx *bolt.Tx, id types.CoinOutputID, txid types.TransactionID) {
-	bucket := tx.Bucket(bucketCoinOutputIDs).Bucket(siabin.Marshal(id))
+	bucket := tx.Bucket(bucketCoinOutputIDs).Bucket(assertSiaMarshal(id))
 	mustDelete(bucket, txid)
 	if bucketIsEmpty(bucket) {
-		tx.Bucket(bucketCoinOutputIDs).DeleteBucket(siabin.Marshal(id))
+		if err := tx.Bucket(bucketCoinOutputIDs).DeleteBucket(assertSiaMarshal(id)); err != nil {
+			build.Severe(err)
+		}
 	}
 }
 
@@ -402,16 +424,18 @@ func dbRemoveBlockStakeOutput(tx *bolt.Tx, id types.BlockStakeOutputID) {
 
 // Add/Remove txid from blockstake output ID bucket
 func dbAddBlockStakeOutputID(tx *bolt.Tx, id types.BlockStakeOutputID, txid types.TransactionID) {
-	b, err := tx.Bucket(bucketBlockStakeOutputIDs).CreateBucketIfNotExists(siabin.Marshal(id))
+	b, err := tx.Bucket(bucketBlockStakeOutputIDs).CreateBucketIfNotExists(assertSiaMarshal(id))
 	assertNil(err)
 	mustPutSet(b, txid)
 }
 
 func dbRemoveBlockStakeOutputID(tx *bolt.Tx, id types.BlockStakeOutputID, txid types.TransactionID) {
-	bucket := tx.Bucket(bucketBlockStakeOutputIDs).Bucket(siabin.Marshal(id))
+	bucket := tx.Bucket(bucketBlockStakeOutputIDs).Bucket(assertSiaMarshal(id))
 	mustDelete(bucket, txid)
 	if bucketIsEmpty(bucket) {
-		tx.Bucket(bucketBlockStakeOutputIDs).DeleteBucket(siabin.Marshal(id))
+		if err := tx.Bucket(bucketBlockStakeOutputIDs).DeleteBucket(assertSiaMarshal(id)); err != nil {
+			build.Severe(err)
+		}
 	}
 }
 
@@ -442,7 +466,7 @@ func mapParentUnlockConditionHash(tx *bolt.Tx, parentID interface{}, txid types.
 		mapUnlockConditionHash(tx, bso.Condition, txid)
 
 	default:
-		panic(fmt.Sprintf("unexpected output ID type: %T", parentID))
+		build.Critical(fmt.Errorf("unexpected output ID type: %T", parentID))
 	}
 
 	return nil
@@ -466,7 +490,7 @@ func unmapParentUnlockConditionHash(tx *bolt.Tx, parentID interface{}, txid type
 		unmapUnlockConditionHash(tx, bso.Condition, txid)
 
 	default:
-		panic(fmt.Sprintf("unexpected output ID type: %T", parentID))
+		build.Critical(fmt.Errorf("unexpected output ID type: %T", parentID))
 	}
 	return nil
 }
@@ -491,16 +515,12 @@ func mapUnlockConditionMultiSigAddress(tx *bolt.Tx, muh types.UnlockHash, cond t
 	case types.ConditionTypeTimeLock:
 		cg, ok := cond.(types.MarshalableUnlockConditionGetter)
 		if !ok {
-			if build.DEBUG {
-				panic(fmt.Sprintf("unexpected Go-type for TimeLockCondition: %T", cond))
-			}
+			build.Severe(fmt.Errorf("unexpected Go-type for TimeLockCondition: %T", cond))
 			return
 		}
 		cond = cg.GetMarshalableUnlockCondition()
 		if cond == nil {
-			if build.DEBUG {
-				panic("unexpected nil-type for Internal condition of TimeLockCondition")
-			}
+			build.Severe(fmt.Errorf("unexpected nil-type for Internal condition of TimeLockCondition"))
 			return
 		}
 		mapUnlockConditionMultiSigAddress(tx, muh, cond, txid)
@@ -508,9 +528,7 @@ func mapUnlockConditionMultiSigAddress(tx *bolt.Tx, muh types.UnlockHash, cond t
 	case types.ConditionTypeMultiSignature:
 		mcond, ok := cond.(types.UnlockHashSliceGetter)
 		if !ok {
-			if build.DEBUG {
-				panic(fmt.Sprintf("unexpected Go-type for MultiSignatureCondition: %T", cond))
-			}
+			build.Severe(fmt.Errorf("unexpected Go-type for MultiSignatureCondition: %T", cond))
 			return
 		}
 		// map the multisig address to all internal addresses
@@ -524,16 +542,12 @@ func unmapUnlockConditionMultiSigAddress(tx *bolt.Tx, muh types.UnlockHash, cond
 	case types.ConditionTypeTimeLock:
 		cg, ok := cond.(types.MarshalableUnlockConditionGetter)
 		if !ok {
-			if build.DEBUG {
-				panic(fmt.Sprintf("unexpected Go-type for TimeLockCondition: %T", cond))
-			}
+			build.Severe(fmt.Errorf("unexpected Go-type for TimeLockCondition: %T", cond))
 			return
 		}
 		cond = cg.GetMarshalableUnlockCondition()
 		if cond == nil {
-			if build.DEBUG {
-				panic("unexpected nil-type for Internal condition of TimeLockCondition")
-			}
+			build.Severe(fmt.Errorf("unexpected nil-type for Internal condition of TimeLockCondition"))
 			return
 		}
 		unmapUnlockConditionMultiSigAddress(tx, muh, cond, txid)
@@ -541,9 +555,7 @@ func unmapUnlockConditionMultiSigAddress(tx *bolt.Tx, muh types.UnlockHash, cond
 	case types.ConditionTypeMultiSignature:
 		mcond, ok := cond.(types.UnlockHashSliceGetter)
 		if !ok {
-			if build.DEBUG {
-				panic(fmt.Sprintf("unexpected Go-type for MultiSignatureCondition: %T", cond))
-			}
+			build.Severe(fmt.Errorf("unexpected Go-type for MultiSignatureCondition: %T", cond))
 			return
 		}
 		// unmap the multisig address to all internal addresses
@@ -555,17 +567,19 @@ func unmapUnlockConditionMultiSigAddress(tx *bolt.Tx, muh types.UnlockHash, cond
 
 // Add/Remove txid from unlock hash bucket
 func dbAddUnlockHash(tx *bolt.Tx, uh types.UnlockHash, txid types.TransactionID) {
-	b, err := tx.Bucket(bucketUnlockHashes).CreateBucketIfNotExists(siabin.Marshal(uh))
+	b, err := tx.Bucket(bucketUnlockHashes).CreateBucketIfNotExists(assertSiaMarshal(uh))
 	assertNil(err)
 	mustPutSet(b, txid)
 }
 func dbRemoveUnlockHash(tx *bolt.Tx, uh types.UnlockHash, txid types.TransactionID) {
 	uhb := tx.Bucket(bucketUnlockHashes)
-	muh := siabin.Marshal(uh)
+	muh := assertSiaMarshal(uh)
 	b := uhb.Bucket(muh)
 	mustDelete(b, txid)
 	if bucketIsEmpty(b) {
-		uhb.DeleteBucket(muh)
+		if err := uhb.DeleteBucket(muh); err != nil {
+			build.Severe(err)
+		}
 	}
 }
 
@@ -573,37 +587,41 @@ func dbRemoveUnlockHash(tx *bolt.Tx, uh types.UnlockHash, txid types.Transaction
 func dbAddWalletAddressToMultiSigAddressMapping(tx *bolt.Tx, walletAddress, multiSigAddress types.UnlockHash, txid types.TransactionID) {
 	if build.DEBUG {
 		if walletAddress.Type != types.UnlockTypePubKey {
-			panic(fmt.Sprintf("wallet address has wrong type: %d", walletAddress.Type))
+			build.Critical(fmt.Errorf("wallet address has wrong type: %d", walletAddress.Type))
 		}
 		if multiSigAddress.Type != types.UnlockTypeMultiSig {
-			panic(fmt.Sprintf("multisig address has wrong type: %d", multiSigAddress.Type))
+			build.Critical(fmt.Errorf("multisig address has wrong type: %d", multiSigAddress.Type))
 		}
 	}
-	wab, err := tx.Bucket(bucketWalletAddressToMultiSigAddressMapping).CreateBucketIfNotExists(siabin.Marshal(walletAddress))
+	wab, err := tx.Bucket(bucketWalletAddressToMultiSigAddressMapping).CreateBucketIfNotExists(assertSiaMarshal(walletAddress))
 	assertNil(err)
-	b, err := wab.CreateBucketIfNotExists(siabin.Marshal(multiSigAddress))
+	b, err := wab.CreateBucketIfNotExists(assertSiaMarshal(multiSigAddress))
 	assertNil(err)
 	mustPutSet(b, txid)
 }
 func dbRemoveWalletAddressToMultiSigAddressMapping(tx *bolt.Tx, walletAddress, multiSigAddress types.UnlockHash, txid types.TransactionID) {
 	if build.DEBUG {
 		if walletAddress.Type != types.UnlockTypePubKey {
-			panic(fmt.Sprintf("wallet address has wrong type: %d", walletAddress.Type))
+			build.Critical(fmt.Errorf("wallet address has wrong type: %d", walletAddress.Type))
 		}
 		if multiSigAddress.Type != types.UnlockTypeMultiSig {
-			panic(fmt.Sprintf("multisig address has wrong type: %d", multiSigAddress.Type))
+			build.Critical(fmt.Errorf("multisig address has wrong type: %d", multiSigAddress.Type))
 		}
 	}
 	mb := tx.Bucket(bucketWalletAddressToMultiSigAddressMapping)
-	wa := siabin.Marshal(walletAddress)
+	wa := assertSiaMarshal(walletAddress)
 	wb := mb.Bucket(wa)
-	msa := siabin.Marshal(multiSigAddress)
+	msa := assertSiaMarshal(multiSigAddress)
 	msb := wb.Bucket(msa)
 	mustDelete(msb, txid)
 	if bucketIsEmpty(msb) {
-		wb.DeleteBucket(msa)
+		if err := wb.DeleteBucket(msa); err != nil {
+			build.Severe(err)
+		}
 		if bucketIsEmpty(wb) {
-			mb.DeleteBucket(wa)
+			if err := mb.DeleteBucket(wa); err != nil {
+				build.Severe(err)
+			}
 		}
 	}
 }

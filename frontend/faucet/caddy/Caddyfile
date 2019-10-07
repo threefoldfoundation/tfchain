@@ -1,0 +1,8 @@
+https://faucet.testnet.threefoldtoken.com {
+    proxy / localhost:2020 {
+        transparent
+    }
+
+    log stdout
+    tls support@threefold.tech
+}

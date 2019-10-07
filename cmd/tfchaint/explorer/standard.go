@@ -1,9 +1,10 @@
 package explorer
 
 import (
+	tfcli "github.com/threefoldfoundation/tfchain/extensions/tfchain/client"
 	"github.com/threefoldfoundation/tfchain/pkg/config"
-	tftypes "github.com/threefoldfoundation/tfchain/pkg/types"
 	"github.com/threefoldtech/rivine/modules"
+	"github.com/threefoldtech/rivine/pkg/client"
 )
 
 // MainnetGroupedExplorer is a GroupedExplorer preconfigured for the official public testnet explorers
@@ -24,9 +25,14 @@ func NewMainnetGroupedExplorer() *MainnetGroupedExplorer {
 		explorers = append(explorers, NewExplorer(url, "Rivine-Agent", ""))
 	}
 	explorer := &MainnetGroupedExplorer{NewGroupedExplorer(explorers...)}
-	// This call doesn't return an error since it just loads hard coded constants
-	cts, _ := explorer.GetChainConstants()
-	tftypes.RegisterTransactionTypesForStandardNetwork(nil, tftypes.NopERC20TransactionValidator{}, cts.OneCoin, config.GetStandardDaemonNetworkConfig())
+
+	// register transactions for standard network of tfchain
+	bc, err := client.NewBaseClient(explorer, nil)
+	if err != nil {
+		panic(err)
+	}
+	tfcli.RegisterStandardTransactions(bc)
+
 	return explorer
 }
 

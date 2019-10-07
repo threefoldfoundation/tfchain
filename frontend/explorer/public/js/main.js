@@ -596,10 +596,29 @@ function buildPageTitle() {
 	}
 }
 
-
-
 function uint8ArrayToHexString(uarray) {
 	return '0x' + uarray.map(x => ('00' + x.toString(16)).slice(-2)).join('')
+}
+
+function structuredDataToString(data) {
+	p0 = numberToString(uint16LittleEndianBytesToString(data.slice(0, 2)));
+	p1 = numberToString(uint16LittleEndianBytesToString(data.slice(2, 4)));
+	p2 = numberToString(uint24LittleEndianBytesToString(data.slice(4)));
+	return '+++' + p0 + '/' + p1 + '/' + p2 + '+++';
+}
+
+function numberToString(x, length) {
+	s = x.toString();
+	while (s.length < length) s = '0' + s;
+	return s;
+}
+
+function uint16LittleEndianBytesToString(bs) {
+	return bs[0] | (bs[1] << 8);
+}
+
+function uint24LittleEndianBytesToString(bs) {
+	return bs[0] | (bs[1] << 8) | (bs[2] << 16);
 }
 
 function arbitraryDataToString(arbitrarydata) {
@@ -611,6 +630,9 @@ function arbitraryDataToString(arbitrarydata) {
 	// skip checksum validation as we do not have a blake2b lib available here
 	let type = Number(arbitraryDecoded[6]);
 	if (type !== 1) {
+		if (type === 2) {
+			return structuredDataToString(arbitraryDecoded.slice(7))
+		}
 		return uint8ArrayToHexString(arbitraryDecoded)
 	}
 
@@ -651,11 +673,11 @@ Copyright (c) 2011, Daniel Guerrero
 All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright
-      notice, this list of conditions and the following disclaimer in the
-      documentation and/or other materials provided with the distribution.
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -673,7 +695,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * at the moment just decodes a binary base64 encoded
  * into either an ArrayBuffer (decodeArrayBuffer)
  * or into an Uint8Array (decode)
- * 
+ *
  * References:
  * https://developer.mozilla.org/en/JavaScript_typed_arrays/ArrayBuffer
  * https://developer.mozilla.org/en/JavaScript_typed_arrays/Uint8Array
@@ -685,7 +707,7 @@ function decodeBase64ArrayBuffer(input) {
 	var bytes = (input.length/4) * 3;
 	var ab = new ArrayBuffer(bytes);
 	decodeBase64(input, ab);
-	
+
 	return new Uint8Array(ab);
 }
 function removePaddingChars(input){
@@ -701,21 +723,21 @@ function decodeBase64(input, arrayBuffer) {
 	input = removePaddingChars(input);
 
 	var bytes = parseInt((input.length / 4) * 3, 10);
-	
+
 	var uarray;
 	var chr1, chr2, chr3;
 	var enc1, enc2, enc3, enc4;
 	var i = 0;
 	var j = 0;
-	
+
 	if (arrayBuffer)
 		uarray = new Uint8Array(arrayBuffer);
 	else
 		uarray = new Uint8Array(bytes);
-	
+
 	input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
-	
-	for (i=0; i<bytes; i+=3) {	
+
+	for (i=0; i<bytes; i+=3) {
 		//get the 3 octects in 4 ascii chars
 		enc1 = _keyBase64Str.indexOf(input.charAt(j++));
 		enc2 = _keyBase64Str.indexOf(input.charAt(j++));
@@ -726,12 +748,12 @@ function decodeBase64(input, arrayBuffer) {
 		chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
 		chr3 = ((enc3 & 3) << 6) | enc4;
 
-		uarray[i] = chr1;			
+		uarray[i] = chr1;
 		if (enc3 != 64) uarray[i+1] = chr2;
 		if (enc4 != 64) uarray[i+2] = chr3;
 	}
 
-	return uarray;	
+	return uarray;
 }
 
 buildPageTitle();
