@@ -10,6 +10,7 @@ import (
 
 	"github.com/threefoldtech/rivine/pkg/cli"
 	"github.com/threefoldtech/rivine/pkg/daemon"
+	"github.com/threefoldtech/rivine/profile"
 
 	erc20daemon "github.com/threefoldtech/rivine-extension-erc20/daemon"
 
@@ -51,6 +52,11 @@ func (cmds *commands) rootCommand(*cobra.Command, []string) {
 
 	// Process the config variables, cleaning up slightly invalid values
 	cmds.cfg.Config = daemon.ProcessConfig(cmds.cfg.Config)
+
+	// Create the profiling directory if profiling is enabled.
+	if cmds.cfg.Profile {
+		go profile.StartContinuousProfile(cmds.cfg.ProfileDir, cmds.cfg.BlockchainInfo, cmds.cfg.VerboseLogging)
+	}
 
 	// run daemon
 	err = runDaemon(cmds.cfg, cmds.moduleSetFlag.ModuleIdentifiers(), cmds.erc20Cfg)

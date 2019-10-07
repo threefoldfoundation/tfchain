@@ -482,7 +482,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6a79376f8cc7d18670d3e8198d104604ff8f91d91d8a72d93f7a801515745a85"
+  digest = "1:16ac3f6851bd5a503f16e7431090adfc9c55ceae4519c2984de3cc3d5e713333"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -504,6 +504,7 @@
     "pkg/daemon",
     "pkg/encoding/rivbin",
     "pkg/encoding/siabin",
+    "profile",
     "sync",
     "types",
   ]
@@ -710,6 +711,7 @@
     "github.com/threefoldtech/rivine/pkg/daemon",
     "github.com/threefoldtech/rivine/pkg/encoding/rivbin",
     "github.com/threefoldtech/rivine/pkg/encoding/siabin",
+    "github.com/threefoldtech/rivine/profile",
     "github.com/threefoldtech/rivine/types",
   ]
   solver-name = "gps-cdcl"
