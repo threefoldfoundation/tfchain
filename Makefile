@@ -46,6 +46,14 @@ install-std:
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgebin) $(bridgepkgs)
 	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgeclientbin) $(bridgeclientpkgs)
 
+# installs std (release) binaries with profiling enabled on http on port 10501
+install-profile-std:
+	go build -tags='profile' -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
+	go build -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
+	go build -ldflags '$(ldflagsversion) -s -w' -o $(thinclientbin) $(thinclientpkgs)
+	go build -tags='profile' -ldflags '$(ldflagsversion) -s -w' -o $(bridgebin) $(bridgepkgs)
+	go build -ldflags '$(ldflagsversion) -s -w' -o $(bridgeclientbin) $(bridgeclientpkgs)
+
 install-noeth:
 	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(daemonbin) $(daemonpkgs)
 	go build -race -tags='debug profile noeth' -ldflags '$(ldflagsversion)' -o $(clientbin) $(clientpkgs)
@@ -53,6 +61,12 @@ install-noeth:
 
 install-std-noeth:
 	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
+	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
+	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(thinclientbin) $(thinclientpkgs)
+
+# installs std (release, no-eth) binaries with profiling enabled on http on port 10501
+install-profile-std-noeth:
+	go build -tags='profile noeth' -ldflags '$(ldflagsversion) -s -w' -o $(daemonbin) $(daemonpkgs)
 	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(clientbin) $(clientpkgs)
 	go build -tags='noeth' -ldflags '$(ldflagsversion) -s -w' -o $(thinclientbin) $(thinclientpkgs)
 
