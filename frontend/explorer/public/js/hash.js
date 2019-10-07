@@ -50,6 +50,9 @@ function appendUnknownTransaction(infoBody, explorerTransaction, confirmed) {
 		var doms = appendStat(table, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
 		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
+		if (explorerTransaction.timestamp) {
+			appendStat(table, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 	} else {
 		doms = appendStat(table, 'Block Height', 'unconfirmed');
 	}
@@ -72,6 +75,9 @@ function appendV0Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(table, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(table, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
 	} else {
 		doms = appendStat(table, 'Block Height', 'unconfirmed');
@@ -207,6 +213,9 @@ function appendV1Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(table, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(table, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		doms = appendStat(table, 'Block ID', '');
 		linkHash(doms[2], explorerTransaction.parent);
 		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
@@ -363,6 +372,9 @@ function appendV128Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(table, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(table, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		doms = appendStat(table, 'Block ID', '');
 		linkHash(doms[2], explorerTransaction.parent);
 		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
@@ -454,6 +466,9 @@ function appendV129Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(table, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(table, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		doms = appendStat(table, 'Block ID', '');
 		linkHash(doms[2], explorerTransaction.parent);
 		appendStat(table, 'Confirmations', ctx.height - explorerTransaction.height + 1);
@@ -552,6 +567,9 @@ function appendV144Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(statsTable, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(statsTable, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		doms = appendStat(statsTable, 'Block ID', '');
 		linkHash(doms[2], explorerTransaction.parent);
 		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
@@ -698,6 +716,9 @@ function appendV145Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(statsTable, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(statsTable, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		doms = appendStat(statsTable, 'Block ID', '');
 		linkHash(doms[2], explorerTransaction.parent);
 		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
@@ -850,6 +871,9 @@ function appendV146Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(statsTable, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(statsTable, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		doms = appendStat(statsTable, 'Block ID', '');
 		linkHash(doms[2], explorerTransaction.parent);
 		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
@@ -983,6 +1007,9 @@ function appendV208Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(statsTable, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(statsTable, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		doms = appendStat(statsTable, 'Block ID', '');
 		linkHash(doms[2], explorerTransaction.parent);
 		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
@@ -1083,6 +1110,9 @@ function appendV209Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(statsTable, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(statsTable, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		doms = appendStat(statsTable, 'Block ID', '');
 		linkHash(doms[2], explorerTransaction.parent);
 		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
@@ -1135,6 +1165,9 @@ function appendV210Transaction(infoBody, explorerTransaction, confirmed) {
 	if (confirmed) {
 		var doms = appendStat(statsTable, 'Block Height', '');
 		linkHeight(doms[2], explorerTransaction.height);
+		if (explorerTransaction.timestamp) {
+			appendStat(statsTable, 'Block Time', formatUnixTime(explorerTransaction.timestamp));
+		}
 		doms = appendStat(statsTable, 'Block ID', '');
 		linkHash(doms[2], explorerTransaction.parent);
 		appendStat(statsTable, 'Confirmations', ctx.height - explorerTransaction.height + 1);
