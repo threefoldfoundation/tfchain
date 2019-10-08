@@ -1,4 +1,4 @@
-# tfchain [![Build Status](https://travis-ci.org/threefoldfoundation/tfchain.svg?branch=master)](https://travis-ci.org/threefoldfoundation/tfchain)
+# tfchain [![Build Status](https://travis-ci.org/threefoldfoundation/tfchain.svg?branch=master)](https://travis-ci.org/threefoldfoundation/tfchain) [![GoDoc](https://godoc.org/github.com/threefoldfoundation/tfchain?status.svg)](https://godoc.org/github.com/threefoldfoundation/tfchain) [![Go Report Card](https://goreportcard.com/badge/github.com/threefoldfoundation/tfchain)](https://goreportcard.com/report/github.com/threefoldfoundation/tfchain)
 
 tfchain is the official Go implementation of the ThreeFold blockchain client. It uses and is built on top of the [Rivine][rivine] protocol.
 
