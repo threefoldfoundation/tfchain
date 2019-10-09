@@ -62,7 +62,7 @@ func RegisterExplorerHTTPHandlers(router rapi.Router, cs modules.ConsensusSet, e
 		tbapi.RegisterExplorerHTTPHandlers(router, tbRegistry)
 	}
 
-	if erc20Registry == nil {
+	if erc20Registry != nil {
 		erc20api.RegisterExplorerHTTPHandlers(router, erc20Registry)
 		router.GET("/explorer/hashes/:hash", NewExplorerHashHandler(explorer, cs, tpool, erc20Registry))
 	} else {

@@ -101,9 +101,15 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 
 		fmt.Println("Setting up root HTTP API handler...")
 
+		var cs modules.ConsensusSet
+
 		// register our special daemon HTTP handlers
 		router.GET("/daemon/constants", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-			constants := modules.NewDaemonConstants(cfg.BlockchainInfo, networkCfg.NetworkConfig.Constants)
+			var pluginNames []string
+			if cs != nil {
+				pluginNames = cs.LoadedPlugins()
+			}
+			constants := modules.NewDaemonConstants(cfg.BlockchainInfo, networkCfg.NetworkConfig.Constants, pluginNames)
 			rivineapi.WriteJSON(w, constants)
 		})
 		router.GET("/daemon/version", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
@@ -152,7 +158,6 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 			}()
 		}
 
-		var cs modules.ConsensusSet
 		var mintingPlugin *minting.Plugin
 		var threebotPlugin *threebot.Plugin
 		var erc20TxValidator erc20types.ERC20TransactionValidator
@@ -358,7 +363,11 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 			// DO NOT register rivineapi for Explorer HTTP Handles,
 			// as they are included in the tfchain api already
 			//rivineapi.RegisterExplorerHTTPHandlers(router, cs, e, tpool)
-			api.RegisterExplorerHTTPHandlers(router, cs, e, tpool, threebotPlugin, erc20Plugin)
+			if cfg.BlockchainInfo.NetworkName == config.NetworkNameStandard {
+				api.RegisterExplorerHTTPHandlers(router, cs, e, tpool, nil, nil)
+			} else {
+				api.RegisterExplorerHTTPHandlers(router, cs, e, tpool, threebotPlugin, erc20Plugin)
+			}
 			mintingapi.RegisterExplorerMintingHTTPHandlers(router, mintingPlugin)
 		}
 

@@ -578,7 +578,11 @@ function getERC20Transaction(id) {
 
 //Changes the document title according to the network the page is running on
 function buildPageTitle() {
-	var networkName = getBlockchainConstants().chaininfo.NetworkName;
+	var networkName = "devnet";
+	var constants = getBlockchainConstants();
+	if (constants && constants.chaininfo && constants.chaininfo.NetworkName) {
+		networkName = constants.chaininfo.NetworkName;
+	}
 
 	switch(networkName) {
 		case 'testnet':

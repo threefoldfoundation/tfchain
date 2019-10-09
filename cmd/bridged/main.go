@@ -185,6 +185,37 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		// router to register all endpoints to
 		router := httprouter.New()
 
+		var cs modules.ConsensusSet
+
+		// handle all our endpoints over a router,
+		// which requires a user agent should one be configured
+		srv.Handle("/", rivineapi.RequireUserAgentHandler(router, cmd.UserAgent))
+
+		// register our special bridge HTTP handlers
+		router.GET("/daemon/constants", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+			var pluginNames []string
+			if cs != nil {
+				pluginNames = cs.LoadedPlugins()
+			}
+			constants := modules.NewDaemonConstants(cmd.BlockchainInfo, cmd.ChainConstants, pluginNames)
+			rivineapi.WriteJSON(w, constants)
+		})
+		router.POST("/bridge/stop", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+			// can't write after we stop the server, so lie a bit.
+			rivineapi.WriteSuccess(w)
+
+			// need to flush the response before shutting down the server
+			f, ok := w.(http.Flusher)
+			if !ok {
+				panic("Server does not support flushing")
+			}
+			f.Flush()
+
+			if err := srv.Close(); err != nil {
+				servErrs <- err
+			}
+		})
+
 		log.Info("loading rivine gateway module (1/4)...")
 		gateway, err := gateway.New(
 			cmd.RPCaddr, true, maxConcurrentRPC, cmd.perDir("gateway"),
@@ -207,7 +238,7 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 		}()
 
 		log.Info("loading rivine consensus module (2/4)...")
-		cs, err := consensus.New(
+		cs, err = consensus.New(
 			gateway, !cmd.NoBootstrap, cmd.perDir("consensus"),
 			cmd.BlockchainInfo, cmd.ChainConstants, cmd.VerboseRivineLogging, cmd.ConsensusDebugFile)
 		if err != nil {
@@ -357,31 +388,6 @@ func (cmd *Commands) Root(_ *cobra.Command, args []string) (cmdErr error) {
 			cancel()
 			return
 		}
-
-		// register our special bridge HTTP handlers
-		router.GET("/daemon/constants", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-			constants := modules.NewDaemonConstants(cmd.BlockchainInfo, cmd.ChainConstants)
-			rivineapi.WriteJSON(w, constants)
-		})
-		router.POST("/bridge/stop", func(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-			// can't write after we stop the server, so lie a bit.
-			rivineapi.WriteSuccess(w)
-
-			// need to flush the response before shutting down the server
-			f, ok := w.(http.Flusher)
-			if !ok {
-				panic("Server does not support flushing")
-			}
-			f.Flush()
-
-			if err := srv.Close(); err != nil {
-				servErrs <- err
-			}
-		})
-
-		// handle all our endpoints over a router,
-		// which requires a user agent should one be configured
-		srv.Handle("/", rivineapi.RequireUserAgentHandler(router, cmd.UserAgent))
 
 		// Wait for the ethereum network to sync
 		err = erc20Client.Wait(ctx)

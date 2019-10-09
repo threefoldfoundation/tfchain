@@ -2,8 +2,6 @@ package explorer
 
 import (
 	tfcli "github.com/threefoldfoundation/tfchain/extensions/tfchain/client"
-	"github.com/threefoldfoundation/tfchain/pkg/config"
-	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/pkg/client"
 )
 
@@ -32,11 +30,6 @@ func NewTestnetGroupedExplorer() *TestnetGroupedExplorer {
 	tfcli.RegisterTestnetTransactions(bc)
 
 	return explorer
-}
-
-// GetChainConstants returns the hardcoded chain constants for testnet. No call is made to the explorers
-func (te *TestnetGroupedExplorer) GetChainConstants() (modules.DaemonConstants, error) {
-	return modules.NewDaemonConstants(config.GetBlockchainInfo(), config.GetTestnetGenesis()), nil
 }
 
 // Name of the backend

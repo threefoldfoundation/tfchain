@@ -2,8 +2,6 @@ package explorer
 
 import (
 	tfcli "github.com/threefoldfoundation/tfchain/extensions/tfchain/client"
-	"github.com/threefoldfoundation/tfchain/pkg/config"
-	"github.com/threefoldtech/rivine/modules"
 	"github.com/threefoldtech/rivine/pkg/client"
 )
 
@@ -34,11 +32,6 @@ func NewMainnetGroupedExplorer() *MainnetGroupedExplorer {
 	tfcli.RegisterStandardTransactions(bc)
 
 	return explorer
-}
-
-// GetChainConstants returns the hardcoded chain constants for mainnet. No call is made to the explorers
-func (te *MainnetGroupedExplorer) GetChainConstants() (modules.DaemonConstants, error) {
-	return modules.NewDaemonConstants(config.GetBlockchainInfo(), config.GetStandardnetGenesis()), nil
 }
 
 // Name of the backend

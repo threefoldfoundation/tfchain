@@ -1,6 +1,16 @@
 // buildBotPage parses the query string, turns it into an api request, and
 // then formats the response into a user-friendly webpage.
 function buildBotPage() {
+	// check if 3Bot is enabled for this daemon, otherwise redirect to home page
+	var redirectToHome = true;
+	var constants = getBlockchainConstants();
+	if (constants && constants.consensusplugins && constants.consensusplugins.indexOf && constants.consensusplugins.indexOf("threebot") >= 0) {
+		redirectToHome = false;
+	}
+	if (redirectToHome) {
+		window.location.replace("/");
+	}
+
     var params = parseURLParams();
     var record;
     var paramKey;
