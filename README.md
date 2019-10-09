@@ -8,12 +8,13 @@ The ThreeFold blockchain is the technology behind the ThreeFold Grid ("TF Grid" 
 
 > ⚠ Attention ⚠
 >
-> `v1.0.8` is deprecated as of the 6th of September, 2018.
-> Please upgrade to `v1.1.0`: [threefoldfoundation/tfchain@v1.1.0](https://github.com/threefoldfoundation/tfchain/releases/tag/v1.1.0).
+> `v1.1.1` is deprecated as of the 15th of October, 2019.
+> Please upgrade to `v1.2.0`: [threefoldfoundation/tfchain@v1.2.0](https://github.com/threefoldfoundation/tfchain/releases/tag/v1.2.0).
 >
-> If you are still running `v1.0.8` or older, you are advised to upgrade to `v1.1.0` as soon as you can or risk getting out-of-sync with the rest of the network due to your ConsensusSet not accepting two new transaction types.
+> If you are still running `v1.1.1` or older, on the _testnet_ network, you are advised to upgrade to `v1.2.0` as soon as you can or risk getting out-of-sync with the rest of the network due to your ConsensusSet not accepting two new transaction types. For
+> the standard net work you should still be compatible, but are never the less advised to upgrade at your earliest convenience.
 
-You can reach out to us for any development-related questions on [our public Telegram group](https://t.me/rivine). If you're a user of the tools distributed via this repository, you are welcome to join that chat as well. You're especially welcome if you want to contribute and wonder how.
+You can reach out to us for any development-related questions on [our public Telegram group](https://t.me/rivine). If you're a user of the tools distributed via this repository, you are welcome to join that chat as well. You're especially welcome if you want to contribute or wonder how to contribute.
 
 [rivine]: http://github.com/threefoldtech/rivine
 
