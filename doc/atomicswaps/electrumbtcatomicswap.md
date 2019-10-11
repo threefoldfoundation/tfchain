@@ -38,6 +38,7 @@ This example is a walkthrough of an actual atomic swap  on the threefold and bit
 
 Start Electrum on testnet and create a default wallet but do not set a password on it: 
 `./Electrum --testnet`
+On osx the default location is `/Applications/Electrum.app/Contents/MacOS`)
 
 Configure and start Electrum as a daemon :
 ```
