@@ -61,7 +61,7 @@ mw7GjaHMy8D4rcK1ycYeFEsoCTJkSo54cz
 ```
 
 ### initiate step
-Bob initiates the process by using btcatomicswap to pay 0.1234BTC into the Bitcoin contract using Alice's Bit coin address, sending the contract transaction, and sharing the secret hash (not the secret), and contract's transaction with Alice. The refund transaction can not be sent until the locktime expires, but should be saved in case a refund is necessary.
+Bob initiates the process by using btcatomicswap to pay 0.1234BTC into a Bitcoin contract using Alice's Bitcoin address, sending the contract transaction, and sharing the secret hash (not the secret), and contract's transaction with Alice. The refund transaction can not be sent until the locktime expires, but should be saved in case a refund is necessary.
 
 command:`btcatomicswap initiate <participant address> <amount>`
 
