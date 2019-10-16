@@ -17,10 +17,10 @@ import (
 )
 
 // CreateWalletCmds creates the ERC20 wallet root command as well as its transaction creation sub commands.
-func CreateWalletCmds(ccli *client.CommandLineClient, txVersions erc20types.TransactionVersions) {
-	bc, err := client.NewBaseClientFromCommandLineClient(ccli)
+func CreateWalletCmds(ccli *client.CommandLineClient, txVersions erc20types.TransactionVersions) error {
+	bc, err := client.NewLazyBaseClientFromCommandLineClient(ccli)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	walletCmd := &walletCmd{
 		cli:          ccli,
@@ -94,6 +94,8 @@ from which the ERC20 address is then derived, is known by this wallet.`,
 	listERC20AddressesCmd.Flags().Var(
 		cli.NewEncodingTypeFlag(0, &walletCmd.listERC20AddressRegistrationsCfg.EncodingType, cli.EncodingTypeHuman|cli.EncodingTypeJSON), "encoding",
 		cli.EncodingTypeFlagDescription(cli.EncodingTypeHuman|cli.EncodingTypeJSON))
+
+	return nil
 }
 
 type walletCmd struct {

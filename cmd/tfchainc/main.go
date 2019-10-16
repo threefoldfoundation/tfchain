@@ -23,28 +23,32 @@ func main() {
 	// create cli
 	bchainInfo := config.GetBlockchainInfo()
 	cliClient, err := NewCommandLineClient("", bchainInfo.Name, daemon.RivineUserAgent)
-	if err != nil {
-		panic(err)
-	}
+	exitIfError(err)
 
 	// register tfchain-specific commands
-	mintingcli.CreateConsensusCmd(cliClient.CommandLineClient)
-	tbcli.CreateConsensusSubCmds(cliClient.CommandLineClient)
-	mintingcli.CreateExploreCmd(cliClient.CommandLineClient)
-	tbcli.CreateExplorerSubCmds(cliClient.CommandLineClient)
-	mintingcli.CreateWalletCmds(
+	err = mintingcli.CreateConsensusCmd(cliClient.CommandLineClient)
+	exitIfError(err)
+	err = tbcli.CreateConsensusSubCmds(cliClient.CommandLineClient)
+	exitIfError(err)
+	err = mintingcli.CreateExploreCmd(cliClient.CommandLineClient)
+	exitIfError(err)
+	err = tbcli.CreateExplorerSubCmds(cliClient.CommandLineClient)
+	exitIfError(err)
+	err = mintingcli.CreateWalletCmds(
 		cliClient.CommandLineClient,
 		tftypes.TransactionVersionMinterDefinition, tftypes.TransactionVersionCoinCreation,
 		&mintingcli.WalletCmdsOpts{
 			CoinDestructionTxVersion: 0,    // disabled
 			RequireMinerFees:         true, // require miner fees
 		})
-	erc20cli.CreateWalletCmds(cliClient.CommandLineClient, erc20types.TransactionVersions{
+	err = erc20cli.CreateWalletCmds(cliClient.CommandLineClient, erc20types.TransactionVersions{
 		ERC20Conversion:          tftypes.TransactionVersionERC20Conversion,
 		ERC20AddressRegistration: tftypes.TransactionVersionERC20AddressRegistration,
 		ERC20CoinCreation:        tftypes.TransactionVersionERC20CoinCreation,
 	})
-	tbcli.CreateWalletCmds(cliClient.CommandLineClient)
+	exitIfError(err)
+	err = tbcli.CreateWalletCmds(cliClient.CommandLineClient)
+	exitIfError(err)
 	erc20cli.CreateERC20Cmd(cliClient.CommandLineClient)
 
 	// register root command
@@ -61,7 +65,9 @@ func main() {
 			cfg = &newCfg
 		}
 
-		bc, err := client.NewBaseClient(cliClient.HTTPClient, cfg)
+		bc, err := client.NewLazyBaseClient(func() (client.BaseClient, error) {
+			return client.NewBaseClient(cliClient.HTTPClient, cfg)
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +76,10 @@ func main() {
 		case config.NetworkNameStandard:
 			// Register the transaction controllers for all transaction versions
 			// supported on the standard network
-			tfcli.RegisterStandardTransactions(bc)
+			err = tfcli.RegisterStandardTransactions(bc)
+			if err != nil {
+				return nil, err
+			}
 
 			// overwrite standard network genesis block stamp,
 			// as the genesis block is way earlier than the actual first block,
@@ -80,7 +89,10 @@ func main() {
 		case config.NetworkNameTest:
 			// Register the transaction controllers for all transaction versions
 			// supported on the test network
-			tfcli.RegisterTestnetTransactions(bc)
+			err = tfcli.RegisterTestnetTransactions(bc)
+			if err != nil {
+				return nil, err
+			}
 
 			// seems like testnet timestamp wasn't updated last time it was reset
 			cfg.GenesisBlockTimestamp = 1522792547 // timestamp of (testnet) block #1
@@ -88,7 +100,10 @@ func main() {
 		case config.NetworkNameDev:
 			// Register the transaction controllers for all transaction versions
 			// supported on the dev network
-			tfcli.RegisterDevnetTransactions(bc)
+			err = tfcli.RegisterDevnetTransactions(bc)
+			if err != nil {
+				return nil, err
+			}
 
 		default:
 			return nil, fmt.Errorf("Netork name %q not recognized", cfg.NetworkName)
@@ -106,4 +121,15 @@ func main() {
 		// Command.SilenceUsage is false) and we should exit with exitCodeUsage.
 		os.Exit(cli.ExitCodeUsage)
 	}
+}
+
+func exitIfError(err error) {
+	if err != nil {
+		exitWithError(err)
+	}
+}
+
+func exitWithError(err error) {
+	fmt.Fprintln(os.Stderr, "client exited during setup with an error:", err)
+	os.Exit(cli.ExitCodeGeneral)
 }

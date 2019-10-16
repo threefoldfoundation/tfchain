@@ -14,10 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func CreateConsensusSubCmds(ccli *rivinecli.CommandLineClient) {
-	bc, err := client.NewBaseClientFromCommandLineClient(ccli)
+func CreateConsensusSubCmds(ccli *rivinecli.CommandLineClient) error {
+	bc, err := client.NewLazyBaseClientFromCommandLineClient(ccli)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	consensusSubCmds := &consensusSubCmds{
@@ -46,6 +46,8 @@ id, public key or name.
 	getBotRecordCmd.Flags().Var(
 		cli.NewEncodingTypeFlag(0, &consensusSubCmds.getBotRecordCfg.EncodingType, 0), "encoding",
 		cli.EncodingTypeFlagDescription(0))
+
+	return nil
 }
 
 type consensusSubCmds struct {

@@ -17,10 +17,10 @@ import (
 )
 
 // CreateWalletCmds creates the threebot wallet root command as well as its transaction creation sub commands.
-func CreateWalletCmds(ccli *client.CommandLineClient) {
-	bc, err := client.NewBaseClientFromCommandLineClient(ccli)
+func CreateWalletCmds(ccli *client.CommandLineClient) error {
+	bc, err := client.NewLazyBaseClientFromCommandLineClient(ccli)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	walletCmd := &walletCmd{
@@ -174,6 +174,8 @@ is printed to the STDOUT.
 	createBotNameTransferTxCmd.Flags().BoolVar(
 		&walletCmd.createBotNameTransferTxCfg.Sign, "sign", false,
 		"optionally sign the transaction (as sender/receiver) prior to printing it")
+
+	return nil
 }
 
 type walletCmd struct {

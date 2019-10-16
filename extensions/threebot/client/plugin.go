@@ -14,7 +14,7 @@ import (
 // PluginClient is used to be able to get auth information from
 // a daemon that has the authcointx extension enabled and running.
 type PluginClient struct {
-	bc           *client.BaseClient
+	bc           client.BaseClient
 	rootEndpoint string
 }
 
@@ -24,7 +24,7 @@ var (
 
 // NewPluginConsensusClient creates a new PluginClient,
 // that can be used for easy interaction with the API exposed via the Consensus endpoints
-func NewPluginConsensusClient(bc *client.BaseClient) *PluginClient {
+func NewPluginConsensusClient(bc client.BaseClient) *PluginClient {
 	if bc == nil {
 		panic("no BaseClient given")
 	}
@@ -36,7 +36,7 @@ func NewPluginConsensusClient(bc *client.BaseClient) *PluginClient {
 
 // NewPluginExplorerClient creates a new PluginClient,
 // that can be used for easy interaction with the API exposed via the Explorer endpoints
-func NewPluginExplorerClient(bc *client.BaseClient) *PluginClient {
+func NewPluginExplorerClient(bc client.BaseClient) *PluginClient {
 	if bc == nil {
 		panic("no BaseClient given")
 	}

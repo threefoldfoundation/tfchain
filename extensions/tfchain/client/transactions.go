@@ -14,19 +14,19 @@ import (
 	"github.com/threefoldtech/rivine/types"
 )
 
-func RegisterStandardTransactions(bc *client.BaseClient) {
-	registerTransactions(bc, false, config.GetStandardDaemonNetworkConfig())
+func RegisterStandardTransactions(bc client.BaseClient) error {
+	return registerTransactions(bc, false, config.GetStandardDaemonNetworkConfig())
 }
 
-func RegisterTestnetTransactions(bc *client.BaseClient) {
-	registerTransactions(bc, true, config.GetTestnetDaemonNetworkConfig())
+func RegisterTestnetTransactions(bc client.BaseClient) error {
+	return registerTransactions(bc, true, config.GetTestnetDaemonNetworkConfig())
 }
 
-func RegisterDevnetTransactions(bc *client.BaseClient) {
-	registerTransactions(bc, true, config.GetDevnetDaemonNetworkConfig())
+func RegisterDevnetTransactions(bc client.BaseClient) error {
+	return registerTransactions(bc, true, config.GetDevnetDaemonNetworkConfig())
 }
 
-func registerTransactions(bc *client.BaseClient, extraPlugins bool, daemonCfg config.DaemonNetworkConfig) {
+func registerTransactions(bc client.BaseClient, extraPlugins bool, daemonCfg config.DaemonNetworkConfig) error {
 	// create minting plugin client...
 	mintingCLI := mintingcli.NewPluginConsensusClient(bc)
 	// ...and register minting types
@@ -52,7 +52,12 @@ func registerTransactions(bc *client.BaseClient, extraPlugins bool, daemonCfg co
 	})
 
 	if !extraPlugins {
-		return // 3Bot and ERC20 transactions are not enabled on all networks
+		return nil // 3Bot and ERC20 transactions are not enabled on all networks
+	}
+
+	cfg, err := bc.Config()
+	if err != nil {
+		return err
 	}
 
 	// register 3Bot Transactions
@@ -60,17 +65,17 @@ func registerTransactions(bc *client.BaseClient, extraPlugins bool, daemonCfg co
 	types.RegisterTransactionVersion(tbtypes.TransactionVersionBotRegistration, tbtypes.BotRegistrationTransactionController{
 		Registry:            tbClient,
 		RegistryPoolAddress: daemonCfg.FoundationPoolAddress,
-		OneCoin:             bc.Config().CurrencyUnits.OneCoin,
+		OneCoin:             cfg.CurrencyUnits.OneCoin,
 	})
 	types.RegisterTransactionVersion(tbtypes.TransactionVersionBotRecordUpdate, tbtypes.BotUpdateRecordTransactionController{
 		Registry:            tbClient,
 		RegistryPoolAddress: daemonCfg.FoundationPoolAddress,
-		OneCoin:             bc.Config().CurrencyUnits.OneCoin,
+		OneCoin:             cfg.CurrencyUnits.OneCoin,
 	})
 	types.RegisterTransactionVersion(tbtypes.TransactionVersionBotNameTransfer, tbtypes.BotNameTransferTransactionController{
 		Registry:            tbClient,
 		RegistryPoolAddress: daemonCfg.FoundationPoolAddress,
-		OneCoin:             bc.Config().CurrencyUnits.OneCoin,
+		OneCoin:             cfg.CurrencyUnits.OneCoin,
 	})
 
 	// register ERC20 Transactions
@@ -82,11 +87,13 @@ func registerTransactions(bc *client.BaseClient, extraPlugins bool, daemonCfg co
 		TransactionVersion:   tftypes.TransactionVersionERC20AddressRegistration,
 		Registry:             erc20Client,
 		BridgeFeePoolAddress: daemonCfg.ERC20FeePoolAddress,
-		OneCoin:              bc.Config().CurrencyUnits.OneCoin,
+		OneCoin:              cfg.CurrencyUnits.OneCoin,
 	})
 	types.RegisterTransactionVersion(tftypes.TransactionVersionERC20CoinCreation, erc20types.ERC20CoinCreationTransactionController{
 		TransactionVersion: tftypes.TransactionVersionERC20CoinCreation,
 		Registry:           erc20Client,
-		OneCoin:            bc.Config().CurrencyUnits.OneCoin,
+		OneCoin:            cfg.CurrencyUnits.OneCoin,
 	})
+
+	return nil
 }

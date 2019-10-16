@@ -58,7 +58,7 @@
   name = "github.com/aristanetworks/goarista"
   packages = ["monotime"]
   pruneopts = "UT"
-  revision = "186a6201b8efc232db8ddab212591470ec924be9"
+  revision = "ce4ff66f8dbab89fd28b44a357e93e3166fcabf3"
 
 [[projects]]
   branch = "master"
@@ -69,12 +69,12 @@
   revision = "4aabc24848ce5fd31929f7d1e4ea74d3709c14cd"
 
 [[projects]]
-  branch = "master"
-  digest = "1:700aabb6a7bcb42582951c536be0be25f5ff45a5d2f782f56908ca6e02b640ac"
+  digest = "1:3c72c4b4159f7ef8e897c4ed14ca7d491ecaa53a3285d12debc923ff1f197963"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
   pruneopts = "UT"
-  revision = "ba530c4abb35ea824a1d3c01d74969b5564c3b08"
+  revision = "a41498d578a99c1619037746abd916176ea61052"
+  version = "v0.20.0-beta"
 
 [[projects]]
   digest = "1:cda62381b9ad649fbc5fed41335d9e162bf1c68a8791b47d17f004dd0f086f47"
@@ -121,7 +121,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d97669eb5d9e8fddafb2e740a42cfbc4a387d3bea9d603a8d9bf29ce91e330b6"
+  digest = "1:6968373620ef050c6b7c2b4dce666a8a19c3ccecf41f073688e7f2bff81455b5"
   name = "github.com/ethereum/go-ethereum"
   packages = [
     ".",
@@ -200,7 +200,7 @@
     "trie",
   ]
   pruneopts = "T"
-  revision = "a73f3f45183a347864a1c941930d6f26c6f06ac2"
+  revision = "73003659561d83eb3123e008157134eaab6e4b03"
 
 [[projects]]
   branch = "master"
@@ -332,12 +332,12 @@
   version = "v0.1.4"
 
 [[projects]]
-  digest = "1:36325ebb862e0382f2f14feef409ba9351271b89ada286ae56836c603d43b59c"
+  digest = "1:d62282425ffb75047679d7e2c3b980eea7f82c05ef5fb9142ee617ebac6e7432"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   pruneopts = "UT"
-  revision = "e1f7b56ace729e4a73a29a6b4fac6cd5fcda7ab3"
-  version = "v0.0.9"
+  revision = "88ba11cfdc67c7588b30042edf244b2875f892b6"
+  version = "v0.0.10"
 
 [[projects]]
   digest = "1:0356f3312c9bd1cbeda81505b7fd437501d8e778ab66998ef69f00d7f9b3a0d7"
@@ -482,7 +482,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a7c1c9fffae0436f484a9e893faabb7fa88f00e6b2e66d6c0f2c5ecad92e90e7"
+  digest = "1:1fd4ab234d675fcd1b864b5aa72e20f619bf3a1241765cf64646219b392f494e"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -509,11 +509,11 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "e7816faeca496073001b1ce743fb752f88d21c72"
+  revision = "ef3ee131c7d8d772c4efdf319faf21664a5ebe33"
 
 [[projects]]
   branch = "master"
-  digest = "1:1f910c34fa386f4efa2a6e88f000834781cb8067a2c190b57f2064ea069a614d"
+  digest = "1:dce1101c8ca47c2bfafb1837f6ddcb4b24275db2c529910469f6551329ace188"
   name = "github.com/threefoldtech/rivine-extension-erc20"
   packages = [
     ".",
@@ -526,7 +526,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "9ccffb5a4de7e110b57fa587cf5486f8356c4115"
+  revision = "872dde1ca3bca97153f9158444096e1818489e94"
 
 [[projects]]
   branch = "master"
@@ -595,7 +595,7 @@
     "twofish",
   ]
   pruneopts = "UT"
-  revision = "34f69633bfdcf9db92f698f8487115767eebef81"
+  revision = "87dc89f01550277dc22b74ffcf4cd89fa2f40f4c"
 
 [[projects]]
   branch = "master"
@@ -607,11 +607,11 @@
     "html/charset",
   ]
   pruneopts = "UT"
-  revision = "72f939374954d0a1b2a1e27dcda950e2724dd5c1"
+  revision = "da9a3fd4c5820e74b24a6cb7fb438dc9b0dd377c"
 
 [[projects]]
   branch = "master"
-  digest = "1:377fb54789fb675f0425deb0b164c6f398b533536a90e7f0a93505cdfd59c016"
+  digest = "1:a21b8f13c27bde42c8b28fde8f4d3099ec4566747f398eeb8f4326db78baafc2"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
@@ -619,7 +619,7 @@
     "windows",
   ]
   pruneopts = "UT"
-  revision = "543471e840be449c53d44b32c7adf1261ad67e37"
+  revision = "b09406accb4736d857a32bf9444cd7edae2ffa79"
 
 [[projects]]
   digest = "1:7570a3e4daa14b7627089e77ad8c714f5f36b4cf1b7dfd8510df7d6935dc42a0"
