@@ -106,7 +106,9 @@ images-minimal:
 	done
 	docker build -t tfchain/tfchain:$(dockerVersion) -f DockerfileMinimal $(TEMPDIR)
 	tar -C $(TEMPDIR)/dist/linux -czvf $(TEMPDIR)/tfchain-$(dockerVersion).tar.gz .
-	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@$(TEMPDIR)/tfchain-$(dockerVersion).tar.gz "https://hub.grid.tf/api/flist/me/upload"
+	# curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@$(TEMPDIR)/tfchain-$(dockerVersion).tar.gz "https://hub.grid.tf/api/flist/me/upload"
+	# also upload legacy hub
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@$(TEMPDIR)/tfchain-$(dockerVersion).tar.gz "https://hub.gig.tech/api/flist/me/upload"
 	rm -rf $(TEMPDIR) release/tfchain-xc.tmp
 
 # Release images builds and packages release binaries, and uses the linux based binary to create a minimal docker
@@ -121,6 +123,13 @@ release-images: get_hub_jwt images-minimal
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-bootable/ubuntu:16.04.flist\", \"tfchain/tfchain-$(dockerVersion).flist\"]" "https://hub.grid.tf/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersion).flist"
 	# And also link in a latest
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/ubuntu-16.04-tfchain-$(dockerVersion).flist/link/ubuntu-16.04-tfchain.flist"
+	# Repeat for legacy hub
+	# symlink the latest flist
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/tfchain-$(dockerVersion).flist/link/tfchain-tfchain-latest.flist"
+	# Merge the flist with ubuntu and nmap flist, so we have a tty file etc...
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/ubuntu1604.flist\", \"tfchain/tfchain-$(dockerVersion).flist\", \"gig-official-apps/nmap.flist\"]" "https://hub.gig.tech/api/flist/me/merge/ubuntu-16.04-tfchain-$(dockerVersion).flist"
+	# And also link in a latest
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/ubuntu-16.04-tfchain-$(dockerVersion).flist/link/ubuntu-16.04-tfchain-latest.flist"
 
 xc-edge:
 	bash release.sh edge
@@ -179,6 +188,15 @@ release-explorer: get_hub_jwt explorer
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"tf-official-apps/caddy.flist\", \"tfchain/explorer-$(dockerVersion).flist\"]" "https://hub.grid.tf/api/flist/me/merge/caddy-explorer-$(dockerVersion).flist"
 	# And also link in a latest
 	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.grid.tf/api/flist/me/caddy-explorer-$(dockerVersion).flist/link/caddy-explorer.flist"
+	# Also upload to the legacy hub
+	# Upload explorer
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -F file=@./release/explorer-$(dockerVersion).tar.gz "https://hub.gig.tech/api/flist/me/upload"
+	# Symlink latest
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/explorer-$(dockerVersion).flist/link/explorer-latest.flist"
+	# Merge with caddy
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X POST --data "[\"gig-official-apps/caddy.flist\", \"tfchain/explorer-$(dockerVersion).flist\"]" "https://hub.gig.tech/api/flist/me/merge/caddy-explorer-$(dockerVersion).flist"
+	# And also link in a latest
+	curl -b "active-user=tfchain; caddyoauth=$(HUB_JWT)" -X GET "https://hub.gig.tech/api/flist/me/caddy-explorer-$(dockerVersion).flist/link/caddy-explorer-latest.flist"
 
 faucet: release-dir
 	GOOS=linux go build -o ./release/faucet $(faucetpkgs)
