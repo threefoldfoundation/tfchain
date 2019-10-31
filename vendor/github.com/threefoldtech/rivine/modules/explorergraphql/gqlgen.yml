@@ -1,0 +1,90 @@
+# .gqlgen.yml example
+#
+# Refer to https://gqlgen.com/config/
+# for detailed .gqlgen.yml documentation.
+
+schema:
+- schema.graphql
+exec:
+  filename: generated.go
+model:
+  filename: models_gen.go
+resolver:
+  filename: resolver_new.go
+  type: Resolver
+autobind: []
+models:
+  ChainFacts:
+    fields:
+      LastBlock:
+        resolver: true
+      Aggregated:
+        resolver: true
+  BlockHeader:
+    fields:
+      Child:
+        resolver: true
+  UnlockHashPublicKeyPair:
+    fields:
+      PublicKey:
+        resolver: true
+  UnlockHashCondition:
+    fields:
+      PublicKey:
+        resolver: true
+
+  FreeForAllWallet:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.FreeForAllWallet
+  SingleSignatureWallet:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.SingleSignatureWallet
+  MultiSignatureWallet:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.MultiSignatureWallet
+  AtomicSwapContract:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.AtomicSwapContract
+
+  Block:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.Block
+  BlockPayout:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.BlockPayout
+  Output:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.Output
+  Input:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.Input
+
+  Transaction:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.Transaction
+  TransactionParentInfo:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.TransactionParentInfo
+  StandardTransaction:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.StandardTransaction
+  MintConditionDefinitionTransaction:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.MintConditionDefinitionTransaction
+  MintCoinCreationTransaction:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.MintCoinCreationTransaction
+  MintCoinDestructionTransaction:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.MintCoinDestructionTransaction
+
+  ObjectID:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.ObjectID
+  BlockHeight:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.BlockHeight
+  Timestamp:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.Timestamp
+  ReferencePoint:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.ReferencePoint
+  Hash:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.Hash
+  UnlockHash:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.UnlockHash
+  LockTime:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.LockTime
+  BinaryData:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.BinaryData
+  PublicKey:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.PublicKey
+  Signature:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.Signature
+  BigInt:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.BigInt
+  ByteVersion:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.ByteVersion

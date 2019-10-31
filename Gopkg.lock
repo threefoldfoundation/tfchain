@@ -2,6 +2,19 @@
 
 
 [[projects]]
+  digest = "1:ecb63d398130fee54aec9b9aa80df16b72c9d785255735bd5a30aa8889758a37"
+  name = "github.com/99designs/gqlgen"
+  packages = [
+    "complexity",
+    "graphql",
+    "graphql/introspection",
+    "handler",
+  ]
+  pruneopts = "UT"
+  revision = "efb6efe06c6e4fc706440acebf6f81fff85f295c"
+  version = "v0.10.1"
+
+[[projects]]
   branch = "master"
   digest = "1:c4c554d10faa430302efdac60563a4fff02120eca59d18a66e26991682bbc09e"
   name = "github.com/NebulousLabs/demotemutex"
@@ -42,6 +55,14 @@
   revision = "08d5d54b07f5e86a27f2d7431d0bc0300f5a9328"
 
 [[projects]]
+  digest = "1:35a3c0cb74b67330a1593e1ca2bca87d914c372eb60ebccc0902743d8466e3d6"
+  name = "github.com/agnivade/levenshtein"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5f1ee18e3efadffd18ef076ac4181cc92d87188c"
+  version = "v1.0.3"
+
+[[projects]]
   digest = "1:f343e6f508aa6d4d98c55eb9d1e9c0f99f51c34a4921f5b8d6171de7a25d5fa0"
   name = "github.com/allegro/bigcache"
   packages = [
@@ -59,6 +80,21 @@
   packages = ["monotime"]
   pruneopts = "UT"
   revision = "ce4ff66f8dbab89fd28b44a357e93e3166fcabf3"
+
+[[projects]]
+  digest = "1:f7499626626215283473733b7428e3b26457a92cf9dbb1518262fbc4f7523423"
+  name = "github.com/asdine/storm"
+  packages = [
+    ".",
+    "codec",
+    "codec/json",
+    "index",
+    "internal",
+    "q",
+  ]
+  pruneopts = "UT"
+  revision = "e0f77eada154c7c2670527a8566d3c045880224f"
+  version = "v2.2.1"
 
 [[projects]]
   branch = "master"
@@ -481,8 +517,8 @@
   revision = "758128399b1df3a87e92df6c26c1d2063da8fabe"
 
 [[projects]]
-  branch = "master"
-  digest = "1:1fd4ab234d675fcd1b864b5aa72e20f619bf3a1241765cf64646219b392f494e"
+  branch = "feat/graphql-phase1"
+  digest = "1:0026d09e5abb1960b8068a727cbf72094bb9972c53d03ad6fdf57992458953f4"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -494,6 +530,8 @@
     "modules/blockcreator",
     "modules/consensus",
     "modules/explorer",
+    "modules/explorergraphql",
+    "modules/explorergraphql/explorerdb",
     "modules/gateway",
     "modules/transactionpool",
     "modules/wallet",
@@ -509,11 +547,11 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "ef3ee131c7d8d772c4efdf319faf21664a5ebe33"
+  revision = "70e12295de0119cd8f0b52ef0a0637ba99f1fdd0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:dce1101c8ca47c2bfafb1837f6ddcb4b24275db2c529910469f6551329ace188"
+  branch = "feat/graphql"
+  digest = "1:6ea8bfa317c6b2a016f00f90f992b2f56cc0163af39f8624c8664d81d3c2d6ed"
   name = "github.com/threefoldtech/rivine-extension-erc20"
   packages = [
     ".",
@@ -526,7 +564,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "872dde1ca3bca97153f9158444096e1818489e94"
+  revision = "cd7c6d17783662ca63be20ceeea68258932d852a"
 
 [[projects]]
   branch = "master"
@@ -546,6 +584,22 @@
   pruneopts = "UT"
   revision = "bfe2e925cfb6d44b40ad3a779165ea7e8aff9212"
   version = "v1.22.0"
+
+[[projects]]
+  digest = "1:b4e8aaca88f799355f4ac560bce4293fb85ff21003dd0d5741ca503f7a788e91"
+  name = "github.com/vektah/gqlparser"
+  packages = [
+    ".",
+    "ast",
+    "gqlerror",
+    "lexer",
+    "parser",
+    "validator",
+    "validator/rules",
+  ]
+  pruneopts = "UT"
+  revision = "05741cdb0871330d8bc980d4afd21ab34eceee83"
+  version = "v1.1.2"
 
 [[projects]]
   branch = "master"
@@ -577,6 +631,14 @@
   ]
   pruneopts = "UT"
   revision = "3a71999ed0d393fba27f9c9b54f25a0943af97af"
+
+[[projects]]
+  digest = "1:f2ac2c724fc8214bb7b9dd6d4f5b7a983152051f5133320f228557182263cb94"
+  name = "go.etcd.io/bbolt"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "a0458a2b35708eef59eb5f620ceb3cd1c01a824d"
+  version = "v1.3.3"
 
 [[projects]]
   branch = "master"
@@ -701,6 +763,7 @@
     "github.com/threefoldtech/rivine/modules/blockcreator",
     "github.com/threefoldtech/rivine/modules/consensus",
     "github.com/threefoldtech/rivine/modules/explorer",
+    "github.com/threefoldtech/rivine/modules/explorergraphql",
     "github.com/threefoldtech/rivine/modules/gateway",
     "github.com/threefoldtech/rivine/modules/transactionpool",
     "github.com/threefoldtech/rivine/modules/wallet",

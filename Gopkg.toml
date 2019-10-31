@@ -42,11 +42,11 @@
   name = "github.com/rivine/bbolt"
 
 [[constraint]]
-  branch = "master"
+  branch = "feat/graphql-phase1"
   name = "github.com/threefoldtech/rivine"
 
 [[constraint]]
-  branch = "master"
+  branch = "feat/graphql"
   name = "github.com/threefoldtech/rivine-extension-erc20"
 
 [[override]]

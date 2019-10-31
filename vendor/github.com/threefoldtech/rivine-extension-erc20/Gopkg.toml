@@ -45,7 +45,7 @@
   version = "1.0.5"
 
 [[constraint]]
-  branch = "master"
+  branch = "feat/graphql-phase1"
   name = "github.com/threefoldtech/rivine"
 
 [[override]]

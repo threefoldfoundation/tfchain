@@ -31,6 +31,7 @@ import (
 	"github.com/threefoldtech/rivine/modules/blockcreator"
 	"github.com/threefoldtech/rivine/modules/consensus"
 	"github.com/threefoldtech/rivine/modules/explorer"
+	"github.com/threefoldtech/rivine/modules/explorergraphql"
 	"github.com/threefoldtech/rivine/modules/gateway"
 	"github.com/threefoldtech/rivine/modules/transactionpool"
 	"github.com/threefoldtech/rivine/modules/wallet"
@@ -369,6 +370,28 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 				api.RegisterExplorerHTTPHandlers(router, cs, e, tpool, threebotPlugin, erc20Plugin)
 			}
 			mintingapi.RegisterExplorerMintingHTTPHandlers(router, mintingPlugin)
+		}
+
+		var q *explorergraphql.Explorer
+		if moduleIdentifiers.Contains(daemon.ExplorerGraphQLModule.Identifier()) {
+			printModuleIsLoading("graphql explorer")
+			q, err = explorergraphql.New(
+				cs, filepath.Join(cfg.RootPersistentDir, "explorer", "graphql"),
+				cfg.BlockchainInfo, networkCfg.NetworkConfig.Constants, cfg.VerboseLogging,
+			)
+			if err != nil {
+				servErrs <- err
+				cancel()
+				return
+			}
+			q.SetHTTPHandlers(router, "/explorer/graphql")
+			defer func() {
+				fmt.Println("Closing graphql explorer...")
+				err := e.Close()
+				if err != nil {
+					fmt.Println("Error during graphql explorer shutdown:", err)
+				}
+			}()
 		}
 
 		// 3Bot and ERC20 is not yet to be used on network standard
