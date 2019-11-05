@@ -82,12 +82,13 @@
   revision = "ce4ff66f8dbab89fd28b44a357e93e3166fcabf3"
 
 [[projects]]
-  digest = "1:f7499626626215283473733b7428e3b26457a92cf9dbb1518262fbc4f7523423"
+  digest = "1:15e73447582bf3fcc69c90eea50469daff2668e1a9270a66b7d4b14adabc3aba"
   name = "github.com/asdine/storm"
   packages = [
     ".",
     "codec",
     "codec/json",
+    "codec/msgpack",
     "index",
     "internal",
     "q",
@@ -518,7 +519,7 @@
 
 [[projects]]
   branch = "feat/graphql-phase1"
-  digest = "1:b63a11ed5f0bc0def956fbcef7ec32f5428183685cc1b9fef9648f1c75cde62a"
+  digest = "1:2fd71ababc04525c1d2da58e986b3e2abbafa6a2d62b3c9b31c06131b88c5dbe"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -547,7 +548,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "80932acbcac4aa73d22e87324199b63cac89b4dd"
+  revision = "fcbb06554f723e2a5e22f44a150d5f25fcbcc7f4"
 
 [[projects]]
   branch = "feat/graphql"
@@ -600,6 +601,29 @@
   pruneopts = "UT"
   revision = "05741cdb0871330d8bc980d4afd21ab34eceee83"
   version = "v1.1.2"
+
+[[projects]]
+  digest = "1:bdbeee77ecd82dc2e9bdc6deab3739fb968d953f8660b5577c74585a119db40c"
+  name = "github.com/vmihailenco/msgpack"
+  packages = [
+    ".",
+    "codes",
+  ]
+  pruneopts = "UT"
+  revision = "cd92a145e6d2ce09e792f838dc0b669b680aea29"
+  version = "v4.1.1"
+
+[[projects]]
+  digest = "1:6ed13021ce04904b5d9fe9e0e442b630f21f09bbcbe31d315c056e9d56dc486c"
+  name = "github.com/vmihailenco/tagparser"
+  packages = [
+    ".",
+    "internal",
+    "internal/parser",
+  ]
+  pruneopts = "UT"
+  revision = "30ae5c3178272fa372e1e9c17e68f181e0ebe285"
+  version = "v0.1.0"
 
 [[projects]]
   branch = "master"
@@ -661,9 +685,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:94002ae1eb37d085f9aca990b3246b0cf6f0d114b5c0924aedd8eaf2a912143f"
+  digest = "1:782acaf5c8fdbc4df11fea2bc43cdec74e6fa069df93d3cae9676a5f75f467f7"
   name = "golang.org/x/net"
   packages = [
+    "context",
     "html",
     "html/atom",
     "html/charset",
@@ -713,6 +738,26 @@
   pruneopts = "UT"
   revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
   version = "v0.3.2"
+
+[[projects]]
+  digest = "1:f4d6f1de81abede35943b5f9d8106c9a4579d3ea5a19d0991be3055e3383254b"
+  name = "google.golang.org/appengine"
+  packages = [
+    ".",
+    "datastore",
+    "datastore/internal/cloudkey",
+    "datastore/internal/cloudpb",
+    "internal",
+    "internal/app_identity",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/modules",
+    "internal/remote_api",
+  ]
+  pruneopts = "UT"
+  revision = "971852bfffca25b069c31162ae8f247a3dba083b"
+  version = "v1.6.5"
 
 [[projects]]
   branch = "v2"
