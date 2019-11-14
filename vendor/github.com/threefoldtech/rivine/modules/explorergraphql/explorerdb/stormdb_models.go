@@ -66,7 +66,7 @@ type (
 
 		FeePayout StormTransactionFeePayoutInfo `msgpack:"fp"`
 
-		ArbitraryData        []byte `msgpack:"ad"`
+		ArbitraryData        []byte `storm:"index", msgpack:"ad"`
 		EncodedExtensionData []byte `msgpack:"eed"`
 	}
 
@@ -105,10 +105,10 @@ type (
 	StormBaseWalletData struct {
 		DataID StormDataID `storm:"id", msgpack:"id"`
 
-		CoinOutputs       []StormHash `msgpack:"cos"`
-		BlockStakeOutputs []StormHash `msgpack:"bos"`
-		Blocks            []StormHash `msgpack:"bls"`
-		Transactions      []StormHash `msgpack:"txs"`
+		// CoinOutputs       []StormHash `msgpack:"cos"`
+		// BlockStakeOutputs []StormHash `msgpack:"bos"`
+		// Blocks            []StormHash `msgpack:"bls"`
+		// Transactions      []StormHash `msgpack:"txs"`
 
 		CoinsUnlocked StormBigInt `storm:"index", msgpack:"cou"`
 		CoinsLocked   StormBigInt `storm:"index", msgpack:"col"`
@@ -209,6 +209,14 @@ func (sblock *StormBlock) AsBlock(blockID types.BlockID) Block {
 	}
 }
 
+func StormBlockSliceAsBlockSlice(sblocks []StormBlock, blockIdentifiers []types.BlockID) (blocks []Block) {
+	blocks = make([]Block, 0, len(sblocks))
+	for idx, block := range sblocks {
+		blocks = append(blocks, block.AsBlock(blockIdentifiers[idx]))
+	}
+	return
+}
+
 func (sbfacts *StormBlockFacts) AsBlockFacts() BlockFacts {
 	return BlockFacts{
 		Constants: BlockFactsConstants{
@@ -271,10 +279,10 @@ func walletDataAsSDB(dataID StormDataID, wallet *WalletData) *StormBaseWalletDat
 	return &StormBaseWalletData{
 		DataID: dataID,
 
-		CoinOutputs:       OutputIDSliceAsStormHashSlice(wallet.CoinOutputs),
-		BlockStakeOutputs: OutputIDSliceAsStormHashSlice(wallet.BlockStakeOutputs),
-		Blocks:            BlockIDSliceAsStormHashSlice(wallet.Blocks),
-		Transactions:      TransactionIDSliceAsStormHashSlice(wallet.Transactions),
+		// CoinOutputs:       OutputIDSliceAsStormHashSlice(wallet.CoinOutputs),
+		// BlockStakeOutputs: OutputIDSliceAsStormHashSlice(wallet.BlockStakeOutputs),
+		// Blocks:            BlockIDSliceAsStormHashSlice(wallet.Blocks),
+		// Transactions:      TransactionIDSliceAsStormHashSlice(wallet.Transactions),
 
 		CoinsUnlocked: StormBigIntFromCurrency(wallet.CoinBalance.Unlocked),
 		CoinsLocked:   StormBigIntFromCurrency(wallet.CoinBalance.Locked),
@@ -288,10 +296,10 @@ func (swallet *StormBaseWalletData) AsWalletData(uh types.UnlockHash) WalletData
 	return WalletData{
 		UnlockHash: uh,
 
-		CoinOutputs:       StormHashSliceAsOutputIDSlice(swallet.CoinOutputs),
-		BlockStakeOutputs: StormHashSliceAsOutputIDSlice(swallet.BlockStakeOutputs),
-		Blocks:            StormHashSliceAsBlockIDSlice(swallet.Blocks),
-		Transactions:      StormHashSliceAsTransactionIDSlice(swallet.Transactions),
+		// CoinOutputs:       StormHashSliceAsOutputIDSlice(swallet.CoinOutputs),
+		// BlockStakeOutputs: StormHashSliceAsOutputIDSlice(swallet.BlockStakeOutputs),
+		// Blocks:            StormHashSliceAsBlockIDSlice(swallet.Blocks),
+		// Transactions:      StormHashSliceAsTransactionIDSlice(swallet.Transactions),
 
 		CoinBalance: Balance{
 			Unlocked: swallet.CoinsUnlocked.AsCurrency(),
@@ -352,6 +360,9 @@ const (
 	nodeObjectOutputKeyUnlockReferencePoint = "UnlockReferencePoint"
 	nodeObjectOutputKeyHeight               = "Height"
 	nodeObjectOutputKeyBucketID             = "BucketID"
+
+	nodeObjectBlockFieldHeight    = "Height"
+	nodeObjectBlockFieldTimestamp = "Timestamp"
 )
 
 type (
@@ -367,6 +378,8 @@ type (
 		GetSingleSignatureWallet(types.UnlockHash) (SingleSignatureWalletData, error)
 		GetMultiSignatureWallet(types.UnlockHash) (MultiSignatureWalletData, error)
 		GetAtomicSwapContract(types.UnlockHash) (AtomicSwapContract, error)
+
+		GetBlocks(int, *BlocksFilter, *Cursor) ([]Block, *Cursor, error)
 	}
 
 	stormObjectNodeReaderWriter interface {
@@ -911,6 +924,116 @@ func (son *stormObjectNode) getAtomicSwapContractByDataID(uh types.UnlockHash, d
 		return AtomicSwapContract{}, err
 	}
 	return scontract.AsAtomicSwapContract(uh), nil
+}
+
+func (son *stormObjectNode) GetBlocks(limit int, filter *BlocksFilter, cursor *Cursor) ([]Block, *Cursor, error) {
+	// unpack cursor (from a previous GetBlocks) query if defined
+	if cursor != nil {
+		var cursorFilter types.BlockHeight
+		err := cursor.UnpackValue(&cursorFilter)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to unpack cursor")
+		}
+		if filter == nil {
+			filter = &BlocksFilter{
+				BlockHeight: NewBlockHeightFilterRange(&cursorFilter, nil),
+				Timestamp:   nil, // not used by cursor
+			}
+		} else if filter.BlockHeight == nil {
+			filter.BlockHeight = NewBlockHeightFilterRange(&cursorFilter, nil)
+		} else {
+			filter.BlockHeight.Begin = &cursorFilter
+			if filter.BlockHeight.End != nil && *filter.BlockHeight.End < *filter.BlockHeight.Begin {
+				return nil, nil, nil // nothing to do
+			}
+		}
+	}
+	// define the StormDB Query Matchers based on the used BlocksFilter,
+	// unrelated to the fact that it might be defined/enforced by a cursor from a previous call
+	var matchers []q.Matcher
+	if filter != nil {
+		if filter.BlockHeight != nil {
+			if filter.BlockHeight.Begin != nil {
+				matchers = append(matchers, q.Gte(nodeObjectBlockFieldHeight, *filter.BlockHeight.Begin))
+			}
+			if filter.BlockHeight.End != nil {
+				matchers = append(matchers, q.Lte(nodeObjectBlockFieldHeight, *filter.BlockHeight.End))
+			}
+		}
+		if filter.Timestamp != nil {
+			if filter.Timestamp.Begin != nil {
+				matchers = append(matchers, q.Gte(nodeObjectBlockFieldTimestamp, *filter.Timestamp.Begin))
+			}
+			if filter.Timestamp.End != nil {
+				matchers = append(matchers, q.Lte(nodeObjectBlockFieldTimestamp, *filter.Timestamp.End))
+			}
+		}
+		if filter.TransactionLength != nil {
+			matchers = append(matchers, newTransactionIDLengthMatcher(filter.TransactionLength))
+		}
+	}
+	// look up all blocks, optionally using matchers, but defintely with a limit
+	// we allow one more than the limit, such that we can define a cursor if needed,
+	// based on the used filter and the extra result (defining the next one to start from)
+	var blocks []StormBlock
+	err := son.node.Select(matchers...).Limit(limit + 1).Find(&blocks)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(blocks) <= limit {
+		// if blocks were found, but not more than the defined limit,
+		// we can simply return without the need for a new cursor
+		apiBlocks, err := son.stormBlockSliceAsBlockSlice(blocks)
+		if err != nil {
+			return nil, nil, err
+		}
+		return apiBlocks, nil, nil
+	}
+	// create the next filter, such that we can turn it into a cursor,
+	// and return it with the found blocks (minus the last block, as that one was only used to define the next cursor)
+	nextFilter := blocks[len(blocks)-1].Height
+	nextCursor, err := NewCursor(nextFilter)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create cursor from composed next filter: %v", err)
+	}
+	// all good, return the limited results, as well as
+	// the cursor that can be used by the callee to continue this query where it left off
+	apiBlocks, err := son.stormBlockSliceAsBlockSlice(blocks[:limit])
+	if err != nil {
+		return nil, nil, err
+	}
+	return apiBlocks, &nextCursor, nil
+
+}
+
+func (son *stormObjectNode) stormBlockSliceAsBlockSlice(sblocks []StormBlock) ([]Block, error) {
+	// TODO: check if we should do this in a cheaper way
+	dataIdentifiers := make([]StormDataID, 0, len(sblocks))
+	for _, sblock := range sblocks {
+		dataIdentifiers = append(dataIdentifiers, sblock.DataID)
+	}
+	var objects []StormObject
+	err := son.node.Select(q.In(nodeObjectKeyDataID, dataIdentifiers)).Find(&objects)
+	if err != nil {
+		return nil, err
+	}
+	dataKeyObjectIDMapping := make(map[StormDataID]types.BlockID, len(objects))
+	for _, obj := range objects {
+		h, err := obj.ObjectID.AsHash()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert objectID from (block) object with dataID %d: %v", obj.DataID, err)
+		}
+		dataKeyObjectIDMapping[obj.DataID] = types.BlockID(h)
+	}
+	blockIdentifiers := make([]types.BlockID, 0, len(sblocks))
+	for _, sblock := range sblocks {
+		blockID, ok := dataKeyObjectIDMapping[sblock.DataID]
+		if !ok {
+			return nil, fmt.Errorf("failed to find ID for (block) object with dataID %d", sblock.DataID)
+		}
+		blockIdentifiers = append(blockIdentifiers, blockID)
+	}
+	return StormBlockSliceAsBlockSlice(sblocks, blockIdentifiers), nil
 }
 
 func (son *stormObjectNode) UpdateOutputSpenditureData(outputID types.OutputID, spenditureData *OutputSpenditureData) (Output, error) {

@@ -13,6 +13,7 @@ resolver:
   filename: resolver_new.go
   type: Resolver
 autobind: []
+
 models:
   ChainFacts:
     fields:
@@ -22,6 +23,8 @@ models:
         resolver: true
   BlockHeader:
     fields:
+      Payouts:
+        resolver: true
       Child:
         resolver: true
   UnlockHashPublicKeyPair:
@@ -63,6 +66,10 @@ models:
     model: github.com/threefoldtech/rivine/modules/explorergraphql.MintCoinCreationTransaction
   MintCoinDestructionTransaction:
     model: github.com/threefoldtech/rivine/modules/explorergraphql.MintCoinDestructionTransaction
+  AuthAddressUpdateTransaction:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.AuthAddressUpdateTransaction
+  AuthConditionUpdateTransaction:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql.AuthConditionUpdateTransaction
 
   ObjectID:
     model: github.com/threefoldtech/rivine/modules/explorergraphql.ObjectID
@@ -86,3 +93,5 @@ models:
     model: github.com/threefoldtech/rivine/modules/explorergraphql.BigInt
   ByteVersion:
     model: github.com/threefoldtech/rivine/modules/explorergraphql.ByteVersion
+  Cursor:
+    model: github.com/threefoldtech/rivine/modules/explorergraphql/explorerdb.Cursor

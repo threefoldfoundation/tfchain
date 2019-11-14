@@ -6,13 +6,14 @@ schema {
 
 # TODO: what other things should provide unconfirmed updates????
 
+# TODO: even if we have pagination support, a user might still be able to ask too much data,
+#    by requesting an unreasonable level of recursive nesting. We should limit this also somehow...
+
 # TODO: How to query transactions based on properties
 # TODO: How to query wallets based on properties
 
 # TODO: support providing arguments to certain field resolvers,
 #    ... for example: allowing only the first item of a list to be retuned (e.g. payout)
-
-# TODO: add some quick documentation to schema as a test of generated documentation
 
 type QueryRoot {
   """
@@ -39,10 +40,23 @@ type QueryRoot {
   block(id: Hash): Block
 
   """
-  Query a block by block height.
-  If no height is given, the latest block will be returned.
+  Query a block by position.
+  If no position is given, the latest block will be returned.
+  Use a negative position to choose a block starting from the latest block,
+  for example -2 for the 2nd last block, and -1 for the last block.
+  The genesis block is at position 0 and the numbering goes upwards from there.
   """
-  blockAt(height: BlockHeight): Block
+  blockAt(position: Int): Block
+
+  """
+  Query multiple blocks, optionally giving a filter.
+  If no filter is given the first blocks at the start are given.
+  This query uses pagination and will have a server-defined upper limit
+  of items to return maximum. In case more items can be returned,
+  follow-up call(s) have to be made, using the returned Cursor
+  as a FilterSinceCursor.
+  """
+  blocks(filter: BlocksFilter): ResponseBlocks
 
   """
   Query a transaction by identifier.
@@ -85,7 +99,7 @@ or an `UnlockHash` (for any kind of wallet or contract).
 scalar ObjectID
 """
 BlockHeight is implemented as an unsigned 64-bit integer,
-and represents the height of a block, starting at 0.
+and represents the height of a block, stargting at 0.
 """
 scalar BlockHeight
 """
@@ -161,7 +175,7 @@ Object represents an object that can be looked up by a unique identifier,
 see ObjectID for more information about the identifier type used for objects.
 See the used types in this union for more information about the possible objects.
 """
-union Object = Block | StandardTransaction | MintConditionDefinitionTransaction | MintCoinCreationTransaction | MintCoinDestructionTransaction | Output | FreeForAllWallet | SingleSignatureWallet | MultiSignatureWallet | AtomicSwapContract
+union Object = Block | StandardTransaction | MintConditionDefinitionTransaction | MintCoinCreationTransaction | MintCoinDestructionTransaction | AuthAddressUpdateTransaction | AuthConditionUpdateTransaction | Output | FreeForAllWallet | SingleSignatureWallet | MultiSignatureWallet | AtomicSwapContract
 
 """
 Contract represents a contract object (also called smart contracts) that can be looked up by a unique identifier,
@@ -310,6 +324,150 @@ type ChainAggregatedData {
 }
 
 """
+An inclusive range of block positions, with one or two points to be defined.
+A range with no fields defined is equal to a nil range.
+"""
+input BlockPositionRange {
+    Start: Int
+    End: Int
+}
+
+"""
+A poor man's input Union, allowing you to filter on block positions,
+by defining what the upper- or lower limit is.
+Or the inclusive range of blocks including and between (one or) two positions.
+If no fields are given it is seen as a nil operator. No more then one field can be defined.
+
+This really should be a Union, this is however not (yet) supported by the official GraphQL
+specification. We probably will have to break this API later, as there is an active RFC working on supporting use cases like this.
+"""
+input BlockPositionOperators {
+    Before: Int
+    After: Int
+    Between: BlockPositionRange
+}
+
+"""
+An inclusive range of timestamps, with one or two points to be defined.
+A range with no fields defined is equal to a nil range.
+"""
+input TimestampRange {
+    Start: Timestamp
+    End: Timestamp
+}
+
+"""
+A poor man's input Union, allowing you to filter on timestamps,
+by defining what the upper- or lower limit is.
+Or the inclusive range of blocks including and between (one or) two timestamps.
+If no fields are given it is seen as a nil operator. No more then one field can be defined.
+
+This really should be a Union, this is however not (yet) supported by the official GraphQL
+specification. We probably will have to break this API later, as there is an active RFC working on supporting use cases like this.
+"""
+input TimestampOperators {
+    Before: Timestamp
+    After: Timestamp
+    Between: TimestampRange
+}
+
+"""
+Filter based on an integer based on one of these options.
+
+NOTE that these options should really be a Union, not an input composition type.
+Once the RFC https://github.com/graphql/graphql-spec/blob/master/rfcs/InputUnion.md
+is accepted and implemented by the implementations (including the one used by us),
+we could use it here.
+"""
+input IntFilter {
+    LessThan: Int
+    LessThanOrEqualTo: Int
+    EqualTo: Int
+    GreaterThanOrEqualTo: Int
+    GreaterThan: Int
+}
+
+"""
+A hex-encoded MsgPack-based cursor,
+allowing to continue a query from where
+you started.
+"""
+scalar Cursor
+
+"""
+All possible filters that can be used to query for a list of blocks.
+Multiple filters can be combined. It is also valid that none are given.
+"""
+# TODO: add transactionLengthFilter,
+# using an int filter that works like a BigIntFilter
+input BlocksFilter {
+    Height: BlockPositionOperators
+    Timestamp: TimestampOperators
+    TransactionLength: IntFilter
+    Limit: Int
+    """
+    A cursor that allows the blocks query to pick up from a state previously left off.
+    When this cursor is defined, you should define the same filters as used last time,
+    even though this is not enforced. The Limit filter is an exception to this.
+    """
+    Cursor: Cursor
+}
+
+"""
+Response type for the blocks query.
+"""
+type ResponseBlocks {
+    Blocks: [Block!]
+    """
+    In case all items could not be returned within a single call,
+    this cursor can be used for a follow-up blocks query call.
+    """
+    NextCursor: Cursor
+}
+
+"""
+Filter based on binary data based on one of these options.
+
+NOTE that these options should really be a Union, not an input composition type.
+Once the RFC https://github.com/graphql/graphql-spec/blob/master/rfcs/InputUnion.md
+is accepted and implemented by the implementations (including the one used by us),
+we could use it here.
+"""
+input BinaryDataFilter {
+    StartsWith: BinaryData
+    Contains: BinaryData
+    EndsWith: BinaryData
+    EqualTo: BinaryData
+}
+
+"""
+Filter based on a big integer based on one of these options.
+
+NOTE that these options should really be a Union, not an input composition type.
+Once the RFC https://github.com/graphql/graphql-spec/blob/master/rfcs/InputUnion.md
+is accepted and implemented by the implementations (including the one used by us),
+we could use it here.
+"""
+input BigIntFilter {
+    LessThan: BigInt
+    LessThanOrEqualTo: BigInt
+    EqualTo: BigInt
+    GreaterThanOrEqualTo: BigInt
+    GreaterThan: BigInt
+}
+
+"""
+All possible filters that can be used to query for a list of transactions.
+Multiple filters can be combined. It is also valid that none are given.
+"""
+input TransactionsFilter {
+    Versions: [ByteVersion!]
+    ArbitraryData: BinaryDataFilter
+    CoinInputValue: BigIntFilter
+    CoinOutputValue: BigIntFilter
+}
+
+"""
 The API of the block's data view.
 """
 type Block {
@@ -333,7 +491,7 @@ type Block {
     Queried in a lazy manner, fetching only as much data as
     required for the query.
     """
-    Transactions: [Transaction!]!
+    Transactions(filter: TransactionsFilter): [Transaction!]
 }
 
 """
@@ -382,7 +540,7 @@ type BlockHeader {
     Child: Block
     BlockTime: Timestamp
     BlockHeight: BlockHeight
-    Payouts: [BlockPayout!]
+    Payouts(type: BlockPayoutType): [BlockPayout!]
 }
 
 """
@@ -402,7 +560,7 @@ type TransactionParentInfo {
     All transactions found in the (parent) block,
     excluding this transaction.
     """
-    SiblingTransactions: [Transaction!]
+    SiblingTransactions(filter: TransactionsFilter): [Transaction!]
 }
 
 interface Transaction {
@@ -439,6 +597,7 @@ type StandardTransaction implements Transaction {
     ArbitraryData: BinaryData
 }
 
+# TODO: add this using an extension-added appoach
 """
 The transaction used to redefine the Minter condition,
 defining "who" can mint (= create) new coins,
@@ -472,6 +631,7 @@ type MintConditionDefinitionTransaction implements Transaction {
     ArbitraryData: BinaryData
 }
 
+# TODO: add this using an extension-added appoach
 """
 The transaction used to mint tokens,
 a transaction that can only be done by "who"
@@ -498,6 +658,7 @@ type MintCoinCreationTransaction implements Transaction {
     ArbitraryData: BinaryData
 }
 
+# TODO: add this using an extension-added appoach
 """
 A transaction that allows you to burn coins,
 meaning that the value of the spent coin input(s)
@@ -515,6 +676,55 @@ type MintCoinDestructionTransaction implements Transaction {
     CoinOutputs: [Output!]
 
     FeePayouts: [TransactionFeePayout!]
+    ArbitraryData: BinaryData
+}
+
+# TODO: add this using an extension-added appoach
+"""
+A transaction that allows the auth power to update
+the authentication of an address.
+"""
+type AuthAddressUpdateTransaction implements Transaction {
+    ID: Hash!
+    Version: ByteVersion!
+
+    ParentBlock: TransactionParentInfo
+
+    CoinInputs: [Input!]
+    CoinOutputs: [Output!]
+
+    Nonce: BinaryData!
+    AuthAddresses: [UnlockHashPublicKeyPair]
+    DeauthAddresses: [UnlockHashPublicKeyPair]
+
+    AuthFulfillment: UnlockFulfillment!
+
+    FeePayouts: [TransactionFeePayout!]
+
+    ArbitraryData: BinaryData
+}
+
+# TODO: add this using an extension-added appoach
+"""
+A transaction that allows the auth power to update
+the condiiton, defining who is the auth power.
+"""
+type AuthConditionUpdateTransaction implements Transaction {
+    ID: Hash!
+    Version: ByteVersion!
+
+    ParentBlock: TransactionParentInfo
+
+    CoinInputs: [Input!]
+    CoinOutputs: [Output!]
+
+    Nonce: BinaryData!
+
+    AuthFulfillment: UnlockFulfillment!
+    NewAuthCondition: UnlockCondition!
+
+    FeePayouts: [TransactionFeePayout!]
+
     ArbitraryData: BinaryData
 }
 
@@ -544,6 +754,7 @@ type Input {
     Fulfillment: UnlockFulfillment!
 
     ParentOutput: Output
+    ParentTransaction: Transaction
 }
 
 # TODO: replace txn implementations by Transaction interface once possible
@@ -713,8 +924,10 @@ interface Wallet {
 
     # TODO: support inputs and outputs in a paginated manner
 
-    CoinOutputs: [Output!]
-    BlockStakeOutputs: [Output!]
+    # Note: disabled for now, as we have no efficient way
+    # of referencing them to a wallet at the moment
+    # CoinOutputs: [Output!]
+    # BlockStakeOutputs: [Output!]
 
     CoinBalance: Balance
     BlockStakeBalance: Balance
@@ -723,8 +936,10 @@ interface Wallet {
 type FreeForAllWallet implements Wallet {
     UnlockHash: UnlockHash!
 
-    CoinOutputs: [Output!]
-    BlockStakeOutputs: [Output!]
+    # Note: disabled for now, as we have no efficient way
+    # of referencing them to a wallet at the moment
+    # CoinOutputs: [Output!]
+    # BlockStakeOutputs: [Output!]
 
     CoinBalance: Balance
     BlockStakeBalance: Balance
@@ -733,8 +948,10 @@ type FreeForAllWallet implements Wallet {
 type SingleSignatureWallet implements Wallet {
     UnlockHash: UnlockHash!
 
-    CoinOutputs: [Output!]
-    BlockStakeOutputs: [Output!]
+    # Note: disabled for now, as we have no efficient way
+    # of referencing them to a wallet at the moment
+    # CoinOutputs: [Output!]
+    # BlockStakeOutputs: [Output!]
 
     CoinBalance: Balance
     BlockStakeBalance: Balance
@@ -746,8 +963,10 @@ type SingleSignatureWallet implements Wallet {
 type MultiSignatureWallet implements Wallet {
     UnlockHash: UnlockHash!
 
-    CoinOutputs: [Output!]
-    BlockStakeOutputs: [Output!]
+    # Note: disabled for now, as we have no efficient way
+    # of referencing them to a wallet at the moment
+    # CoinOutputs: [Output!]
+    # BlockStakeOutputs: [Output!]
 
     CoinBalance: Balance
     BlockStakeBalance: Balance

@@ -519,11 +519,12 @@
 
 [[projects]]
   branch = "feat/graphql-phase1"
-  digest = "1:ae13193134e78a015eca1889c6a9cd00d9b0c1d9c7c8897f7cc9332a525aaa7f"
+  digest = "1:559f26ff64f791c54244bab1858a47ce60faeb5f2fee187f981ac3dcf6a83f47"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
     "crypto",
+    "extensions/authcointx",
     "extensions/minting",
     "extensions/minting/api",
     "extensions/minting/client",
@@ -548,7 +549,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "7078b991935b520bd9769285fc9334a0f553ed88"
+  revision = "4d697876d15997c7f4ef4a44725067a4094a535e"
 
 [[projects]]
   branch = "feat/graphql"

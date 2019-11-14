@@ -47,6 +47,8 @@ type RTxn interface {
 	GetTransaction(types.TransactionID) (Transaction, error)
 	GetOutput(types.OutputID) (Output, error)
 
+	GetBlocks(limit *int, filter *BlocksFilter, cursor *Cursor) ([]Block, *Cursor, error)
+
 	GetFreeForAllWallet(types.UnlockHash) (FreeForAllWalletData, error)
 	GetSingleSignatureWallet(types.UnlockHash) (SingleSignatureWalletData, error)
 	GetMultiSignatureWallet(types.UnlockHash) (MultiSignatureWalletData, error)
@@ -68,6 +70,59 @@ type RWTxn interface {
 	// only required in case you are doing a big amount of calls within a single transaction.
 	// If you want to continue using this transaction, you'll have to set final to true
 	Commit(final bool) error
+}
+
+type (
+	TimestampFilterRange struct {
+		Begin *types.Timestamp
+		End   *types.Timestamp
+	}
+
+	BlockHeightFilterRange struct {
+		Begin *types.BlockHeight
+		End   *types.BlockHeight
+	}
+
+	IntFilterRange struct {
+		Min *int
+		Max *int
+	}
+
+	BlocksFilter struct {
+		BlockHeight       *BlockHeightFilterRange
+		Timestamp         *TimestampFilterRange
+		TransactionLength *IntFilterRange
+	}
+)
+
+func NewTimestampFilterRange(begin, end *types.Timestamp) *TimestampFilterRange {
+	if begin == nil && end == nil {
+		return nil
+	}
+	return &TimestampFilterRange{
+		Begin: begin,
+		End:   end,
+	}
+}
+
+func NewBlockHeightFilterRange(begin, end *types.BlockHeight) *BlockHeightFilterRange {
+	if begin == nil && end == nil {
+		return nil
+	}
+	return &BlockHeightFilterRange{
+		Begin: begin,
+		End:   end,
+	}
+}
+
+func NewIntFilterRange(min, max *int) *IntFilterRange {
+	if min == nil && max == nil {
+		return nil
+	}
+	return &IntFilterRange{
+		Min: min,
+		Max: max,
+	}
 }
 
 // TODO: handle also chain-specific stuff, such as chains that do not have block rewards
