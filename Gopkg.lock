@@ -519,7 +519,7 @@
 
 [[projects]]
   branch = "feat/graphql-phase1"
-  digest = "1:4741f9b31f392563720e72467b95a8ab41eda51a03be2a1749675623da6ea237"
+  digest = "1:97eb9909b5f389083601e000ffa90735aff664ffc25e3a673f4cc15a44628288"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
@@ -549,7 +549,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "7b25f7fcf8ad0577a8f9b7572e42d0683ff05f5c"
+  revision = "6489fd2840d0ece7a9dc0a728235209ed65f9312"
 
 [[projects]]
   branch = "feat/graphql"
