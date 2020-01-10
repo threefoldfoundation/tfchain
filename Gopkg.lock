@@ -482,11 +482,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1fd4ab234d675fcd1b864b5aa72e20f619bf3a1241765cf64646219b392f494e"
+  digest = "1:52d70a3bc28b895d4faea3f4398a20d6ef504d7b2f9595a6333d181aa6649ddd"
   name = "github.com/threefoldtech/rivine"
   packages = [
     "build",
     "crypto",
+    "extensions/authcointx",
+    "extensions/authcointx/api",
+    "extensions/authcointx/client",
     "extensions/minting",
     "extensions/minting/api",
     "extensions/minting/client",
@@ -509,7 +512,7 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "ef3ee131c7d8d772c4efdf319faf21664a5ebe33"
+  revision = "05647c7ad7dd51f1a4ff581f7d17cf0f8fa93d5b"
 
 [[projects]]
   branch = "master"
@@ -694,6 +697,9 @@
     "github.com/threefoldtech/rivine-extension-erc20/types",
     "github.com/threefoldtech/rivine/build",
     "github.com/threefoldtech/rivine/crypto",
+    "github.com/threefoldtech/rivine/extensions/authcointx",
+    "github.com/threefoldtech/rivine/extensions/authcointx/api",
+    "github.com/threefoldtech/rivine/extensions/authcointx/client",
     "github.com/threefoldtech/rivine/extensions/minting",
     "github.com/threefoldtech/rivine/extensions/minting/api",
     "github.com/threefoldtech/rivine/extensions/minting/client",

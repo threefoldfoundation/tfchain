@@ -23,6 +23,8 @@ import (
 	erc20daemon "github.com/threefoldtech/rivine-extension-erc20/daemon"
 	erc20api "github.com/threefoldtech/rivine-extension-erc20/http"
 	erc20types "github.com/threefoldtech/rivine-extension-erc20/types"
+	"github.com/threefoldtech/rivine/extensions/authcointx"
+	authcointxapi "github.com/threefoldtech/rivine/extensions/authcointx/api"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/threefoldtech/rivine/extensions/minting"
@@ -162,6 +164,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 		var threebotPlugin *threebot.Plugin
 		var erc20TxValidator erc20types.ERC20TransactionValidator
 		var erc20Plugin *erc20.Plugin
+		var authCoinTxPlugin *authcointx.Plugin
 
 		if moduleIdentifiers.Contains(daemon.ConsensusSetModule.Identifier()) {
 			printModuleIsLoading("consensus set")
@@ -195,7 +198,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 				tftypes.TransactionVersionCoinCreation,
 				&minting.PluginOptions{
 					UseLegacySiaEncoding: true,
-					RequireMinerFees:     true,
+					RequireMinerFees:     false,
 				},
 			)
 			// add the HTTP handlers for the minting plugin as well
@@ -265,6 +268,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 					return
 				}
 			}
+
 			// register the Minting Plugin
 			err = cs.RegisterPlugin(ctx, "minting", mintingPlugin)
 			if err != nil {
@@ -297,6 +301,49 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 					fmt.Println("Error during transaction pool shutdown:", err)
 				}
 			}()
+		}
+
+		// create the auth coin tx plugin
+		// > NOTE: this also overwrites the standard tx controllers!!!!
+		authCoinTxPlugin = authcointx.NewPlugin(
+			networkCfg.GenesisAuthCondition,
+			tftypes.TransactionVersionAuthAddressUpdate,
+			tftypes.TransactionVersionAuthConditionUpdate,
+			&authcointx.PluginOpts{
+				UnauthorizedCoinTransactionExceptionCallback: func(tx modules.ConsensusTransaction, dedupAddresses []types.UnlockHash, ctx types.TransactionValidationContext) (bool, error) {
+					if tx.Version != types.TransactionVersionZero && tx.Version != types.TransactionVersionOne {
+						return false, nil
+					}
+					return (len(dedupAddresses) == 1 && len(tx.CoinOutputs) <= 2), nil
+				},
+				RequireMinerFees: false,
+			},
+		)
+		// add the HTTP handlers for the auth coin tx extension as well
+		if tpool != nil {
+			authcointxapi.RegisterConsensusAuthCoinHTTPHandlers(
+				router, authCoinTxPlugin,
+				tpool, tftypes.TransactionVersionAuthConditionUpdate,
+				tftypes.TransactionVersionAuthAddressUpdate)
+		} else {
+			authcointxapi.RegisterConsensusAuthCoinHTTPHandlers(
+				router, authCoinTxPlugin,
+				nil, tftypes.TransactionVersionAuthConditionUpdate,
+				tftypes.TransactionVersionAuthAddressUpdate)
+		}
+
+		if cs != nil {
+			// register the AuthCoin extension plugin
+			err = cs.RegisterPlugin(ctx, "authcointx", authCoinTxPlugin)
+			if err != nil {
+				servErrs <- fmt.Errorf("failed to register the auth coin tx extension: %v", err)
+				err = authCoinTxPlugin.Close() //make sure any resources are released
+				if err != nil {
+					fmt.Println("Error during closing of the authCoinTxPlugin :", err)
+				}
+				cancel()
+				return
+			}
 		}
 
 		var w modules.Wallet
@@ -360,6 +407,17 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 				}
 			}()
 
+			if tpool != nil {
+				authcointxapi.RegisterExplorerAuthCoinHTTPHandlers(
+					router, authCoinTxPlugin,
+					tpool, tftypes.TransactionVersionAuthConditionUpdate,
+					tftypes.TransactionVersionAuthAddressUpdate)
+			} else {
+				authcointxapi.RegisterExplorerAuthCoinHTTPHandlers(
+					router, authCoinTxPlugin,
+					nil, tftypes.TransactionVersionAuthConditionUpdate,
+					tftypes.TransactionVersionAuthAddressUpdate)
+			}
 			// DO NOT register rivineapi for Explorer HTTP Handles,
 			// as they are included in the tfchain api already
 			//rivineapi.RegisterExplorerHTTPHandlers(router, cs, e, tpool)
@@ -415,8 +473,9 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 }
 
 type setupNetworkConfig struct {
-	NetworkConfig       daemon.NetworkConfig
-	DaemonNetworkConfig config.DaemonNetworkConfig
+	NetworkConfig        daemon.NetworkConfig
+	DaemonNetworkConfig  config.DaemonNetworkConfig
+	GenesisAuthCondition types.UnlockConditionProxy
 
 	Validators       []modules.TransactionValidationFunction
 	MappedValidators map[types.TransactionVersion][]modules.TransactionValidationFunction
@@ -445,9 +504,10 @@ func setupNetwork(cfg ExtendedDaemonConfig) (setupNetworkConfig, error) {
 				Constants:      constants,
 				BootstrapPeers: cfg.BootstrapPeers,
 			},
-			Validators:          tfconsensus.GetStandardTransactionValidators(),
-			MappedValidators:    tfconsensus.GetStandardTransactionVersionMappedValidators(),
-			DaemonNetworkConfig: networkConfig,
+			GenesisAuthCondition: config.GetStandardnetGenesisAuthCoinCondition(),
+			Validators:           tfconsensus.GetStandardTransactionValidators(),
+			MappedValidators:     tfconsensus.GetStandardTransactionVersionMappedValidators(),
+			DaemonNetworkConfig:  networkConfig,
 		}, nil
 
 	case config.NetworkNameTest:
@@ -465,9 +525,10 @@ func setupNetwork(cfg ExtendedDaemonConfig) (setupNetworkConfig, error) {
 				Constants:      constants,
 				BootstrapPeers: cfg.BootstrapPeers,
 			},
-			Validators:          tfconsensus.GetTestnetTransactionValidators(),
-			MappedValidators:    tfconsensus.GetTestnetTransactionVersionMappedValidators(),
-			DaemonNetworkConfig: networkConfig,
+			GenesisAuthCondition: config.GetTestnetGenesisAuthCoinCondition(),
+			Validators:           tfconsensus.GetTestnetTransactionValidators(),
+			MappedValidators:     tfconsensus.GetTestnetTransactionVersionMappedValidators(),
+			DaemonNetworkConfig:  networkConfig,
 		}, nil
 
 	case config.NetworkNameDev:
@@ -485,9 +546,10 @@ func setupNetwork(cfg ExtendedDaemonConfig) (setupNetworkConfig, error) {
 				Constants:      constants,
 				BootstrapPeers: cfg.BootstrapPeers,
 			},
-			Validators:          tfconsensus.GetDevnetTransactionValidators(),
-			MappedValidators:    tfconsensus.GetDevnetTransactionVersionMappedValidators(),
-			DaemonNetworkConfig: networkConfig,
+			GenesisAuthCondition: config.GetDevnetGenesisAuthCoinCondition(),
+			Validators:           tfconsensus.GetDevnetTransactionValidators(),
+			MappedValidators:     tfconsensus.GetDevnetTransactionVersionMappedValidators(),
+			DaemonNetworkConfig:  networkConfig,
 		}, nil
 
 	default:

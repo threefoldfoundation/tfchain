@@ -173,6 +173,10 @@ func GetStandardnetGenesis() types.ChainConstants {
 	return cfg
 }
 
+func GetStandardnetGenesisAuthCoinCondition() types.UnlockConditionProxy {
+	return types.NewCondition(types.NewUnlockHashCondition(unlockHashFromHex("01cc55df18eb3b86670deb6cfbb9b62b8463b62738426f0c14a7ae8926d6b556fbac3aab17f437")))
+}
+
 // GetTestnetGenesis explicitly sets all the required constants for the genesis block of the testnet
 func GetTestnetGenesis() types.ChainConstants {
 	cfg := types.TestnetChainConstants()
@@ -231,6 +235,10 @@ func GetTestnetGenesis() types.ChainConstants {
 	}
 
 	return cfg
+}
+
+func GetTestnetGenesisAuthCoinCondition() types.UnlockConditionProxy {
+	return types.NewCondition(types.NewUnlockHashCondition(unlockHashFromHex("01fc8714235d549f890f35e52d745b9eeeee34926f96c4b9ef1689832f338d9349b453898f7e51")))
 }
 
 // GetDevnetGenesis explicitly sets all the required constants for the genesis block of the devnet
@@ -298,6 +306,10 @@ func GetDevnetGenesis() types.ChainConstants {
 	}
 
 	return cfg
+}
+
+func GetDevnetGenesisAuthCoinCondition() types.UnlockConditionProxy {
+	return types.NewCondition(types.NewUnlockHashCondition(unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))
 }
 
 // GetStandardnetBootstrapPeers sets the standard bootstrap node addresses
