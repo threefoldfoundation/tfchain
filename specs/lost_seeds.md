@@ -1,6 +1,6 @@
 # Lost seeds
 
-We have more and more early investors who loose their seed and get their tft back from the foundation or the person/company they bought them from.
+We have more and more early token holders who loose their seed and get their tft back from the foundation or the person/company they bought them from.
 
 Besides the fact that this costs the refunder TFT, this also diminishes the total amount of TFT available and it might be a fraud.
 
