@@ -61,6 +61,9 @@ func main() {
 		cliClient.CommandLineClient,
 		tftypes.TransactionVersionAuthConditionUpdate,
 		tftypes.TransactionVersionAuthAddressUpdate,
+		&authcointxcli.WalletCmdsOpts{
+			RequireMinerFees: true, // require miner fees
+		},
 	)
 
 	// register root command
