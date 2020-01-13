@@ -198,7 +198,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 				tftypes.TransactionVersionCoinCreation,
 				&minting.PluginOptions{
 					UseLegacySiaEncoding: true,
-					RequireMinerFees:     false,
+					RequireMinerFees:     true,
 				},
 			)
 			// add the HTTP handlers for the minting plugin as well
