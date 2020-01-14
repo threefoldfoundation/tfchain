@@ -317,6 +317,7 @@ func runDaemon(cfg ExtendedDaemonConfig, moduleIdentifiers daemon.ModuleIdentifi
 					return (len(dedupAddresses) == 1 && len(tx.CoinOutputs) <= 2), nil
 				},
 				RequireMinerFees: true,
+				Reverse:          true,
 			},
 		)
 		// add the HTTP handlers for the auth coin tx extension as well
