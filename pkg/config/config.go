@@ -238,7 +238,7 @@ func GetTestnetGenesis() types.ChainConstants {
 }
 
 func GetTestnetGenesisAuthCoinCondition() types.UnlockConditionProxy {
-	return types.NewCondition(types.NewUnlockHashCondition(unlockHashFromHex("01fc8714235d549f890f35e52d745b9eeeee34926f96c4b9ef1689832f338d9349b453898f7e51")))
+	return types.NewCondition(types.NewUnlockHashCondition(unlockHashFromHex("018a65b9dc7b3e769a3fee8c06d04bbee6d77c94b29bd735e4eb5d81813886bb885fd9c9fa23e4")))
 }
 
 // GetDevnetGenesis explicitly sets all the required constants for the genesis block of the devnet
