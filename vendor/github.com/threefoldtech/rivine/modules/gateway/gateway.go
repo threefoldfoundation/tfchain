@@ -6,6 +6,7 @@
 package gateway
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -110,8 +111,7 @@ import (
 )
 
 var (
-	errNoPeers     = errors.New("no peers")
-	errUnreachable = errors.New("peer did not respond to ping")
+	errNoPeers = errors.New("no peers")
 )
 
 // Gateway implements the modules.Gateway interface.
@@ -191,8 +191,8 @@ func (g *Gateway) Close() error {
 	return g.saveSync()
 }
 
-// New returns an initialized Gateway.
-func New(addr string, bootstrap bool, concurrentRPCPerPeer uint64, persistDir string, bcInfo types.BlockchainInfo, chainCts types.ChainConstants, bootstrapPeers []modules.NetAddress, verboseLogging bool) (*Gateway, error) {
+// newGateway returns an initialized Gateway.
+func newGateway(addr string, bootstrap bool, concurrentRPCPerPeer uint64, persistDir string, bcInfo types.BlockchainInfo, chainCts types.ChainConstants, bootstrapPeers []modules.NetAddress, logger *persist.Logger) (*Gateway, error) {
 	// Create the directory if it doesn't exist.
 	err := os.MkdirAll(persistDir, 0700)
 	if err != nil {
@@ -200,6 +200,7 @@ func New(addr string, bootstrap bool, concurrentRPCPerPeer uint64, persistDir st
 	}
 
 	g := &Gateway{
+		log:                  logger,
 		concurrentRPCPerPeer: concurrentRPCPerPeer,
 
 		handlers: make(map[rpcID]modules.RPCFunc),
@@ -214,16 +215,9 @@ func New(addr string, bootstrap bool, concurrentRPCPerPeer uint64, persistDir st
 		chainCts:       chainCts,
 		genesisBlockID: chainCts.GenesisBlockID(),
 	}
-
 	// Set Unique GatewayID
 	fastrand.Read(g.id[:])
 
-	// Create the logger.
-	g.log, err = persist.NewFileLogger(bcInfo,
-		filepath.Join(g.persistDir, logFile), verboseLogging)
-	if err != nil {
-		return nil, err
-	}
 	// Establish the closing of the logger.
 	g.threads.AfterStop(func() {
 		if err := g.log.Close(); err != nil {
@@ -343,9 +337,30 @@ func New(addr string, bootstrap bool, concurrentRPCPerPeer uint64, persistDir st
 
 	// Spawn threads to take care of port forwarding and hostname discovery.
 	go g.threadedForwardPort(g.port)
-	go g.threadedLearnHostname()
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	g.threads.OnStop(func() {
+		cancelFunc()
+	})
+	go g.threadedLearnHostname(ctx)
 
 	return g, nil
+}
+
+// New returns an initialized Gateway with a file;ogger in the persistent directory.
+func New(addr string, bootstrap bool, concurrentRPCPerPeer uint64, persistDir string, bcInfo types.BlockchainInfo, chainCts types.ChainConstants, bootstrapPeers []modules.NetAddress, verboseLogging bool) (*Gateway, error) {
+
+	// Create the logger.
+	err := os.MkdirAll(persistDir, 0700)
+	if err != nil {
+		return nil, err
+	}
+	logger, err := persist.NewFileLogger(bcInfo,
+		filepath.Join(persistDir, logFile), verboseLogging)
+	if err != nil {
+		return nil, err
+	}
+	// Create the gateway
+	return newGateway(addr, bootstrap, concurrentRPCPerPeer, persistDir, bcInfo, chainCts, bootstrapPeers, logger)
 }
 
 func (g *Gateway) ensureBootstrapPeerConnection(closeChan chan struct{}, bootstrapPeers []modules.NetAddress) {

@@ -16,6 +16,7 @@ import (
 	tbcli "github.com/threefoldfoundation/tfchain/extensions/threebot/client"
 	erc20cli "github.com/threefoldtech/rivine-extension-erc20/client"
 	erc20types "github.com/threefoldtech/rivine-extension-erc20/types"
+	authcointxcli "github.com/threefoldtech/rivine/extensions/authcointx/client"
 	mintingcli "github.com/threefoldtech/rivine/extensions/minting/client"
 )
 
@@ -51,6 +52,19 @@ func main() {
 	err = tbcli.CreateWalletCmds(cliClient.CommandLineClient)
 	exitIfError(err)
 	erc20cli.CreateERC20Cmd(cliClient.CommandLineClient)
+
+	err = authcointxcli.CreateConsensusAuthCoinInfoCmd(cliClient.CommandLineClient)
+	exitIfError(err)
+	err = authcointxcli.CreateExploreAuthCoinInfoCmd(cliClient.CommandLineClient)
+	exitIfError(err)
+	authcointxcli.CreateWalletCmds(
+		cliClient.CommandLineClient,
+		tftypes.TransactionVersionAuthConditionUpdate,
+		tftypes.TransactionVersionAuthAddressUpdate,
+		&authcointxcli.WalletCmdsOpts{
+			RequireMinerFees: true, // require miner fees
+		},
+	)
 
 	// register root command
 	cliClient.ERC20Cmd = erc20cli.CreateERC20Cmd(cliClient.CommandLineClient)

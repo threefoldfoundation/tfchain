@@ -8,6 +8,8 @@ import (
 	tbtypes "github.com/threefoldfoundation/tfchain/extensions/threebot/types"
 	erc20cli "github.com/threefoldtech/rivine-extension-erc20/client"
 	erc20types "github.com/threefoldtech/rivine-extension-erc20/types"
+	"github.com/threefoldtech/rivine/extensions/authcointx"
+	authcointxcli "github.com/threefoldtech/rivine/extensions/authcointx/client"
 	"github.com/threefoldtech/rivine/extensions/minting"
 	mintingcli "github.com/threefoldtech/rivine/extensions/minting/client"
 	"github.com/threefoldtech/rivine/pkg/client"
@@ -93,6 +95,24 @@ func registerTransactions(bc client.BaseClient, extraPlugins bool, daemonCfg con
 		TransactionVersion: tftypes.TransactionVersionERC20CoinCreation,
 		Registry:           erc20Client,
 		OneCoin:            cfg.CurrencyUnits.OneCoin,
+	})
+
+	// create coin auth tx plugin client...
+	authCoinTxCLI := authcointxcli.NewPluginConsensusClient(bc)
+	// ...and register coin auth tx types
+	types.RegisterTransactionVersion(tftypes.TransactionVersionAuthConditionUpdate, authcointx.AuthConditionUpdateTransactionController{
+		AuthAddressBaseTransactionController: authcointx.AuthAddressBaseTransactionController{
+			RequireMinerFees: true,
+		},
+		AuthInfoGetter:     authCoinTxCLI,
+		TransactionVersion: tftypes.TransactionVersionAuthConditionUpdate,
+	})
+	types.RegisterTransactionVersion(tftypes.TransactionVersionAuthAddressUpdate, authcointx.AuthAddressUpdateTransactionController{
+		AuthAddressBaseTransactionController: authcointx.AuthAddressBaseTransactionController{
+			RequireMinerFees: true,
+		},
+		AuthInfoGetter:     authCoinTxCLI,
+		TransactionVersion: tftypes.TransactionVersionAuthAddressUpdate,
 	})
 
 	return nil

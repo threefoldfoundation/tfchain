@@ -173,6 +173,17 @@ func GetStandardnetGenesis() types.ChainConstants {
 	return cfg
 }
 
+func GetStandardnetGenesisAuthCoinCondition() types.UnlockConditionProxy {
+	return types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
+		// @robvanmieghem
+		unlockHashFromHex("01334cf68f312026ff9df84fc023558db8624bedd717adcc9edc6900488cf6df54ac8e3d1c89a8"),
+		// @zaibon
+		unlockHashFromHex("019fa94269df01563cdcdc992d4f0cd5e00bb88eb0dfd3de397acd9823ee6de30cce2fbdf3ad89"),
+		// @leesmet
+		unlockHashFromHex("0149a5496fea27315b7db6251e5dfda23bc9d4bf677c5a5c2d70f1382c44357197d8453d9dfa32"),
+	}, 2))
+}
+
 // GetTestnetGenesis explicitly sets all the required constants for the genesis block of the testnet
 func GetTestnetGenesis() types.ChainConstants {
 	cfg := types.TestnetChainConstants()
@@ -231,6 +242,17 @@ func GetTestnetGenesis() types.ChainConstants {
 	}
 
 	return cfg
+}
+
+func GetTestnetGenesisAuthCoinCondition() types.UnlockConditionProxy {
+	return types.NewCondition(types.NewMultiSignatureCondition(types.UnlockHashSlice{
+		// @dylanverstraete
+		unlockHashFromHex("018a65b9dc7b3e769a3fee8c06d04bbee6d77c94b29bd735e4eb5d81813886bb885fd9c9fa23e4"),
+		// @robvanmieghem
+		unlockHashFromHex("01b972bc33c0929b5b8133917cbb64423bc77c2ba41faa620df0d58d3d886a439a66b102295083"),
+		// @leesmet
+		unlockHashFromHex("013a787bf6248c518aee3a040a14b0dd3a029bc8e9b19a1823faf5bcdde397f4201ad01aace4c9"),
+	}, 1))
 }
 
 // GetDevnetGenesis explicitly sets all the required constants for the genesis block of the devnet
@@ -298,6 +320,10 @@ func GetDevnetGenesis() types.ChainConstants {
 	}
 
 	return cfg
+}
+
+func GetDevnetGenesisAuthCoinCondition() types.UnlockConditionProxy {
+	return types.NewCondition(types.NewUnlockHashCondition(unlockHashFromHex("015a080a9259b9d4aaa550e2156f49b1a79a64c7ea463d810d4493e8242e6791584fbdac553e6f")))
 }
 
 // GetStandardnetBootstrapPeers sets the standard bootstrap node addresses

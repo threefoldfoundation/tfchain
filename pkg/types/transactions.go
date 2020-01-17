@@ -31,3 +31,9 @@ const (
 	// linked to an TFT address.
 	TransactionVersionERC20AddressRegistration
 )
+
+// Auth Coin Tx Extension Transaction Versions
+const (
+	TransactionVersionAuthAddressUpdate   types.TransactionVersion = 176
+	TransactionVersionAuthConditionUpdate types.TransactionVersion = 177
+)
