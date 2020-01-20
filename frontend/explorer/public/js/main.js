@@ -452,6 +452,11 @@ function txVersionName(version) {
 		case 146:
 			return "3Bot Name Transfer";
 
+		case 176:
+			return "Address Authentication Update";
+		case 177:
+			return "Auth Condition Update";
+
 		case 208:
 			return "TFT to ERC20 Transfer"
 		case 209:
