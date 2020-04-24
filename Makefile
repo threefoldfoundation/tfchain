@@ -172,9 +172,9 @@ explorer-edge: release-dir embed-explorer-version
 embed-explorer-version:
 	$(eval TEMPDIR = $(shell mktemp -d))
 	cp -r ./frontend $(TEMPDIR)
-	sed -i '' 's/version=0/version=$(fullversion)/g' $(TEMPDIR)/frontend/explorer/public/*.html
-	sed -i '' 's/version=null/version=\"$(fullversion)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
-	sed -i '' 's/versionpath=null/versionpath=\"$(fullversionpath)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
+	sed -i 's/version=0/version=$(fullversion)/g' $(TEMPDIR)/frontend/explorer/public/*.html
+	sed -i 's/version=null/version=\"$(fullversion)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
+	sed -i 's/versionpath=null/versionpath=\"$(fullversionpath)\"/g' $(TEMPDIR)/frontend/explorer/public/js/footer.js
 
 release-dir:
 	[ -d release ] || mkdir release
