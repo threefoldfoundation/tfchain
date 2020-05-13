@@ -53,6 +53,24 @@ func registerTransactions(bc client.BaseClient, extraPlugins bool, daemonCfg con
 		TransactionVersion:  tftypes.TransactionVersionCoinCreation,
 	})
 
+	// create coin auth tx plugin client...
+	authCoinTxCLI := authcointxcli.NewPluginConsensusClient(bc)
+	// ...and register coin auth tx types
+	types.RegisterTransactionVersion(tftypes.TransactionVersionAuthConditionUpdate, authcointx.AuthConditionUpdateTransactionController{
+		AuthAddressBaseTransactionController: authcointx.AuthAddressBaseTransactionController{
+			RequireMinerFees: true,
+		},
+		AuthInfoGetter:     authCoinTxCLI,
+		TransactionVersion: tftypes.TransactionVersionAuthConditionUpdate,
+	})
+	types.RegisterTransactionVersion(tftypes.TransactionVersionAuthAddressUpdate, authcointx.AuthAddressUpdateTransactionController{
+		AuthAddressBaseTransactionController: authcointx.AuthAddressBaseTransactionController{
+			RequireMinerFees: true,
+		},
+		AuthInfoGetter:     authCoinTxCLI,
+		TransactionVersion: tftypes.TransactionVersionAuthAddressUpdate,
+	})
+
 	if !extraPlugins {
 		return nil // 3Bot and ERC20 transactions are not enabled on all networks
 	}
@@ -95,24 +113,6 @@ func registerTransactions(bc client.BaseClient, extraPlugins bool, daemonCfg con
 		TransactionVersion: tftypes.TransactionVersionERC20CoinCreation,
 		Registry:           erc20Client,
 		OneCoin:            cfg.CurrencyUnits.OneCoin,
-	})
-
-	// create coin auth tx plugin client...
-	authCoinTxCLI := authcointxcli.NewPluginConsensusClient(bc)
-	// ...and register coin auth tx types
-	types.RegisterTransactionVersion(tftypes.TransactionVersionAuthConditionUpdate, authcointx.AuthConditionUpdateTransactionController{
-		AuthAddressBaseTransactionController: authcointx.AuthAddressBaseTransactionController{
-			RequireMinerFees: true,
-		},
-		AuthInfoGetter:     authCoinTxCLI,
-		TransactionVersion: tftypes.TransactionVersionAuthConditionUpdate,
-	})
-	types.RegisterTransactionVersion(tftypes.TransactionVersionAuthAddressUpdate, authcointx.AuthAddressUpdateTransactionController{
-		AuthAddressBaseTransactionController: authcointx.AuthAddressBaseTransactionController{
-			RequireMinerFees: true,
-		},
-		AuthInfoGetter:     authCoinTxCLI,
-		TransactionVersion: tftypes.TransactionVersionAuthAddressUpdate,
 	})
 
 	return nil
